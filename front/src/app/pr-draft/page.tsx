@@ -41,6 +41,8 @@ export default function PrDraftPage() {
 function PrDraftContent() {
   const searchParams = useSearchParams();
   const initialDraftInput = useMemo(() => readDraftInputFromSearchParams(searchParams), [searchParams]);
+  const sourceIssueId = searchParams.get("sourceIssueId");
+  const hasDraftPrefill = hasDraftPrefillSearchParams(searchParams);
   const [upstreamRepo, setUpstreamRepo] = useState(initialDraftInput.upstreamRepo);
   const [githubIssueNumber, setGithubIssueNumber] = useState(initialDraftInput.githubIssueNumber);
   const [baseBranch, setBaseBranch] = useState(initialDraftInput.baseBranch);
@@ -124,6 +126,27 @@ function PrDraftContent() {
     <ProtectedLayout title="PR Draft">
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(360px,0.8fr)]">
         <form className="surface space-y-4 p-5" onSubmit={handleSubmit}>
+          {hasDraftPrefill ? (
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-line bg-neutral-50 px-3 py-2">
+              <div>
+                <p className="text-sm font-semibold text-neutral-900">
+                  이슈 상세에서 가져온 입력값입니다.
+                </p>
+                <p className="mt-1 break-all text-xs font-semibold text-neutral-500">
+                  {upstreamRepo} #{githubIssueNumber}
+                </p>
+              </div>
+              {sourceIssueId ? (
+                <Link
+                  className="focus-ring rounded-md border border-line px-3 py-1.5 text-xs font-semibold text-neutral-700 hover:border-moss hover:text-moss"
+                  href={`/issues/${encodeURIComponent(sourceIssueId)}`}
+                >
+                  Issue Guide
+                </Link>
+              ) : null}
+            </div>
+          ) : null}
+
           <div className="grid gap-4 md:grid-cols-2">
             <label className="block">
               <span className="text-sm font-semibold">Repository</span>
@@ -332,6 +355,14 @@ function readIssueNumberParam(searchParams: SearchParamsLike): string {
   }
 
   return String(issueNumber);
+}
+
+function hasDraftPrefillSearchParams(searchParams: SearchParamsLike): boolean {
+  return ["repo", "issue", "base", "head", "diff", "sourceIssueId"].some((name) => {
+    const value = searchParams.get(name);
+
+    return Boolean(value && value.trim());
+  });
 }
 
 function formatDate(value: string) {
