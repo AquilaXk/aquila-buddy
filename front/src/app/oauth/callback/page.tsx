@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { setToken } from "@/lib/auth";
 import { readOAuthCallbackParams } from "@/lib/oauthCallback";
@@ -17,6 +17,7 @@ export default function OAuthCallbackPage() {
 }
 
 function OAuthCallbackContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const callbackParams = useMemo(() => readOAuthCallbackParams(searchParams), [searchParams]);
   const [status, setStatus] = useState<CallbackStatus>("checking");
@@ -36,6 +37,18 @@ function OAuthCallbackContent() {
     setStatus("stored");
   }, [callbackParams]);
 
+  useEffect(() => {
+    if (status !== "stored") {
+      return;
+    }
+
+    const redirectTimer = window.setTimeout(() => {
+      router.replace(callbackParams.redirectTo);
+    }, 1200);
+
+    return () => window.clearTimeout(redirectTimer);
+  }, [callbackParams.redirectTo, router, status]);
+
   const content = getCallbackContent(status, callbackParams.error);
 
   return (
@@ -52,10 +65,10 @@ function OAuthCallbackContent() {
 
       <div className="flex flex-wrap gap-3">
         <Link
-          href="/dashboard"
+          href={callbackParams.redirectTo}
           className="focus-ring inline-block rounded-md bg-moss px-4 py-2 text-sm font-semibold text-white"
         >
-          대시보드로 이동
+          계속하기
         </Link>
         {status !== "stored" ? (
           <Link
@@ -84,7 +97,7 @@ function getCallbackContent(status: CallbackStatus, error: string | null) {
     return {
       title: "로그인이 완료되었습니다.",
       description: "GitHub OAuth token을 브라우저 세션에 저장했습니다.",
-      message: "이제 프로필 분석과 이슈 추천 흐름을 사용할 수 있습니다.",
+      message: "잠시 후 작업 공간으로 이동합니다.",
       panelClassName: "border-green-200 bg-green-50",
       messageClassName: "text-green-800"
     };
