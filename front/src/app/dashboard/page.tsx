@@ -1,12 +1,15 @@
 import Link from "next/link";
 import { ProtectedLayout } from "@/components/ProtectedLayout";
+import { DashboardWorkflowPanel } from "./DashboardWorkflowPanel";
 import { loadDashboardOverview, type DashboardOverview } from "./dashboardData";
+import { buildDashboardWorkflow } from "./dashboardWorkflow";
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
   const overview = await loadDashboardOverview();
   const lanes = buildSummaryLanes(overview);
+  const workflow = buildDashboardWorkflow(overview);
 
   return (
     <ProtectedLayout title="Dashboard">
@@ -21,6 +24,10 @@ export default async function DashboardPage() {
             ) : null}
           </section>
         ))}
+      </div>
+
+      <div className="mt-6">
+        <DashboardWorkflowPanel workflow={workflow} />
       </div>
 
       <section className="mt-8 space-y-3">
