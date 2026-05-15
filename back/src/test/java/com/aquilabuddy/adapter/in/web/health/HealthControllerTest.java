@@ -14,6 +14,9 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+/**
+ * 헬스 체크 web adapter가 use case 응답을 HTTP 상태 API로 노출하는지 검증합니다.
+ */
 @WebMvcTest(HealthController.class)
 @AutoConfigureMockMvc(addFilters = false)
 class HealthControllerTest {

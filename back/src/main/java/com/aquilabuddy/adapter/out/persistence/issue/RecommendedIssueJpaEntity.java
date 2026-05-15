@@ -12,6 +12,12 @@ import jakarta.persistence.Table;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * 추천 이슈 목록을 저장하는 JPA 전용 모델입니다.
+ *
+ * <p>도메인 record와 분리해서 테이블명, 컬럼 길이, 라벨 컬렉션 테이블 같은 저장소 세부사항이
+ * application/domain 계층으로 새지 않도록 둡니다.
+ */
 @Entity
 @Table(name = "recommended_issues")
 public class RecommendedIssueJpaEntity {

@@ -10,6 +10,9 @@ final class IssueGuidePersistenceMapper {
     private IssueGuidePersistenceMapper() {
     }
 
+    /**
+     * 저장소 모델의 컬럼 값을 이슈 가이드 도메인 모델로 옮깁니다.
+     */
     static IssueGuide toDomain(IssueGuideJpaEntity entity) {
         return new IssueGuide(
             entity.getIssueId(),
