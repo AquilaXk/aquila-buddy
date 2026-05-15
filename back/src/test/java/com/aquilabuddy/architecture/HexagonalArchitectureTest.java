@@ -7,6 +7,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 import com.tngtech.archunit.core.importer.ImportOption;
+import java.util.Arrays;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
@@ -41,9 +42,34 @@ class HexagonalArchitectureTest {
                 "org.springframework..",
                 "com.aquilabuddy.application.service..",
                 "com.aquilabuddy.application.port.in..",
+                "com.aquilabuddy.application.port.out..",
                 "com.aquilabuddy.domain.."
             )
             .check(classes);
+    }
+
+    @Test
+    void outboundAdaptersDependOnlyOnOutboundPortsAndDomain() {
+        classes()
+            .that().resideInAPackage("..adapter.out..")
+            .should().onlyDependOnClassesThat().resideInAnyPackage(
+                "java..",
+                "org.springframework..",
+                "com.aquilabuddy.adapter.out..",
+                "com.aquilabuddy.application.port.out..",
+                "com.aquilabuddy.domain.."
+            )
+            .check(classes);
+    }
+
+    @Test
+    void coreApplicationServicesUseOutboundPortsForDataLoading() {
+        assertThat(hasOutboundPortConstructorParameter(com.aquilabuddy.application.service.analysis.IssueGuideService.class))
+            .isTrue();
+        assertThat(hasOutboundPortConstructorParameter(com.aquilabuddy.application.service.issue.RecommendedIssueService.class))
+            .isTrue();
+        assertThat(hasOutboundPortConstructorParameter(com.aquilabuddy.application.service.user.UserProfileService.class))
+            .isTrue();
     }
 
     @Test
@@ -74,5 +100,12 @@ class HexagonalArchitectureTest {
             .collect(Collectors.toSet());
 
         assertThat(legacyPackages).isEmpty();
+    }
+
+    private boolean hasOutboundPortConstructorParameter(Class<?> serviceType) {
+        return Arrays.stream(serviceType.getDeclaredConstructors())
+            .flatMap(constructor -> Arrays.stream(constructor.getParameterTypes()))
+            .map(Class::getPackageName)
+            .anyMatch(packageName -> packageName.startsWith("com.aquilabuddy.application.port.out"));
     }
 }
