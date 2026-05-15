@@ -52,7 +52,8 @@ class HexagonalArchitectureTest {
             .that().resideInAnyPackage(
                 "..domain.analysis..",
                 "..domain.health..",
-                "..domain.issue.."
+                "..domain.issue..",
+                "..domain.user.."
             )
             .should().dependOnClassesThat().resideInAnyPackage(
                 "org.springframework..",
@@ -67,7 +68,9 @@ class HexagonalArchitectureTest {
             .map(javaClass -> javaClass.getPackage().getName())
             .filter(packageName -> packageName.startsWith("com.aquilabuddy.global.analysis")
                 || packageName.startsWith("com.aquilabuddy.global.health")
-                || packageName.startsWith("com.aquilabuddy.global.issue"))
+                || packageName.startsWith("com.aquilabuddy.global.issue")
+                || packageName.startsWith("com.aquilabuddy.global.user")
+                || packageName.startsWith("com.aquilabuddy.application.user"))
             .collect(Collectors.toSet());
 
         assertThat(legacyPackages).isEmpty();
