@@ -1,5 +1,6 @@
 DROP TABLE IF EXISTS issue_guide_side_effects;
 DROP TABLE IF EXISTS issue_guides;
+DROP TABLE IF EXISTS pr_draft_translations;
 DROP TABLE IF EXISTS pr_drafts;
 DROP TABLE IF EXISTS recommended_issue_labels;
 DROP TABLE IF EXISTS recommended_issues;
@@ -41,6 +42,19 @@ CREATE TABLE pr_drafts (
     title VARCHAR(500) NOT NULL,
     body VARCHAR(8000) NOT NULL,
     created_at TIMESTAMP NOT NULL
+);
+
+CREATE TABLE pr_draft_translations (
+    translation_id VARCHAR(100) PRIMARY KEY,
+    draft_id VARCHAR(100) NOT NULL,
+    target_language VARCHAR(20) NOT NULL,
+    title VARCHAR(500) NOT NULL,
+    body VARCHAR(8000) NOT NULL,
+    created_at TIMESTAMP NOT NULL,
+    CONSTRAINT fk_pr_draft_translations_draft
+        FOREIGN KEY (draft_id)
+        REFERENCES pr_drafts(draft_id)
+        ON DELETE CASCADE
 );
 
 CREATE TABLE issue_guide_side_effects (
