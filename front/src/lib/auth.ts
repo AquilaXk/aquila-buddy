@@ -1,7 +1,14 @@
 const tokenKey = "aquila-buddy-token";
 
-export function getOAuthUrl() {
-  return process.env.NEXT_PUBLIC_BACKEND_OAUTH_URL ?? "http://localhost:8080/oauth2/authorization/github";
+export function getOAuthUrl(state?: string) {
+  const oauthUrl = process.env.NEXT_PUBLIC_BACKEND_OAUTH_URL ?? "http://localhost:8080/oauth2/authorization/github";
+
+  if (!state) {
+    return oauthUrl;
+  }
+
+  const separator = oauthUrl.includes("?") ? "&" : "?";
+  return `${oauthUrl}${separator}state=${encodeURIComponent(state)}`;
 }
 
 export function getToken() {

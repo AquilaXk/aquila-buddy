@@ -1,6 +1,16 @@
 import { getOAuthUrl } from "@/lib/auth";
+import { normalizeInternalRedirect } from "@/lib/oauthCallback";
 
-export default function LoginPage() {
+type LoginPageProps = {
+  searchParams?: Promise<{
+    next?: string;
+  }>;
+};
+
+export default async function LoginPage({ searchParams }: LoginPageProps) {
+  const resolvedSearchParams = await searchParams;
+  const nextPath = normalizeInternalRedirect(resolvedSearchParams?.next ?? null);
+
   return (
     <section className="mx-auto max-w-md space-y-5">
       <div>
@@ -10,7 +20,7 @@ export default function LoginPage() {
         </p>
       </div>
       <a
-        href={getOAuthUrl()}
+        href={getOAuthUrl(nextPath)}
         className="focus-ring block rounded-md bg-ink px-4 py-3 text-center text-sm font-semibold text-white"
       >
         GitHub로 계속하기
