@@ -6,6 +6,10 @@ public record UserProfile(
     long githubId,
     String login,
     String name,
-    List<String> languages
+    String email,
+    List<String> primaryLanguages,
+    List<String> topics,
+    boolean profileReady,
+    String vectorUpdatedAt
 ) {
 }

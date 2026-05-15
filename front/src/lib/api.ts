@@ -11,6 +11,17 @@ export type HealthResponse = {
   service: string;
 };
 
+export type UserProfile = {
+  githubId: number;
+  login: string;
+  name: string;
+  email: string;
+  primaryLanguages: string[];
+  topics: string[];
+  profileReady: boolean;
+  vectorUpdatedAt: string;
+};
+
 export type RecommendedIssue = {
   id: string;
   repoFullName: string;
@@ -40,6 +51,24 @@ export async function getHealth(): Promise<HealthResponse> {
   }
 
   return response.json() as Promise<HealthResponse>;
+}
+
+export async function getUserProfile(): Promise<UserProfile> {
+  const response = await fetch(`${API_URL}/api/v1/users/me`, {
+    cache: "no-store"
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch user profile");
+  }
+
+  const payload = (await response.json()) as ApiResponse<UserProfile>;
+
+  if (!payload.success || !payload.data) {
+    throw new Error(payload.message ?? "User profile response was not successful");
+  }
+
+  return payload.data;
 }
 
 export async function getRecommendedIssues(): Promise<RecommendedIssue[]> {
