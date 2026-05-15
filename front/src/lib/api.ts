@@ -23,6 +23,13 @@ export type RecommendedIssue = {
   reason: string;
 };
 
+export type IssueGuide = {
+  issueKey: string;
+  guideline: string;
+  pseudoCode: string;
+  sideEffects: string[];
+};
+
 export async function getHealth(): Promise<HealthResponse> {
   const response = await fetch(`${API_URL}/api/v1/health`, {
     cache: "no-store"
@@ -48,6 +55,24 @@ export async function getRecommendedIssues(): Promise<RecommendedIssue[]> {
 
   if (!payload.success || !payload.data) {
     throw new Error(payload.message ?? "Recommended issues response was not successful");
+  }
+
+  return payload.data;
+}
+
+export async function getIssueGuide(issueId: string): Promise<IssueGuide> {
+  const response = await fetch(`${API_URL}/api/v1/issues/${encodeURIComponent(issueId)}/guide`, {
+    cache: "no-store"
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch issue guide");
+  }
+
+  const payload = (await response.json()) as ApiResponse<IssueGuide>;
+
+  if (!payload.success || !payload.data) {
+    throw new Error(payload.message ?? "Issue guide response was not successful");
   }
 
   return payload.data;
