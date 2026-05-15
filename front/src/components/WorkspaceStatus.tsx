@@ -6,7 +6,7 @@ import {
   getWorkspaceHealthErrorMessage,
   toWorkspaceHealthViewModel,
   type WorkspaceHealthState
-} from "./workspaceStatus";
+} from "./workspaceHealthStatus";
 
 export function WorkspaceStatus() {
   const [healthState, setHealthState] = useState<WorkspaceHealthState>({
