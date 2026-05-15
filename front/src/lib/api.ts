@@ -46,6 +46,22 @@ export type IssueGuide = {
   sideEffects: string[];
 };
 
+export type IssueGuideWorkflowStatus = "READY" | "WAITING";
+
+export type IssueGuideWorkflowStep = {
+  key: string;
+  label: string;
+  description: string;
+  detail: string;
+  status: IssueGuideWorkflowStatus;
+};
+
+export type IssueGuideWorkflow = {
+  issueKey: string;
+  steps: IssueGuideWorkflowStep[];
+  readyCount: number;
+};
+
 export type CreatePullRequestDraftRequest = {
   upstreamRepo: string;
   githubIssueNumber: number;
@@ -257,6 +273,24 @@ export async function getIssueGuide(issueId: string): Promise<IssueGuide> {
 
   if (!payload.success || !payload.data) {
     throw new Error(payload.message ?? "Issue guide response was not successful");
+  }
+
+  return payload.data;
+}
+
+export async function getIssueGuideWorkflow(issueId: string): Promise<IssueGuideWorkflow> {
+  const response = await fetch(`${API_URL}/api/v1/issues/${encodeURIComponent(issueId)}/guide/workflow`, {
+    cache: "no-store"
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch issue guide workflow");
+  }
+
+  const payload = (await response.json()) as ApiResponse<IssueGuideWorkflow>;
+
+  if (!payload.success || !payload.data) {
+    throw new Error(payload.message ?? "Issue guide workflow response was not successful");
   }
 
   return payload.data;
