@@ -1,0 +1,84 @@
+HELP.md
+
+# Workspace metadata
+.DS_Store
+.idea/
+.vscode/
+.fleet/
+*.iws
+*.iml
+*.ipr
+
+# Runtime logs and temp files
+logs/
+*.log
+tmp/
+temp/
+.cache/
+build/
+
+# Workspace local env
+.env
+.env.*
+!.env.example
+compose.override.yml
+
+# Backend local files
+/back/.gradle/
+/back/.gradle-user/
+/back/build/
+/back/out/
+/back/bin/
+/back/.env
+/back/.env.*
+!/back/.env.example
+/back/src/main/resources/application-local.yml
+/back/src/main/resources/application-local.yaml
+/back/src/main/resources/application-*.local.yml
+/back/src/main/resources/application-*.local.yaml
+
+# Frontend local files
+/front/node_modules/
+/front/.next/
+/front/out/
+/front/build/
+/front/coverage/
+/front/test-results/
+/front/playwright-report/
+/front/.env
+/front/.env.local
+/front/.env.development.local
+/front/.env.test.local
+/front/.env.production.local
+!/front/.env.local.example
+/front/tsconfig.tsbuildinfo
+
+# Agent-only local docs and state
+AGENTS.md
+CLAUDE.md
+GEMINI.md
+CURSOR.md
+COPILOT.md
+docs/
+.codex/
+.claude/
+.cursor/
+.aider/
+.aider*
+.windsurf/
+.ai/
+.playwright-mcp/
+
+# Local current-task helpers
+tools/guards/current-task-*.sh
+tools/templates/agent-*.md
+
+# Terraform and local infrastructure state
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+*.tfplan
+crash.log
+crash.*.log
