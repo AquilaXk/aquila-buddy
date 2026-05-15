@@ -31,7 +31,7 @@ export function toWorkspaceHealthViewModel(state: WorkspaceHealthState): Workspa
       detail: "backend health 확인",
       badgeClassName: "border-line bg-white text-neutral-700",
       dotClassName: "bg-neutral-400",
-      checkedAtLabel: null
+      checkedAtLabel: state.checkedAt ? formatCheckedAt(state.checkedAt) : null
     };
   }
 
