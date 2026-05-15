@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { FormEvent, Suspense, useEffect, useMemo, useState } from "react";
 import { ProtectedLayout } from "@/components/ProtectedLayout";
 import {
   createPullRequestDraft,
@@ -9,12 +10,42 @@ import {
   type StoredPullRequestDraft
 } from "@/lib/api";
 
+type DraftInput = {
+  upstreamRepo: string;
+  githubIssueNumber: string;
+  baseBranch: string;
+  headBranch: string;
+  diffContent: string;
+};
+
+type SearchParamsLike = {
+  get(name: string): string | null;
+};
+
+const defaultDraftInput: DraftInput = {
+  upstreamRepo: "spring-projects/spring-boot",
+  githubIssueNumber: "2",
+  baseBranch: "main",
+  headBranch: "feat/validation-docs",
+  diffContent: "diff --git a/docs.adoc b/docs.adoc\n+Add validation example"
+};
+
 export default function PrDraftPage() {
-  const [upstreamRepo, setUpstreamRepo] = useState("spring-projects/spring-boot");
-  const [githubIssueNumber, setGithubIssueNumber] = useState("2");
-  const [baseBranch, setBaseBranch] = useState("main");
-  const [headBranch, setHeadBranch] = useState("feat/validation-docs");
-  const [diffContent, setDiffContent] = useState("diff --git a/docs.adoc b/docs.adoc\n+Add validation example");
+  return (
+    <Suspense fallback={<PrDraftFallback />}>
+      <PrDraftContent />
+    </Suspense>
+  );
+}
+
+function PrDraftContent() {
+  const searchParams = useSearchParams();
+  const initialDraftInput = useMemo(() => readDraftInputFromSearchParams(searchParams), [searchParams]);
+  const [upstreamRepo, setUpstreamRepo] = useState(initialDraftInput.upstreamRepo);
+  const [githubIssueNumber, setGithubIssueNumber] = useState(initialDraftInput.githubIssueNumber);
+  const [baseBranch, setBaseBranch] = useState(initialDraftInput.baseBranch);
+  const [headBranch, setHeadBranch] = useState(initialDraftInput.headBranch);
+  const [diffContent, setDiffContent] = useState(initialDraftInput.diffContent);
   const [draft, setDraft] = useState<StoredPullRequestDraft | null>(null);
   const [drafts, setDrafts] = useState<StoredPullRequestDraft[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -266,6 +297,41 @@ export default function PrDraftPage() {
       </div>
     </ProtectedLayout>
   );
+}
+
+function PrDraftFallback() {
+  return (
+    <ProtectedLayout title="PR Draft">
+      <div className="surface p-5 text-sm font-semibold text-neutral-600">불러오는 중...</div>
+    </ProtectedLayout>
+  );
+}
+
+function readDraftInputFromSearchParams(searchParams: SearchParamsLike): DraftInput {
+  return {
+    upstreamRepo: readTextParam(searchParams, "repo", defaultDraftInput.upstreamRepo),
+    githubIssueNumber: readIssueNumberParam(searchParams),
+    baseBranch: readTextParam(searchParams, "base", defaultDraftInput.baseBranch),
+    headBranch: readTextParam(searchParams, "head", defaultDraftInput.headBranch),
+    diffContent: readTextParam(searchParams, "diff", defaultDraftInput.diffContent)
+  };
+}
+
+function readTextParam(searchParams: SearchParamsLike, name: string, fallback: string): string {
+  const value = searchParams.get(name);
+
+  return value && value.trim() ? value : fallback;
+}
+
+function readIssueNumberParam(searchParams: SearchParamsLike): string {
+  const value = searchParams.get("issue");
+  const issueNumber = Number(value);
+
+  if (!Number.isInteger(issueNumber) || issueNumber <= 0) {
+    return defaultDraftInput.githubIssueNumber;
+  }
+
+  return String(issueNumber);
 }
 
 function formatDate(value: string) {
