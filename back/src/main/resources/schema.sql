@@ -1,3 +1,5 @@
+DROP TABLE IF EXISTS issue_guide_side_effects;
+DROP TABLE IF EXISTS issue_guides;
 DROP TABLE IF EXISTS recommended_issue_labels;
 DROP TABLE IF EXISTS recommended_issues;
 
@@ -20,5 +22,22 @@ CREATE TABLE recommended_issue_labels (
     CONSTRAINT fk_recommended_issue_labels_issue
         FOREIGN KEY (recommended_issue_id)
         REFERENCES recommended_issues(issue_id)
+        ON DELETE CASCADE
+);
+
+CREATE TABLE issue_guides (
+    issue_id VARCHAR(100) PRIMARY KEY,
+    guideline VARCHAR(4000) NOT NULL,
+    pseudo_code VARCHAR(4000) NOT NULL
+);
+
+CREATE TABLE issue_guide_side_effects (
+    issue_guide_id VARCHAR(100) NOT NULL,
+    effect_order INTEGER NOT NULL,
+    side_effect VARCHAR(1000) NOT NULL,
+    PRIMARY KEY (issue_guide_id, effect_order),
+    CONSTRAINT fk_issue_guide_side_effects_guide
+        FOREIGN KEY (issue_guide_id)
+        REFERENCES issue_guides(issue_id)
         ON DELETE CASCADE
 );

@@ -98,6 +98,7 @@ class HexagonalArchitectureTest {
                 || packageName.startsWith("com.aquilabuddy.global.issue")
                 || packageName.startsWith("com.aquilabuddy.global.user")
                 || packageName.startsWith("com.aquilabuddy.application.user")
+                || packageName.startsWith("com.aquilabuddy.adapter.out.fixture.analysis")
                 || packageName.startsWith("com.aquilabuddy.adapter.out.fixture.issue"))
             .collect(Collectors.toSet());
 
