@@ -41,6 +41,19 @@ export type IssueGuide = {
   sideEffects: string[];
 };
 
+export type CreatePullRequestDraftRequest = {
+  upstreamRepo: string;
+  githubIssueNumber: number;
+  baseBranch: string;
+  headBranch: string;
+  diffContent: string;
+};
+
+export type PullRequestDraft = {
+  title: string;
+  body: string;
+};
+
 export async function getHealth(): Promise<HealthResponse> {
   const response = await fetch(`${API_URL}/api/v1/health`, {
     cache: "no-store"
@@ -66,6 +79,30 @@ export async function getUserProfile(): Promise<UserProfile> {
 
   if (!payload.success || !payload.data) {
     throw new Error(payload.message ?? "User profile response was not successful");
+  }
+
+  return payload.data;
+}
+
+export async function createPullRequestDraft(
+  request: CreatePullRequestDraftRequest
+): Promise<PullRequestDraft> {
+  const response = await fetch(`${API_URL}/api/v1/pr`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(request)
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to create pull request draft");
+  }
+
+  const payload = (await response.json()) as ApiResponse<PullRequestDraft>;
+
+  if (!payload.success || !payload.data) {
+    throw new Error(payload.message ?? "Pull request draft response was not successful");
   }
 
   return payload.data;

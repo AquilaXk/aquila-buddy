@@ -27,6 +27,7 @@ class HexagonalArchitectureTest {
             .that().resideInAPackage("..adapter.in.web..")
             .should().onlyDependOnClassesThat().resideInAnyPackage(
                 "java..",
+                "jakarta..",
                 "org.springframework..",
                 "com.aquilabuddy.adapter.in.web..",
                 "com.aquilabuddy.application.port.in..",
@@ -72,6 +73,8 @@ class HexagonalArchitectureTest {
             .isTrue();
         assertThat(hasOutboundPortConstructorParameter(com.aquilabuddy.application.service.issue.RecommendedIssueService.class))
             .isTrue();
+        assertThat(hasOutboundPortConstructorParameter(com.aquilabuddy.application.service.prdraft.PullRequestDraftService.class))
+            .isTrue();
         assertThat(hasOutboundPortConstructorParameter(com.aquilabuddy.application.service.user.UserProfileService.class))
             .isTrue();
     }
@@ -83,6 +86,7 @@ class HexagonalArchitectureTest {
                 "..domain.analysis..",
                 "..domain.health..",
                 "..domain.issue..",
+                "..domain.prdraft..",
                 "..domain.user.."
             )
             .should().dependOnClassesThat().resideInAnyPackage(
