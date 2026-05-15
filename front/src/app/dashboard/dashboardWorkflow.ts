@@ -23,6 +23,14 @@ export type DashboardWorkflow = {
   completedCount: number;
 };
 
+export type DashboardActivityItem = {
+  id: string;
+  label: string;
+  detail: string;
+  href: string;
+  createdAt: string | null;
+};
+
 export function buildDashboardWorkflow(overview: DashboardOverview): DashboardWorkflow {
   const hasProfile = Boolean(overview.profile?.profileReady);
   const hasIssues = overview.issueHistory.length > 0;
@@ -69,6 +77,26 @@ export function buildDashboardWorkflow(overview: DashboardOverview): DashboardWo
     nextAction: resolveNextAction(steps),
     completedCount: steps.filter((step) => step.status === "done").length
   };
+}
+
+export function buildDashboardActivities(overview: DashboardOverview): DashboardActivityItem[] {
+  const draftActivities = overview.prDrafts.slice(0, 2).map((draft) => ({
+    id: `draft-${draft.id}`,
+    label: "PR 초안 생성",
+    detail: `${draft.upstreamRepo} #${draft.githubIssueNumber}`,
+    href: `/pr/${draft.id}`,
+    createdAt: draft.createdAt
+  }));
+
+  const issueActivities = overview.issueHistory.slice(0, 2).map((issue) => ({
+    id: `issue-${issue.id}`,
+    label: issue.isAnalyzed ? "가이드 분석 완료" : "추천 이슈 저장",
+    detail: `${issue.repoFullName} #${issue.issueNumber}`,
+    href: `/issues/${issue.id}`,
+    createdAt: null
+  }));
+
+  return [...draftActivities, ...issueActivities].slice(0, 4);
 }
 
 function resolveStatus(
