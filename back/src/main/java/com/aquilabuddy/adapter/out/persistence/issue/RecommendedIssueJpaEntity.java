@@ -1,0 +1,113 @@
+package com.aquilabuddy.adapter.out.persistence.issue;
+
+import jakarta.persistence.CollectionTable;
+import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OrderColumn;
+import jakarta.persistence.Table;
+import java.util.ArrayList;
+import java.util.List;
+
+@Entity
+@Table(name = "recommended_issues")
+public class RecommendedIssueJpaEntity {
+
+    @Id
+    @Column(name = "issue_id", nullable = false, length = 100)
+    private String id;
+
+    @Column(name = "repo_full_name", nullable = false)
+    private String repoFullName;
+
+    @Column(name = "issue_number", nullable = false)
+    private long issueNumber;
+
+    @Column(name = "title", nullable = false, length = 500)
+    private String title;
+
+    @Column(name = "summary", nullable = false, length = 1_000)
+    private String summary;
+
+    @Column(name = "score", nullable = false)
+    private double score;
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(
+        name = "recommended_issue_labels",
+        joinColumns = @JoinColumn(name = "recommended_issue_id")
+    )
+    @OrderColumn(name = "label_order")
+    @Column(name = "label", nullable = false)
+    private List<String> labels = new ArrayList<>();
+
+    @Column(name = "status", nullable = false, length = 50)
+    private String status;
+
+    @Column(name = "reason", nullable = false, length = 1_000)
+    private String reason;
+
+    protected RecommendedIssueJpaEntity() {
+    }
+
+    RecommendedIssueJpaEntity(
+        String id,
+        String repoFullName,
+        long issueNumber,
+        String title,
+        String summary,
+        double score,
+        List<String> labels,
+        String status,
+        String reason
+    ) {
+        this.id = id;
+        this.repoFullName = repoFullName;
+        this.issueNumber = issueNumber;
+        this.title = title;
+        this.summary = summary;
+        this.score = score;
+        this.labels = new ArrayList<>(labels);
+        this.status = status;
+        this.reason = reason;
+    }
+
+    String getId() {
+        return id;
+    }
+
+    String getRepoFullName() {
+        return repoFullName;
+    }
+
+    long getIssueNumber() {
+        return issueNumber;
+    }
+
+    String getTitle() {
+        return title;
+    }
+
+    String getSummary() {
+        return summary;
+    }
+
+    double getScore() {
+        return score;
+    }
+
+    List<String> getLabels() {
+        return List.copyOf(labels);
+    }
+
+    String getStatus() {
+        return status;
+    }
+
+    String getReason() {
+        return reason;
+    }
+}
