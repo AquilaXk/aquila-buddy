@@ -64,4 +64,29 @@ class RecommendedIssuePersistenceAdapterTest {
         assertThat(issues.getFirst().score()).isEqualTo(0.91);
         assertThat(issues.getFirst().status()).isEqualTo("OPEN");
     }
+
+    @Test
+    void savesRecommendedIssuesForLaterFallback() {
+        RecommendedIssue searched = new RecommendedIssue(
+            "github-search",
+            "spring-projects/spring-boot",
+            101,
+            "Improve contributor guide",
+            "GitHub에서 수집한 Good First Issue 후보입니다.",
+            1.0,
+            List.of("good first issue", "documentation"),
+            "OPEN",
+            "GitHub Search 후보입니다."
+        );
+
+        adapter.saveRecommendedIssues(List.of(searched));
+
+        List<RecommendedIssue> issues = adapter.loadRecommendedIssues();
+        assertThat(issues).hasSize(1);
+        assertThat(issues.getFirst().id()).isEqualTo("github-search");
+        assertThat(issues.getFirst().repoFullName()).isEqualTo("spring-projects/spring-boot");
+        assertThat(issues.getFirst().issueNumber()).isEqualTo(101);
+        assertThat(issues.getFirst().labels()).containsExactly("good first issue", "documentation");
+        assertThat(issues.getFirst().reason()).isEqualTo("GitHub Search 후보입니다.");
+    }
 }

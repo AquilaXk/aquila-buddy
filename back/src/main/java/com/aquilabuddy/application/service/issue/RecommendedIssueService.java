@@ -2,6 +2,7 @@ package com.aquilabuddy.application.service.issue;
 
 import com.aquilabuddy.application.port.in.issue.RecommendIssuesUseCase;
 import com.aquilabuddy.application.port.out.issue.LoadRecommendedIssuesPort;
+import com.aquilabuddy.application.port.out.issue.SaveRecommendedIssuesPort;
 import com.aquilabuddy.application.port.out.issue.SearchRecommendedIssuesPort;
 import com.aquilabuddy.domain.issue.RecommendedIssue;
 import java.util.List;
@@ -16,13 +17,16 @@ import org.springframework.stereotype.Service;
 public class RecommendedIssueService implements RecommendIssuesUseCase {
 
     private final LoadRecommendedIssuesPort loadRecommendedIssuesPort;
+    private final SaveRecommendedIssuesPort saveRecommendedIssuesPort;
     private final SearchRecommendedIssuesPort searchRecommendedIssuesPort;
 
     public RecommendedIssueService(
         LoadRecommendedIssuesPort loadRecommendedIssuesPort,
+        SaveRecommendedIssuesPort saveRecommendedIssuesPort,
         SearchRecommendedIssuesPort searchRecommendedIssuesPort
     ) {
         this.loadRecommendedIssuesPort = loadRecommendedIssuesPort;
+        this.saveRecommendedIssuesPort = saveRecommendedIssuesPort;
         this.searchRecommendedIssuesPort = searchRecommendedIssuesPort;
     }
 
@@ -34,6 +38,7 @@ public class RecommendedIssueService implements RecommendIssuesUseCase {
         try {
             List<RecommendedIssue> searchedIssues = searchRecommendedIssuesPort.searchRecommendedIssues();
             if (!searchedIssues.isEmpty()) {
+                saveRecommendedIssuesPort.saveRecommendedIssues(searchedIssues);
                 return searchedIssues;
             }
         } catch (RuntimeException ignored) {

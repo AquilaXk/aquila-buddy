@@ -26,4 +26,21 @@ final class RecommendedIssuePersistenceMapper {
             entity.getReason()
         );
     }
+
+    /**
+     * 검색 결과 도메인 모델을 fallback 저장소에 맞는 JPA entity로 변환합니다.
+     */
+    static RecommendedIssueJpaEntity toEntity(RecommendedIssue issue) {
+        return new RecommendedIssueJpaEntity(
+            issue.id(),
+            issue.repoFullName(),
+            issue.issueNumber(),
+            issue.title(),
+            issue.summary(),
+            issue.score(),
+            issue.labels(),
+            issue.status(),
+            issue.reason()
+        );
+    }
 }
