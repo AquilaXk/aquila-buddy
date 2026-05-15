@@ -1,7 +1,9 @@
 package com.aquilabuddy.adapter.in.web.issue;
 
+import com.aquilabuddy.application.port.in.issue.GetRecommendedIssueHistoryUseCase;
 import com.aquilabuddy.application.port.in.issue.RecommendIssuesUseCase;
 import com.aquilabuddy.domain.issue.RecommendedIssue;
+import com.aquilabuddy.domain.issue.RecommendedIssueHistory;
 import com.aquilabuddy.global.response.ApiResponse;
 import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,9 +18,14 @@ import org.springframework.web.bind.annotation.RestController;
 public class IssueRecommendationController {
 
     private final RecommendIssuesUseCase recommendIssuesUseCase;
+    private final GetRecommendedIssueHistoryUseCase getRecommendedIssueHistoryUseCase;
 
-    public IssueRecommendationController(RecommendIssuesUseCase recommendIssuesUseCase) {
+    public IssueRecommendationController(
+        RecommendIssuesUseCase recommendIssuesUseCase,
+        GetRecommendedIssueHistoryUseCase getRecommendedIssueHistoryUseCase
+    ) {
         this.recommendIssuesUseCase = recommendIssuesUseCase;
+        this.getRecommendedIssueHistoryUseCase = getRecommendedIssueHistoryUseCase;
     }
 
     /**
@@ -27,5 +34,13 @@ public class IssueRecommendationController {
     @GetMapping("/recommend")
     ApiResponse<List<RecommendedIssue>> recommend() {
         return ApiResponse.success(recommendIssuesUseCase.recommend());
+    }
+
+    /**
+     * 저장된 추천 이슈를 이력 응답으로 반환합니다.
+     */
+    @GetMapping("/recommend/history")
+    ApiResponse<List<RecommendedIssueHistory>> history() {
+        return ApiResponse.success(getRecommendedIssueHistoryUseCase.history());
     }
 }

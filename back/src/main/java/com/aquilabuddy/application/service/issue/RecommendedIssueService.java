@@ -1,10 +1,12 @@
 package com.aquilabuddy.application.service.issue;
 
+import com.aquilabuddy.application.port.in.issue.GetRecommendedIssueHistoryUseCase;
 import com.aquilabuddy.application.port.in.issue.RecommendIssuesUseCase;
 import com.aquilabuddy.application.port.out.issue.LoadRecommendedIssuesPort;
 import com.aquilabuddy.application.port.out.issue.SaveRecommendedIssuesPort;
 import com.aquilabuddy.application.port.out.issue.SearchRecommendedIssuesPort;
 import com.aquilabuddy.domain.issue.RecommendedIssue;
+import com.aquilabuddy.domain.issue.RecommendedIssueHistory;
 import java.util.List;
 import org.springframework.stereotype.Service;
 
@@ -14,7 +16,7 @@ import org.springframework.stereotype.Service;
  * <p>데이터 출처는 outbound port 뒤로 숨겨 application 계층이 영속성 구현에 의존하지 않게 합니다.
  */
 @Service
-public class RecommendedIssueService implements RecommendIssuesUseCase {
+public class RecommendedIssueService implements RecommendIssuesUseCase, GetRecommendedIssueHistoryUseCase {
 
     private final LoadRecommendedIssuesPort loadRecommendedIssuesPort;
     private final SaveRecommendedIssuesPort saveRecommendedIssuesPort;
@@ -45,5 +47,16 @@ public class RecommendedIssueService implements RecommendIssuesUseCase {
             // 외부 검색 장애가 추천 API 전체 실패로 번지지 않도록 저장 데이터 fallback을 유지합니다.
         }
         return loadRecommendedIssuesPort.loadRecommendedIssues();
+    }
+
+    /**
+     * 저장된 추천 후보를 이력 응답으로 변환합니다.
+     */
+    @Override
+    public List<RecommendedIssueHistory> history() {
+        return loadRecommendedIssuesPort.loadRecommendedIssues()
+            .stream()
+            .map(RecommendedIssueHistory::notAnalyzed)
+            .toList();
     }
 }
