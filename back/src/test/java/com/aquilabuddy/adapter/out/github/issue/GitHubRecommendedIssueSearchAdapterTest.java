@@ -1,0 +1,81 @@
+package com.aquilabuddy.adapter.out.github.issue;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+import com.aquilabuddy.domain.issue.RecommendedIssue;
+import com.sun.net.httpserver.HttpServer;
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.web.client.RestClient;
+
+class GitHubRecommendedIssueSearchAdapterTest {
+
+    private HttpServer server;
+
+    @AfterEach
+    void tearDown() {
+        if (server != null) {
+            server.stop(0);
+        }
+    }
+
+    @Test
+    void mapsGitHubSearchResponseToRecommendedIssues() throws IOException {
+        AtomicReference<String> rawQuery = new AtomicReference<>();
+        AtomicReference<String> authorization = new AtomicReference<>();
+        server = HttpServer.create(new InetSocketAddress(0), 0);
+        server.createContext("/search/issues", exchange -> {
+            rawQuery.set(exchange.getRequestURI().getRawQuery());
+            authorization.set(exchange.getRequestHeaders().getFirst("Authorization"));
+            byte[] body = """
+                {
+                  "items": [
+                    {
+                      "id": 987654321,
+                      "number": 42,
+                      "title": "Improve onboarding docs",
+                      "body": "This issue is friendly for first-time contributors.",
+                      "repository_url": "https://api.github.com/repos/spring-projects/spring-boot",
+                      "labels": [
+                        {"name": "good first issue"},
+                        {"name": "documentation"}
+                      ]
+                    }
+                  ]
+                }
+                """.getBytes(StandardCharsets.UTF_8);
+            exchange.getResponseHeaders().add("Content-Type", "application/json");
+            exchange.sendResponseHeaders(200, body.length);
+            exchange.getResponseBody().write(body);
+            exchange.close();
+        });
+        server.start();
+        GitHubRecommendedIssueSearchAdapter adapter = new GitHubRecommendedIssueSearchAdapter(
+            RestClient.builder(),
+            "http://localhost:" + server.getAddress().getPort(),
+            "test-token",
+            true,
+            "label:\"good first issue\"",
+            2
+        );
+
+        List<RecommendedIssue> issues = adapter.searchRecommendedIssues();
+
+        assertThat(authorization.get()).isEqualTo("Bearer test-token");
+        assertThat(URLDecoder.decode(rawQuery.get(), StandardCharsets.UTF_8))
+            .contains("q=label:\"good first issue\" is:issue is:open")
+            .contains("per_page=2");
+        assertThat(issues).hasSize(1);
+        assertThat(issues.getFirst().id()).isEqualTo("987654321");
+        assertThat(issues.getFirst().repoFullName()).isEqualTo("spring-projects/spring-boot");
+        assertThat(issues.getFirst().issueNumber()).isEqualTo(42);
+        assertThat(issues.getFirst().labels()).containsExactly("good first issue", "documentation");
+        assertThat(issues.getFirst().status()).isEqualTo("OPEN");
+    }
+}

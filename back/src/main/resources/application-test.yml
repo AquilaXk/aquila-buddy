@@ -7,3 +7,8 @@ spring:
   jpa:
     hibernate:
       ddl-auto: none
+
+app:
+  github:
+    issue-search:
+      enabled: false
