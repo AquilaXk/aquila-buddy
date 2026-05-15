@@ -1,13 +1,17 @@
 package com.aquilabuddy.adapter.in.web.prdraft;
 
 import com.aquilabuddy.application.port.in.prdraft.CreatePullRequestDraftUseCase;
+import com.aquilabuddy.application.port.in.prdraft.CreatePullRequestDraftTranslationUseCase;
 import com.aquilabuddy.application.port.in.prdraft.GetPullRequestDraftUseCase;
 import com.aquilabuddy.application.port.in.prdraft.ListPullRequestDraftsUseCase;
+import com.aquilabuddy.application.port.in.prdraft.ListPullRequestDraftTranslationsUseCase;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftRequest;
+import com.aquilabuddy.domain.prdraft.PullRequestDraftTranslation;
 import com.aquilabuddy.domain.prdraft.StoredPullRequestDraft;
 import com.aquilabuddy.global.response.ApiResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Positive;
 import java.util.List;
 import org.springframework.http.HttpStatus;
@@ -29,15 +33,21 @@ public class PullRequestDraftController {
     private final CreatePullRequestDraftUseCase createPullRequestDraftUseCase;
     private final ListPullRequestDraftsUseCase listPullRequestDraftsUseCase;
     private final GetPullRequestDraftUseCase getPullRequestDraftUseCase;
+    private final CreatePullRequestDraftTranslationUseCase createPullRequestDraftTranslationUseCase;
+    private final ListPullRequestDraftTranslationsUseCase listPullRequestDraftTranslationsUseCase;
 
     public PullRequestDraftController(
         CreatePullRequestDraftUseCase createPullRequestDraftUseCase,
         ListPullRequestDraftsUseCase listPullRequestDraftsUseCase,
-        GetPullRequestDraftUseCase getPullRequestDraftUseCase
+        GetPullRequestDraftUseCase getPullRequestDraftUseCase,
+        CreatePullRequestDraftTranslationUseCase createPullRequestDraftTranslationUseCase,
+        ListPullRequestDraftTranslationsUseCase listPullRequestDraftTranslationsUseCase
     ) {
         this.createPullRequestDraftUseCase = createPullRequestDraftUseCase;
         this.listPullRequestDraftsUseCase = listPullRequestDraftsUseCase;
         this.getPullRequestDraftUseCase = getPullRequestDraftUseCase;
+        this.createPullRequestDraftTranslationUseCase = createPullRequestDraftTranslationUseCase;
+        this.listPullRequestDraftTranslationsUseCase = listPullRequestDraftTranslationsUseCase;
     }
 
     /**
@@ -68,6 +78,32 @@ public class PullRequestDraftController {
     }
 
     /**
+     * 저장된 PR 초안을 대상 언어의 제출용 초안으로 변환해 저장합니다.
+     */
+    @PostMapping("/{id}/translations")
+    ApiResponse<PullRequestDraftTranslation> createTranslation(
+        @PathVariable String id,
+        @Valid @RequestBody CreatePullRequestDraftTranslationRequest request
+    ) {
+        PullRequestDraftTranslation translation = createPullRequestDraftTranslationUseCase
+            .createTranslation(id, request.targetLanguage())
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "PR 초안을 찾을 수 없습니다."));
+
+        return ApiResponse.success(translation);
+    }
+
+    /**
+     * 저장된 PR 초안의 번역 결과 목록을 반환합니다.
+     */
+    @GetMapping("/{id}/translations")
+    ApiResponse<List<PullRequestDraftTranslation>> translations(@PathVariable String id) {
+        getPullRequestDraftUseCase.getPullRequestDraft(id)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "PR 초안을 찾을 수 없습니다."));
+
+        return ApiResponse.success(listPullRequestDraftTranslationsUseCase.listTranslations(id));
+    }
+
+    /**
      * web 요청 body를 domain 요청 모델로 변환하기 전 검증하는 DTO입니다.
      */
     record CreatePullRequestDraftRequest(
@@ -92,5 +128,15 @@ public class PullRequestDraftController {
                 diffContent
             );
         }
+    }
+
+    /**
+     * web 요청 body에서 현재 지원하는 번역 대상 언어를 검증합니다.
+     */
+    record CreatePullRequestDraftTranslationRequest(
+        @NotBlank(message = "targetLanguage는 비어 있을 수 없습니다.")
+        @Pattern(regexp = "en", message = "targetLanguage는 en만 지원합니다.")
+        String targetLanguage
+    ) {
     }
 }

@@ -1,5 +1,6 @@
 import { ProtectedLayout } from "@/components/ProtectedLayout";
 import { getPullRequestDraft, type StoredPullRequestDraft } from "@/lib/api";
+import { TranslationPanel } from "./TranslationPanel";
 
 type PrDetailPageProps = {
   params: Promise<{
@@ -71,6 +72,8 @@ function DraftDetail({ draft }: { draft: StoredPullRequestDraft }) {
           {draft.body}
         </pre>
       </div>
+
+      <TranslationPanel draftId={draft.id} />
     </div>
   );
 }

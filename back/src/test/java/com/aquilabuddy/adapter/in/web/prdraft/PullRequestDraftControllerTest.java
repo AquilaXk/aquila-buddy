@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.jayway.jsonpath.JsonPath;
 import com.aquilabuddy.adapter.out.persistence.prdraft.PullRequestDraftJpaRepository;
+import com.aquilabuddy.adapter.out.persistence.prdraft.PullRequestDraftTranslationJpaRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,8 +30,12 @@ class PullRequestDraftControllerTest {
     @Autowired
     private PullRequestDraftJpaRepository repository;
 
+    @Autowired
+    private PullRequestDraftTranslationJpaRepository translationRepository;
+
     @BeforeEach
     void setUp() {
+        translationRepository.deleteAll();
         repository.deleteAll();
     }
 
@@ -87,6 +92,66 @@ class PullRequestDraftControllerTest {
     }
 
     @Test
+    void createsPullRequestDraftTranslation() throws Exception {
+        String id = createDraft();
+
+        mockMvc.perform(post("/api/v1/pr/{id}/translations", id)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                      "targetLanguage": "en"
+                    }
+                    """))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.id").isNotEmpty())
+            .andExpect(jsonPath("$.data.draftId").value(id))
+            .andExpect(jsonPath("$.data.targetLanguage").value("en"))
+            .andExpect(jsonPath("$.data.title").value("docs: Prepare spring-projects/spring-boot#2 update"))
+            .andExpect(jsonPath("$.data.body").value(org.hamcrest.Matchers.containsString("## Summary")));
+    }
+
+    @Test
+    void listsPullRequestDraftTranslations() throws Exception {
+        String id = createDraft();
+        createTranslation(id);
+
+        mockMvc.perform(get("/api/v1/pr/{id}/translations", id))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data[0].draftId").value(id))
+            .andExpect(jsonPath("$.data[0].targetLanguage").value("en"));
+    }
+
+    @Test
+    void returnsNotFoundWhenCreatingTranslationForMissingDraft() throws Exception {
+        mockMvc.perform(post("/api/v1/pr/{id}/translations", "missing")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                      "targetLanguage": "en"
+                    }
+                    """))
+            .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void rejectsUnsupportedTranslationLanguage() throws Exception {
+        String id = createDraft();
+
+        mockMvc.perform(post("/api/v1/pr/{id}/translations", id)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                      "targetLanguage": "ko"
+                    }
+                    """))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.success").value(false))
+            .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("targetLanguage")));
+    }
+
+    @Test
     void rejectsBlankRepository() throws Exception {
         mockMvc.perform(post("/api/v1/pr")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -120,5 +185,16 @@ class PullRequestDraftControllerTest {
             .andReturn();
 
         return JsonPath.read(result.getResponse().getContentAsString(), "$.data.id");
+    }
+
+    private void createTranslation(String id) throws Exception {
+        mockMvc.perform(post("/api/v1/pr/{id}/translations", id)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                      "targetLanguage": "en"
+                    }
+                    """))
+            .andExpect(status().isOk());
     }
 }

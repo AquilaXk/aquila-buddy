@@ -68,6 +68,13 @@ export type StoredPullRequestDraft = PullRequestDraft & {
   createdAt: string;
 };
 
+export type PullRequestDraftTranslation = PullRequestDraft & {
+  id: string;
+  draftId: string;
+  targetLanguage: "en";
+  createdAt: string;
+};
+
 export async function getHealth(): Promise<HealthResponse> {
   const response = await fetch(`${API_URL}/api/v1/health`, {
     cache: "no-store"
@@ -153,6 +160,49 @@ export async function getPullRequestDraft(id: string): Promise<StoredPullRequest
 
   if (!payload.success || !payload.data) {
     throw new Error(payload.message ?? "Pull request draft detail response was not successful");
+  }
+
+  return payload.data;
+}
+
+export async function createPullRequestDraftTranslation(
+  id: string,
+  targetLanguage: "en"
+): Promise<PullRequestDraftTranslation> {
+  const response = await fetch(`${API_URL}/api/v1/pr/${encodeURIComponent(id)}/translations`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ targetLanguage })
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to create pull request draft translation");
+  }
+
+  const payload = (await response.json()) as ApiResponse<PullRequestDraftTranslation>;
+
+  if (!payload.success || !payload.data) {
+    throw new Error(payload.message ?? "Pull request draft translation response was not successful");
+  }
+
+  return payload.data;
+}
+
+export async function getPullRequestDraftTranslations(id: string): Promise<PullRequestDraftTranslation[]> {
+  const response = await fetch(`${API_URL}/api/v1/pr/${encodeURIComponent(id)}/translations`, {
+    cache: "no-store"
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch pull request draft translations");
+  }
+
+  const payload = (await response.json()) as ApiResponse<PullRequestDraftTranslation[]>;
+
+  if (!payload.success || !payload.data) {
+    throw new Error(payload.message ?? "Pull request draft translations response was not successful");
   }
 
   return payload.data;
