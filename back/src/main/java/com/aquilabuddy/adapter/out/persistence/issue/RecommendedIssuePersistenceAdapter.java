@@ -1,6 +1,7 @@
 package com.aquilabuddy.adapter.out.persistence.issue;
 
 import com.aquilabuddy.application.port.out.issue.LoadRecommendedIssuesPort;
+import com.aquilabuddy.application.port.out.issue.SaveRecommendedIssuesPort;
 import com.aquilabuddy.domain.issue.RecommendedIssue;
 import java.util.List;
 import org.springframework.stereotype.Component;
@@ -12,7 +13,7 @@ import org.springframework.stereotype.Component;
  * 이 adapter와 repository 내부에 둡니다.
  */
 @Component
-public class RecommendedIssuePersistenceAdapter implements LoadRecommendedIssuesPort {
+public class RecommendedIssuePersistenceAdapter implements LoadRecommendedIssuesPort, SaveRecommendedIssuesPort {
 
     private final RecommendedIssueJpaRepository repository;
 
@@ -29,5 +30,17 @@ public class RecommendedIssuePersistenceAdapter implements LoadRecommendedIssues
             .stream()
             .map(RecommendedIssuePersistenceMapper::toDomain)
             .toList();
+    }
+
+    /**
+     * 검색 후보를 저장소 모델로 변환해 이후 fallback 조회에 사용할 수 있게 저장합니다.
+     */
+    @Override
+    public void saveRecommendedIssues(List<RecommendedIssue> issues) {
+        List<RecommendedIssueJpaEntity> entities = issues.stream()
+            .map(RecommendedIssuePersistenceMapper::toEntity)
+            .toList();
+
+        repository.saveAll(entities);
     }
 }

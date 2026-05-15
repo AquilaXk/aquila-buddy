@@ -3,6 +3,7 @@ package com.aquilabuddy.application.service.issue;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.aquilabuddy.application.port.out.issue.LoadRecommendedIssuesPort;
+import com.aquilabuddy.application.port.out.issue.SaveRecommendedIssuesPort;
 import com.aquilabuddy.application.port.out.issue.SearchRecommendedIssuesPort;
 import com.aquilabuddy.domain.issue.RecommendedIssue;
 import java.util.List;
@@ -18,6 +19,7 @@ class RecommendedIssueServiceTest {
         );
         RecommendedIssueService service = new RecommendedIssueService(
             fallbackPort,
+            new RecordingSaveRecommendedIssuesPort(),
             () -> List.of(searched)
         );
 
@@ -28,10 +30,27 @@ class RecommendedIssueServiceTest {
     }
 
     @Test
+    void savesSearchedIssuesBeforeReturningThem() {
+        RecommendedIssue searched = issue("github-search", "spring-projects/spring-boot", 101);
+        RecordingSaveRecommendedIssuesPort savePort = new RecordingSaveRecommendedIssuesPort();
+        RecommendedIssueService service = new RecommendedIssueService(
+            new CountingLoadRecommendedIssuesPort(List.of()),
+            savePort,
+            () -> List.of(searched)
+        );
+
+        List<RecommendedIssue> result = service.recommend();
+
+        assertThat(result).containsExactly(searched);
+        assertThat(savePort.savedIssues()).containsExactly(searched);
+    }
+
+    @Test
     void fallsBackToStoredIssuesWhenSearchReturnsEmpty() {
         RecommendedIssue stored = issue("stored", "vercel/next.js", 1);
         RecommendedIssueService service = new RecommendedIssueService(
             new CountingLoadRecommendedIssuesPort(List.of(stored)),
+            new RecordingSaveRecommendedIssuesPort(),
             List::of
         );
 
@@ -45,6 +64,7 @@ class RecommendedIssueServiceTest {
         RecommendedIssue stored = issue("stored", "vercel/next.js", 1);
         RecommendedIssueService service = new RecommendedIssueService(
             new CountingLoadRecommendedIssuesPort(List.of(stored)),
+            new RecordingSaveRecommendedIssuesPort(),
             failingSearchPort()
         );
 
@@ -90,6 +110,20 @@ class RecommendedIssueServiceTest {
 
         int callCount() {
             return callCount;
+        }
+    }
+
+    private static final class RecordingSaveRecommendedIssuesPort implements SaveRecommendedIssuesPort {
+
+        private List<RecommendedIssue> savedIssues = List.of();
+
+        @Override
+        public void saveRecommendedIssues(List<RecommendedIssue> issues) {
+            savedIssues = List.copyOf(issues);
+        }
+
+        List<RecommendedIssue> savedIssues() {
+            return savedIssues;
         }
     }
 }
