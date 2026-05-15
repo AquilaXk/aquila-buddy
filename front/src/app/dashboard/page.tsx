@@ -1,12 +1,17 @@
 import Link from "next/link";
 import { ProtectedLayout } from "@/components/ProtectedLayout";
+import { DashboardActivityPanel } from "./DashboardActivityPanel";
+import { DashboardWorkflowPanel } from "./DashboardWorkflowPanel";
 import { loadDashboardOverview, type DashboardOverview } from "./dashboardData";
+import { buildDashboardActivities, buildDashboardWorkflow } from "./dashboardWorkflow";
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
   const overview = await loadDashboardOverview();
   const lanes = buildSummaryLanes(overview);
+  const workflow = buildDashboardWorkflow(overview);
+  const activities = buildDashboardActivities(overview);
 
   return (
     <ProtectedLayout title="Dashboard">
@@ -21,6 +26,11 @@ export default async function DashboardPage() {
             ) : null}
           </section>
         ))}
+      </div>
+
+      <div className="mt-6 grid gap-5 lg:grid-cols-[1.35fr_0.65fr]">
+        <DashboardWorkflowPanel workflow={workflow} />
+        <DashboardActivityPanel activities={activities} />
       </div>
 
       <section className="mt-8 space-y-3">
