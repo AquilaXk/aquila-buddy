@@ -1,8 +1,26 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 
+type ApiResponse<T> = {
+  success: boolean;
+  data: T | null;
+  message: string | null;
+};
+
 export type HealthResponse = {
   status: string;
   service: string;
+};
+
+export type RecommendedIssue = {
+  id: string;
+  repoFullName: string;
+  issueNumber: number;
+  title: string;
+  summary: string;
+  score: number;
+  labels: string[];
+  status: "OPEN" | "CLOSED";
+  reason: string;
 };
 
 export async function getHealth(): Promise<HealthResponse> {
@@ -15,4 +33,22 @@ export async function getHealth(): Promise<HealthResponse> {
   }
 
   return response.json() as Promise<HealthResponse>;
+}
+
+export async function getRecommendedIssues(): Promise<RecommendedIssue[]> {
+  const response = await fetch(`${API_URL}/api/v1/issues/recommend`, {
+    cache: "no-store"
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch recommended issues");
+  }
+
+  const payload = (await response.json()) as ApiResponse<RecommendedIssue[]>;
+
+  if (!payload.success || !payload.data) {
+    throw new Error(payload.message ?? "Recommended issues response was not successful");
+  }
+
+  return payload.data;
 }
