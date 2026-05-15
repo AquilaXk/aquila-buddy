@@ -59,12 +59,7 @@ CLAUDE.md
 GEMINI.md
 CURSOR.md
 COPILOT.md
-docs/*
-!docs/superpowers/
-docs/superpowers/*
-!docs/superpowers/specs/
-docs/superpowers/specs/*
-!docs/superpowers/specs/2026-05-15-web-core-roadmap-design.md
+docs/
 .codex/
 .claude/
 .cursor/
