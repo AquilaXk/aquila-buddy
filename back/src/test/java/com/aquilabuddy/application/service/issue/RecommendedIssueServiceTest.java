@@ -5,9 +5,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.aquilabuddy.application.port.out.issue.LoadRecommendedIssuesPort;
 import com.aquilabuddy.application.port.out.issue.SaveRecommendedIssuesPort;
 import com.aquilabuddy.application.port.out.issue.SearchRecommendedIssuesPort;
-import com.aquilabuddy.domain.issue.RecommendedIssueHistory;
+import com.aquilabuddy.application.port.out.issue.FindRecommendedIssuePort;
 import com.aquilabuddy.domain.issue.RecommendedIssue;
+import com.aquilabuddy.domain.issue.RecommendedIssueHistory;
 import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
 class RecommendedIssueServiceTest {
@@ -20,6 +22,7 @@ class RecommendedIssueServiceTest {
         );
         RecommendedIssueService service = new RecommendedIssueService(
             fallbackPort,
+            new InMemoryFindRecommendedIssuePort(List.of()),
             new RecordingSaveRecommendedIssuesPort(),
             () -> List.of(searched)
         );
@@ -36,6 +39,7 @@ class RecommendedIssueServiceTest {
         RecordingSaveRecommendedIssuesPort savePort = new RecordingSaveRecommendedIssuesPort();
         RecommendedIssueService service = new RecommendedIssueService(
             new CountingLoadRecommendedIssuesPort(List.of()),
+            new InMemoryFindRecommendedIssuePort(List.of()),
             savePort,
             () -> List.of(searched)
         );
@@ -51,6 +55,7 @@ class RecommendedIssueServiceTest {
         RecommendedIssue stored = issue("stored", "vercel/next.js", 1);
         RecommendedIssueService service = new RecommendedIssueService(
             new CountingLoadRecommendedIssuesPort(List.of(stored)),
+            new InMemoryFindRecommendedIssuePort(List.of(stored)),
             new RecordingSaveRecommendedIssuesPort(),
             List::of
         );
@@ -65,6 +70,7 @@ class RecommendedIssueServiceTest {
         RecommendedIssue stored = issue("stored", "vercel/next.js", 1);
         RecommendedIssueService service = new RecommendedIssueService(
             new CountingLoadRecommendedIssuesPort(List.of(stored)),
+            new InMemoryFindRecommendedIssuePort(List.of(stored)),
             new RecordingSaveRecommendedIssuesPort(),
             failingSearchPort()
         );
@@ -79,6 +85,7 @@ class RecommendedIssueServiceTest {
         RecommendedIssue stored = issue("stored", "vercel/next.js", 1);
         RecommendedIssueService service = new RecommendedIssueService(
             new CountingLoadRecommendedIssuesPort(List.of(stored)),
+            new InMemoryFindRecommendedIssuePort(List.of(stored)),
             new RecordingSaveRecommendedIssuesPort(),
             List::of
         );
@@ -92,6 +99,21 @@ class RecommendedIssueServiceTest {
         assertThat(result.getFirst().labels()).containsExactly("good first issue");
         assertThat(result.getFirst().isAnalyzed()).isFalse();
         assertThat(result.getFirst().analysisResultId()).isNull();
+    }
+
+    @Test
+    void looksUpStoredIssueByRepositoryAndIssueNumber() {
+        RecommendedIssue stored = issue("stored", "vercel/next.js", 1);
+        RecommendedIssueService service = new RecommendedIssueService(
+            new CountingLoadRecommendedIssuesPort(List.of(stored)),
+            new InMemoryFindRecommendedIssuePort(List.of(stored)),
+            new RecordingSaveRecommendedIssuesPort(),
+            List::of
+        );
+
+        Optional<RecommendedIssue> result = service.lookup("vercel/next.js", 1);
+
+        assertThat(result).contains(stored);
     }
 
     private static SearchRecommendedIssuesPort failingSearchPort() {
@@ -131,6 +153,22 @@ class RecommendedIssueServiceTest {
 
         int callCount() {
             return callCount;
+        }
+    }
+
+    private static final class InMemoryFindRecommendedIssuePort implements FindRecommendedIssuePort {
+
+        private final List<RecommendedIssue> issues;
+
+        private InMemoryFindRecommendedIssuePort(List<RecommendedIssue> issues) {
+            this.issues = issues;
+        }
+
+        @Override
+        public Optional<RecommendedIssue> findByRepoFullNameAndIssueNumber(String repoFullName, long issueNumber) {
+            return issues.stream()
+                .filter(issue -> issue.repoFullName().equals(repoFullName) && issue.issueNumber() == issueNumber)
+                .findFirst();
         }
     }
 

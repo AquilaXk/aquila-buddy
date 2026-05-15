@@ -1,13 +1,16 @@
 package com.aquilabuddy.application.service.issue;
 
 import com.aquilabuddy.application.port.in.issue.GetRecommendedIssueHistoryUseCase;
+import com.aquilabuddy.application.port.in.issue.LookupRecommendedIssueUseCase;
 import com.aquilabuddy.application.port.in.issue.RecommendIssuesUseCase;
+import com.aquilabuddy.application.port.out.issue.FindRecommendedIssuePort;
 import com.aquilabuddy.application.port.out.issue.LoadRecommendedIssuesPort;
 import com.aquilabuddy.application.port.out.issue.SaveRecommendedIssuesPort;
 import com.aquilabuddy.application.port.out.issue.SearchRecommendedIssuesPort;
 import com.aquilabuddy.domain.issue.RecommendedIssue;
 import com.aquilabuddy.domain.issue.RecommendedIssueHistory;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.stereotype.Service;
 
 /**
@@ -16,18 +19,24 @@ import org.springframework.stereotype.Service;
  * <p>데이터 출처는 outbound port 뒤로 숨겨 application 계층이 영속성 구현에 의존하지 않게 합니다.
  */
 @Service
-public class RecommendedIssueService implements RecommendIssuesUseCase, GetRecommendedIssueHistoryUseCase {
+public class RecommendedIssueService implements
+    RecommendIssuesUseCase,
+    GetRecommendedIssueHistoryUseCase,
+    LookupRecommendedIssueUseCase {
 
     private final LoadRecommendedIssuesPort loadRecommendedIssuesPort;
+    private final FindRecommendedIssuePort findRecommendedIssuePort;
     private final SaveRecommendedIssuesPort saveRecommendedIssuesPort;
     private final SearchRecommendedIssuesPort searchRecommendedIssuesPort;
 
     public RecommendedIssueService(
         LoadRecommendedIssuesPort loadRecommendedIssuesPort,
+        FindRecommendedIssuePort findRecommendedIssuePort,
         SaveRecommendedIssuesPort saveRecommendedIssuesPort,
         SearchRecommendedIssuesPort searchRecommendedIssuesPort
     ) {
         this.loadRecommendedIssuesPort = loadRecommendedIssuesPort;
+        this.findRecommendedIssuePort = findRecommendedIssuePort;
         this.saveRecommendedIssuesPort = saveRecommendedIssuesPort;
         this.searchRecommendedIssuesPort = searchRecommendedIssuesPort;
     }
@@ -58,5 +67,13 @@ public class RecommendedIssueService implements RecommendIssuesUseCase, GetRecom
             .stream()
             .map(RecommendedIssueHistory::notAnalyzed)
             .toList();
+    }
+
+    /**
+     * GitHub 이슈 식별자로 저장된 추천 이슈를 조회합니다.
+     */
+    @Override
+    public Optional<RecommendedIssue> lookup(String repoFullName, long issueNumber) {
+        return findRecommendedIssuePort.findByRepoFullNameAndIssueNumber(repoFullName, issueNumber);
     }
 }

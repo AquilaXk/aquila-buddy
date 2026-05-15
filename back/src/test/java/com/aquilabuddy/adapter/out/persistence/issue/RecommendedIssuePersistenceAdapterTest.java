@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.aquilabuddy.domain.issue.RecommendedIssue;
 import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -88,5 +89,27 @@ class RecommendedIssuePersistenceAdapterTest {
         assertThat(issues.getFirst().issueNumber()).isEqualTo(101);
         assertThat(issues.getFirst().labels()).containsExactly("good first issue", "documentation");
         assertThat(issues.getFirst().reason()).isEqualTo("GitHub Search 후보입니다.");
+    }
+
+    @Test
+    void findsRecommendedIssueByRepositoryAndIssueNumber() {
+        repository.save(new RecommendedIssueJpaEntity(
+            "lookup-target",
+            "vercel/next.js",
+            1,
+            "Improve contributor-facing documentation",
+            "문서 중심 첫 기여 흐름을 확인하기 좋은 이슈입니다.",
+            0.91,
+            List.of("good first issue", "documentation"),
+            "OPEN",
+            "프론트엔드와 문서 작업으로 첫 PR 흐름을 작게 검증할 수 있습니다."
+        ));
+
+        Optional<RecommendedIssue> issue = adapter.findByRepoFullNameAndIssueNumber("vercel/next.js", 1);
+
+        assertThat(issue).isPresent();
+        assertThat(issue.get().id()).isEqualTo("lookup-target");
+        assertThat(issue.get().repoFullName()).isEqualTo("vercel/next.js");
+        assertThat(issue.get().issueNumber()).isEqualTo(1);
     }
 }
