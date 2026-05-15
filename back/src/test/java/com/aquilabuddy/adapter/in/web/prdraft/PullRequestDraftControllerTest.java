@@ -86,8 +86,28 @@ class PullRequestDraftControllerTest {
     }
 
     @Test
+    void returnsPullRequestDraftReadiness() throws Exception {
+        String id = createDraft();
+
+        mockMvc.perform(get("/api/v1/pr/{id}/readiness", id))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.draftId").value(id))
+            .andExpect(jsonPath("$.data.readyCount").value(4))
+            .andExpect(jsonPath("$.data.items[0].key").value("metadata"))
+            .andExpect(jsonPath("$.data.items[0].status").value("READY"))
+            .andExpect(jsonPath("$.data.items[3].key").value("test-plan"));
+    }
+
+    @Test
     void returnsNotFoundForMissingDraft() throws Exception {
         mockMvc.perform(get("/api/v1/pr/{id}", "missing"))
+            .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void returnsNotFoundForMissingDraftReadiness() throws Exception {
+        mockMvc.perform(get("/api/v1/pr/{id}/readiness", "missing"))
             .andExpect(status().isNotFound());
     }
 

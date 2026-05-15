@@ -84,6 +84,22 @@ export type StoredPullRequestDraft = PullRequestDraft & {
   createdAt: string;
 };
 
+export type PullRequestDraftReadinessStatus = "READY" | "ACTION_REQUIRED";
+
+export type PullRequestDraftReadinessItem = {
+  key: string;
+  label: string;
+  description: string;
+  detail: string;
+  status: PullRequestDraftReadinessStatus;
+};
+
+export type PullRequestDraftReadiness = {
+  draftId: string;
+  items: PullRequestDraftReadinessItem[];
+  readyCount: number;
+};
+
 export type PullRequestDraftTranslation = PullRequestDraft & {
   id: string;
   draftId: string;
@@ -176,6 +192,24 @@ export async function getPullRequestDraft(id: string): Promise<StoredPullRequest
 
   if (!payload.success || !payload.data) {
     throw new Error(payload.message ?? "Pull request draft detail response was not successful");
+  }
+
+  return payload.data;
+}
+
+export async function getPullRequestDraftReadiness(id: string): Promise<PullRequestDraftReadiness> {
+  const response = await fetch(`${API_URL}/api/v1/pr/${encodeURIComponent(id)}/readiness`, {
+    cache: "no-store"
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch pull request draft readiness");
+  }
+
+  const payload = (await response.json()) as ApiResponse<PullRequestDraftReadiness>;
+
+  if (!payload.success || !payload.data) {
+    throw new Error(payload.message ?? "Pull request draft readiness response was not successful");
   }
 
   return payload.data;

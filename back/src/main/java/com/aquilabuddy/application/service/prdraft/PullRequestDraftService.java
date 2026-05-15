@@ -2,11 +2,13 @@ package com.aquilabuddy.application.service.prdraft;
 
 import com.aquilabuddy.application.port.in.prdraft.CreatePullRequestDraftUseCase;
 import com.aquilabuddy.application.port.in.prdraft.GetPullRequestDraftUseCase;
+import com.aquilabuddy.application.port.in.prdraft.GetPullRequestDraftReadinessUseCase;
 import com.aquilabuddy.application.port.in.prdraft.ListPullRequestDraftsUseCase;
 import com.aquilabuddy.application.port.out.prdraft.GeneratePullRequestDraftPort;
 import com.aquilabuddy.application.port.out.prdraft.LoadPullRequestDraftPort;
 import com.aquilabuddy.application.port.out.prdraft.SavePullRequestDraftPort;
 import com.aquilabuddy.domain.prdraft.PullRequestDraft;
+import com.aquilabuddy.domain.prdraft.PullRequestDraftReadiness;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftRequest;
 import com.aquilabuddy.domain.prdraft.StoredPullRequestDraft;
 import java.util.List;
@@ -22,7 +24,8 @@ import org.springframework.stereotype.Service;
 public class PullRequestDraftService implements
     CreatePullRequestDraftUseCase,
     ListPullRequestDraftsUseCase,
-    GetPullRequestDraftUseCase {
+    GetPullRequestDraftUseCase,
+    GetPullRequestDraftReadinessUseCase {
 
     private final GeneratePullRequestDraftPort generatePullRequestDraftPort;
     private final SavePullRequestDraftPort savePullRequestDraftPort;
@@ -55,5 +58,10 @@ public class PullRequestDraftService implements
     @Override
     public Optional<StoredPullRequestDraft> getPullRequestDraft(String id) {
         return loadPullRequestDraftPort.loadPullRequestDraft(id);
+    }
+
+    @Override
+    public Optional<PullRequestDraftReadiness> getReadiness(String id) {
+        return getPullRequestDraft(id).map(PullRequestDraftReadiness::from);
     }
 }

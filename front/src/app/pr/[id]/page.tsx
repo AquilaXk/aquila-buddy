@@ -1,5 +1,7 @@
 import { ProtectedLayout } from "@/components/ProtectedLayout";
-import { getPullRequestDraft, type StoredPullRequestDraft } from "@/lib/api";
+import type { PullRequestDraftReadiness, StoredPullRequestDraft } from "@/lib/api";
+import { PrDraftReadinessPanel } from "./PrDraftReadinessPanel";
+import { loadPrDetailOverview } from "./prDetailData";
 import { TranslationPanel } from "./TranslationPanel";
 
 type PrDetailPageProps = {
@@ -12,11 +14,11 @@ export const dynamic = "force-dynamic";
 
 export default async function PrDetailPage({ params }: PrDetailPageProps) {
   const { id } = await params;
-  const result = await loadPullRequestDraft(id);
+  const result = await loadPrDetailOverview(id);
 
   return (
     <ProtectedLayout title="PR Detail">
-      {result.error ? (
+      {result.errors.draft ? (
         <div className="surface mb-4 border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
           PR 초안을 불러오지 못했습니다. backend API 상태를 확인해 주세요.
         </div>
@@ -25,7 +27,11 @@ export default async function PrDetailPage({ params }: PrDetailPageProps) {
         <p className="text-sm font-semibold text-moss">Draft ID</p>
         <h2 className="mt-2 text-xl font-bold">{id}</h2>
         {result.draft ? (
-          <DraftDetail draft={result.draft} />
+          <DraftDetail
+            draft={result.draft}
+            hasReadinessError={result.errors.readiness}
+            readiness={result.readiness}
+          />
         ) : (
           <p className="mt-4 text-sm leading-6 text-neutral-700">
             PR 초안 데이터가 준비되지 않았습니다.
@@ -36,7 +42,15 @@ export default async function PrDetailPage({ params }: PrDetailPageProps) {
   );
 }
 
-function DraftDetail({ draft }: { draft: StoredPullRequestDraft }) {
+function DraftDetail({
+  draft,
+  hasReadinessError,
+  readiness
+}: {
+  draft: StoredPullRequestDraft;
+  hasReadinessError: boolean;
+  readiness: PullRequestDraftReadiness | null;
+}) {
   return (
     <div className="mt-5 space-y-5">
       <div className="grid gap-3 md:grid-cols-2">
@@ -59,6 +73,8 @@ function DraftDetail({ draft }: { draft: StoredPullRequestDraft }) {
         <p className="mt-1 text-sm leading-6 text-neutral-700">{formatDate(draft.createdAt)}</p>
       </div>
 
+      <PrDraftReadinessPanel hasError={hasReadinessError} readiness={readiness} />
+
       <div>
         <h3 className="text-sm font-semibold">Title</h3>
         <p className="mt-2 rounded-md bg-neutral-100 p-3 text-sm font-semibold leading-6 text-ink">
@@ -76,20 +92,6 @@ function DraftDetail({ draft }: { draft: StoredPullRequestDraft }) {
       <TranslationPanel draftId={draft.id} />
     </div>
   );
-}
-
-async function loadPullRequestDraft(id: string) {
-  try {
-    return {
-      draft: await getPullRequestDraft(id),
-      error: null
-    };
-  } catch (error) {
-    return {
-      draft: null,
-      error
-    };
-  }
 }
 
 function formatDate(value: string) {
