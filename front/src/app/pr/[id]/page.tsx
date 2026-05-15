@@ -1,5 +1,6 @@
 import { ProtectedLayout } from "@/components/ProtectedLayout";
-import { getPullRequestDraft, type StoredPullRequestDraft } from "@/lib/api";
+import type { StoredPullRequestDraft } from "@/lib/api";
+import { loadPrDetailOverview } from "./prDetailData";
 import { TranslationPanel } from "./TranslationPanel";
 
 type PrDetailPageProps = {
@@ -12,11 +13,11 @@ export const dynamic = "force-dynamic";
 
 export default async function PrDetailPage({ params }: PrDetailPageProps) {
   const { id } = await params;
-  const result = await loadPullRequestDraft(id);
+  const result = await loadPrDetailOverview(id);
 
   return (
     <ProtectedLayout title="PR Detail">
-      {result.error ? (
+      {result.errors.draft ? (
         <div className="surface mb-4 border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
           PR 초안을 불러오지 못했습니다. backend API 상태를 확인해 주세요.
         </div>
@@ -76,20 +77,6 @@ function DraftDetail({ draft }: { draft: StoredPullRequestDraft }) {
       <TranslationPanel draftId={draft.id} />
     </div>
   );
-}
-
-async function loadPullRequestDraft(id: string) {
-  try {
-    return {
-      draft: await getPullRequestDraft(id),
-      error: null
-    };
-  } catch (error) {
-    return {
-      draft: null,
-      error
-    };
-  }
 }
 
 function formatDate(value: string) {
