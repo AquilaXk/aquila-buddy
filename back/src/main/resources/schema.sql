@@ -1,5 +1,6 @@
 DROP TABLE IF EXISTS issue_guide_side_effects;
 DROP TABLE IF EXISTS issue_guides;
+DROP TABLE IF EXISTS pr_drafts;
 DROP TABLE IF EXISTS recommended_issue_labels;
 DROP TABLE IF EXISTS recommended_issues;
 
@@ -29,6 +30,17 @@ CREATE TABLE issue_guides (
     issue_id VARCHAR(100) PRIMARY KEY,
     guideline VARCHAR(4000) NOT NULL,
     pseudo_code VARCHAR(4000) NOT NULL
+);
+
+CREATE TABLE pr_drafts (
+    draft_id VARCHAR(100) PRIMARY KEY,
+    upstream_repo VARCHAR(255) NOT NULL,
+    github_issue_number BIGINT NOT NULL,
+    base_branch VARCHAR(255) NOT NULL,
+    head_branch VARCHAR(255) NOT NULL,
+    title VARCHAR(500) NOT NULL,
+    body VARCHAR(8000) NOT NULL,
+    created_at TIMESTAMP NOT NULL
 );
 
 CREATE TABLE issue_guide_side_effects (
