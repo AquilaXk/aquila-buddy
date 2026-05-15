@@ -1,5 +1,6 @@
 import { ProtectedLayout } from "@/components/ProtectedLayout";
-import type { StoredPullRequestDraft } from "@/lib/api";
+import type { PullRequestDraftReadiness, StoredPullRequestDraft } from "@/lib/api";
+import { PrDraftReadinessPanel } from "./PrDraftReadinessPanel";
 import { loadPrDetailOverview } from "./prDetailData";
 import { TranslationPanel } from "./TranslationPanel";
 
@@ -26,7 +27,11 @@ export default async function PrDetailPage({ params }: PrDetailPageProps) {
         <p className="text-sm font-semibold text-moss">Draft ID</p>
         <h2 className="mt-2 text-xl font-bold">{id}</h2>
         {result.draft ? (
-          <DraftDetail draft={result.draft} />
+          <DraftDetail
+            draft={result.draft}
+            hasReadinessError={result.errors.readiness}
+            readiness={result.readiness}
+          />
         ) : (
           <p className="mt-4 text-sm leading-6 text-neutral-700">
             PR 초안 데이터가 준비되지 않았습니다.
@@ -37,7 +42,15 @@ export default async function PrDetailPage({ params }: PrDetailPageProps) {
   );
 }
 
-function DraftDetail({ draft }: { draft: StoredPullRequestDraft }) {
+function DraftDetail({
+  draft,
+  hasReadinessError,
+  readiness
+}: {
+  draft: StoredPullRequestDraft;
+  hasReadinessError: boolean;
+  readiness: PullRequestDraftReadiness | null;
+}) {
   return (
     <div className="mt-5 space-y-5">
       <div className="grid gap-3 md:grid-cols-2">
@@ -59,6 +72,8 @@ function DraftDetail({ draft }: { draft: StoredPullRequestDraft }) {
         <p className="text-sm font-semibold">Created</p>
         <p className="mt-1 text-sm leading-6 text-neutral-700">{formatDate(draft.createdAt)}</p>
       </div>
+
+      <PrDraftReadinessPanel hasError={hasReadinessError} readiness={readiness} />
 
       <div>
         <h3 className="text-sm font-semibold">Title</h3>
