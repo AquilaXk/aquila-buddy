@@ -59,6 +59,15 @@ export type PullRequestDraft = {
   body: string;
 };
 
+export type StoredPullRequestDraft = PullRequestDraft & {
+  id: string;
+  upstreamRepo: string;
+  githubIssueNumber: number;
+  baseBranch: string;
+  headBranch: string;
+  createdAt: string;
+};
+
 export async function getHealth(): Promise<HealthResponse> {
   const response = await fetch(`${API_URL}/api/v1/health`, {
     cache: "no-store"
@@ -91,7 +100,7 @@ export async function getUserProfile(): Promise<UserProfile> {
 
 export async function createPullRequestDraft(
   request: CreatePullRequestDraftRequest
-): Promise<PullRequestDraft> {
+): Promise<StoredPullRequestDraft> {
   const response = await fetch(`${API_URL}/api/v1/pr`, {
     method: "POST",
     headers: {
@@ -104,10 +113,46 @@ export async function createPullRequestDraft(
     throw new Error("Failed to create pull request draft");
   }
 
-  const payload = (await response.json()) as ApiResponse<PullRequestDraft>;
+  const payload = (await response.json()) as ApiResponse<StoredPullRequestDraft>;
 
   if (!payload.success || !payload.data) {
     throw new Error(payload.message ?? "Pull request draft response was not successful");
+  }
+
+  return payload.data;
+}
+
+export async function getPullRequestDrafts(): Promise<StoredPullRequestDraft[]> {
+  const response = await fetch(`${API_URL}/api/v1/pr`, {
+    cache: "no-store"
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch pull request drafts");
+  }
+
+  const payload = (await response.json()) as ApiResponse<StoredPullRequestDraft[]>;
+
+  if (!payload.success || !payload.data) {
+    throw new Error(payload.message ?? "Pull request drafts response was not successful");
+  }
+
+  return payload.data;
+}
+
+export async function getPullRequestDraft(id: string): Promise<StoredPullRequestDraft> {
+  const response = await fetch(`${API_URL}/api/v1/pr/${encodeURIComponent(id)}`, {
+    cache: "no-store"
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch pull request draft");
+  }
+
+  const payload = (await response.json()) as ApiResponse<StoredPullRequestDraft>;
+
+  if (!payload.success || !payload.data) {
+    throw new Error(payload.message ?? "Pull request draft detail response was not successful");
   }
 
   return payload.data;

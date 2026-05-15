@@ -1,36 +1,70 @@
 package com.aquilabuddy.adapter.in.web.prdraft;
 
 import com.aquilabuddy.application.port.in.prdraft.CreatePullRequestDraftUseCase;
-import com.aquilabuddy.domain.prdraft.PullRequestDraft;
+import com.aquilabuddy.application.port.in.prdraft.GetPullRequestDraftUseCase;
+import com.aquilabuddy.application.port.in.prdraft.ListPullRequestDraftsUseCase;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftRequest;
+import com.aquilabuddy.domain.prdraft.StoredPullRequestDraft;
 import com.aquilabuddy.global.response.ApiResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;
+import java.util.List;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 /**
- * [Incoming Web Adapter] PR 초안 생성 API 요청을 처리하는 REST controller입니다.
+ * [Incoming Web Adapter] PR 초안 API 요청을 처리하는 REST controller입니다.
  */
 @RestController
 @RequestMapping("/api/v1/pr")
 public class PullRequestDraftController {
 
     private final CreatePullRequestDraftUseCase createPullRequestDraftUseCase;
+    private final ListPullRequestDraftsUseCase listPullRequestDraftsUseCase;
+    private final GetPullRequestDraftUseCase getPullRequestDraftUseCase;
 
-    public PullRequestDraftController(CreatePullRequestDraftUseCase createPullRequestDraftUseCase) {
+    public PullRequestDraftController(
+        CreatePullRequestDraftUseCase createPullRequestDraftUseCase,
+        ListPullRequestDraftsUseCase listPullRequestDraftsUseCase,
+        GetPullRequestDraftUseCase getPullRequestDraftUseCase
+    ) {
         this.createPullRequestDraftUseCase = createPullRequestDraftUseCase;
+        this.listPullRequestDraftsUseCase = listPullRequestDraftsUseCase;
+        this.getPullRequestDraftUseCase = getPullRequestDraftUseCase;
     }
 
     /**
-     * 저장소/이슈/브랜치/diff 입력값을 받아 PR 제목과 본문 초안을 반환합니다.
+     * 저장소/이슈/브랜치/diff 입력값을 받아 저장된 PR 제목과 본문 초안을 반환합니다.
      */
     @PostMapping
-    ApiResponse<PullRequestDraft> create(@Valid @RequestBody CreatePullRequestDraftRequest request) {
+    ApiResponse<StoredPullRequestDraft> create(@Valid @RequestBody CreatePullRequestDraftRequest request) {
         return ApiResponse.success(createPullRequestDraftUseCase.create(request.toDomain()));
+    }
+
+    /**
+     * 최근 생성된 PR 초안 목록을 반환합니다.
+     */
+    @GetMapping
+    ApiResponse<List<StoredPullRequestDraft>> list() {
+        return ApiResponse.success(listPullRequestDraftsUseCase.listRecentPullRequestDrafts());
+    }
+
+    /**
+     * 저장된 PR 초안 ID로 상세 내용을 조회합니다.
+     */
+    @GetMapping("/{id}")
+    ApiResponse<StoredPullRequestDraft> detail(@PathVariable String id) {
+        StoredPullRequestDraft draft = getPullRequestDraftUseCase.getPullRequestDraft(id)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "PR 초안을 찾을 수 없습니다."));
+
+        return ApiResponse.success(draft);
     }
 
     /**
