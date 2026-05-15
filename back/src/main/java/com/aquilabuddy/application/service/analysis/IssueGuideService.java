@@ -1,12 +1,14 @@
-package com.aquilabuddy.application.analysis;
+package com.aquilabuddy.application.service.analysis;
 
+import com.aquilabuddy.application.port.in.analysis.GetIssueGuideUseCase;
 import com.aquilabuddy.domain.analysis.IssueGuide;
 import java.util.List;
 import org.springframework.stereotype.Service;
 
 @Service
-public class IssueGuideService {
+public class IssueGuideService implements GetIssueGuideUseCase {
 
+    @Override
     public IssueGuide findByIssueId(String issueId) {
         if ("demo-2".equals(issueId)) {
             return new IssueGuide(

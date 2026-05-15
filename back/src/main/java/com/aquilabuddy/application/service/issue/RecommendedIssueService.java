@@ -1,12 +1,14 @@
-package com.aquilabuddy.application.issue;
+package com.aquilabuddy.application.service.issue;
 
+import com.aquilabuddy.application.port.in.issue.RecommendIssuesUseCase;
 import com.aquilabuddy.domain.issue.RecommendedIssue;
 import java.util.List;
 import org.springframework.stereotype.Service;
 
 @Service
-public class RecommendedIssueService {
+public class RecommendedIssueService implements RecommendIssuesUseCase {
 
+    @Override
     public List<RecommendedIssue> recommend() {
         return List.of(
             new RecommendedIssue(

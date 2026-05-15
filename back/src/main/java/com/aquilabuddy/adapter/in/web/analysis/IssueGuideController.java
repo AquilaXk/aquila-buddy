@@ -1,6 +1,6 @@
-package com.aquilabuddy.global.analysis;
+package com.aquilabuddy.adapter.in.web.analysis;
 
-import com.aquilabuddy.application.analysis.IssueGuideService;
+import com.aquilabuddy.application.port.in.analysis.GetIssueGuideUseCase;
 import com.aquilabuddy.domain.analysis.IssueGuide;
 import com.aquilabuddy.global.response.ApiResponse;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -12,14 +12,14 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/issues")
 public class IssueGuideController {
 
-    private final IssueGuideService issueGuideService;
+    private final GetIssueGuideUseCase getIssueGuideUseCase;
 
-    public IssueGuideController(IssueGuideService issueGuideService) {
-        this.issueGuideService = issueGuideService;
+    public IssueGuideController(GetIssueGuideUseCase getIssueGuideUseCase) {
+        this.getIssueGuideUseCase = getIssueGuideUseCase;
     }
 
     @GetMapping("/{issueId}/guide")
     ApiResponse<IssueGuide> guide(@PathVariable String issueId) {
-        return ApiResponse.success(issueGuideService.findByIssueId(issueId));
+        return ApiResponse.success(getIssueGuideUseCase.findByIssueId(issueId));
     }
 }

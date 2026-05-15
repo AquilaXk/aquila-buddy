@@ -1,6 +1,6 @@
-package com.aquilabuddy.global.issue;
+package com.aquilabuddy.adapter.in.web.issue;
 
-import com.aquilabuddy.application.issue.RecommendedIssueService;
+import com.aquilabuddy.application.port.in.issue.RecommendIssuesUseCase;
 import com.aquilabuddy.domain.issue.RecommendedIssue;
 import com.aquilabuddy.global.response.ApiResponse;
 import java.util.List;
@@ -12,14 +12,14 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/issues")
 public class IssueRecommendationController {
 
-    private final RecommendedIssueService recommendedIssueService;
+    private final RecommendIssuesUseCase recommendIssuesUseCase;
 
-    public IssueRecommendationController(RecommendedIssueService recommendedIssueService) {
-        this.recommendedIssueService = recommendedIssueService;
+    public IssueRecommendationController(RecommendIssuesUseCase recommendIssuesUseCase) {
+        this.recommendIssuesUseCase = recommendIssuesUseCase;
     }
 
     @GetMapping("/recommend")
     ApiResponse<List<RecommendedIssue>> recommend() {
-        return ApiResponse.success(recommendedIssueService.recommend());
+        return ApiResponse.success(recommendIssuesUseCase.recommend());
     }
 }
