@@ -20,3 +20,12 @@ management:
     web:
       exposure:
         include: health,info
+
+app:
+  github:
+    api-base-url: https://api.github.com
+    token: ${GITHUB_TOKEN:}
+    issue-search:
+      enabled: ${GITHUB_ISSUE_SEARCH_ENABLED:false}
+      query: 'label:"good first issue"'
+      limit: 3
