@@ -46,4 +46,25 @@ class IssueRecommendationControllerTest {
             .andExpect(jsonPath("$.data[0].isAnalyzed").value(false))
             .andExpect(jsonPath("$.data[0].analysisResultId").doesNotExist());
     }
+
+    @Test
+    void returnsIssueLookupByRepositoryAndIssueNumber() throws Exception {
+        mockMvc.perform(get("/api/v1/issues/lookup")
+                .param("repo", "vercel/next.js")
+                .param("number", "1"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.id").value("demo-1"))
+            .andExpect(jsonPath("$.data.repoFullName").value("vercel/next.js"))
+            .andExpect(jsonPath("$.data.issueNumber").value(1))
+            .andExpect(jsonPath("$.data.labels[0]").value("good first issue"));
+    }
+
+    @Test
+    void returnsNotFoundWhenLookupTargetDoesNotExist() throws Exception {
+        mockMvc.perform(get("/api/v1/issues/lookup")
+                .param("repo", "missing/repo")
+                .param("number", "404"))
+            .andExpect(status().isNotFound());
+    }
 }

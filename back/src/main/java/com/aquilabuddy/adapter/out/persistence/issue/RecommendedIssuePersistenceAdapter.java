@@ -1,9 +1,11 @@
 package com.aquilabuddy.adapter.out.persistence.issue;
 
+import com.aquilabuddy.application.port.out.issue.FindRecommendedIssuePort;
 import com.aquilabuddy.application.port.out.issue.LoadRecommendedIssuesPort;
 import com.aquilabuddy.application.port.out.issue.SaveRecommendedIssuesPort;
 import com.aquilabuddy.domain.issue.RecommendedIssue;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.stereotype.Component;
 
 /**
@@ -13,7 +15,10 @@ import org.springframework.stereotype.Component;
  * 이 adapter와 repository 내부에 둡니다.
  */
 @Component
-public class RecommendedIssuePersistenceAdapter implements LoadRecommendedIssuesPort, SaveRecommendedIssuesPort {
+public class RecommendedIssuePersistenceAdapter implements
+    LoadRecommendedIssuesPort,
+    FindRecommendedIssuePort,
+    SaveRecommendedIssuesPort {
 
     private final RecommendedIssueJpaRepository repository;
 
@@ -30,6 +35,15 @@ public class RecommendedIssuePersistenceAdapter implements LoadRecommendedIssues
             .stream()
             .map(RecommendedIssuePersistenceMapper::toDomain)
             .toList();
+    }
+
+    /**
+     * GitHub 이슈 식별자로 저장된 추천 이슈를 조회합니다.
+     */
+    @Override
+    public Optional<RecommendedIssue> findByRepoFullNameAndIssueNumber(String repoFullName, long issueNumber) {
+        return repository.findByRepoFullNameAndIssueNumber(repoFullName, issueNumber)
+            .map(RecommendedIssuePersistenceMapper::toDomain);
     }
 
     /**
