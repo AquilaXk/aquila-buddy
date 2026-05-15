@@ -32,4 +32,18 @@ class IssueRecommendationControllerTest {
             .andExpect(jsonPath("$.data[0].labels[0]").value("good first issue"))
             .andExpect(jsonPath("$.data[0].reason").isNotEmpty());
     }
+
+    @Test
+    void returnsRecommendationHistory() throws Exception {
+        mockMvc.perform(get("/api/v1/issues/recommend/history"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data[0].id").value("demo-1"))
+            .andExpect(jsonPath("$.data[0].repoFullName").value("vercel/next.js"))
+            .andExpect(jsonPath("$.data[0].issueNumber").value(1))
+            .andExpect(jsonPath("$.data[0].status").value("OPEN"))
+            .andExpect(jsonPath("$.data[0].labels[0]").value("good first issue"))
+            .andExpect(jsonPath("$.data[0].isAnalyzed").value(false))
+            .andExpect(jsonPath("$.data[0].analysisResultId").doesNotExist());
+    }
 }
