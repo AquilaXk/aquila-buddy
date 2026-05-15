@@ -1,8 +1,10 @@
 import {
   getIssueGuide,
+  getIssueGuideWorkflow,
   getRecommendedIssueHistory,
   getRecommendedIssues,
   type IssueGuide,
+  type IssueGuideWorkflow,
   type RecommendedIssue,
   type RecommendedIssueHistory
 } from "@/lib/api";
@@ -11,10 +13,12 @@ export type IssueDetailIssue = RecommendedIssue | RecommendedIssueHistory;
 
 export type IssueDetailOverview = {
   guide: IssueGuide | null;
+  workflow: IssueGuideWorkflow | null;
   issue: IssueDetailIssue | null;
   draftHref: string | null;
   errors: {
     guide: boolean;
+    workflow: boolean;
     issue: boolean;
   };
 };
@@ -30,17 +34,20 @@ type IssueCollectionResult = {
 };
 
 export async function loadIssueDetailOverview(issueId: string): Promise<IssueDetailOverview> {
-  const [guideResult, issueResult] = await Promise.all([
+  const [guideResult, workflowResult, issueResult] = await Promise.all([
     loadSafely(getIssueGuide(issueId), null),
+    loadSafely(getIssueGuideWorkflow(issueId), null),
     loadIssueById(issueId)
   ]);
 
   return {
     guide: guideResult.data,
+    workflow: workflowResult.data,
     issue: issueResult.data,
     draftHref: issueResult.data ? buildPullRequestDraftHref(issueResult.data, guideResult.data) : null,
     errors: {
       guide: guideResult.error,
+      workflow: workflowResult.error,
       issue: issueResult.error
     }
   };

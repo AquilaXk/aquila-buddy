@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ProtectedLayout } from "@/components/ProtectedLayout";
+import { IssueGuideWorkflowPanel } from "./IssueGuideWorkflowPanel";
 import { loadIssueDetailOverview, type IssueDetailIssue } from "./issueDetailData";
 
 type IssueDetailPageProps = {
@@ -77,6 +78,12 @@ export default async function IssueDetailPage({ params }: IssueDetailPageProps) 
           </p>
         </section>
       )}
+
+      <IssueGuideWorkflowPanel
+        draftHref={result.draftHref}
+        hasError={result.errors.workflow}
+        workflow={result.workflow}
+      />
 
       <section className="surface p-5">
         {result.guide ? (
