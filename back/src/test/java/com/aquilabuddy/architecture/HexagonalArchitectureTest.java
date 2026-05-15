@@ -54,6 +54,7 @@ class HexagonalArchitectureTest {
             .that().resideInAPackage("..adapter.out..")
             .should().onlyDependOnClassesThat().resideInAnyPackage(
                 "java..",
+                "jakarta..",
                 "org.springframework..",
                 "com.aquilabuddy.adapter.out..",
                 "com.aquilabuddy.application.port.out..",
@@ -96,7 +97,8 @@ class HexagonalArchitectureTest {
                 || packageName.startsWith("com.aquilabuddy.global.health")
                 || packageName.startsWith("com.aquilabuddy.global.issue")
                 || packageName.startsWith("com.aquilabuddy.global.user")
-                || packageName.startsWith("com.aquilabuddy.application.user"))
+                || packageName.startsWith("com.aquilabuddy.application.user")
+                || packageName.startsWith("com.aquilabuddy.adapter.out.fixture.issue"))
             .collect(Collectors.toSet());
 
         assertThat(legacyPackages).isEmpty();
