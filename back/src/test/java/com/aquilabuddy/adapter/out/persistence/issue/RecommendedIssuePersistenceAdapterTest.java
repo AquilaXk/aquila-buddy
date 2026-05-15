@@ -10,6 +10,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
 
+/**
+ * 추천 이슈 persistence adapter가 JPA entity를 도메인 모델로 변환하고 정렬하는지 검증합니다.
+ */
 @DataJpaTest
 @Import(RecommendedIssuePersistenceAdapter.class)
 class RecommendedIssuePersistenceAdapterTest {

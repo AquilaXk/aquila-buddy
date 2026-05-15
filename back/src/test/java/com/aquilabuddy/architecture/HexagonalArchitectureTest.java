@@ -12,6 +12,9 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
 
+/**
+ * 헥사고날 계층 간 의존성 방향과 이전 패키지 잔존 여부를 고정하는 아키텍처 테스트입니다.
+ */
 class HexagonalArchitectureTest {
 
     private final JavaClasses classes = new ClassFileImporter()

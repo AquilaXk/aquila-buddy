@@ -8,9 +8,15 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+/**
+ * web adapter에서 발생한 검증 예외를 공통 API 응답 포맷으로 변환합니다.
+ */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    /**
+     * request body 바인딩 검증 실패 중 첫 번째 필드 오류를 클라이언트 메시지로 반환합니다.
+     */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     ResponseEntity<ApiResponse<Void>> handleValidation(MethodArgumentNotValidException exception) {
         String message = exception.getBindingResult()
@@ -25,6 +31,9 @@ public class GlobalExceptionHandler {
             .body(ApiResponse.error(message));
     }
 
+    /**
+     * path/query parameter 제약 조건 위반을 BAD_REQUEST 응답으로 변환합니다.
+     */
     @ExceptionHandler(ConstraintViolationException.class)
     ResponseEntity<ApiResponse<Void>> handleConstraint(ConstraintViolationException exception) {
         return ResponseEntity
