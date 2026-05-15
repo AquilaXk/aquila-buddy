@@ -34,6 +34,11 @@ export type RecommendedIssue = {
   reason: string;
 };
 
+export type RecommendedIssueHistory = Omit<RecommendedIssue, "reason"> & {
+  isAnalyzed: boolean;
+  analysisResultId: string | null;
+};
+
 export type IssueGuide = {
   issueKey: string;
   guideline: string;
@@ -121,6 +126,24 @@ export async function getRecommendedIssues(): Promise<RecommendedIssue[]> {
 
   if (!payload.success || !payload.data) {
     throw new Error(payload.message ?? "Recommended issues response was not successful");
+  }
+
+  return payload.data;
+}
+
+export async function getRecommendedIssueHistory(): Promise<RecommendedIssueHistory[]> {
+  const response = await fetch(`${API_URL}/api/v1/issues/recommend/history`, {
+    cache: "no-store"
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch recommended issue history");
+  }
+
+  const payload = (await response.json()) as ApiResponse<RecommendedIssueHistory[]>;
+
+  if (!payload.success || !payload.data) {
+    throw new Error(payload.message ?? "Recommended issue history response was not successful");
   }
 
   return payload.data;
