@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.aquilabuddy.domain.prdraft.PullRequestDraft;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftRequest;
+import com.aquilabuddy.domain.prdraft.PullRequestDraftUpdateRequest;
 import com.aquilabuddy.domain.prdraft.StoredPullRequestDraft;
 import java.time.Instant;
 import java.util.List;
@@ -91,5 +92,40 @@ class PullRequestDraftPersistenceAdapterTest {
             .extracting(StoredPullRequestDraft::id)
             .containsExactly("newer", "older");
         assertThat(drafts.getFirst().title()).isEqualTo("[Fix] 최신 초안");
+    }
+
+    @Test
+    void updatesDraftTitleAndBody() {
+        repository.save(new PullRequestDraftJpaEntity(
+            "draft-1",
+            "spring-projects/spring-boot",
+            10,
+            "main",
+            "feat/update",
+            "[Docs] 기존 초안",
+            "old body",
+            Instant.parse("2026-05-15T01:00:00Z")
+        ));
+
+        StoredPullRequestDraft updated = adapter.updatePullRequestDraft(
+            "draft-1",
+            new PullRequestDraftUpdateRequest("[Docs] 수정된 초안", "updated body")
+        ).orElseThrow();
+
+        assertThat(updated.title()).isEqualTo("[Docs] 수정된 초안");
+        assertThat(updated.body()).isEqualTo("updated body");
+        assertThat(updated.createdAt()).isEqualTo(Instant.parse("2026-05-15T01:00:00Z"));
+        assertThat(adapter.loadPullRequestDraft("draft-1"))
+            .get()
+            .extracting(StoredPullRequestDraft::title)
+            .isEqualTo("[Docs] 수정된 초안");
+    }
+
+    @Test
+    void returnsEmptyWhenUpdatingMissingDraft() {
+        assertThat(adapter.updatePullRequestDraft(
+            "missing",
+            new PullRequestDraftUpdateRequest("[Docs] 수정된 초안", "updated body")
+        )).isEmpty();
     }
 }

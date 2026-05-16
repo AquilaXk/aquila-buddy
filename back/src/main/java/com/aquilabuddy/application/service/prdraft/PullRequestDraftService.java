@@ -7,16 +7,19 @@ import com.aquilabuddy.application.port.in.prdraft.GetPullRequestDraftReadinessU
 import com.aquilabuddy.application.port.in.prdraft.GetPullRequestDraftSubmissionUseCase;
 import com.aquilabuddy.application.port.in.prdraft.GetPullRequestDraftTimelineUseCase;
 import com.aquilabuddy.application.port.in.prdraft.ListPullRequestDraftsUseCase;
+import com.aquilabuddy.application.port.in.prdraft.UpdatePullRequestDraftUseCase;
 import com.aquilabuddy.application.port.out.prdraft.GeneratePullRequestDraftPort;
 import com.aquilabuddy.application.port.out.prdraft.LoadPullRequestDraftPort;
 import com.aquilabuddy.application.port.out.prdraft.LoadPullRequestDraftTranslationPort;
 import com.aquilabuddy.application.port.out.prdraft.SavePullRequestDraftPort;
+import com.aquilabuddy.application.port.out.prdraft.UpdatePullRequestDraftPort;
 import com.aquilabuddy.domain.prdraft.PullRequestDraft;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftContributionReport;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftReadiness;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftRequest;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftSubmission;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftTimeline;
+import com.aquilabuddy.domain.prdraft.PullRequestDraftUpdateRequest;
 import com.aquilabuddy.domain.prdraft.StoredPullRequestDraft;
 import java.util.List;
 import java.util.Optional;
@@ -35,22 +38,26 @@ public class PullRequestDraftService implements
     GetPullRequestDraftContributionReportUseCase,
     GetPullRequestDraftReadinessUseCase,
     GetPullRequestDraftTimelineUseCase,
-    GetPullRequestDraftSubmissionUseCase {
+    GetPullRequestDraftSubmissionUseCase,
+    UpdatePullRequestDraftUseCase {
 
     private final GeneratePullRequestDraftPort generatePullRequestDraftPort;
     private final SavePullRequestDraftPort savePullRequestDraftPort;
     private final LoadPullRequestDraftPort loadPullRequestDraftPort;
+    private final UpdatePullRequestDraftPort updatePullRequestDraftPort;
     private final LoadPullRequestDraftTranslationPort loadPullRequestDraftTranslationPort;
 
     public PullRequestDraftService(
         GeneratePullRequestDraftPort generatePullRequestDraftPort,
         SavePullRequestDraftPort savePullRequestDraftPort,
         LoadPullRequestDraftPort loadPullRequestDraftPort,
+        UpdatePullRequestDraftPort updatePullRequestDraftPort,
         LoadPullRequestDraftTranslationPort loadPullRequestDraftTranslationPort
     ) {
         this.generatePullRequestDraftPort = generatePullRequestDraftPort;
         this.savePullRequestDraftPort = savePullRequestDraftPort;
         this.loadPullRequestDraftPort = loadPullRequestDraftPort;
+        this.updatePullRequestDraftPort = updatePullRequestDraftPort;
         this.loadPullRequestDraftTranslationPort = loadPullRequestDraftTranslationPort;
     }
 
@@ -95,5 +102,10 @@ public class PullRequestDraftService implements
     @Override
     public Optional<PullRequestDraftSubmission> getSubmission(String id) {
         return getPullRequestDraft(id).map(PullRequestDraftSubmission::from);
+    }
+
+    @Override
+    public Optional<StoredPullRequestDraft> updatePullRequestDraft(String id, PullRequestDraftUpdateRequest request) {
+        return updatePullRequestDraftPort.updatePullRequestDraft(id, request);
     }
 }

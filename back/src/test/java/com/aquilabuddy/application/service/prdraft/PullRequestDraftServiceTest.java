@@ -6,10 +6,12 @@ import com.aquilabuddy.application.port.out.prdraft.GeneratePullRequestDraftPort
 import com.aquilabuddy.application.port.out.prdraft.LoadPullRequestDraftPort;
 import com.aquilabuddy.application.port.out.prdraft.LoadPullRequestDraftTranslationPort;
 import com.aquilabuddy.application.port.out.prdraft.SavePullRequestDraftPort;
+import com.aquilabuddy.application.port.out.prdraft.UpdatePullRequestDraftPort;
 import com.aquilabuddy.domain.prdraft.PullRequestDraft;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftContributionReport;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftRequest;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftTranslation;
+import com.aquilabuddy.domain.prdraft.PullRequestDraftUpdateRequest;
 import com.aquilabuddy.domain.prdraft.StoredPullRequestDraft;
 import java.time.Instant;
 import java.util.List;
@@ -28,6 +30,7 @@ class PullRequestDraftServiceTest {
             new FakeGeneratePullRequestDraftPort(),
             savePort,
             new FakeLoadPullRequestDraftPort(),
+            new FakeUpdatePullRequestDraftPort(),
             new FakeLoadPullRequestDraftTranslationPort()
         );
 
@@ -56,6 +59,7 @@ class PullRequestDraftServiceTest {
             new FakeGeneratePullRequestDraftPort(),
             new FakeSavePullRequestDraftPort(),
             loadPort,
+            new FakeUpdatePullRequestDraftPort(),
             new FakeLoadPullRequestDraftTranslationPort()
         );
 
@@ -73,6 +77,7 @@ class PullRequestDraftServiceTest {
             new FakeGeneratePullRequestDraftPort(),
             new FakeSavePullRequestDraftPort(),
             loadPort,
+            new FakeUpdatePullRequestDraftPort(),
             new FakeLoadPullRequestDraftTranslationPort()
         );
 
@@ -88,6 +93,7 @@ class PullRequestDraftServiceTest {
             new FakeGeneratePullRequestDraftPort(),
             new FakeSavePullRequestDraftPort(),
             new FakeLoadPullRequestDraftPort(),
+            new FakeUpdatePullRequestDraftPort(),
             new FakeLoadPullRequestDraftTranslationPort()
         );
 
@@ -99,6 +105,31 @@ class PullRequestDraftServiceTest {
         assertThat(report.get().readinessTotalCount()).isEqualTo(4);
         assertThat(report.get().translationCount()).isEqualTo(1);
         assertThat(report.get().latestTranslation().translationId()).isEqualTo("translation-1");
+    }
+
+    @Test
+    void updatesStoredDraftTitleAndBody() {
+        FakeUpdatePullRequestDraftPort updatePort = new FakeUpdatePullRequestDraftPort();
+        PullRequestDraftService service = new PullRequestDraftService(
+            new FakeGeneratePullRequestDraftPort(),
+            new FakeSavePullRequestDraftPort(),
+            new FakeLoadPullRequestDraftPort(),
+            updatePort,
+            new FakeLoadPullRequestDraftTranslationPort()
+        );
+
+        PullRequestDraftUpdateRequest request = new PullRequestDraftUpdateRequest(
+            "docs: update contributor guide",
+            "## Summary\n- Update contributor guide"
+        );
+
+        Optional<StoredPullRequestDraft> updated = service.updatePullRequestDraft("stored-1", request);
+
+        assertThat(updatePort.updatedId).isEqualTo("stored-1");
+        assertThat(updatePort.updatedRequest).isEqualTo(request);
+        assertThat(updated).isPresent();
+        assertThat(updated.get().title()).isEqualTo("docs: update contributor guide");
+        assertThat(updated.get().body()).contains("Update contributor guide");
     }
 
     private static class FakeGeneratePullRequestDraftPort implements GeneratePullRequestDraftPort {
@@ -138,6 +169,25 @@ class PullRequestDraftServiceTest {
                 .stream()
                 .filter(draft -> draft.id().equals(id))
                 .findFirst();
+        }
+    }
+
+    private static class FakeUpdatePullRequestDraftPort implements UpdatePullRequestDraftPort {
+
+        private String updatedId;
+        private PullRequestDraftUpdateRequest updatedRequest;
+
+        @Override
+        public Optional<StoredPullRequestDraft> updatePullRequestDraft(
+            String id,
+            PullRequestDraftUpdateRequest request
+        ) {
+            updatedId = id;
+            updatedRequest = request;
+            return Optional.of(storedDraft(
+                new PullRequestDraftRequest("spring-projects/spring-boot", 2, "main", "feat/validation-docs", "diff"),
+                new PullRequestDraft(request.title(), request.body())
+            ));
         }
     }
 

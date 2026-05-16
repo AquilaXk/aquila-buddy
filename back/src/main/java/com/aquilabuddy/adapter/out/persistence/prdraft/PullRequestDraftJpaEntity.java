@@ -92,4 +92,9 @@ public class PullRequestDraftJpaEntity {
     Instant getCreatedAt() {
         return createdAt;
     }
+
+    void updateDraft(String title, String body) {
+        this.title = title;
+        this.body = body;
+    }
 }
