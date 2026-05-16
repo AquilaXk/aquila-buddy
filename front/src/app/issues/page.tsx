@@ -6,6 +6,7 @@ import {
   type RecommendedIssue,
   type RecommendedIssueHistory
 } from "@/lib/api";
+import { IssueCrawlSearchPanel } from "./IssueCrawlSearchPanel";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +28,8 @@ export default async function IssuesPage() {
           추천 이력을 불러오지 못했습니다. backend API 상태를 확인해 주세요.
         </div>
       ) : null}
+
+      <IssueCrawlSearchPanel />
 
       <section className="space-y-3">
         <h2 className="text-base font-bold text-neutral-900">Current recommendations</h2>

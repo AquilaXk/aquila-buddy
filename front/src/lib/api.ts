@@ -657,6 +657,28 @@ export async function getRecommendedIssues(): Promise<RecommendedIssue[]> {
   return payload.data;
 }
 
+export async function crawlSearchIssues(query: string): Promise<RecommendedIssue[]> {
+  const searchParams = new URLSearchParams({
+    q: query
+  });
+
+  const response = await fetch(`${API_URL}/api/v1/issues/crawl/search?${searchParams.toString()}`, {
+    method: "POST"
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to crawl issue search results");
+  }
+
+  const payload = (await response.json()) as ApiResponse<RecommendedIssue[]>;
+
+  if (!payload.success || !payload.data) {
+    throw new Error(payload.message ?? "Issue crawl search response was not successful");
+  }
+
+  return payload.data;
+}
+
 export async function getRecommendedIssueHistory(): Promise<RecommendedIssueHistory[]> {
   const response = await fetch(`${API_URL}/api/v1/issues/recommend/history`, {
     cache: "no-store"
