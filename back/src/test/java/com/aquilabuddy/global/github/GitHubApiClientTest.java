@@ -203,6 +203,43 @@ class GitHubApiClientTest {
         assertThat(context.text()).contains("Technical Interests: spring, oss, batch, nextjs");
     }
 
+    @Test
+    void loadsCompareDiffFromPatchFiles() {
+        route("/repos/spring-projects/spring-boot/compare/main...aquila-dev:feat/validation-docs", 200, """
+            {
+              "files": [
+                {
+                  "filename": "docs.adoc",
+                  "patch": "@@ -1 +1 @@\\n+Add validation example"
+                },
+                {
+                  "filename": "image.png",
+                  "patch": null
+                },
+                {
+                  "filename": "README.md",
+                  "patch": "@@ -3 +3 @@\\n+Update README"
+                }
+              ]
+            }
+            """);
+        GitHubApiClient client = client();
+
+        Optional<String> diff = client.getCompareDiff(
+            "spring-projects/spring-boot",
+            "main",
+            "aquila-dev:feat/validation-docs"
+        );
+
+        assertThat(diff).contains("""
+            --- docs.adoc
+            @@ -1 +1 @@
+            +Add validation example
+            --- README.md
+            @@ -3 +3 @@
+            +Update README""");
+    }
+
     private GitHubApiClient client() {
         return new GitHubApiClient(RestClient.builder(), baseUrl(), "");
     }
