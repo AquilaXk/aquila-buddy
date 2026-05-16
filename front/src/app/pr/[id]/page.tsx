@@ -1,114 +1,108 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useParams } from "next/navigation";
 import { ProtectedLayout } from "@/components/ProtectedLayout";
-import type {
-  PullRequestDraftContributionReport,
-  PullRequestDraftReadiness,
-  PullRequestDraftSubmission,
-  PullRequestDraftTimeline,
-  StoredPullRequestDraft
-} from "@/lib/api";
-import { PrDraftContributionReportPanel } from "./PrDraftContributionReportPanel";
-import { PrDraftEditPanel } from "./PrDraftEditPanel";
-import { PrDraftReadinessPanel } from "./PrDraftReadinessPanel";
-import { PrDraftSubmissionPanel } from "./PrDraftSubmissionPanel";
-import { PrDraftTimelinePanel } from "./PrDraftTimelinePanel";
-import { loadPrDetailOverview } from "./prDetailData";
-import { TranslationPanel } from "./TranslationPanel";
+import { getPullRequestDraft, type StoredPullRequestDraft } from "@/lib/api";
 
-type PrDetailPageProps = {
-  params: Promise<{
-    id: string;
-  }>;
-};
+export default function PrDetailPage() {
+  const params = useParams<{ id: string }>();
+  const prId = params.id;
+  const [draft, setDraft] = useState<StoredPullRequestDraft | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
 
-export const dynamic = "force-dynamic";
+  useEffect(() => {
+    let isMounted = true;
 
-export default async function PrDetailPage({ params }: PrDetailPageProps) {
-  const { id } = await params;
-  const result = await loadPrDetailOverview(id);
+    async function loadDraft() {
+      setLoading(true);
+      setNotFound(false);
+
+      try {
+        const loadedDraft = await getPullRequestDraft(prId);
+        if (!isMounted) {
+          return;
+        }
+
+        setDraft(loadedDraft);
+      } catch {
+        if (!isMounted) {
+          return;
+        }
+
+        setDraft(null);
+        setNotFound(true);
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadDraft();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [prId]);
+
+  if (loading) {
+    return (
+      <ProtectedLayout>
+        <div className="space-y-4">
+          <div className="surface h-20 animate-pulse" />
+          <div className="surface h-28 animate-pulse" />
+          <div className="surface h-40 animate-pulse" />
+        </div>
+      </ProtectedLayout>
+    );
+  }
+
+  if (notFound || !draft) {
+    return (
+      <ProtectedLayout>
+        <section className="surface py-20 text-center">
+          <h1 className="text-2xl font-bold text-github-text">PR 초안을 찾을 수 없습니다.</h1>
+          <p className="mt-3 text-sm font-semibold text-github-muted">
+            저장된 PR 초안 정보를 확인하지 못했습니다.
+          </p>
+          <Link
+            className="focus-ring mt-6 inline-flex text-sm font-semibold text-github-accent"
+            href="/pr-draft"
+          >
+            ← PR 초안 목록으로
+          </Link>
+        </section>
+      </ProtectedLayout>
+    );
+  }
 
   return (
     <ProtectedLayout>
-      {result.errors.draft ? (
-        <div className="surface mb-4 border-red-500/30 bg-red-500/10 p-4 text-sm font-semibold text-red-400">
-          PR 초안을 불러오지 못했습니다. backend API 상태를 확인해 주세요.
-        </div>
-      ) : null}
-      <section className="surface p-5">
-        <p className="text-sm font-semibold text-github-accent">Draft ID</p>
-        <h2 className="mt-2 text-xl font-bold">{id}</h2>
-        {result.draft ? (
-          <DraftDetail
-            draft={result.draft}
-            hasReportError={result.errors.report}
-            hasReadinessError={result.errors.readiness}
-            hasSubmissionError={result.errors.submission}
-            hasTimelineError={result.errors.timeline}
-            report={result.report}
-            readiness={result.readiness}
-            submission={result.submission}
-            timeline={result.timeline}
-          />
-        ) : (
-          <p className="mt-4 text-sm leading-6 text-github-muted">
-            PR 초안 데이터가 준비되지 않았습니다.
-          </p>
-        )}
-      </section>
-    </ProtectedLayout>
-  );
-}
+      <div className="mb-6">
+        <Link
+          className="focus-ring text-sm font-semibold text-github-muted hover:text-github-text"
+          href="/pr-draft"
+        >
+          ← PR 초안 목록
+        </Link>
+      </div>
 
-function DraftDetail({
-  draft,
-  hasReportError,
-  hasReadinessError,
-  hasSubmissionError,
-  hasTimelineError,
-  report,
-  readiness,
-  submission,
-  timeline
-}: {
-  draft: StoredPullRequestDraft;
-  hasReportError: boolean;
-  hasReadinessError: boolean;
-  hasSubmissionError: boolean;
-  hasTimelineError: boolean;
-  report: PullRequestDraftContributionReport | null;
-  readiness: PullRequestDraftReadiness | null;
-  submission: PullRequestDraftSubmission | null;
-  timeline: PullRequestDraftTimeline | null;
-}) {
-  return (
-    <div className="mt-5 space-y-5">
-      <div className="grid gap-3 md:grid-cols-2">
+      <section className="surface mb-5 flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-sm font-semibold">Repository</p>
-          <p className="mt-1 break-all text-sm leading-6 text-github-muted">
+          <p className="text-xs font-semibold text-github-muted">연결된 이슈</p>
+          <p className="mt-1 text-sm font-semibold text-github-text">
             {draft.upstreamRepo} #{draft.githubIssueNumber}
           </p>
-        </div>
-        <div>
-          <p className="text-sm font-semibold">Branch</p>
-          <p className="mt-1 break-all font-mono text-sm leading-6 text-github-muted">
+          <p className="mt-1 break-all font-mono text-xs text-github-muted">
             {draft.baseBranch} -&gt; {draft.headBranch}
           </p>
         </div>
-      </div>
-
-      <div>
-        <p className="text-sm font-semibold">Created</p>
-        <p className="mt-1 text-sm leading-6 text-github-muted">{formatDate(draft.createdAt)}</p>
-      </div>
-
-      <PrDraftContributionReportPanel hasError={hasReportError} report={report} />
-      <PrDraftReadinessPanel hasError={hasReadinessError} readiness={readiness} />
-      <PrDraftTimelinePanel hasError={hasTimelineError} timeline={timeline} />
-      <PrDraftSubmissionPanel hasError={hasSubmissionError} submission={submission} />
-      <PrDraftEditPanel draft={draft} />
-
-      <TranslationPanel draftId={draft.id} />
-    </div>
+        <p className="text-xs font-semibold text-github-muted">{formatDate(draft.createdAt)}</p>
+      </section>
+    </ProtectedLayout>
   );
 }
 
