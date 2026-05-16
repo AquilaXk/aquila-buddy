@@ -12,7 +12,8 @@
     "validate:profile": "node ../tools/frontend/validate-profile-parity.mjs",
     "validate:issues": "node ../tools/frontend/validate-issues-parity.mjs",
     "validate:dashboard": "node ../tools/frontend/validate-dashboard-parity.mjs",
-    "validate:issue-detail": "node ../tools/frontend/validate-issue-detail-parity.mjs"
+    "validate:issue-detail": "node ../tools/frontend/validate-issue-detail-parity.mjs",
+    "validate:pr-draft": "node ../tools/frontend/validate-pr-draft-parity.mjs"
   },
   "dependencies": {
     "next": "16.2.6",
