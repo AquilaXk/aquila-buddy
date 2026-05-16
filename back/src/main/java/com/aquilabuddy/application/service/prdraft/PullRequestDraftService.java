@@ -1,6 +1,7 @@
 package com.aquilabuddy.application.service.prdraft;
 
 import com.aquilabuddy.application.port.in.prdraft.CreatePullRequestDraftUseCase;
+import com.aquilabuddy.application.port.in.prdraft.DeletePullRequestDraftUseCase;
 import com.aquilabuddy.application.port.in.prdraft.GetPullRequestDraftContributionReportUseCase;
 import com.aquilabuddy.application.port.in.prdraft.GetPullRequestDraftUseCase;
 import com.aquilabuddy.application.port.in.prdraft.GetPullRequestDraftReadinessUseCase;
@@ -8,6 +9,7 @@ import com.aquilabuddy.application.port.in.prdraft.GetPullRequestDraftSubmission
 import com.aquilabuddy.application.port.in.prdraft.GetPullRequestDraftTimelineUseCase;
 import com.aquilabuddy.application.port.in.prdraft.ListPullRequestDraftsUseCase;
 import com.aquilabuddy.application.port.in.prdraft.UpdatePullRequestDraftUseCase;
+import com.aquilabuddy.application.port.out.prdraft.DeletePullRequestDraftPort;
 import com.aquilabuddy.application.port.out.prdraft.GeneratePullRequestDraftPort;
 import com.aquilabuddy.application.port.out.prdraft.LoadPullRequestDraftPort;
 import com.aquilabuddy.application.port.out.prdraft.LoadPullRequestDraftTranslationPort;
@@ -39,12 +41,14 @@ public class PullRequestDraftService implements
     GetPullRequestDraftReadinessUseCase,
     GetPullRequestDraftTimelineUseCase,
     GetPullRequestDraftSubmissionUseCase,
-    UpdatePullRequestDraftUseCase {
+    UpdatePullRequestDraftUseCase,
+    DeletePullRequestDraftUseCase {
 
     private final GeneratePullRequestDraftPort generatePullRequestDraftPort;
     private final SavePullRequestDraftPort savePullRequestDraftPort;
     private final LoadPullRequestDraftPort loadPullRequestDraftPort;
     private final UpdatePullRequestDraftPort updatePullRequestDraftPort;
+    private final DeletePullRequestDraftPort deletePullRequestDraftPort;
     private final LoadPullRequestDraftTranslationPort loadPullRequestDraftTranslationPort;
 
     public PullRequestDraftService(
@@ -52,12 +56,14 @@ public class PullRequestDraftService implements
         SavePullRequestDraftPort savePullRequestDraftPort,
         LoadPullRequestDraftPort loadPullRequestDraftPort,
         UpdatePullRequestDraftPort updatePullRequestDraftPort,
+        DeletePullRequestDraftPort deletePullRequestDraftPort,
         LoadPullRequestDraftTranslationPort loadPullRequestDraftTranslationPort
     ) {
         this.generatePullRequestDraftPort = generatePullRequestDraftPort;
         this.savePullRequestDraftPort = savePullRequestDraftPort;
         this.loadPullRequestDraftPort = loadPullRequestDraftPort;
         this.updatePullRequestDraftPort = updatePullRequestDraftPort;
+        this.deletePullRequestDraftPort = deletePullRequestDraftPort;
         this.loadPullRequestDraftTranslationPort = loadPullRequestDraftTranslationPort;
     }
 
@@ -107,5 +113,10 @@ public class PullRequestDraftService implements
     @Override
     public Optional<StoredPullRequestDraft> updatePullRequestDraft(String id, PullRequestDraftUpdateRequest request) {
         return updatePullRequestDraftPort.updatePullRequestDraft(id, request);
+    }
+
+    @Override
+    public boolean deletePullRequestDraft(String id) {
+        return deletePullRequestDraftPort.deletePullRequestDraft(id);
     }
 }

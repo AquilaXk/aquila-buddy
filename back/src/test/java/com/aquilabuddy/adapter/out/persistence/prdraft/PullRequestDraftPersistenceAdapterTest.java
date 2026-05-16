@@ -12,6 +12,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.context.annotation.Import;
 
 /**
@@ -27,8 +28,15 @@ class PullRequestDraftPersistenceAdapterTest {
     @Autowired
     private PullRequestDraftJpaRepository repository;
 
+    @Autowired
+    private PullRequestDraftTranslationJpaRepository translationRepository;
+
+    @Autowired
+    private TestEntityManager entityManager;
+
     @BeforeEach
     void setUp() {
+        translationRepository.deleteAll();
         repository.deleteAll();
     }
 
@@ -127,5 +135,40 @@ class PullRequestDraftPersistenceAdapterTest {
             "missing",
             new PullRequestDraftUpdateRequest("[Docs] 수정된 초안", "updated body")
         )).isEmpty();
+    }
+
+    @Test
+    void deletesDraftAndTranslations() {
+        repository.save(new PullRequestDraftJpaEntity(
+            "draft-1",
+            "spring-projects/spring-boot",
+            10,
+            "main",
+            "feat/delete",
+            "[Docs] 삭제 대상",
+            "body",
+            Instant.parse("2026-05-15T01:00:00Z")
+        ));
+        translationRepository.save(new PullRequestDraftTranslationJpaEntity(
+            "translation-1",
+            "draft-1",
+            "en",
+            "translated title",
+            "translated body",
+            Instant.parse("2026-05-15T02:00:00Z")
+        ));
+
+        boolean deleted = adapter.deletePullRequestDraft("draft-1");
+        entityManager.flush();
+        entityManager.clear();
+
+        assertThat(deleted).isTrue();
+        assertThat(repository.findById("draft-1")).isEmpty();
+        assertThat(translationRepository.findById("translation-1")).isEmpty();
+    }
+
+    @Test
+    void returnsFalseWhenDeletingMissingDraft() {
+        assertThat(adapter.deletePullRequestDraft("missing")).isFalse();
     }
 }

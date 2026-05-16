@@ -1,5 +1,6 @@
 package com.aquilabuddy.adapter.out.persistence.prdraft;
 
+import com.aquilabuddy.application.port.out.prdraft.DeletePullRequestDraftPort;
 import com.aquilabuddy.application.port.out.prdraft.LoadPullRequestDraftPort;
 import com.aquilabuddy.application.port.out.prdraft.SavePullRequestDraftPort;
 import com.aquilabuddy.application.port.out.prdraft.UpdatePullRequestDraftPort;
@@ -20,7 +21,8 @@ import org.springframework.stereotype.Component;
 public class PullRequestDraftPersistenceAdapter implements
     SavePullRequestDraftPort,
     LoadPullRequestDraftPort,
-    UpdatePullRequestDraftPort {
+    UpdatePullRequestDraftPort,
+    DeletePullRequestDraftPort {
 
     private final PullRequestDraftJpaRepository repository;
 
@@ -64,5 +66,14 @@ public class PullRequestDraftPersistenceAdapter implements
                 entity.updateDraft(request.title(), request.body());
                 return PullRequestDraftPersistenceMapper.toDomain(repository.save(entity));
             });
+    }
+
+    @Override
+    public boolean deletePullRequestDraft(String id) {
+        if (!repository.existsById(id)) {
+            return false;
+        }
+        repository.deleteById(id);
+        return true;
     }
 }
