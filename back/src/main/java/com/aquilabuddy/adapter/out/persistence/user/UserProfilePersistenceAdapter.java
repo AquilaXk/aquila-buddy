@@ -6,8 +6,11 @@ import com.aquilabuddy.application.port.out.user.RefreshUserProfileVectorPort;
 import com.aquilabuddy.application.port.out.user.SaveUserProfilePort;
 import com.aquilabuddy.domain.user.UserProfile;
 import com.aquilabuddy.domain.user.UserProfileUpdateRequest;
+import com.aquilabuddy.global.github.GitHubApiClient;
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,13 +28,19 @@ public class UserProfilePersistenceAdapter implements
 
     private final UserProfileJpaRepository repository;
     private final CurrentUserGithubIdPort currentUserGithubIdPort;
+    private final GitHubApiClient gitHubApiClient;
+    private final boolean userContextEnabled;
 
     public UserProfilePersistenceAdapter(
         UserProfileJpaRepository repository,
-        CurrentUserGithubIdPort currentUserGithubIdPort
+        CurrentUserGithubIdPort currentUserGithubIdPort,
+        GitHubApiClient gitHubApiClient,
+        @Value("${app.github.user-context.enabled:false}") boolean userContextEnabled
     ) {
         this.repository = repository;
         this.currentUserGithubIdPort = currentUserGithubIdPort;
+        this.gitHubApiClient = gitHubApiClient;
+        this.userContextEnabled = userContextEnabled;
     }
 
     @Override
@@ -65,9 +74,27 @@ public class UserProfilePersistenceAdapter implements
     @Override
     public UserProfile refreshCurrentUserProfileVector() {
         UserProfileJpaEntity entity = loadCurrentEntity();
-        entity.refreshVector(REFRESHED_VECTOR_UPDATED_AT);
+
+        if (userContextEnabled) {
+            GitHubApiClient.GitHubContributionContext context = gitHubApiClient.loadContributionContext(entity.getLogin());
+            entity.refreshVector(
+                REFRESHED_VECTOR_UPDATED_AT,
+                nonEmptyOrCurrent(context.primaryLanguages(), entity.getPrimaryLanguages()),
+                nonEmptyOrCurrent(context.topics(), entity.getTopics())
+            );
+        } else {
+            entity.refreshVector(REFRESHED_VECTOR_UPDATED_AT);
+        }
 
         return UserProfilePersistenceMapper.toDomain(repository.save(entity));
+    }
+
+    private List<String> nonEmptyOrCurrent(List<String> items, List<String> currentItems) {
+        if (items == null || items.isEmpty()) {
+            return currentItems;
+        }
+
+        return items;
     }
 
     private UserProfileJpaEntity loadCurrentEntity() {
