@@ -6,6 +6,7 @@ import com.aquilabuddy.application.port.out.prdraft.LoadPullRequestDraftPort;
 import com.aquilabuddy.application.port.out.prdraft.LoadPullRequestDraftTranslationPort;
 import com.aquilabuddy.application.port.out.prdraft.SavePullRequestDraftTranslationPort;
 import com.aquilabuddy.application.port.out.prdraft.TranslatePullRequestDraftPort;
+import com.aquilabuddy.application.port.out.user.LoadUserProfilePort;
 import com.aquilabuddy.domain.prdraft.PullRequestDraft;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftReadinessItem;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftSubmissionItem;
@@ -17,6 +18,7 @@ import com.aquilabuddy.domain.prdraft.PullRequestDraftTranslationTimeline;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftTranslation;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftTranslationActivity;
 import com.aquilabuddy.domain.prdraft.StoredPullRequestDraft;
+import com.aquilabuddy.domain.user.UserProfile;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -34,6 +36,7 @@ class PullRequestDraftTranslationServiceTest {
         FakeSaveTranslationPort savePort = new FakeSaveTranslationPort();
         PullRequestDraftTranslationService service = new PullRequestDraftTranslationService(
             loadDraftPort,
+            new FakeLoadUserProfilePort("aquila-dev"),
             translatePort,
             savePort,
             new FakeLoadTranslationPort()
@@ -53,6 +56,7 @@ class PullRequestDraftTranslationServiceTest {
     void returnsEmptyWhenSourceDraftDoesNotExist() {
         PullRequestDraftTranslationService service = new PullRequestDraftTranslationService(
             new FakeLoadDraftPort(null),
+            new FakeLoadUserProfilePort("aquila-dev"),
             new FakeTranslatePullRequestDraftPort(),
             new FakeSaveTranslationPort(),
             new FakeLoadTranslationPort()
@@ -70,6 +74,7 @@ class PullRequestDraftTranslationServiceTest {
         FakeSaveTranslationPort savePort = new FakeSaveTranslationPort();
         PullRequestDraftTranslationService service = new PullRequestDraftTranslationService(
             loadDraftPort,
+            new FakeLoadUserProfilePort("aquila-dev"),
             translatePort,
             savePort,
             new FakeLoadTranslationPort()
@@ -85,7 +90,7 @@ class PullRequestDraftTranslationServiceTest {
         assertThat(result.get().titleEn()).isEqualTo("translated title");
         assertThat(result.get().bodyEn()).isEqualTo("translated body");
         assertThat(result.get().githubUrl())
-            .contains("https://github.com/spring-projects/spring-boot/compare/main...feat/readme-fix")
+            .contains("https://github.com/spring-projects/spring-boot/compare/main...aquila-dev:feat/readme-fix")
             .contains("title=translated%20title")
             .contains("body=translated%20body");
     }
@@ -94,6 +99,7 @@ class PullRequestDraftTranslationServiceTest {
     void returnsEmptyWhenCompatibilityTranslationDraftDoesNotExist() {
         PullRequestDraftTranslationService service = new PullRequestDraftTranslationService(
             new FakeLoadDraftPort(null),
+            new FakeLoadUserProfilePort("aquila-dev"),
             new FakeTranslatePullRequestDraftPort(),
             new FakeSaveTranslationPort(),
             new FakeLoadTranslationPort()
@@ -108,6 +114,7 @@ class PullRequestDraftTranslationServiceTest {
     void listsStoredTranslationsByDraftId() {
         PullRequestDraftTranslationService service = new PullRequestDraftTranslationService(
             new FakeLoadDraftPort(storedDraft()),
+            new FakeLoadUserProfilePort("aquila-dev"),
             new FakeTranslatePullRequestDraftPort(),
             new FakeSaveTranslationPort(),
             new FakeLoadTranslationPort()
@@ -124,6 +131,7 @@ class PullRequestDraftTranslationServiceTest {
     void returnsTranslationSubmissionBundleWhenTranslationBelongsToDraft() {
         PullRequestDraftTranslationService service = new PullRequestDraftTranslationService(
             new FakeLoadDraftPort(storedDraft()),
+            new FakeLoadUserProfilePort("aquila-dev"),
             new FakeTranslatePullRequestDraftPort(),
             new FakeSaveTranslationPort(),
             new FakeLoadTranslationPort()
@@ -146,6 +154,7 @@ class PullRequestDraftTranslationServiceTest {
     void returnsEmptyWhenTranslationDoesNotBelongToDraft() {
         PullRequestDraftTranslationService service = new PullRequestDraftTranslationService(
             new FakeLoadDraftPort(storedDraft()),
+            new FakeLoadUserProfilePort("aquila-dev"),
             new FakeTranslatePullRequestDraftPort(),
             new FakeSaveTranslationPort(),
             new FakeLoadTranslationPort()
@@ -163,6 +172,7 @@ class PullRequestDraftTranslationServiceTest {
     void returnsTranslationReadinessWhenTranslationBelongsToDraft() {
         PullRequestDraftTranslationService service = new PullRequestDraftTranslationService(
             new FakeLoadDraftPort(storedDraft()),
+            new FakeLoadUserProfilePort("aquila-dev"),
             new FakeTranslatePullRequestDraftPort(),
             new FakeSaveTranslationPort(),
             new FakeLoadTranslationPort()
@@ -186,6 +196,7 @@ class PullRequestDraftTranslationServiceTest {
     void returnsEmptyWhenTranslationReadinessDoesNotBelongToDraft() {
         PullRequestDraftTranslationService service = new PullRequestDraftTranslationService(
             new FakeLoadDraftPort(storedDraft()),
+            new FakeLoadUserProfilePort("aquila-dev"),
             new FakeTranslatePullRequestDraftPort(),
             new FakeSaveTranslationPort(),
             new FakeLoadTranslationPort()
@@ -203,6 +214,7 @@ class PullRequestDraftTranslationServiceTest {
     void returnsTranslationTimelineWhenTranslationBelongsToDraft() {
         PullRequestDraftTranslationService service = new PullRequestDraftTranslationService(
             new FakeLoadDraftPort(storedDraft()),
+            new FakeLoadUserProfilePort("aquila-dev"),
             new FakeTranslatePullRequestDraftPort(),
             new FakeSaveTranslationPort(),
             new FakeLoadTranslationPort()
@@ -225,6 +237,7 @@ class PullRequestDraftTranslationServiceTest {
     void returnsEmptyWhenTranslationTimelineDoesNotBelongToDraft() {
         PullRequestDraftTranslationService service = new PullRequestDraftTranslationService(
             new FakeLoadDraftPort(storedDraft()),
+            new FakeLoadUserProfilePort("aquila-dev"),
             new FakeTranslatePullRequestDraftPort(),
             new FakeSaveTranslationPort(),
             new FakeLoadTranslationPort()
@@ -242,6 +255,7 @@ class PullRequestDraftTranslationServiceTest {
     void listsRecentTranslationActivitiesWithDraftContext() {
         PullRequestDraftTranslationService service = new PullRequestDraftTranslationService(
             new FakeLoadDraftPort(storedDraft()),
+            new FakeLoadUserProfilePort("aquila-dev"),
             new FakeTranslatePullRequestDraftPort(),
             new FakeSaveTranslationPort(),
             new FakeLoadTranslationPort()
@@ -263,6 +277,7 @@ class PullRequestDraftTranslationServiceTest {
     void skipsRecentTranslationActivityWhenDraftContextIsMissing() {
         PullRequestDraftTranslationService service = new PullRequestDraftTranslationService(
             new FakeLoadDraftPort(null),
+            new FakeLoadUserProfilePort("aquila-dev"),
             new FakeTranslatePullRequestDraftPort(),
             new FakeSaveTranslationPort(),
             new FakeLoadTranslationPort()
@@ -289,6 +304,29 @@ class PullRequestDraftTranslationServiceTest {
         @Override
         public Optional<StoredPullRequestDraft> loadPullRequestDraft(String id) {
             return draft == null || !draft.id().equals(id) ? Optional.empty() : Optional.of(draft);
+        }
+    }
+
+    private static class FakeLoadUserProfilePort implements LoadUserProfilePort {
+
+        private final String login;
+
+        private FakeLoadUserProfilePort(String login) {
+            this.login = login;
+        }
+
+        @Override
+        public UserProfile loadCurrentUserProfile() {
+            return new UserProfile(
+                10001L,
+                login,
+                "Aquila Developer",
+                "aquila@example.com",
+                List.of("Java"),
+                List.of("spring"),
+                true,
+                "2026-05-16T00:00:00Z"
+            );
         }
     }
 
