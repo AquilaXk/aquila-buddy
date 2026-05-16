@@ -100,6 +100,22 @@ class PullRequestDraftControllerTest {
     }
 
     @Test
+    void returnsPullRequestDraftSubmissionBundle() throws Exception {
+        String id = createDraft();
+
+        mockMvc.perform(get("/api/v1/pr/{id}/submission", id))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.draftId").value(id))
+            .andExpect(jsonPath("$.data.upstreamRepo").value("spring-projects/spring-boot"))
+            .andExpect(jsonPath("$.data.githubIssueNumber").value(2))
+            .andExpect(jsonPath("$.data.items[0].key").value("title"))
+            .andExpect(jsonPath("$.data.items[0].value").value("docs: spring-projects/spring-boot#2 변경 초안"))
+            .andExpect(jsonPath("$.data.items[2].value").value("base: main\nhead: feat/validation-docs"))
+            .andExpect(jsonPath("$.data.items[3].key").value("test-plan"));
+    }
+
+    @Test
     void returnsNotFoundForMissingDraft() throws Exception {
         mockMvc.perform(get("/api/v1/pr/{id}", "missing"))
             .andExpect(status().isNotFound());
@@ -108,6 +124,12 @@ class PullRequestDraftControllerTest {
     @Test
     void returnsNotFoundForMissingDraftReadiness() throws Exception {
         mockMvc.perform(get("/api/v1/pr/{id}/readiness", "missing"))
+            .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void returnsNotFoundForMissingDraftSubmissionBundle() throws Exception {
+        mockMvc.perform(get("/api/v1/pr/{id}/submission", "missing"))
             .andExpect(status().isNotFound());
     }
 

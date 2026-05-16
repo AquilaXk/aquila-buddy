@@ -100,6 +100,22 @@ export type PullRequestDraftReadiness = {
   readyCount: number;
 };
 
+export type PullRequestDraftSubmissionItem = {
+  key: "title" | "body" | "branch" | "test-plan";
+  label: string;
+  description: string;
+  value: string;
+};
+
+export type PullRequestDraftSubmission = {
+  draftId: string;
+  upstreamRepo: string;
+  githubIssueNumber: number;
+  baseBranch: string;
+  headBranch: string;
+  items: PullRequestDraftSubmissionItem[];
+};
+
 export type PullRequestDraftTranslation = PullRequestDraft & {
   id: string;
   draftId: string;
@@ -210,6 +226,24 @@ export async function getPullRequestDraftReadiness(id: string): Promise<PullRequ
 
   if (!payload.success || !payload.data) {
     throw new Error(payload.message ?? "Pull request draft readiness response was not successful");
+  }
+
+  return payload.data;
+}
+
+export async function getPullRequestDraftSubmission(id: string): Promise<PullRequestDraftSubmission> {
+  const response = await fetch(`${API_URL}/api/v1/pr/${encodeURIComponent(id)}/submission`, {
+    cache: "no-store"
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch pull request draft submission bundle");
+  }
+
+  const payload = (await response.json()) as ApiResponse<PullRequestDraftSubmission>;
+
+  if (!payload.success || !payload.data) {
+    throw new Error(payload.message ?? "Pull request draft submission response was not successful");
   }
 
   return payload.data;
