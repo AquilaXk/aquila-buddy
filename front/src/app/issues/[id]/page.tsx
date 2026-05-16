@@ -1,126 +1,172 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useParams } from "next/navigation";
 import { ProtectedLayout } from "@/components/ProtectedLayout";
-import { IssuePseudoCodePanel } from "./IssuePseudoCodePanel";
-import { IssueGuideWorkflowPanel } from "./IssueGuideWorkflowPanel";
-import { loadIssueDetailOverview, type IssueDetailIssue } from "./issueDetailData";
+import {
+  getRecommendedIssueHistory,
+  getRecommendedIssues,
+  type RecommendedIssue,
+  type RecommendedIssueHistory
+} from "@/lib/api";
 
-type IssueDetailPageProps = {
-  params: Promise<{
-    id: string;
-  }>;
-};
+type IssueDetailIssue = RecommendedIssue | RecommendedIssueHistory;
 
-export const dynamic = "force-dynamic";
+export default function IssueDetailPage() {
+  const params = useParams<{ id: string }>();
+  const issueId = params.id;
+  const [issue, setIssue] = useState<IssueDetailIssue | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
 
-export default async function IssueDetailPage({ params }: IssueDetailPageProps) {
-  const { id } = await params;
-  const result = await loadIssueDetailOverview(id);
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadIssue() {
+      setLoading(true);
+      setNotFound(false);
+
+      const [historyResult, recommendationsResult] = await Promise.allSettled([
+        getRecommendedIssueHistory(),
+        getRecommendedIssues()
+      ]);
+      const history = historyResult.status === "fulfilled" ? historyResult.value : [];
+      const recommendations = recommendationsResult.status === "fulfilled" ? recommendationsResult.value : [];
+      const foundIssue = [...history, ...recommendations].find((item) => item.id === issueId) ?? null;
+
+      if (!isMounted) {
+        return;
+      }
+
+      setIssue(foundIssue);
+      setNotFound(!foundIssue);
+      setLoading(false);
+    }
+
+    loadIssue().catch(() => {
+      if (!isMounted) {
+        return;
+      }
+
+      setIssue(null);
+      setNotFound(true);
+      setLoading(false);
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [issueId]);
+
+  if (loading) {
+    return (
+      <ProtectedLayout>
+        <div className="space-y-4">
+          <div className="surface h-24 animate-pulse" />
+          <div className="surface h-32 animate-pulse" />
+          <div className="surface h-32 animate-pulse" />
+        </div>
+      </ProtectedLayout>
+    );
+  }
+
+  if (notFound || !issue) {
+    return (
+      <ProtectedLayout>
+        <section className="surface py-20 text-center">
+          <h1 className="text-2xl font-bold text-github-text">이슈를 찾을 수 없습니다.</h1>
+          <p className="mt-3 text-sm font-semibold text-github-muted">
+            추천 이력에서 선택한 이슈 정보를 확인하지 못했습니다.
+          </p>
+          <Link
+            className="focus-ring mt-6 inline-flex text-sm font-semibold text-github-accent"
+            href="/issues"
+          >
+            ← 추천 이슈 목록으로
+          </Link>
+        </section>
+      </ProtectedLayout>
+    );
+  }
+
+  const githubUrl = `https://github.com/${issue.repoFullName}/issues/${issue.issueNumber}`;
+  const scorePercent = Math.round(issue.score * 100);
 
   return (
     <ProtectedLayout>
-      {result.errors.issue ? (
-        <div className="surface mb-4 border-red-500/30 bg-red-500/10 p-4 text-sm font-semibold text-red-400">
-          추천 이슈 정보를 불러오지 못했습니다. backend API 상태를 확인해 주세요.
-        </div>
-      ) : null}
-      {result.errors.guide ? (
-        <div className="surface mb-4 border-red-500/30 bg-red-500/10 p-4 text-sm font-semibold text-red-400">
-          이슈 가이드를 불러오지 못했습니다. backend API 상태를 확인해 주세요.
-        </div>
-      ) : null}
+      <div className="mb-6">
+        <Link
+          className="focus-ring text-sm font-semibold text-github-muted hover:text-github-text"
+          href="/issues"
+        >
+          ← 추천 이슈 목록
+        </Link>
+      </div>
 
-      {result.issue ? (
-        <section className="surface mb-5 p-5">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <p className="break-all text-sm font-semibold text-github-accent">
-                {result.issue.repoFullName} #{result.issue.issueNumber}
-              </p>
-              <h2 className="mt-2 text-2xl font-bold text-github-text">{result.issue.title}</h2>
-              <p className="mt-3 max-w-3xl text-sm leading-6 text-github-muted">
-                {result.issue.summary}
-              </p>
-            </div>
-            {result.draftHref ? (
-              <Link
-                href={result.draftHref}
-                className="focus-ring rounded-md bg-github-accent px-4 py-2 text-sm font-bold text-white hover:bg-github-accent-dark"
-              >
-                PR Draft
-              </Link>
-            ) : null}
-          </div>
+      <section className="surface mb-5 p-6">
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <StatusBadge status={issue.status} />
+          <a
+            className="text-xs font-semibold text-github-muted hover:text-github-accent"
+            href={githubUrl}
+            rel="noopener noreferrer"
+            target="_blank"
+          >
+            {issue.repoFullName} #{issue.issueNumber} ↗
+          </a>
+          {issue.score > 0 ? (
+            <span className="rounded-md border border-green-500/20 bg-green-500/10 px-2 py-1 text-xs font-semibold text-green-400">
+              매칭 {scorePercent}%
+            </span>
+          ) : null}
+          {"isAnalyzed" in issue ? (
+            <span className="rounded-md border border-github-accent/20 bg-github-accent/10 px-2 py-1 text-xs font-semibold text-github-accent">
+              {getIssueAnalysisLabel(issue)}
+            </span>
+          ) : null}
+        </div>
+
+        <h1 className="text-xl font-bold leading-7 text-github-text">{issue.title}</h1>
+
+        {issue.labels.length > 0 ? (
           <div className="mt-4 flex flex-wrap gap-2">
-            <span className="rounded-md border border-github-border px-2 py-1 text-xs font-semibold text-github-muted">
-              {Math.round(result.issue.score * 100)}%
-            </span>
-            <span className="rounded-md border border-github-border px-2 py-1 text-xs font-semibold text-github-muted">
-              {result.issue.status}
-            </span>
-            <span className="rounded-md border border-github-border px-2 py-1 text-xs font-semibold text-github-muted">
-              {getIssueAnalysisLabel(result.issue)}
-            </span>
-            {result.issue.labels.map((label) => (
+            {issue.labels.map((label) => (
               <span
+                className="rounded-md border border-github-accent/20 bg-github-accent/10 px-2 py-1 text-xs font-semibold text-github-accent"
                 key={label}
-                className="rounded-md bg-github-bg px-2 py-1 text-xs font-semibold text-github-muted"
               >
                 {label}
               </span>
             ))}
           </div>
-        </section>
-      ) : (
-        <section className="surface mb-5 p-5">
-          <p className="text-sm font-semibold text-github-accent">Issue ID</p>
-          <h2 className="mt-2 text-xl font-bold">{id}</h2>
-          <p className="mt-3 text-sm leading-6 text-github-muted">
-            저장된 추천 이슈 정보가 없어 가이드만 표시합니다.
-          </p>
-        </section>
-      )}
+        ) : null}
 
-      <IssueGuideWorkflowPanel
-        draftHref={result.draftHref}
-        hasError={result.errors.workflow}
-        workflow={result.workflow}
-      />
-
-      <IssuePseudoCodePanel
-        hasError={result.errors.pseudoCode}
-        pseudoCode={result.pseudoCode}
-      />
-
-      <section className="surface p-5">
-        {result.guide ? (
-          <div className="grid gap-5 md:grid-cols-2">
-            <div>
-              <h3 className="text-sm font-semibold">Guide</h3>
-              <p className="mt-2 text-sm leading-6 text-github-muted">{result.guide.guideline}</p>
-            </div>
-            <div>
-              <h3 className="text-sm font-semibold">Side Effects</h3>
-              <ul className="mt-2 list-disc space-y-2 pl-4 text-sm leading-6 text-github-muted">
-                {result.guide.sideEffects.map((sideEffect) => (
-                  <li key={sideEffect}>{sideEffect}</li>
-                ))}
-              </ul>
-            </div>
+        {issue.summary ? (
+          <div className="mt-5 rounded-md bg-github-bg p-4">
+            <p className="text-xs font-semibold text-github-muted">추천 이유</p>
+            <p className="mt-2 text-sm leading-6 text-github-text">{issue.summary}</p>
           </div>
-        ) : (
-          <p className="mt-5 text-sm leading-6 text-github-muted">
-            이슈 가이드 데이터가 준비되지 않았습니다.
-          </p>
-        )}
+        ) : null}
       </section>
     </ProtectedLayout>
   );
 }
 
-function getIssueAnalysisLabel(issue: IssueDetailIssue): string {
-  if ("analysisResultId" in issue) {
-    return issue.isAnalyzed ? "분석 완료" : "분석 전";
-  }
+function StatusBadge({ status }: { status: RecommendedIssue["status"] }) {
+  return (
+    <span
+      className={`rounded-md px-2 py-1 text-xs font-semibold ${
+        status === "OPEN"
+          ? "border border-green-500/20 bg-green-500/10 text-green-400"
+          : "border border-github-border bg-github-bg text-github-muted"
+      }`}
+    >
+      {status === "OPEN" ? "● OPEN" : "○ CLOSED"}
+    </span>
+  );
+}
 
-  return "현재 추천";
+function getIssueAnalysisLabel(issue: RecommendedIssueHistory) {
+  return issue.isAnalyzed ? "분석 완료" : "분석 전";
 }
