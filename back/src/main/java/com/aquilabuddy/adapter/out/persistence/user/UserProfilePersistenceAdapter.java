@@ -8,11 +8,13 @@ import com.aquilabuddy.domain.user.UserProfileUpdateRequest;
 import com.aquilabuddy.global.auth.CurrentUserGithubIdProvider;
 import java.util.NoSuchElementException;
 import java.util.Optional;
+import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
  * [Outgoing Adapter] 사용자 프로필을 JPA 저장소에 보관하고 현재 인증 사용자 기준으로 조회합니다.
  */
+@Component
 @Transactional
 public class UserProfilePersistenceAdapter implements
     LoadUserProfilePort,
