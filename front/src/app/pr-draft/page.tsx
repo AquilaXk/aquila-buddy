@@ -2,9 +2,16 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { FormEvent, Suspense, useMemo, useState } from "react";
+import { FormEvent, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { ProtectedLayout } from "@/components/ProtectedLayout";
-import { createPullRequestDraft, type StoredPullRequestDraft } from "@/lib/api";
+import {
+  createPullRequestDraft,
+  getPullRequestDraftHistory,
+  translatePullRequestDraft,
+  type PullRequestDraftHistoryPage,
+  type PullRequestDraftTranslateResult,
+  type StoredPullRequestDraft
+} from "@/lib/api";
 
 type DraftInput = {
   upstreamRepo: string;
@@ -19,6 +26,8 @@ type DraftInput = {
 type SearchParamsLike = {
   get(name: string): string | null;
 };
+
+const historyPageSize = 5;
 
 export default function PrDraftPage() {
   return (
@@ -35,9 +44,34 @@ function PrDraftContent() {
   const [baseBranch, setBaseBranch] = useState(initialDraftInput.baseBranch);
   const [headBranch, setHeadBranch] = useState(initialDraftInput.headBranch);
   const [draft, setDraft] = useState<StoredPullRequestDraft | null>(null);
+  const [translated, setTranslated] = useState<PullRequestDraftTranslateResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [historyError, setHistoryError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [translating, setTranslating] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(true);
+  const [historyPageIndex, setHistoryPageIndex] = useState(0);
+  const [historyPage, setHistoryPage] = useState<PullRequestDraftHistoryPage | null>(null);
   const [copied, setCopied] = useState<"title" | "body" | null>(null);
+
+  const loadDraftHistory = useCallback(async (page: number) => {
+    setHistoryLoading(true);
+
+    try {
+      const loadedHistory = await getPullRequestDraftHistory(page, historyPageSize);
+      setHistoryPage(loadedHistory);
+      setHistoryPageIndex(loadedHistory.page);
+      setHistoryError(null);
+    } catch (caught) {
+      setHistoryError(caught instanceof Error ? caught.message : "PR 초안 이력을 불러오지 못했습니다.");
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadDraftHistory(historyPageIndex);
+  }, [historyPageIndex, loadDraftHistory]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -49,19 +83,44 @@ function PrDraftContent() {
     setSubmitting(true);
     setError(null);
     setDraft(null);
+    setTranslated(null);
 
     try {
-      setDraft(await createPullRequestDraft({
+      const createdDraft = await createPullRequestDraft({
         upstreamRepo: initialDraftInput.upstreamRepo,
         githubIssueNumber: Number(initialDraftInput.githubIssueNumber),
         baseBranch: baseBranch.trim(),
         headBranch: headBranch.trim(),
         diffContent: initialDraftInput.diffSeed
-      }));
+      });
+
+      setDraft(createdDraft);
+      if (historyPageIndex === 0) {
+        await loadDraftHistory(0);
+      } else {
+        setHistoryPageIndex(0);
+      }
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "PR 초안 생성에 실패했습니다.");
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handleTranslate() {
+    if (!draft) {
+      return;
+    }
+
+    setTranslating(true);
+    setError(null);
+
+    try {
+      setTranslated(await translatePullRequestDraft(draft.id));
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "번역에 실패했습니다.");
+    } finally {
+      setTranslating(false);
     }
   }
 
@@ -72,6 +131,10 @@ function PrDraftContent() {
   }
 
   const canSubmit = hasIssueParam && baseBranch.trim() && headBranch.trim();
+  const displayTitle = translated?.titleEn ?? draft?.title ?? "";
+  const displayBody = translated?.bodyEn ?? draft?.body ?? "";
+  const drafts = historyPage?.content ?? [];
+  const totalHistoryPages = Math.max(historyPage?.totalPages ?? 1, 1);
 
   return (
     <ProtectedLayout>
@@ -176,13 +239,13 @@ function PrDraftContent() {
                   <p className="text-xs font-semibold text-github-muted">PR 제목</p>
                   <button
                     className="focus-ring text-xs font-semibold text-github-muted hover:text-github-accent"
-                    onClick={() => copyDraft(draft.title, "title")}
+                    onClick={() => copyDraft(displayTitle, "title")}
                     type="button"
                   >
                     {copied === "title" ? "복사됨 ✓" : "복사"}
                   </button>
                 </div>
-                <p className="text-sm font-semibold leading-6 text-github-text">{draft.title}</p>
+                <p className="text-sm font-semibold leading-6 text-github-text">{displayTitle}</p>
               </div>
 
               <div className="rounded-md border border-github-border bg-github-bg p-4">
@@ -190,16 +253,36 @@ function PrDraftContent() {
                   <p className="text-xs font-semibold text-github-muted">PR 본문</p>
                   <button
                     className="focus-ring text-xs font-semibold text-github-muted hover:text-github-accent"
-                    onClick={() => copyDraft(draft.body, "body")}
+                    onClick={() => copyDraft(displayBody, "body")}
                     type="button"
                   >
                     {copied === "body" ? "복사됨 ✓" : "복사"}
                   </button>
                 </div>
                 <pre className="max-h-64 overflow-auto whitespace-pre-wrap text-xs leading-6 text-github-text">
-                  {draft.body}
+                  {displayBody}
                 </pre>
               </div>
+
+              {!translated ? (
+                <button
+                  className="focus-ring flex w-full items-center justify-center rounded-md border border-github-accent/30 bg-github-accent/10 px-4 py-2.5 text-sm font-semibold text-github-accent hover:bg-github-accent/20 disabled:cursor-not-allowed disabled:opacity-50"
+                  disabled={translating}
+                  onClick={handleTranslate}
+                  type="button"
+                >
+                  {translating ? "영어로 번역 중..." : "영어로 번역하기"}
+                </button>
+              ) : (
+                <a
+                  className="focus-ring flex w-full items-center justify-center rounded-md border border-github-accent/30 bg-github-accent/10 px-4 py-3 text-sm font-semibold text-github-accent hover:bg-github-accent/20"
+                  href={translated.githubUrl}
+                  rel="noopener noreferrer"
+                  target="_blank"
+                >
+                  GitHub에서 PR 올리기 ↗
+                </a>
+              )}
 
               <Link
                 className="focus-ring block text-center text-xs font-semibold text-github-muted hover:text-github-text"
@@ -215,6 +298,70 @@ function PrDraftContent() {
           )}
         </section>
       </div>
+
+      <section className="mt-10">
+        <h2 className="mb-4 font-semibold text-github-text">PR 초안 이력</h2>
+        {historyError ? (
+          <div className="surface mb-4 border-red-500/30 bg-red-500/10 p-4 text-sm font-semibold text-red-400">
+            {historyError}
+          </div>
+        ) : null}
+        {historyLoading ? (
+          <div className="space-y-2">
+            <div className="surface h-16 animate-pulse" />
+            <div className="surface h-16 animate-pulse" />
+            <div className="surface h-16 animate-pulse" />
+          </div>
+        ) : drafts.length === 0 ? (
+          <div className="py-8 text-center text-sm font-semibold text-github-muted">
+            아직 생성된 PR 초안이 없습니다.
+          </div>
+        ) : (
+          <>
+            <div className="space-y-2">
+              {drafts.map((item) => (
+                <Link
+                  className="focus-ring flex items-center justify-between rounded-md border border-github-border bg-github-surface px-5 py-4 hover:border-github-purple/50"
+                  href={`/pr/${item.id}`}
+                  key={item.id}
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-github-text">{item.title}</p>
+                    <p className="mt-1 text-xs font-semibold text-github-muted">
+                      {item.upstreamRepo} · {formatDate(item.createdAt)}
+                    </p>
+                  </div>
+                  <span className="ml-4 shrink-0 text-xs font-semibold text-github-muted">보기 →</span>
+                </Link>
+              ))}
+            </div>
+
+            {totalHistoryPages > 1 ? (
+              <div className="mt-4 flex items-center justify-center gap-3">
+                <button
+                  className="focus-ring rounded-md border border-github-border px-3 py-1 text-xs font-semibold text-github-muted hover:text-github-text disabled:opacity-30"
+                  disabled={historyLoading || historyPage?.first}
+                  onClick={() => setHistoryPageIndex((page) => Math.max(0, page - 1))}
+                  type="button"
+                >
+                  ← 이전
+                </button>
+                <span className="text-xs font-semibold text-github-muted">
+                  {(historyPage?.page ?? 0) + 1} / {totalHistoryPages}
+                </span>
+                <button
+                  className="focus-ring rounded-md border border-github-border px-3 py-1 text-xs font-semibold text-github-muted hover:text-github-text disabled:opacity-30"
+                  disabled={historyLoading || historyPage?.last}
+                  onClick={() => setHistoryPageIndex((page) => page + 1)}
+                  type="button"
+                >
+                  다음 →
+                </button>
+              </div>
+            ) : null}
+          </>
+        )}
+      </section>
     </ProtectedLayout>
   );
 }
@@ -266,4 +413,11 @@ function buildDiffSeed(upstreamRepo: string, issueNumber: string, issueTitle: st
     `+${upstreamRepo} #${issueNumber}`,
     `+${issueTitle || "PR draft context"}`
   ].join("\n");
+}
+
+function formatDate(value: string) {
+  return new Intl.DateTimeFormat("ko-KR", {
+    dateStyle: "medium",
+    timeStyle: "short"
+  }).format(new Date(value));
 }
