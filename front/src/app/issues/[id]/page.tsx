@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ProtectedLayout } from "@/components/ProtectedLayout";
+import { IssuePseudoCodePanel } from "./IssuePseudoCodePanel";
 import { IssueGuideWorkflowPanel } from "./IssueGuideWorkflowPanel";
 import { loadIssueDetailOverview, type IssueDetailIssue } from "./issueDetailData";
 
@@ -85,18 +86,17 @@ export default async function IssueDetailPage({ params }: IssueDetailPageProps) 
         workflow={result.workflow}
       />
 
+      <IssuePseudoCodePanel
+        hasError={result.errors.pseudoCode}
+        pseudoCode={result.pseudoCode}
+      />
+
       <section className="surface p-5">
         {result.guide ? (
-          <div className="grid gap-5 md:grid-cols-3">
+          <div className="grid gap-5 md:grid-cols-2">
             <div>
               <h3 className="text-sm font-semibold">Guide</h3>
               <p className="mt-2 text-sm leading-6 text-neutral-700">{result.guide.guideline}</p>
-            </div>
-            <div>
-              <h3 className="text-sm font-semibold">Pseudo Code</h3>
-              <pre className="mt-2 whitespace-pre-wrap rounded-md bg-neutral-100 p-3 text-sm leading-6 text-neutral-800">
-                {result.guide.pseudoCode}
-              </pre>
             </div>
             <div>
               <h3 className="text-sm font-semibold">Side Effects</h3>

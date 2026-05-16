@@ -53,6 +53,11 @@ export type IssueGuide = {
   sideEffects: string[];
 };
 
+export type IssuePseudoCode = {
+  issueKey: string;
+  pseudoCode: string;
+};
+
 export type IssueGuideWorkflowStatus = "READY" | "WAITING";
 
 export type IssueGuideWorkflowStep = {
@@ -604,6 +609,24 @@ export async function getIssueGuide(issueId: string): Promise<IssueGuide> {
 
   if (!payload.success || !payload.data) {
     throw new Error(payload.message ?? "Issue guide response was not successful");
+  }
+
+  return payload.data;
+}
+
+export async function getIssuePseudoCode(issueId: string): Promise<IssuePseudoCode> {
+  const response = await fetch(`${API_URL}/api/v1/issues/${encodeURIComponent(issueId)}/pseudo`, {
+    cache: "no-store"
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch issue pseudo code");
+  }
+
+  const payload = (await response.json()) as ApiResponse<IssuePseudoCode>;
+
+  if (!payload.success || !payload.data) {
+    throw new Error(payload.message ?? "Issue pseudo code response was not successful");
   }
 
   return payload.data;
