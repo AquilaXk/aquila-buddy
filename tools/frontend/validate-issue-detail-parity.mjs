@@ -1,0 +1,64 @@
+import { readFileSync } from "node:fs";
+import { join, resolve } from "node:path";
+
+const repoRoot = resolve(import.meta.dirname, "../..");
+const issueDetailPagePath = join(repoRoot, "front/src/app/issues/[id]/page.tsx");
+const issueDetailPage = readFileSync(issueDetailPagePath, "utf8");
+const failures = [];
+
+function fail(message) {
+  failures.push(message);
+}
+
+function assertIncludes(needle, message) {
+  if (!issueDetailPage.includes(needle)) {
+    fail(message);
+  }
+}
+
+function assertNotIncludes(needle, message) {
+  if (issueDetailPage.includes(needle)) {
+    fail(message);
+  }
+}
+
+assertIncludes("\"use client\";", "Issue detail page must be a client screen.");
+assertIncludes("useParams", "Issue detail page must read the route id on the client.");
+assertIncludes("getRecommendedIssueHistory", "Issue detail page must load saved recommendation history.");
+assertIncludes("getRecommendedIssues", "Issue detail page must fall back to current recommendations.");
+assertIncludes("getIssueGuide", "Issue detail page must request the guide on demand.");
+assertIncludes("getIssuePseudoCode", "Issue detail page must request pseudo code on demand.");
+assertIncludes("handleGetGuide", "Issue detail page must expose a guide request handler.");
+assertIncludes("handleGetPseudo", "Issue detail page must expose a pseudo code request handler.");
+assertIncludes("이슈를 찾을 수 없습니다.", "Issue detail page must keep the not-found state.");
+assertIncludes("← 추천 이슈 목록", "Issue detail page must link back to the issues list.");
+assertIncludes("추천 이유", "Issue detail page must show the recommendation reason.");
+assertIncludes("매칭", "Issue detail page must show the match score.");
+assertIncludes("StatusBadge", "Issue detail page must render status badges.");
+assertIncludes("1차 힌트 — 수정 가이드", "Issue detail page must show the first hint card.");
+assertIncludes("힌트 보기", "Issue detail page must expose the guide CTA.");
+assertIncludes("2차 힌트 — 의사 코드", "Issue detail page must show the second hint card.");
+assertIncludes("코드 힌트 보기", "Issue detail page must expose the pseudo-code CTA.");
+assertIncludes("PR 초안 생성", "Issue detail page must show the PR draft CTA section.");
+assertIncludes("PR 초안 만들기 →", "Issue detail page must expose the PR draft link.");
+
+for (const text of [
+  "IssueGuideWorkflowPanel",
+  "IssuePseudoCodePanel",
+  "loadIssueDetailOverview",
+  "Guide Workflow",
+  "Pseudo Code",
+  "PR Draft"
+]) {
+  assertNotIncludes(text, `Issue detail page must not expose old "${text}" structure.`);
+}
+
+if (failures.length > 0) {
+  console.error("Issue detail page parity validation failed:");
+  for (const failure of failures) {
+    console.error(`- ${failure}`);
+  }
+  process.exit(1);
+}
+
+console.log("Issue detail page parity validation passed.");
