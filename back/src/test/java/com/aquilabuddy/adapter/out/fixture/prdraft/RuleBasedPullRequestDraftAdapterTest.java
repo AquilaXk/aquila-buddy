@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.aquilabuddy.domain.prdraft.PullRequestDraft;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftRequest;
+import com.aquilabuddy.domain.prdraft.PullRequestDraftRepositoryGuideContext;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -27,5 +29,28 @@ class RuleBasedPullRequestDraftAdapterTest {
         assertThat(draft.body()).contains("spring-projects/spring-boot #2");
         assertThat(draft.body()).contains("main -> feat/validation-docs");
         assertThat(draft.body()).contains("Add validation example");
+    }
+
+    @Test
+    void includesRepositoryGuideContextWhenAvailable() {
+        RuleBasedPullRequestDraftAdapter adapter = new RuleBasedPullRequestDraftAdapter();
+
+        PullRequestDraft draft = adapter.generate(new PullRequestDraftRequest(
+            "spring-projects/spring-boot",
+            2,
+            "main",
+            "feat/validation-docs",
+            "diff --git a/docs.adoc b/docs.adoc\n+Add validation example",
+            new PullRequestDraftRepositoryGuideContext(
+                "Please run tests before opening a PR.",
+                "## Summary\n- Describe changes",
+                List.of("## Summary\n- Improve docs")
+            )
+        ));
+
+        assertThat(draft.body()).contains("## 저장소 참고 자료");
+        assertThat(draft.body()).contains("CONTRIBUTING: Please run tests before opening a PR.");
+        assertThat(draft.body()).contains("PR template: ## Summary");
+        assertThat(draft.body()).contains("Merged PR samples: 1");
     }
 }
