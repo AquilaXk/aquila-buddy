@@ -1,6 +1,8 @@
 package com.aquilabuddy.adapter.in.web.user;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -8,6 +10,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.MediaType;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
 
 /**
@@ -15,6 +19,7 @@ import org.springframework.test.web.servlet.MockMvc;
  */
 @SpringBootTest
 @AutoConfigureMockMvc
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class UserProfileControllerTest {
 
     @Autowired
@@ -32,5 +37,51 @@ class UserProfileControllerTest {
             .andExpect(jsonPath("$.data.primaryLanguages[0]").value("Java"))
             .andExpect(jsonPath("$.data.topics[0]").value("spring"))
             .andExpect(jsonPath("$.data.profileReady").value(true));
+    }
+
+    @Test
+    void updatesCurrentUserProfile() throws Exception {
+        mockMvc.perform(patch("/api/v1/users/me")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                      "name": "Aquila Maintainer",
+                      "email": "maintainer@example.com",
+                      "primaryLanguages": ["Java", "TypeScript"],
+                      "topics": ["spring", "oss"]
+                    }
+                    """))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.name").value("Aquila Maintainer"))
+            .andExpect(jsonPath("$.data.email").value("maintainer@example.com"))
+            .andExpect(jsonPath("$.data.primaryLanguages[0]").value("Java"))
+            .andExpect(jsonPath("$.data.primaryLanguages[1]").value("TypeScript"))
+            .andExpect(jsonPath("$.data.topics[0]").value("spring"))
+            .andExpect(jsonPath("$.data.topics[1]").value("oss"));
+    }
+
+    @Test
+    void refreshesCurrentUserProfileVector() throws Exception {
+        mockMvc.perform(post("/api/v1/users/me/vector"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.profileReady").value(true))
+            .andExpect(jsonPath("$.data.vectorUpdatedAt").value("2026-05-16T00:00:00Z"));
+    }
+
+    @Test
+    void rejectsInvalidProfileUpdateRequest() throws Exception {
+        mockMvc.perform(patch("/api/v1/users/me")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                      "name": "",
+                      "email": "maintainer@example.com",
+                      "primaryLanguages": [],
+                      "topics": ["spring"]
+                    }
+                    """))
+            .andExpect(status().isBadRequest());
     }
 }
