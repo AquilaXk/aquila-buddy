@@ -62,7 +62,8 @@ class HexagonalArchitectureTest {
                 "org.springframework..",
                 "com.aquilabuddy.adapter.out..",
                 "com.aquilabuddy.application.port.out..",
-                "com.aquilabuddy.domain.."
+                "com.aquilabuddy.domain..",
+                "com.aquilabuddy.global.github.."
             )
             .check(classes);
     }
