@@ -285,6 +285,26 @@ class PullRequestDraftControllerTest {
     }
 
     @Test
+    void translatesPullRequestDraftWithCompatibilityAction() throws Exception {
+        String id = createDraft();
+
+        mockMvc.perform(post("/api/v1/pr/{id}/translate", id))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.titleEn").value("docs: Prepare spring-projects/spring-boot#2 update"))
+            .andExpect(jsonPath("$.data.bodyEn").value(org.hamcrest.Matchers.containsString("## Summary")))
+            .andExpect(jsonPath("$.data.githubUrl").value(org.hamcrest.Matchers.containsString(
+                "https://github.com/spring-projects/spring-boot/compare/main...feat/validation-docs"
+            )))
+            .andExpect(jsonPath("$.data.githubUrl").value(org.hamcrest.Matchers.containsString("quick_pull=1")));
+
+        mockMvc.perform(get("/api/v1/pr/{id}/translations", id))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data[0].draftId").value(id))
+            .andExpect(jsonPath("$.data[0].targetLanguage").value("en"));
+    }
+
+    @Test
     void listsPullRequestDraftTranslations() throws Exception {
         String id = createDraft();
         createTranslation(id);
@@ -406,6 +426,12 @@ class PullRequestDraftControllerTest {
                       "targetLanguage": "en"
                     }
                     """))
+            .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void returnsNotFoundWhenTranslatingMissingDraftWithCompatibilityAction() throws Exception {
+        mockMvc.perform(post("/api/v1/pr/{id}/translate", "missing"))
             .andExpect(status().isNotFound());
     }
 
