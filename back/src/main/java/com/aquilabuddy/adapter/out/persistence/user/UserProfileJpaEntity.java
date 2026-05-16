@@ -122,4 +122,10 @@ public class UserProfileJpaEntity {
         this.profileReady = true;
         this.vectorUpdatedAt = vectorUpdatedAt;
     }
+
+    void refreshVector(String vectorUpdatedAt, List<String> primaryLanguages, List<String> topics) {
+        refreshVector(vectorUpdatedAt);
+        this.primaryLanguages = new ArrayList<>(primaryLanguages);
+        this.topics = new ArrayList<>(topics);
+    }
 }
