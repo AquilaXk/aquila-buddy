@@ -10,6 +10,7 @@ import {
 
 type ProfileEditorPanelProps = {
   initialProfile: UserProfile;
+  publicProfile?: UserProfile | null;
 };
 
 type RequestState = {
@@ -18,7 +19,7 @@ type RequestState = {
   error: string | null;
 };
 
-export function ProfileEditorPanel({ initialProfile }: ProfileEditorPanelProps) {
+export function ProfileEditorPanel({ initialProfile, publicProfile }: ProfileEditorPanelProps) {
   const [profile, setProfile] = useState(initialProfile);
   const [name, setName] = useState(initialProfile.name);
   const [email, setEmail] = useState(initialProfile.email);
@@ -92,6 +93,22 @@ export function ProfileEditorPanel({ initialProfile }: ProfileEditorPanelProps) 
         <TokenList title="Languages" items={profile.primaryLanguages} />
         <TokenList title="Topics" items={profile.topics} />
       </div>
+
+      {publicProfile ? (
+        <div className="surface p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h3 className="text-sm font-semibold">Public Profile</h3>
+              <p className="mt-2 text-sm leading-6 text-neutral-700">
+                @{publicProfile.login} · {publicProfile.primaryLanguages.length} languages
+              </p>
+            </div>
+            <span className="rounded-md border border-line px-3 py-2 text-sm font-semibold text-neutral-700">
+              {publicProfile.profileReady ? "Ready" : "Pending"}
+            </span>
+          </div>
+        </div>
+      ) : null}
 
       <form className="surface space-y-4 p-5" onSubmit={handleSubmit}>
         <div className="grid gap-4 md:grid-cols-2">

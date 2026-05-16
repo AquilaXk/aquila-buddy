@@ -1,6 +1,7 @@
 package com.aquilabuddy.adapter.in.web.user;
 
 import com.aquilabuddy.application.port.in.user.GetCurrentUserProfileUseCase;
+import com.aquilabuddy.application.port.in.user.GetUserProfileByLoginUseCase;
 import com.aquilabuddy.application.port.in.user.RefreshCurrentUserProfileVectorUseCase;
 import com.aquilabuddy.application.port.in.user.UpdateCurrentUserProfileUseCase;
 import com.aquilabuddy.domain.user.UserProfile;
@@ -11,12 +12,15 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import java.util.List;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 /**
  * [Incoming Web Adapter] 현재 사용자 프로필 조회 API 요청을 처리하는 REST controller입니다.
@@ -26,15 +30,18 @@ import org.springframework.web.bind.annotation.RestController;
 public class UserProfileController {
 
     private final GetCurrentUserProfileUseCase getCurrentUserProfileUseCase;
+    private final GetUserProfileByLoginUseCase getUserProfileByLoginUseCase;
     private final UpdateCurrentUserProfileUseCase updateCurrentUserProfileUseCase;
     private final RefreshCurrentUserProfileVectorUseCase refreshCurrentUserProfileVectorUseCase;
 
     public UserProfileController(
         GetCurrentUserProfileUseCase getCurrentUserProfileUseCase,
+        GetUserProfileByLoginUseCase getUserProfileByLoginUseCase,
         UpdateCurrentUserProfileUseCase updateCurrentUserProfileUseCase,
         RefreshCurrentUserProfileVectorUseCase refreshCurrentUserProfileVectorUseCase
     ) {
         this.getCurrentUserProfileUseCase = getCurrentUserProfileUseCase;
+        this.getUserProfileByLoginUseCase = getUserProfileByLoginUseCase;
         this.updateCurrentUserProfileUseCase = updateCurrentUserProfileUseCase;
         this.refreshCurrentUserProfileVectorUseCase = refreshCurrentUserProfileVectorUseCase;
     }
@@ -45,6 +52,17 @@ public class UserProfileController {
     @GetMapping("/me")
     ApiResponse<UserProfile> me() {
         return ApiResponse.success(getCurrentUserProfileUseCase.currentUser());
+    }
+
+    /**
+     * GitHub login으로 사용자 공개 프로필을 조회합니다.
+     */
+    @GetMapping("/{githubId}")
+    ApiResponse<UserProfile> userByGithubId(@PathVariable String githubId) {
+        UserProfile profile = getUserProfileByLoginUseCase.getUserProfileByLogin(githubId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다."));
+
+        return ApiResponse.success(profile);
     }
 
     /**

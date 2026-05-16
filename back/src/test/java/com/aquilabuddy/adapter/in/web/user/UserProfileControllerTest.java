@@ -40,6 +40,23 @@ class UserProfileControllerTest {
     }
 
     @Test
+    void returnsUserProfileByGithubId() throws Exception {
+        mockMvc.perform(get("/api/v1/users/{githubId}", "aquila-dev"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.githubId").value(10001))
+            .andExpect(jsonPath("$.data.login").value("aquila-dev"))
+            .andExpect(jsonPath("$.data.name").value("Aquila Developer"))
+            .andExpect(jsonPath("$.data.primaryLanguages[0]").value("Java"));
+    }
+
+    @Test
+    void returnsNotFoundWhenUserProfileByGithubIdDoesNotExist() throws Exception {
+        mockMvc.perform(get("/api/v1/users/{githubId}", "missing-user"))
+            .andExpect(status().isNotFound());
+    }
+
+    @Test
     void updatesCurrentUserProfile() throws Exception {
         mockMvc.perform(patch("/api/v1/users/me")
                 .contentType(MediaType.APPLICATION_JSON)

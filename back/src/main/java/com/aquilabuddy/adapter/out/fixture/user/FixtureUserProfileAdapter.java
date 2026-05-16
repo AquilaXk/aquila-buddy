@@ -6,6 +6,7 @@ import com.aquilabuddy.application.port.out.user.SaveUserProfilePort;
 import com.aquilabuddy.domain.user.UserProfile;
 import com.aquilabuddy.domain.user.UserProfileUpdateRequest;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.stereotype.Component;
 
 /**
@@ -36,6 +37,18 @@ public class FixtureUserProfileAdapter implements
     @Override
     public UserProfile loadCurrentUserProfile() {
         return currentProfile;
+    }
+
+    /**
+     * 현재 fixture에 등록된 login과 일치할 때 공개 프로필을 반환합니다.
+     */
+    @Override
+    public Optional<UserProfile> loadUserProfileByLogin(String login) {
+        if (currentProfile.login().equals(login)) {
+            return Optional.of(currentProfile);
+        }
+
+        return Optional.empty();
     }
 
     /**

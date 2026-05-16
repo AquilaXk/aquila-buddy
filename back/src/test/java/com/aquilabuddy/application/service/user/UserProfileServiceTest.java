@@ -8,6 +8,7 @@ import com.aquilabuddy.application.port.out.user.SaveUserProfilePort;
 import com.aquilabuddy.domain.user.UserProfile;
 import com.aquilabuddy.domain.user.UserProfileUpdateRequest;
 import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -51,6 +52,29 @@ class UserProfileServiceTest {
         assertThat(refreshed.vectorUpdatedAt()).isEqualTo("2026-05-16T00:00:00Z");
     }
 
+    @Test
+    void returnsUserProfileByLogin() {
+        RecordingUserProfilePort port = new RecordingUserProfilePort();
+        UserProfileService service = new UserProfileService(port, port, port);
+
+        Optional<UserProfile> profile = service.getUserProfileByLogin("aquila-dev");
+
+        assertThat(profile).isPresent();
+        assertThat(profile.get().login()).isEqualTo("aquila-dev");
+        assertThat(port.requestedLogin).isEqualTo("aquila-dev");
+    }
+
+    @Test
+    void returnsEmptyWhenUserProfileByLoginDoesNotExist() {
+        RecordingUserProfilePort port = new RecordingUserProfilePort();
+        UserProfileService service = new UserProfileService(port, port, port);
+
+        Optional<UserProfile> profile = service.getUserProfileByLogin("missing-user");
+
+        assertThat(profile).isEmpty();
+        assertThat(port.requestedLogin).isEqualTo("missing-user");
+    }
+
     private static class RecordingUserProfilePort implements
         LoadUserProfilePort,
         SaveUserProfilePort,
@@ -58,6 +82,7 @@ class UserProfileServiceTest {
 
         private UserProfileUpdateRequest savedRequest;
         private boolean refreshRequested;
+        private String requestedLogin;
 
         @Override
         public UserProfile loadCurrentUserProfile() {
@@ -71,6 +96,16 @@ class UserProfileServiceTest {
                 true,
                 "2026-05-15T09:00:00Z"
             );
+        }
+
+        @Override
+        public Optional<UserProfile> loadUserProfileByLogin(String login) {
+            this.requestedLogin = login;
+            if (!"aquila-dev".equals(login)) {
+                return Optional.empty();
+            }
+
+            return Optional.of(loadCurrentUserProfile());
         }
 
         @Override
