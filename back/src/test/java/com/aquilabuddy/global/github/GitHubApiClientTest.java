@@ -240,6 +240,63 @@ class GitHubApiClientTest {
             +Update README""");
     }
 
+    @Test
+    void loadsRepositoryGuideContextFromContentsFiles() {
+        route("/repos/spring-projects/spring-boot/contents/CONTRIBUTING.md", 200, """
+            {
+              "content": "UGxlYXNlIHJ1biB0ZXN0cyBiZWZvcmUgb3BlbmluZyBhIFBSLg=="
+            }
+            """);
+        route("/repos/spring-projects/spring-boot/contents/.github/pull_request_template.md", 200, """
+            {
+              "content": "IyMgU3VtbWFyeQotIERlc2NyaWJlIGNoYW5nZXM="
+            }
+            """);
+        GitHubApiClient client = client();
+
+        GitHubApiClient.GitHubRepositoryGuideContext context =
+            client.loadRepositoryGuideContext("spring-projects/spring-boot");
+
+        assertThat(context.contributing()).isEqualTo("Please run tests before opening a PR.");
+        assertThat(context.pullRequestTemplate()).isEqualTo("## Summary\n- Describe changes");
+        assertThat(context.mergedPullRequestSamples()).isEmpty();
+    }
+
+    @Test
+    void loadsMergedPullRequestSamplesWhenRepositoryGuidesAreMissing() {
+        route("/repos/spring-projects/spring-boot/pulls", 200, """
+            [
+              {
+                "body": "## Summary\\n- Improve docs",
+                "merged_at": "2026-05-15T01:00:00Z"
+              },
+              {
+                "body": "",
+                "merged_at": "2026-05-15T02:00:00Z"
+              },
+              {
+                "body": "## Summary\\n- Fix validation",
+                "merged_at": "2026-05-15T03:00:00Z"
+              },
+              {
+                "body": "## Summary\\n- Closed without merge",
+                "merged_at": null
+              }
+            ]
+            """);
+        GitHubApiClient client = client();
+
+        GitHubApiClient.GitHubRepositoryGuideContext context =
+            client.loadRepositoryGuideContext("spring-projects/spring-boot");
+
+        assertThat(context.contributing()).isNull();
+        assertThat(context.pullRequestTemplate()).isNull();
+        assertThat(context.mergedPullRequestSamples()).containsExactly(
+            "## Summary\n- Improve docs",
+            "## Summary\n- Fix validation"
+        );
+    }
+
     private GitHubApiClient client() {
         return new GitHubApiClient(RestClient.builder(), baseUrl(), "");
     }

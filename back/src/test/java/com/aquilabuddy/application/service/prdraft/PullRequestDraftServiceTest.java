@@ -7,6 +7,7 @@ import com.aquilabuddy.application.port.out.prdraft.GeneratePullRequestDraftPort
 import com.aquilabuddy.application.port.out.prdraft.LoadPullRequestDraftDiffPort;
 import com.aquilabuddy.application.port.out.prdraft.LoadPullRequestDraftHistoryPort;
 import com.aquilabuddy.application.port.out.prdraft.LoadPullRequestDraftPort;
+import com.aquilabuddy.application.port.out.prdraft.LoadPullRequestDraftRepositoryGuideContextPort;
 import com.aquilabuddy.application.port.out.prdraft.LoadPullRequestDraftTranslationPort;
 import com.aquilabuddy.application.port.out.prdraft.SavePullRequestDraftPort;
 import com.aquilabuddy.application.port.out.prdraft.UpdatePullRequestDraftPort;
@@ -15,6 +16,7 @@ import com.aquilabuddy.domain.prdraft.PullRequestDraftContributionReport;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftHistoryPage;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftHistoryQuery;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftRequest;
+import com.aquilabuddy.domain.prdraft.PullRequestDraftRepositoryGuideContext;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftTranslation;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftUpdateRequest;
 import com.aquilabuddy.domain.prdraft.StoredPullRequestDraft;
@@ -34,6 +36,7 @@ class PullRequestDraftServiceTest {
         PullRequestDraftService service = new PullRequestDraftService(
             new FakeGeneratePullRequestDraftPort(),
             new FakeLoadPullRequestDraftDiffPort(),
+            new FakeLoadPullRequestDraftRepositoryGuideContextPort(),
             savePort,
             new FakeLoadPullRequestDraftPort(),
             new FakeLoadPullRequestDraftHistoryPort(),
@@ -52,7 +55,8 @@ class PullRequestDraftServiceTest {
 
         StoredPullRequestDraft draft = service.create(request);
 
-        assertThat(savePort.savedRequest).isEqualTo(request);
+        assertThat(savePort.savedRequest.upstreamRepo()).isEqualTo(request.upstreamRepo());
+        assertThat(savePort.savedRequest.repositoryGuideContext().hasAnyGuide()).isTrue();
         assertThat(savePort.savedDraft.title()).isEqualTo("generated title");
         assertThat(draft.id()).isEqualTo("stored-1");
         assertThat(draft.upstreamRepo()).isEqualTo("spring-projects/spring-boot");
@@ -68,6 +72,7 @@ class PullRequestDraftServiceTest {
         PullRequestDraftService service = new PullRequestDraftService(
             generatePort,
             diffPort,
+            new FakeLoadPullRequestDraftRepositoryGuideContextPort(),
             savePort,
             new FakeLoadPullRequestDraftPort(),
             new FakeLoadPullRequestDraftHistoryPort(),
@@ -100,6 +105,7 @@ class PullRequestDraftServiceTest {
         PullRequestDraftService service = new PullRequestDraftService(
             generatePort,
             diffPort,
+            new FakeLoadPullRequestDraftRepositoryGuideContextPort(),
             new FakeSavePullRequestDraftPort(),
             new FakeLoadPullRequestDraftPort(),
             new FakeLoadPullRequestDraftHistoryPort(),
@@ -119,7 +125,42 @@ class PullRequestDraftServiceTest {
         service.create(request);
 
         assertThat(diffPort.receivedRequest).isNull();
-        assertThat(generatePort.generatedRequest).isEqualTo(request);
+        assertThat(generatePort.generatedRequest.diffContent()).isEqualTo(request.diffContent());
+        assertThat(generatePort.generatedRequest.repositoryGuideContext().hasAnyGuide()).isTrue();
+    }
+
+    @Test
+    void resolvesRepositoryGuideContextBeforeGeneratingAndSaving() {
+        FakeGeneratePullRequestDraftPort generatePort = new FakeGeneratePullRequestDraftPort();
+        FakeLoadPullRequestDraftRepositoryGuideContextPort guideContextPort =
+            new FakeLoadPullRequestDraftRepositoryGuideContextPort();
+        FakeSavePullRequestDraftPort savePort = new FakeSavePullRequestDraftPort();
+        PullRequestDraftService service = new PullRequestDraftService(
+            generatePort,
+            new FakeLoadPullRequestDraftDiffPort(),
+            guideContextPort,
+            savePort,
+            new FakeLoadPullRequestDraftPort(),
+            new FakeLoadPullRequestDraftHistoryPort(),
+            new FakeUpdatePullRequestDraftPort(),
+            new FakeDeletePullRequestDraftPort(),
+            new FakeLoadPullRequestDraftTranslationPort()
+        );
+
+        PullRequestDraftRequest request = new PullRequestDraftRequest(
+            "spring-projects/spring-boot",
+            2,
+            "main",
+            "feat/validation-docs",
+            "diff --git a/docs.adoc b/docs.adoc\n+Provided by client"
+        );
+
+        service.create(request);
+
+        assertThat(guideContextPort.receivedRequest).isEqualTo(request);
+        assertThat(generatePort.generatedRequest.repositoryGuideContext().contributing())
+            .isEqualTo("Please run tests before opening a PR.");
+        assertThat(savePort.savedRequest).isEqualTo(generatePort.generatedRequest);
     }
 
     @Test
@@ -128,6 +169,7 @@ class PullRequestDraftServiceTest {
         PullRequestDraftService service = new PullRequestDraftService(
             new FakeGeneratePullRequestDraftPort(),
             new FakeLoadPullRequestDraftDiffPort(),
+            new FakeLoadPullRequestDraftRepositoryGuideContextPort(),
             new FakeSavePullRequestDraftPort(),
             loadPort,
             new FakeLoadPullRequestDraftHistoryPort(),
@@ -149,6 +191,7 @@ class PullRequestDraftServiceTest {
         PullRequestDraftService service = new PullRequestDraftService(
             new FakeGeneratePullRequestDraftPort(),
             new FakeLoadPullRequestDraftDiffPort(),
+            new FakeLoadPullRequestDraftRepositoryGuideContextPort(),
             new FakeSavePullRequestDraftPort(),
             loadPort,
             new FakeLoadPullRequestDraftHistoryPort(),
@@ -168,6 +211,7 @@ class PullRequestDraftServiceTest {
         PullRequestDraftService service = new PullRequestDraftService(
             new FakeGeneratePullRequestDraftPort(),
             new FakeLoadPullRequestDraftDiffPort(),
+            new FakeLoadPullRequestDraftRepositoryGuideContextPort(),
             new FakeSavePullRequestDraftPort(),
             new FakeLoadPullRequestDraftPort(),
             new FakeLoadPullRequestDraftHistoryPort(),
@@ -192,6 +236,7 @@ class PullRequestDraftServiceTest {
         PullRequestDraftService service = new PullRequestDraftService(
             new FakeGeneratePullRequestDraftPort(),
             new FakeLoadPullRequestDraftDiffPort(),
+            new FakeLoadPullRequestDraftRepositoryGuideContextPort(),
             new FakeSavePullRequestDraftPort(),
             new FakeLoadPullRequestDraftPort(),
             new FakeLoadPullRequestDraftHistoryPort(),
@@ -220,6 +265,7 @@ class PullRequestDraftServiceTest {
         PullRequestDraftService service = new PullRequestDraftService(
             new FakeGeneratePullRequestDraftPort(),
             new FakeLoadPullRequestDraftDiffPort(),
+            new FakeLoadPullRequestDraftRepositoryGuideContextPort(),
             new FakeSavePullRequestDraftPort(),
             new FakeLoadPullRequestDraftPort(),
             new FakeLoadPullRequestDraftHistoryPort(),
@@ -240,6 +286,7 @@ class PullRequestDraftServiceTest {
         PullRequestDraftService service = new PullRequestDraftService(
             new FakeGeneratePullRequestDraftPort(),
             new FakeLoadPullRequestDraftDiffPort(),
+            new FakeLoadPullRequestDraftRepositoryGuideContextPort(),
             new FakeSavePullRequestDraftPort(),
             new FakeLoadPullRequestDraftPort(),
             historyPort,
@@ -272,6 +319,22 @@ class PullRequestDraftServiceTest {
         public PullRequestDraft generate(PullRequestDraftRequest request) {
             generatedRequest = request;
             return new PullRequestDraft("generated title", "body for " + request.upstreamRepo());
+        }
+    }
+
+    private static class FakeLoadPullRequestDraftRepositoryGuideContextPort
+        implements LoadPullRequestDraftRepositoryGuideContextPort {
+
+        private PullRequestDraftRequest receivedRequest;
+
+        @Override
+        public PullRequestDraftRepositoryGuideContext loadRepositoryGuideContext(PullRequestDraftRequest request) {
+            receivedRequest = request;
+            return new PullRequestDraftRepositoryGuideContext(
+                "Please run tests before opening a PR.",
+                "## Summary\n- Describe changes",
+                List.of()
+            );
         }
     }
 
