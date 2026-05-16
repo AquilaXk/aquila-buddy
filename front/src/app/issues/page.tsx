@@ -1,179 +1,120 @@
+"use client";
+
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { ProtectedLayout } from "@/components/ProtectedLayout";
 import {
-  getCollectedIssues,
   getRecommendedIssueHistory,
   getRecommendedIssues,
-  type RecommendedIssue,
   type RecommendedIssueHistory
 } from "@/lib/api";
-import { IssueCrawlSearchPanel } from "./IssueCrawlSearchPanel";
 
-export const dynamic = "force-dynamic";
+export default function IssuesPage() {
+  const [history, setHistory] = useState<RecommendedIssueHistory[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [recommending, setRecommending] = useState(false);
+  const [recommendStep, setRecommendStep] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-export default async function IssuesPage() {
-  const [recommendResult, catalogResult, historyResult] = await Promise.all([
-    loadRecommendedIssues(),
-    loadCollectedIssues(),
-    loadRecommendedIssueHistory()
-  ]);
+  useEffect(() => {
+    loadHistory();
+  }, []);
+
+  async function loadHistory() {
+    setLoading(true);
+
+    try {
+      const issues = await getRecommendedIssueHistory();
+      setHistory(issues);
+      setError(null);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "추천 이력을 불러오지 못했습니다.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleRecommend() {
+    setRecommending(true);
+    setError(null);
+    setRecommendStep("나에게 맞는 이슈 분석 중...");
+
+    try {
+      await getRecommendedIssues();
+      setRecommendStep(null);
+      await loadHistory();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "이슈 추천에 실패했습니다.");
+      setRecommendStep(null);
+    } finally {
+      setRecommending(false);
+    }
+  }
 
   return (
     <ProtectedLayout>
-      {recommendResult.error ? (
-        <div className="surface mb-4 border-red-500/30 bg-red-500/10 p-4 text-sm font-semibold text-red-400">
-          추천 이슈를 불러오지 못했습니다. backend API 상태를 확인해 주세요.
+      <div className="mb-6 flex items-start justify-between gap-4">
+        <div>
+          <h1 className="mb-1 text-2xl font-bold text-github-text">추천 이슈</h1>
+          <p className="text-sm text-github-muted">
+            나의 기술 스택과 GitHub 활동 기반으로 맞춤 오픈소스 이슈를 추천합니다.
+          </p>
+        </div>
+        <button
+          className="flex shrink-0 items-center gap-2 rounded-lg bg-github-purple px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-github-purple/90 disabled:opacity-60"
+          disabled={recommending}
+          onClick={handleRecommend}
+          type="button"
+        >
+          {recommending ? (
+            <>
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+              {recommendStep ?? "분석 중..."}
+            </>
+          ) : (
+            "이슈 추천받기"
+          )}
+        </button>
+      </div>
+
+      {error ? (
+        <div className="mb-6 rounded-lg border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-400">
+          {error}
         </div>
       ) : null}
-      {historyResult.error ? (
-        <div className="surface mb-4 border-red-500/30 bg-red-500/10 p-4 text-sm font-semibold text-red-400">
-          추천 이력을 불러오지 못했습니다. backend API 상태를 확인해 주세요.
-        </div>
-      ) : null}
-      {catalogResult.error ? (
-        <div className="surface mb-4 border-red-500/30 bg-red-500/10 p-4 text-sm font-semibold text-red-400">
-          수집 이슈 catalog를 불러오지 못했습니다. backend API 상태를 확인해 주세요.
-        </div>
-      ) : null}
 
-      <IssueCrawlSearchPanel />
-
-      <section className="mb-8 space-y-3">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <h2 className="text-base font-bold text-github-text">Collected catalog</h2>
-          <span className="text-xs font-semibold text-github-muted">
-            {catalogResult.issues.length} issues
-          </span>
+      {loading ? (
+        <div className="space-y-3">
+          {[0, 1, 2, 3].map((item) => (
+            <div className="h-28 animate-pulse rounded-xl bg-github-surface" key={item} />
+          ))}
         </div>
-        {catalogResult.issues.length > 0 ? (
-          catalogResult.issues.map((issue) => (
-            <IssueCard key={issue.id} issue={issue} reason={issue.reason} />
-          ))
-        ) : (
-          <div className="surface p-4 text-sm font-semibold text-github-muted">
-            수집된 이슈 catalog가 없습니다.
-          </div>
-        )}
-      </section>
-
-      <section className="space-y-3">
-        <h2 className="text-base font-bold text-github-text">Current recommendations</h2>
-        {recommendResult.issues.map((issue) => (
-          <IssueCard key={issue.id} issue={issue} reason={issue.reason} />
-        ))}
-      </section>
-
-      <section className="mt-8 space-y-3">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <h2 className="text-base font-bold text-github-text">Saved history</h2>
-          <span className="text-xs font-semibold text-github-muted">
-            {historyResult.issues.length} issues
-          </span>
+      ) : history.length === 0 ? (
+        <div className="py-24 text-center text-github-muted">
+          <p className="mb-1">아직 추천받은 이슈가 없습니다.</p>
+          <p className="mt-1 text-xs">
+            프로필 분석 완료 후 "이슈 추천받기" 버튼을 눌러보세요.
+          </p>
         </div>
-        {historyResult.issues.length > 0 ? (
-          historyResult.issues.map((issue) => (
-            <IssueCard
+      ) : (
+        <div className="space-y-3">
+          {history.map((issue) => (
+            <Link
+              className="block rounded-xl border border-github-border bg-github-surface p-5 transition-colors hover:border-github-purple/50"
+              href={`/issues/${issue.id}`}
               key={issue.id}
-              issue={issue}
-              reason={issue.isAnalyzed ? "분석 완료" : "분석 전"}
-              analysisResultId={issue.analysisResultId}
-            />
-          ))
-        ) : (
-          <div className="surface p-4 text-sm font-semibold text-github-muted">
-            저장된 추천 이력이 없습니다.
-          </div>
-        )}
-      </section>
+            >
+              <p className="mb-2 text-xs text-github-muted">
+                {issue.repoFullName} #{issue.issueNumber}
+              </p>
+              <h3 className="line-clamp-1 font-medium text-github-text">{issue.title}</h3>
+              {issue.summary ? (
+                <p className="mt-2 line-clamp-2 text-xs text-github-muted">{issue.summary}</p>
+              ) : null}
+            </Link>
+          ))}
+        </div>
+      )}
     </ProtectedLayout>
   );
-}
-
-function IssueCard({
-  issue,
-  reason,
-  analysisResultId
-}: {
-  issue: RecommendedIssue | RecommendedIssueHistory;
-  reason: string;
-  analysisResultId?: string | null;
-}) {
-  return (
-    <Link
-      href={`/issues/${issue.id}`}
-      className="focus-ring surface block p-4 hover:border-github-accent"
-    >
-      <div className="flex flex-wrap items-center gap-2">
-        <p className="break-all text-sm font-semibold text-github-accent">
-          {issue.repoFullName} #{issue.issueNumber}
-        </p>
-        <span className="rounded-md border border-github-border px-2 py-1 text-xs font-semibold text-github-muted">
-          {Math.round(issue.score * 100)}%
-        </span>
-        <span className="rounded-md border border-github-border px-2 py-1 text-xs font-semibold text-github-muted">
-          {issue.status}
-        </span>
-        {analysisResultId ? (
-          <span className="rounded-md border border-github-border px-2 py-1 text-xs font-semibold text-github-muted">
-            analysis #{analysisResultId}
-          </span>
-        ) : null}
-      </div>
-      <h3 className="mt-1 text-lg font-bold">{issue.title}</h3>
-      <p className="mt-2 text-sm leading-6 text-github-muted">{issue.summary}</p>
-      <p className="mt-2 text-sm leading-6 text-github-muted">{reason}</p>
-      <div className="mt-3 flex flex-wrap gap-2">
-        {issue.labels.map((label) => (
-          <span
-            key={label}
-            className="rounded-md bg-github-bg px-2 py-1 text-xs font-semibold text-github-muted"
-          >
-            {label}
-          </span>
-        ))}
-      </div>
-    </Link>
-  );
-}
-
-async function loadRecommendedIssues() {
-  try {
-    return {
-      issues: await getRecommendedIssues(),
-      error: null
-    };
-  } catch (error) {
-    return {
-      issues: [],
-      error
-    };
-  }
-}
-
-async function loadCollectedIssues() {
-  try {
-    return {
-      issues: await getCollectedIssues(),
-      error: null
-    };
-  } catch (error) {
-    return {
-      issues: [],
-      error
-    };
-  }
-}
-
-async function loadRecommendedIssueHistory() {
-  try {
-    return {
-      issues: await getRecommendedIssueHistory(),
-      error: null
-    };
-  } catch (error) {
-    return {
-      issues: [],
-      error
-    };
-  }
 }
