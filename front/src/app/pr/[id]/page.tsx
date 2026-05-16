@@ -1,6 +1,11 @@
 import { ProtectedLayout } from "@/components/ProtectedLayout";
-import type { PullRequestDraftReadiness, StoredPullRequestDraft } from "@/lib/api";
+import type {
+  PullRequestDraftReadiness,
+  PullRequestDraftSubmission,
+  StoredPullRequestDraft
+} from "@/lib/api";
 import { PrDraftReadinessPanel } from "./PrDraftReadinessPanel";
+import { PrDraftSubmissionPanel } from "./PrDraftSubmissionPanel";
 import { loadPrDetailOverview } from "./prDetailData";
 import { TranslationPanel } from "./TranslationPanel";
 
@@ -30,7 +35,9 @@ export default async function PrDetailPage({ params }: PrDetailPageProps) {
           <DraftDetail
             draft={result.draft}
             hasReadinessError={result.errors.readiness}
+            hasSubmissionError={result.errors.submission}
             readiness={result.readiness}
+            submission={result.submission}
           />
         ) : (
           <p className="mt-4 text-sm leading-6 text-neutral-700">
@@ -45,11 +52,15 @@ export default async function PrDetailPage({ params }: PrDetailPageProps) {
 function DraftDetail({
   draft,
   hasReadinessError,
-  readiness
+  hasSubmissionError,
+  readiness,
+  submission
 }: {
   draft: StoredPullRequestDraft;
   hasReadinessError: boolean;
+  hasSubmissionError: boolean;
   readiness: PullRequestDraftReadiness | null;
+  submission: PullRequestDraftSubmission | null;
 }) {
   return (
     <div className="mt-5 space-y-5">
@@ -74,6 +85,7 @@ function DraftDetail({
       </div>
 
       <PrDraftReadinessPanel hasError={hasReadinessError} readiness={readiness} />
+      <PrDraftSubmissionPanel hasError={hasSubmissionError} submission={submission} />
 
       <div>
         <h3 className="text-sm font-semibold">Title</h3>
