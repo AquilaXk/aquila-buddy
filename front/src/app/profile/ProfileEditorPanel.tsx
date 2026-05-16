@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import {
   refreshUserProfileVector,
   updateUserProfile,
@@ -27,10 +27,6 @@ export function ProfileEditorPanel({ initialProfile }: ProfileEditorPanelProps) 
     message: null,
     error: null
   });
-
-  const vectorLabel = useMemo(() => {
-    return profile.profileReady ? "Ready" : "Pending";
-  }, [profile.profileReady]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -66,6 +62,17 @@ export function ProfileEditorPanel({ initialProfile }: ProfileEditorPanelProps) 
   return (
     <div className="max-w-2xl">
       <h1 className="mb-6 text-2xl font-bold text-github-text">내 프로필</h1>
+
+      {requestState.message ? (
+        <p className="mb-6 rounded-lg border border-green-500/30 bg-green-500/10 p-4 text-sm text-green-400">
+          {requestState.message}
+        </p>
+      ) : null}
+      {requestState.error ? (
+        <p className="mb-6 rounded-lg border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-400">
+          {requestState.error}
+        </p>
+      ) : null}
 
       <section className="mb-6 rounded-xl border border-github-border bg-github-surface p-6">
         <div className="mb-6 flex items-center gap-3">
@@ -103,17 +110,6 @@ export function ProfileEditorPanel({ initialProfile }: ProfileEditorPanelProps) 
             />
           </div>
 
-          {requestState.message ? (
-            <p className="rounded-lg border border-green-500/30 bg-green-500/10 p-4 text-sm text-green-400">
-              {requestState.message}
-            </p>
-          ) : null}
-          {requestState.error ? (
-            <p className="rounded-lg border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-400">
-              {requestState.error}
-            </p>
-          ) : null}
-
           <button
             className="rounded-lg bg-github-purple px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-github-purple/90 disabled:opacity-50"
             disabled={requestState.status !== "idle"}
@@ -124,39 +120,56 @@ export function ProfileEditorPanel({ initialProfile }: ProfileEditorPanelProps) 
         </form>
       </section>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <div className="surface p-4">
-          <h3 className="text-sm font-semibold">Profile Status</h3>
-          <p className="mt-2 text-lg font-bold text-github-text">{vectorLabel}</p>
-          <p className="mt-2 text-sm leading-6 text-github-muted">
-            마지막 업데이트 {formatDateTime(profile.vectorUpdatedAt)}
-          </p>
-        </div>
+      <section className="rounded-xl border border-github-border bg-github-surface p-6">
+        <h2 className="mb-1 font-semibold text-github-text">AI 프로필 벡터</h2>
+        <p className="mb-4 text-sm text-github-muted">
+          GitHub 활동을 분석하여 나에게 맞는 이슈를 추천받기 위한 임베딩 벡터를 생성합니다.
+        </p>
 
-        <TokenList title="Languages" items={profile.primaryLanguages} />
-        <TokenList title="Topics" items={profile.topics} />
-      </div>
+        {profile.vectorUpdatedAt ? (
+          <p className="mb-4 text-xs text-github-muted">
+            마지막 업데이트: <span className="text-github-accent">{formatDateTime(profile.vectorUpdatedAt)}</span>
+          </p>
+        ) : null}
+
+        {profile.primaryLanguages.length > 0 ? (
+          <div className="mb-4">
+            <p className="mb-2 text-xs text-github-muted">감지된 주요 언어</p>
+            <div className="flex flex-wrap gap-2">
+              {profile.primaryLanguages.map((language) => (
+                <span
+                  className="rounded-full border border-github-purple/30 bg-github-purple/20 px-2 py-0.5 text-xs text-github-purple-light"
+                  key={language}
+                >
+                  {language}
+                </span>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
+        <button
+          className="flex items-center gap-2 rounded-lg border border-github-accent/30 bg-github-accent/10 px-4 py-2 text-sm font-medium text-github-accent transition-colors hover:bg-github-accent/20 disabled:opacity-50"
+          disabled={requestState.status !== "idle"}
+          onClick={handleRefreshVector}
+          type="button"
+        >
+          {requestState.status === "refreshing" ? (
+            <>
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-github-accent border-t-transparent" />
+              분석 중... (시간이 걸릴 수 있습니다)
+            </>
+          ) : (
+            "벡터 업데이트"
+          )}
+        </button>
+      </section>
     </div>
   );
 }
 
 function getProfileInitial(profile: UserProfile) {
   return (profile.name || profile.login || String(profile.githubId) || "?").at(0)?.toUpperCase() ?? "?";
-}
-
-function TokenList({ title, items }: { title: string; items: string[] }) {
-  return (
-    <div className="surface p-4">
-      <h3 className="text-sm font-semibold">{title}</h3>
-      <div className="mt-3 flex flex-wrap gap-2">
-        {items.map((item) => (
-          <span key={item} className="rounded-md bg-github-bg px-2 py-1 text-xs font-semibold text-github-muted">
-            {item}
-          </span>
-        ))}
-      </div>
-    </div>
-  );
 }
 
 function formatDateTime(value: string) {
