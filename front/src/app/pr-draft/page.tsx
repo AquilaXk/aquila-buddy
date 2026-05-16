@@ -37,6 +37,7 @@ function PrDraftContent() {
   const [draft, setDraft] = useState<StoredPullRequestDraft | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [copied, setCopied] = useState<"title" | "body" | null>(null);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -62,6 +63,12 @@ function PrDraftContent() {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  async function copyDraft(text: string, type: "title" | "body") {
+    await navigator.clipboard.writeText(text);
+    setCopied(type);
+    window.setTimeout(() => setCopied(null), 1600);
   }
 
   const canSubmit = hasIssueParam && baseBranch.trim() && headBranch.trim();
@@ -159,9 +166,53 @@ function PrDraftContent() {
           ) : null}
         </div>
 
-        <section className="surface flex min-h-80 items-center justify-center p-8 text-center text-sm leading-6 text-github-muted">
-          선택한 이슈의 브랜치 정보를 입력하면 PR 초안 결과가 여기에 표시됩니다.
-          {draft ? null : null}
+        <section className="surface min-h-80 p-5">
+          {draft ? (
+            <div className="space-y-4">
+              <h2 className="text-base font-semibold text-github-text">생성된 PR 초안</h2>
+
+              <div className="rounded-md border border-github-border bg-github-bg p-4">
+                <div className="mb-2 flex items-center justify-between gap-3">
+                  <p className="text-xs font-semibold text-github-muted">PR 제목</p>
+                  <button
+                    className="focus-ring text-xs font-semibold text-github-muted hover:text-github-accent"
+                    onClick={() => copyDraft(draft.title, "title")}
+                    type="button"
+                  >
+                    {copied === "title" ? "복사됨 ✓" : "복사"}
+                  </button>
+                </div>
+                <p className="text-sm font-semibold leading-6 text-github-text">{draft.title}</p>
+              </div>
+
+              <div className="rounded-md border border-github-border bg-github-bg p-4">
+                <div className="mb-2 flex items-center justify-between gap-3">
+                  <p className="text-xs font-semibold text-github-muted">PR 본문</p>
+                  <button
+                    className="focus-ring text-xs font-semibold text-github-muted hover:text-github-accent"
+                    onClick={() => copyDraft(draft.body, "body")}
+                    type="button"
+                  >
+                    {copied === "body" ? "복사됨 ✓" : "복사"}
+                  </button>
+                </div>
+                <pre className="max-h-64 overflow-auto whitespace-pre-wrap text-xs leading-6 text-github-text">
+                  {draft.body}
+                </pre>
+              </div>
+
+              <Link
+                className="focus-ring block text-center text-xs font-semibold text-github-muted hover:text-github-text"
+                href={`/pr/${draft.id}`}
+              >
+                상세 보기 (수정·삭제) →
+              </Link>
+            </div>
+          ) : (
+            <div className="flex h-full min-h-72 items-center justify-center text-center text-sm leading-6 text-github-muted">
+              선택한 이슈의 브랜치 정보를 입력하면 PR 초안 결과가 여기에 표시됩니다.
+            </div>
+          )}
         </section>
       </div>
     </ProtectedLayout>
