@@ -5,6 +5,7 @@ package com.aquilabuddy.global.response;
  */
 public record ApiResponse<T>(
     boolean success,
+    String status,
     T data,
     String message
 ) {
@@ -12,13 +13,13 @@ public record ApiResponse<T>(
      * 정상 처리된 요청의 응답 payload를 감싸서 반환합니다.
      */
     public static <T> ApiResponse<T> success(T data) {
-        return new ApiResponse<>(true, data, null);
+        return new ApiResponse<>(true, "success", data, "success to response");
     }
 
     /**
      * 실패한 요청의 사용자 노출 메시지를 감싸서 반환합니다.
      */
     public static <T> ApiResponse<T> error(String message) {
-        return new ApiResponse<>(false, null, message);
+        return new ApiResponse<>(false, "fail", null, message == null ? "fail" : message);
     }
 }

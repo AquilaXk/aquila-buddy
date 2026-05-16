@@ -15,7 +15,8 @@ class OAuthCallbackControllerTest {
         ApiResponse<Map<String, String>> response = controller.callback("jwt-token");
 
         assertThat(response.success()).isTrue();
+        assertThat(response.status()).isEqualTo("success");
         assertThat(response.data()).containsEntry("token", "jwt-token");
-        assertThat(response.message()).contains("로그인 성공");
+        assertThat(response.message()).isEqualTo("success to response");
     }
 }
