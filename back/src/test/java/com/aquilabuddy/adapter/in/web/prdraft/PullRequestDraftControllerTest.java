@@ -205,12 +205,39 @@ class PullRequestDraftControllerTest {
     }
 
     @Test
+    void returnsPullRequestDraftTranslationReadiness() throws Exception {
+        String id = createDraft();
+        String translationId = createTranslation(id);
+
+        mockMvc.perform(get("/api/v1/pr/{id}/translations/{translationId}/readiness", id, translationId))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.draftId").value(id))
+            .andExpect(jsonPath("$.data.translationId").value(translationId))
+            .andExpect(jsonPath("$.data.targetLanguage").value("en"))
+            .andExpect(jsonPath("$.data.readyCount").value(5))
+            .andExpect(jsonPath("$.data.items[0].key").value("target-language"))
+            .andExpect(jsonPath("$.data.items[0].status").value("READY"))
+            .andExpect(jsonPath("$.data.items[4].key").value("test-plan"));
+    }
+
+    @Test
     void returnsNotFoundForTranslationSubmissionWhenTranslationBelongsToAnotherDraft() throws Exception {
         String sourceDraftId = createDraft();
         String translationId = createTranslation(sourceDraftId);
         String otherDraftId = createDraft();
 
         mockMvc.perform(get("/api/v1/pr/{id}/translations/{translationId}/submission", otherDraftId, translationId))
+            .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void returnsNotFoundForTranslationReadinessWhenTranslationBelongsToAnotherDraft() throws Exception {
+        String sourceDraftId = createDraft();
+        String translationId = createTranslation(sourceDraftId);
+        String otherDraftId = createDraft();
+
+        mockMvc.perform(get("/api/v1/pr/{id}/translations/{translationId}/readiness", otherDraftId, translationId))
             .andExpect(status().isNotFound());
     }
 

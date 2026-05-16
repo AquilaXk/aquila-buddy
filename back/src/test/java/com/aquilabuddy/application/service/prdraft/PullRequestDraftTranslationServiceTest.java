@@ -7,7 +7,9 @@ import com.aquilabuddy.application.port.out.prdraft.LoadPullRequestDraftTranslat
 import com.aquilabuddy.application.port.out.prdraft.SavePullRequestDraftTranslationPort;
 import com.aquilabuddy.application.port.out.prdraft.TranslatePullRequestDraftPort;
 import com.aquilabuddy.domain.prdraft.PullRequestDraft;
+import com.aquilabuddy.domain.prdraft.PullRequestDraftReadinessItem;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftSubmissionItem;
+import com.aquilabuddy.domain.prdraft.PullRequestDraftTranslationReadiness;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftTranslationSubmission;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftTranslation;
 import com.aquilabuddy.domain.prdraft.StoredPullRequestDraft;
@@ -112,6 +114,46 @@ class PullRequestDraftTranslationServiceTest {
         assertThat(submission).isEmpty();
     }
 
+    @Test
+    void returnsTranslationReadinessWhenTranslationBelongsToDraft() {
+        PullRequestDraftTranslationService service = new PullRequestDraftTranslationService(
+            new FakeLoadDraftPort(storedDraft()),
+            new FakeTranslatePullRequestDraftPort(),
+            new FakeSaveTranslationPort(),
+            new FakeLoadTranslationPort()
+        );
+
+        Optional<PullRequestDraftTranslationReadiness> readiness = service.getTranslationReadiness(
+            "draft-1",
+            "translation-1"
+        );
+
+        assertThat(readiness).isPresent();
+        assertThat(readiness.get().draftId()).isEqualTo("draft-1");
+        assertThat(readiness.get().translationId()).isEqualTo("translation-1");
+        assertThat(readiness.get().readyCount()).isEqualTo(5);
+        assertThat(readiness.get().items())
+            .extracting(PullRequestDraftReadinessItem::key)
+            .containsExactly("target-language", "branch", "title", "body", "test-plan");
+    }
+
+    @Test
+    void returnsEmptyWhenTranslationReadinessDoesNotBelongToDraft() {
+        PullRequestDraftTranslationService service = new PullRequestDraftTranslationService(
+            new FakeLoadDraftPort(storedDraft()),
+            new FakeTranslatePullRequestDraftPort(),
+            new FakeSaveTranslationPort(),
+            new FakeLoadTranslationPort()
+        );
+
+        Optional<PullRequestDraftTranslationReadiness> readiness = service.getTranslationReadiness(
+            "other-draft",
+            "translation-1"
+        );
+
+        assertThat(readiness).isEmpty();
+    }
+
     private static class FakeLoadDraftPort implements LoadPullRequestDraftPort {
 
         private final StoredPullRequestDraft draft;
@@ -177,7 +219,7 @@ class PullRequestDraftTranslationServiceTest {
                 draftId,
                 "en",
                 "translated title",
-                "translated body",
+                "## Summary\n- translated body\n\n## Test Plan\n- Run translated tests.",
                 Instant.parse("2026-05-15T04:00:00Z")
             ));
         }

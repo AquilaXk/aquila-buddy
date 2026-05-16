@@ -6,6 +6,7 @@ import {
   getPullRequestDraftTranslations,
   type PullRequestDraftTranslation
 } from "@/lib/api";
+import { TranslationReadinessPanel } from "./TranslationReadinessPanel";
 import { TranslationSubmissionBundle } from "./TranslationSubmissionBundle";
 
 type TranslationPanelProps = {
@@ -126,6 +127,7 @@ export function TranslationPanel({ draftId }: TranslationPanelProps) {
             <pre className="mt-2 max-h-80 overflow-auto whitespace-pre-wrap text-sm leading-6 text-neutral-800">
               {translation.body}
             </pre>
+            <TranslationReadinessPanel draftId={draftId} translation={translation} />
             <TranslationSubmissionBundle draftId={draftId} translation={translation} />
           </article>
         ))}
