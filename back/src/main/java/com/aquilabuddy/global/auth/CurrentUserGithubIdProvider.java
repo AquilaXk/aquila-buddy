@@ -1,5 +1,6 @@
 package com.aquilabuddy.global.auth;
 
+import com.aquilabuddy.application.port.out.user.CurrentUserGithubIdPort;
 import com.aquilabuddy.global.auth.principal.OAuthPrincipal;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
@@ -10,7 +11,7 @@ import org.springframework.stereotype.Component;
  * 현재 요청의 인증 주체에서 GitHub 사용자 id를 추출합니다.
  */
 @Component
-public class CurrentUserGithubIdProvider {
+public class CurrentUserGithubIdProvider implements CurrentUserGithubIdPort {
 
     private final long defaultGithubId;
 
@@ -20,6 +21,7 @@ public class CurrentUserGithubIdProvider {
         this.defaultGithubId = defaultGithubId;
     }
 
+    @Override
     public long currentGithubId() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 

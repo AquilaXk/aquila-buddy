@@ -1,11 +1,11 @@
 package com.aquilabuddy.adapter.out.persistence.user;
 
 import com.aquilabuddy.application.port.out.user.LoadUserProfilePort;
+import com.aquilabuddy.application.port.out.user.CurrentUserGithubIdPort;
 import com.aquilabuddy.application.port.out.user.RefreshUserProfileVectorPort;
 import com.aquilabuddy.application.port.out.user.SaveUserProfilePort;
 import com.aquilabuddy.domain.user.UserProfile;
 import com.aquilabuddy.domain.user.UserProfileUpdateRequest;
-import com.aquilabuddy.global.auth.CurrentUserGithubIdProvider;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import org.springframework.stereotype.Component;
@@ -24,14 +24,14 @@ public class UserProfilePersistenceAdapter implements
     private static final String REFRESHED_VECTOR_UPDATED_AT = "2026-05-16T00:00:00Z";
 
     private final UserProfileJpaRepository repository;
-    private final CurrentUserGithubIdProvider currentUserGithubIdProvider;
+    private final CurrentUserGithubIdPort currentUserGithubIdPort;
 
     public UserProfilePersistenceAdapter(
         UserProfileJpaRepository repository,
-        CurrentUserGithubIdProvider currentUserGithubIdProvider
+        CurrentUserGithubIdPort currentUserGithubIdPort
     ) {
         this.repository = repository;
-        this.currentUserGithubIdProvider = currentUserGithubIdProvider;
+        this.currentUserGithubIdPort = currentUserGithubIdPort;
     }
 
     @Override
@@ -64,7 +64,7 @@ public class UserProfilePersistenceAdapter implements
     }
 
     private UserProfileJpaEntity loadCurrentEntity() {
-        long githubId = currentUserGithubIdProvider.currentGithubId();
+        long githubId = currentUserGithubIdPort.currentGithubId();
 
         return repository.findById(githubId)
             .orElseThrow(() -> new NoSuchElementException("User profile not found: " + githubId));
