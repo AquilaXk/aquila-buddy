@@ -10,6 +10,7 @@ import com.aquilabuddy.application.port.in.prdraft.GetPullRequestDraftTimelineUs
 import com.aquilabuddy.application.port.in.prdraft.ListPullRequestDraftHistoryUseCase;
 import com.aquilabuddy.application.port.in.prdraft.ListPullRequestDraftsUseCase;
 import com.aquilabuddy.application.port.in.prdraft.UpdatePullRequestDraftUseCase;
+import com.aquilabuddy.application.port.out.issue.FindRecommendedIssuePort;
 import com.aquilabuddy.application.port.out.prdraft.DeletePullRequestDraftPort;
 import com.aquilabuddy.application.port.out.prdraft.GeneratePullRequestDraftPort;
 import com.aquilabuddy.application.port.out.prdraft.LoadPullRequestDraftDiffPort;
@@ -23,6 +24,7 @@ import com.aquilabuddy.domain.prdraft.PullRequestDraft;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftContributionReport;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftHistoryPage;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftHistoryQuery;
+import com.aquilabuddy.domain.prdraft.PullRequestDraftIssueContext;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftReadiness;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftRequest;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftSubmission;
@@ -54,6 +56,7 @@ public class PullRequestDraftService implements
     private final GeneratePullRequestDraftPort generatePullRequestDraftPort;
     private final LoadPullRequestDraftDiffPort loadPullRequestDraftDiffPort;
     private final LoadPullRequestDraftRepositoryGuideContextPort loadPullRequestDraftRepositoryGuideContextPort;
+    private final FindRecommendedIssuePort findRecommendedIssuePort;
     private final SavePullRequestDraftPort savePullRequestDraftPort;
     private final LoadPullRequestDraftPort loadPullRequestDraftPort;
     private final LoadPullRequestDraftHistoryPort loadPullRequestDraftHistoryPort;
@@ -65,6 +68,7 @@ public class PullRequestDraftService implements
         GeneratePullRequestDraftPort generatePullRequestDraftPort,
         LoadPullRequestDraftDiffPort loadPullRequestDraftDiffPort,
         LoadPullRequestDraftRepositoryGuideContextPort loadPullRequestDraftRepositoryGuideContextPort,
+        FindRecommendedIssuePort findRecommendedIssuePort,
         SavePullRequestDraftPort savePullRequestDraftPort,
         LoadPullRequestDraftPort loadPullRequestDraftPort,
         LoadPullRequestDraftHistoryPort loadPullRequestDraftHistoryPort,
@@ -75,6 +79,7 @@ public class PullRequestDraftService implements
         this.generatePullRequestDraftPort = generatePullRequestDraftPort;
         this.loadPullRequestDraftDiffPort = loadPullRequestDraftDiffPort;
         this.loadPullRequestDraftRepositoryGuideContextPort = loadPullRequestDraftRepositoryGuideContextPort;
+        this.findRecommendedIssuePort = findRecommendedIssuePort;
         this.savePullRequestDraftPort = savePullRequestDraftPort;
         this.loadPullRequestDraftPort = loadPullRequestDraftPort;
         this.loadPullRequestDraftHistoryPort = loadPullRequestDraftHistoryPort;
@@ -88,7 +93,9 @@ public class PullRequestDraftService implements
      */
     @Override
     public StoredPullRequestDraft create(PullRequestDraftRequest request) {
-        PullRequestDraftRequest resolvedRequest = resolveRepositoryGuideContext(resolveDiffContent(request));
+        PullRequestDraftRequest resolvedRequest = resolveIssueContext(
+            resolveRepositoryGuideContext(resolveDiffContent(request))
+        );
         PullRequestDraft generated = generatePullRequestDraftPort.generate(resolvedRequest);
         return savePullRequestDraftPort.savePullRequestDraft(resolvedRequest, generated);
     }
@@ -106,6 +113,17 @@ public class PullRequestDraftService implements
         return request.withRepositoryGuideContext(
             loadPullRequestDraftRepositoryGuideContextPort.loadRepositoryGuideContext(request)
         );
+    }
+
+    private PullRequestDraftRequest resolveIssueContext(PullRequestDraftRequest request) {
+        return findRecommendedIssuePort
+            .findByRepoFullNameAndIssueNumber(request.upstreamRepo(), request.githubIssueNumber())
+            .map(issue -> request.withIssueContext(new PullRequestDraftIssueContext(
+                issue.title(),
+                issue.summary(),
+                issue.reason()
+            )))
+            .orElse(request);
     }
 
     @Override
