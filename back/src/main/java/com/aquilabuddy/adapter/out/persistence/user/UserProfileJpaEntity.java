@@ -110,4 +110,16 @@ public class UserProfileJpaEntity {
     String getVectorUpdatedAt() {
         return vectorUpdatedAt;
     }
+
+    void updateProfile(String name, String email, List<String> primaryLanguages, List<String> topics) {
+        this.name = name;
+        this.email = email;
+        this.primaryLanguages = new ArrayList<>(primaryLanguages);
+        this.topics = new ArrayList<>(topics);
+    }
+
+    void refreshVector(String vectorUpdatedAt) {
+        this.profileReady = true;
+        this.vectorUpdatedAt = vectorUpdatedAt;
+    }
 }
