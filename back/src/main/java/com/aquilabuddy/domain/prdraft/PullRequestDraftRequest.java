@@ -11,7 +11,8 @@ public record PullRequestDraftRequest(
     String baseBranch,
     String headBranch,
     String diffContent,
-    PullRequestDraftRepositoryGuideContext repositoryGuideContext
+    PullRequestDraftRepositoryGuideContext repositoryGuideContext,
+    PullRequestDraftIssueContext issueContext
 ) {
 
     public PullRequestDraftRequest(
@@ -22,7 +23,20 @@ public record PullRequestDraftRequest(
         String diffContent
     ) {
         this(upstreamRepo, githubIssueNumber, baseBranch, headBranch, diffContent,
-            PullRequestDraftRepositoryGuideContext.empty());
+            PullRequestDraftRepositoryGuideContext.empty(),
+            PullRequestDraftIssueContext.empty());
+    }
+
+    public PullRequestDraftRequest(
+        String upstreamRepo,
+        long githubIssueNumber,
+        String baseBranch,
+        String headBranch,
+        String diffContent,
+        PullRequestDraftRepositoryGuideContext repositoryGuideContext
+    ) {
+        this(upstreamRepo, githubIssueNumber, baseBranch, headBranch, diffContent, repositoryGuideContext,
+            PullRequestDraftIssueContext.empty());
     }
 
     /**
@@ -36,6 +50,7 @@ public record PullRequestDraftRequest(
         repositoryGuideContext = repositoryGuideContext == null
             ? PullRequestDraftRepositoryGuideContext.empty()
             : repositoryGuideContext;
+        issueContext = issueContext == null ? PullRequestDraftIssueContext.empty() : issueContext;
 
         if (githubIssueNumber < 1) {
             throw new IllegalArgumentException("githubIssueNumber must be positive.");
@@ -53,7 +68,8 @@ public record PullRequestDraftRequest(
             baseBranch,
             headBranch,
             requireText(resolvedDiffContent, "diffContent"),
-            repositoryGuideContext
+            repositoryGuideContext,
+            issueContext
         );
     }
 
@@ -66,7 +82,20 @@ public record PullRequestDraftRequest(
             baseBranch,
             headBranch,
             diffContent,
-            resolvedRepositoryGuideContext
+            resolvedRepositoryGuideContext,
+            issueContext
+        );
+    }
+
+    public PullRequestDraftRequest withIssueContext(PullRequestDraftIssueContext resolvedIssueContext) {
+        return new PullRequestDraftRequest(
+            upstreamRepo,
+            githubIssueNumber,
+            baseBranch,
+            headBranch,
+            diffContent,
+            repositoryGuideContext,
+            resolvedIssueContext
         );
     }
 
