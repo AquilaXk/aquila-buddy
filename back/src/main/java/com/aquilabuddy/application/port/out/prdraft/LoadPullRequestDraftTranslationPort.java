@@ -12,4 +12,6 @@ public interface LoadPullRequestDraftTranslationPort {
     List<PullRequestDraftTranslation> loadPullRequestDraftTranslations(String draftId);
 
     Optional<PullRequestDraftTranslation> loadPullRequestDraftTranslation(String id);
+
+    List<PullRequestDraftTranslation> loadRecentPullRequestDraftTranslations(int limit);
 }

@@ -241,6 +241,24 @@ class PullRequestDraftControllerTest {
     }
 
     @Test
+    void returnsPullRequestDraftTranslationActivities() throws Exception {
+        String id = createDraft();
+        String translationId = createTranslation(id);
+
+        mockMvc.perform(get("/api/v1/pr/translations/activity")
+                .param("limit", "4"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data[0].draftId").value(id))
+            .andExpect(jsonPath("$.data[0].translationId").value(translationId))
+            .andExpect(jsonPath("$.data[0].upstreamRepo").value("spring-projects/spring-boot"))
+            .andExpect(jsonPath("$.data[0].githubIssueNumber").value(2))
+            .andExpect(jsonPath("$.data[0].targetLanguage").value("en"))
+            .andExpect(jsonPath("$.data[0].title").value("docs: Prepare spring-projects/spring-boot#2 update"))
+            .andExpect(jsonPath("$.data[0].createdAt").isNotEmpty());
+    }
+
+    @Test
     void returnsNotFoundForTranslationSubmissionWhenTranslationBelongsToAnotherDraft() throws Exception {
         String sourceDraftId = createDraft();
         String translationId = createTranslation(sourceDraftId);

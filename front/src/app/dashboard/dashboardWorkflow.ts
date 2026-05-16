@@ -88,6 +88,14 @@ export function buildDashboardActivities(overview: DashboardOverview): Dashboard
     createdAt: draft.createdAt
   }));
 
+  const translationActivities = overview.translationActivities.slice(0, 2).map((activity) => ({
+    id: `translation-${activity.translationId}`,
+    label: "PR 번역 생성",
+    detail: `${activity.upstreamRepo} #${activity.githubIssueNumber} · ${activity.targetLanguage.toUpperCase()}`,
+    href: `/pr/${activity.draftId}`,
+    createdAt: activity.createdAt
+  }));
+
   const issueActivities = overview.issueHistory.slice(0, 2).map((issue) => ({
     id: `issue-${issue.id}`,
     label: issue.isAnalyzed ? "가이드 분석 완료" : "추천 이슈 저장",
@@ -96,7 +104,16 @@ export function buildDashboardActivities(overview: DashboardOverview): Dashboard
     createdAt: null
   }));
 
-  return [...draftActivities, ...issueActivities].slice(0, 4);
+  return [...draftActivities, ...translationActivities, ...issueActivities]
+    .sort(compareActivityCreatedAt)
+    .slice(0, 4);
+}
+
+function compareActivityCreatedAt(left: DashboardActivityItem, right: DashboardActivityItem) {
+  const leftTime = left.createdAt ? new Date(left.createdAt).getTime() : 0;
+  const rightTime = right.createdAt ? new Date(right.createdAt).getTime() : 0;
+
+  return rightTime - leftTime;
 }
 
 function resolveStatus(

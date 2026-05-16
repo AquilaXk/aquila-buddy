@@ -15,7 +15,7 @@ export default async function DashboardPage() {
 
   return (
     <ProtectedLayout title="Dashboard">
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {lanes.map((lane) => (
           <section key={lane.label} className="surface p-4">
             <p className="text-sm font-semibold text-neutral-500">{lane.label}</p>
@@ -121,6 +121,7 @@ export default async function DashboardPage() {
 function buildSummaryLanes(overview: DashboardOverview) {
   const analyzedIssueCount = overview.issueHistory.filter((issue) => issue.isAnalyzed).length;
   const latestDraft = overview.prDrafts.at(0);
+  const latestTranslation = overview.translationActivities.at(0);
 
   return [
     {
@@ -144,6 +145,14 @@ function buildSummaryLanes(overview: DashboardOverview) {
         ? `${latestDraft.upstreamRepo} #${latestDraft.githubIssueNumber} 최근 초안`
         : "저장된 PR 초안 없음",
       error: overview.errors.prDrafts
+    },
+    {
+      label: "Translations",
+      value: String(overview.translationActivities.length),
+      detail: latestTranslation
+        ? `${latestTranslation.upstreamRepo} #${latestTranslation.githubIssueNumber} · ${latestTranslation.targetLanguage.toUpperCase()}`
+        : "저장된 영어 번역 없음",
+      error: overview.errors.translationActivities
     }
   ];
 }

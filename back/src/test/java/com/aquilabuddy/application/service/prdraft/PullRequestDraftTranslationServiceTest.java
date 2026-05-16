@@ -14,6 +14,7 @@ import com.aquilabuddy.domain.prdraft.PullRequestDraftTranslationSubmission;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftTimelineItem;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftTranslationTimeline;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftTranslation;
+import com.aquilabuddy.domain.prdraft.PullRequestDraftTranslationActivity;
 import com.aquilabuddy.domain.prdraft.StoredPullRequestDraft;
 import java.time.Instant;
 import java.util.List;
@@ -195,6 +196,41 @@ class PullRequestDraftTranslationServiceTest {
         assertThat(timeline).isEmpty();
     }
 
+    @Test
+    void listsRecentTranslationActivitiesWithDraftContext() {
+        PullRequestDraftTranslationService service = new PullRequestDraftTranslationService(
+            new FakeLoadDraftPort(storedDraft()),
+            new FakeTranslatePullRequestDraftPort(),
+            new FakeSaveTranslationPort(),
+            new FakeLoadTranslationPort()
+        );
+
+        List<PullRequestDraftTranslationActivity> activities = service.listRecentTranslationActivities(4);
+
+        assertThat(activities)
+            .extracting(PullRequestDraftTranslationActivity::translationId)
+            .containsExactly("translation-1");
+        assertThat(activities.get(0).draftId()).isEqualTo("draft-1");
+        assertThat(activities.get(0).upstreamRepo()).isEqualTo("spring-projects/spring-boot");
+        assertThat(activities.get(0).githubIssueNumber()).isEqualTo(123);
+        assertThat(activities.get(0).targetLanguage()).isEqualTo("en");
+        assertThat(activities.get(0).title()).isEqualTo("translated title");
+    }
+
+    @Test
+    void skipsRecentTranslationActivityWhenDraftContextIsMissing() {
+        PullRequestDraftTranslationService service = new PullRequestDraftTranslationService(
+            new FakeLoadDraftPort(null),
+            new FakeTranslatePullRequestDraftPort(),
+            new FakeSaveTranslationPort(),
+            new FakeLoadTranslationPort()
+        );
+
+        List<PullRequestDraftTranslationActivity> activities = service.listRecentTranslationActivities(4);
+
+        assertThat(activities).isEmpty();
+    }
+
     private static class FakeLoadDraftPort implements LoadPullRequestDraftPort {
 
         private final StoredPullRequestDraft draft;
@@ -271,6 +307,14 @@ class PullRequestDraftTranslationServiceTest {
                 .stream()
                 .filter(translation -> translation.id().equals(id))
                 .findFirst();
+        }
+
+        @Override
+        public List<PullRequestDraftTranslation> loadRecentPullRequestDraftTranslations(int limit) {
+            return loadPullRequestDraftTranslations("draft-1")
+                .stream()
+                .limit(limit)
+                .toList();
         }
     }
 

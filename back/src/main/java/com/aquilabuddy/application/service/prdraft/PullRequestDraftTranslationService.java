@@ -4,6 +4,7 @@ import com.aquilabuddy.application.port.in.prdraft.CreatePullRequestDraftTransla
 import com.aquilabuddy.application.port.in.prdraft.GetPullRequestDraftTranslationReadinessUseCase;
 import com.aquilabuddy.application.port.in.prdraft.GetPullRequestDraftTranslationSubmissionUseCase;
 import com.aquilabuddy.application.port.in.prdraft.GetPullRequestDraftTranslationTimelineUseCase;
+import com.aquilabuddy.application.port.in.prdraft.ListPullRequestDraftTranslationActivitiesUseCase;
 import com.aquilabuddy.application.port.in.prdraft.ListPullRequestDraftTranslationsUseCase;
 import com.aquilabuddy.application.port.out.prdraft.LoadPullRequestDraftPort;
 import com.aquilabuddy.application.port.out.prdraft.LoadPullRequestDraftTranslationPort;
@@ -11,6 +12,7 @@ import com.aquilabuddy.application.port.out.prdraft.SavePullRequestDraftTranslat
 import com.aquilabuddy.application.port.out.prdraft.TranslatePullRequestDraftPort;
 import com.aquilabuddy.domain.prdraft.PullRequestDraft;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftTranslation;
+import com.aquilabuddy.domain.prdraft.PullRequestDraftTranslationActivity;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftTranslationReadiness;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftTranslationSubmission;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftTranslationTimeline;
@@ -27,6 +29,7 @@ import org.springframework.stereotype.Service;
 public class PullRequestDraftTranslationService implements
     CreatePullRequestDraftTranslationUseCase,
     ListPullRequestDraftTranslationsUseCase,
+    ListPullRequestDraftTranslationActivitiesUseCase,
     GetPullRequestDraftTranslationReadinessUseCase,
     GetPullRequestDraftTranslationSubmissionUseCase,
     GetPullRequestDraftTranslationTimelineUseCase {
@@ -71,6 +74,20 @@ public class PullRequestDraftTranslationService implements
     @Override
     public List<PullRequestDraftTranslation> listTranslations(String draftId) {
         return loadPullRequestDraftTranslationPort.loadPullRequestDraftTranslations(draftId);
+    }
+
+    @Override
+    public List<PullRequestDraftTranslationActivity> listRecentTranslationActivities(int limit) {
+        if (limit < 1) {
+            throw new IllegalArgumentException("limit must be positive.");
+        }
+
+        return loadPullRequestDraftTranslationPort.loadRecentPullRequestDraftTranslations(limit)
+            .stream()
+            .flatMap(translation -> loadPullRequestDraftPort.loadPullRequestDraft(translation.draftId())
+                .map(draft -> PullRequestDraftTranslationActivity.from(draft, translation))
+                .stream())
+            .toList();
     }
 
     @Override

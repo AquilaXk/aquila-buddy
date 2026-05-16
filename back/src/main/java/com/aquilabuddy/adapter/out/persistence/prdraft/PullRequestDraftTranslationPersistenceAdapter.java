@@ -8,6 +8,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 
 /**
@@ -53,5 +54,17 @@ public class PullRequestDraftTranslationPersistenceAdapter implements
     public Optional<PullRequestDraftTranslation> loadPullRequestDraftTranslation(String id) {
         return repository.findById(id)
             .map(PullRequestDraftTranslationPersistenceMapper::toDomain);
+    }
+
+    @Override
+    public List<PullRequestDraftTranslation> loadRecentPullRequestDraftTranslations(int limit) {
+        if (limit < 1) {
+            throw new IllegalArgumentException("limit must be positive.");
+        }
+
+        return repository.findAllByOrderByCreatedAtDesc(PageRequest.of(0, limit))
+            .stream()
+            .map(PullRequestDraftTranslationPersistenceMapper::toDomain)
+            .toList();
     }
 }
