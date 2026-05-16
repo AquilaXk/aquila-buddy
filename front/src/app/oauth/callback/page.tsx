@@ -103,7 +103,7 @@ function getCallbackContent(status: CallbackStatus, error: string | null) {
       description: "GitHub OAuth token을 브라우저 세션에 저장했습니다.",
       message: "잠시 후 작업 공간으로 이동합니다.",
       panelClassName: "border-green-500/30 bg-green-500/10",
-      messageClassName: "text-green-800"
+      messageClassName: "text-green-400"
     };
   }
 
@@ -113,7 +113,7 @@ function getCallbackContent(status: CallbackStatus, error: string | null) {
       description: "OAuth callback에서 오류 응답을 받았습니다.",
       message: error ?? "GitHub OAuth 오류가 발생했습니다.",
       panelClassName: "border-red-500/30 bg-red-500/10",
-      messageClassName: "text-red-700"
+      messageClassName: "text-red-400"
     };
   }
 
@@ -123,7 +123,7 @@ function getCallbackContent(status: CallbackStatus, error: string | null) {
       description: "OAuth callback URL에서 token query를 찾지 못했습니다.",
       message: "GitHub 로그인을 다시 시작해 주세요.",
       panelClassName: "border-red-500/30 bg-red-500/10",
-      messageClassName: "text-red-700"
+      messageClassName: "text-red-400"
     };
   }
 

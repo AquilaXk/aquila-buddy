@@ -29,12 +29,12 @@ export default async function PrDetailPage({ params }: PrDetailPageProps) {
   return (
     <ProtectedLayout title="PR Detail">
       {result.errors.draft ? (
-        <div className="surface mb-4 border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
+        <div className="surface mb-4 border-red-500/30 bg-red-500/10 p-4 text-sm font-semibold text-red-400">
           PR 초안을 불러오지 못했습니다. backend API 상태를 확인해 주세요.
         </div>
       ) : null}
       <section className="surface p-5">
-        <p className="text-sm font-semibold text-moss">Draft ID</p>
+        <p className="text-sm font-semibold text-github-accent">Draft ID</p>
         <h2 className="mt-2 text-xl font-bold">{id}</h2>
         {result.draft ? (
           <DraftDetail
@@ -49,7 +49,7 @@ export default async function PrDetailPage({ params }: PrDetailPageProps) {
             timeline={result.timeline}
           />
         ) : (
-          <p className="mt-4 text-sm leading-6 text-neutral-700">
+          <p className="mt-4 text-sm leading-6 text-github-muted">
             PR 초안 데이터가 준비되지 않았습니다.
           </p>
         )}
@@ -84,13 +84,13 @@ function DraftDetail({
       <div className="grid gap-3 md:grid-cols-2">
         <div>
           <p className="text-sm font-semibold">Repository</p>
-          <p className="mt-1 break-all text-sm leading-6 text-neutral-700">
+          <p className="mt-1 break-all text-sm leading-6 text-github-muted">
             {draft.upstreamRepo} #{draft.githubIssueNumber}
           </p>
         </div>
         <div>
           <p className="text-sm font-semibold">Branch</p>
-          <p className="mt-1 break-all font-mono text-sm leading-6 text-neutral-700">
+          <p className="mt-1 break-all font-mono text-sm leading-6 text-github-muted">
             {draft.baseBranch} -&gt; {draft.headBranch}
           </p>
         </div>
@@ -98,7 +98,7 @@ function DraftDetail({
 
       <div>
         <p className="text-sm font-semibold">Created</p>
-        <p className="mt-1 text-sm leading-6 text-neutral-700">{formatDate(draft.createdAt)}</p>
+        <p className="mt-1 text-sm leading-6 text-github-muted">{formatDate(draft.createdAt)}</p>
       </div>
 
       <PrDraftContributionReportPanel hasError={hasReportError} report={report} />

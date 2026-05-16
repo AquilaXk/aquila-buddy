@@ -45,7 +45,7 @@ export function Navbar() {
               className={`focus-ring rounded-md px-3 py-1.5 font-medium transition-colors ${
                 isActive(link)
                   ? "bg-github-purple/20 text-github-purple-light"
-                  : "text-github-muted hover:bg-white/5 hover:text-github-text"
+                  : "text-github-muted hover:bg-github-surface/5 hover:text-github-text"
               }`}
               href={link.href}
             >

@@ -71,11 +71,11 @@ export function ProfileEditorPanel({ initialProfile, publicProfile }: ProfileEdi
       <div className="surface p-5">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p className="text-sm font-semibold text-moss">@{profile.login}</p>
+            <p className="text-sm font-semibold text-github-accent">@{profile.login}</p>
             <h2 className="mt-2 text-xl font-bold">{profile.name}</h2>
-            <p className="mt-2 text-sm text-neutral-700">{profile.email}</p>
+            <p className="mt-2 text-sm text-github-muted">{profile.email}</p>
           </div>
-          <span className="rounded-md border border-line px-3 py-2 text-sm font-semibold text-neutral-700">
+          <span className="rounded-md border border-github-border px-3 py-2 text-sm font-semibold text-github-muted">
             GitHub ID {profile.githubId}
           </span>
         </div>
@@ -84,8 +84,8 @@ export function ProfileEditorPanel({ initialProfile, publicProfile }: ProfileEdi
       <div className="grid gap-4 md:grid-cols-3">
         <div className="surface p-4">
           <h3 className="text-sm font-semibold">Profile Status</h3>
-          <p className="mt-2 text-lg font-bold text-ink">{vectorLabel}</p>
-          <p className="mt-2 text-sm leading-6 text-neutral-700">
+          <p className="mt-2 text-lg font-bold text-github-text">{vectorLabel}</p>
+          <p className="mt-2 text-sm leading-6 text-github-muted">
             마지막 업데이트 {formatDateTime(profile.vectorUpdatedAt)}
           </p>
         </div>
@@ -99,11 +99,11 @@ export function ProfileEditorPanel({ initialProfile, publicProfile }: ProfileEdi
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h3 className="text-sm font-semibold">Public Profile</h3>
-              <p className="mt-2 text-sm leading-6 text-neutral-700">
+              <p className="mt-2 text-sm leading-6 text-github-muted">
                 @{publicProfile.login} · {publicProfile.primaryLanguages.length} languages
               </p>
             </div>
-            <span className="rounded-md border border-line px-3 py-2 text-sm font-semibold text-neutral-700">
+            <span className="rounded-md border border-github-border px-3 py-2 text-sm font-semibold text-github-muted">
               {publicProfile.profileReady ? "Ready" : "Pending"}
             </span>
           </div>
@@ -112,20 +112,20 @@ export function ProfileEditorPanel({ initialProfile, publicProfile }: ProfileEdi
 
       <form className="surface space-y-4 p-5" onSubmit={handleSubmit}>
         <div className="grid gap-4 md:grid-cols-2">
-          <label className="block text-sm font-semibold text-ink">
+          <label className="block text-sm font-semibold text-github-text">
             Name
             <input
-              className="focus-ring mt-2 w-full rounded-md border border-line px-3 py-2 text-sm font-medium"
+              className="focus-ring mt-2 w-full rounded-md border border-github-border px-3 py-2 text-sm font-medium"
               value={name}
               onChange={(event) => setName(event.target.value)}
               required
             />
           </label>
 
-          <label className="block text-sm font-semibold text-ink">
+          <label className="block text-sm font-semibold text-github-text">
             Email
             <input
-              className="focus-ring mt-2 w-full rounded-md border border-line px-3 py-2 text-sm font-medium"
+              className="focus-ring mt-2 w-full rounded-md border border-github-border px-3 py-2 text-sm font-medium"
               type="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
@@ -134,20 +134,20 @@ export function ProfileEditorPanel({ initialProfile, publicProfile }: ProfileEdi
           </label>
         </div>
 
-        <label className="block text-sm font-semibold text-ink">
+        <label className="block text-sm font-semibold text-github-text">
           Primary Languages
           <input
-            className="focus-ring mt-2 w-full rounded-md border border-line px-3 py-2 text-sm font-medium"
+            className="focus-ring mt-2 w-full rounded-md border border-github-border px-3 py-2 text-sm font-medium"
             value={languagesInput}
             onChange={(event) => setLanguagesInput(event.target.value)}
             required
           />
         </label>
 
-        <label className="block text-sm font-semibold text-ink">
+        <label className="block text-sm font-semibold text-github-text">
           Topics
           <input
-            className="focus-ring mt-2 w-full rounded-md border border-line px-3 py-2 text-sm font-medium"
+            className="focus-ring mt-2 w-full rounded-md border border-github-border px-3 py-2 text-sm font-medium"
             value={topicsInput}
             onChange={(event) => setTopicsInput(event.target.value)}
             required
@@ -155,26 +155,26 @@ export function ProfileEditorPanel({ initialProfile, publicProfile }: ProfileEdi
         </label>
 
         {requestState.message ? (
-          <p className="rounded-md border border-moss/30 bg-moss/10 px-3 py-2 text-sm font-semibold text-moss">
+          <p className="rounded-md border border-github-accent/30 bg-github-accent/10 px-3 py-2 text-sm font-semibold text-github-accent">
             {requestState.message}
           </p>
         ) : null}
         {requestState.error ? (
-          <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">
+          <p className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm font-semibold text-red-400">
             {requestState.error}
           </p>
         ) : null}
 
         <div className="flex flex-wrap gap-3">
           <button
-            className="focus-ring rounded-md bg-ink px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-neutral-400"
+            className="focus-ring rounded-md bg-github-accent px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-neutral-400"
             type="submit"
             disabled={requestState.status !== "idle"}
           >
             {requestState.status === "saving" ? "Saving..." : "Save profile"}
           </button>
           <button
-            className="focus-ring rounded-md border border-line px-4 py-2 text-sm font-semibold text-ink disabled:cursor-not-allowed disabled:text-neutral-400"
+            className="focus-ring rounded-md border border-github-border px-4 py-2 text-sm font-semibold text-github-text disabled:cursor-not-allowed disabled:text-neutral-400"
             type="button"
             onClick={handleRefreshVector}
             disabled={requestState.status !== "idle"}
@@ -193,7 +193,7 @@ function TokenList({ title, items }: { title: string; items: string[] }) {
       <h3 className="text-sm font-semibold">{title}</h3>
       <div className="mt-3 flex flex-wrap gap-2">
         {items.map((item) => (
-          <span key={item} className="rounded-md bg-neutral-100 px-2 py-1 text-xs font-semibold text-neutral-700">
+          <span key={item} className="rounded-md bg-github-bg px-2 py-1 text-xs font-semibold text-github-muted">
             {item}
           </span>
         ))}

@@ -29,7 +29,7 @@ export function toWorkspaceHealthViewModel(state: WorkspaceHealthState): Workspa
     return {
       label: "API 확인 중",
       detail: "backend health 확인",
-      badgeClassName: "border-line bg-white text-neutral-700",
+      badgeClassName: "border-github-border bg-github-surface text-github-muted",
       dotClassName: "bg-neutral-400",
       checkedAtLabel: state.checkedAt ? formatCheckedAt(state.checkedAt) : null
     };
@@ -39,7 +39,7 @@ export function toWorkspaceHealthViewModel(state: WorkspaceHealthState): Workspa
     return {
       label: "API Online",
       detail: `${state.health.service} ${state.health.status}`,
-      badgeClassName: "border-green-200 bg-green-50 text-green-800",
+      badgeClassName: "border-green-500/30 bg-green-500/10 text-green-400",
       dotClassName: "bg-green-600",
       checkedAtLabel: formatCheckedAt(state.checkedAt)
     };
@@ -48,7 +48,7 @@ export function toWorkspaceHealthViewModel(state: WorkspaceHealthState): Workspa
   return {
     label: "API Offline",
     detail: state.message,
-    badgeClassName: "border-red-200 bg-red-50 text-red-700",
+    badgeClassName: "border-red-500/30 bg-red-500/10 text-red-400",
     dotClassName: "bg-red-500",
     checkedAtLabel: formatCheckedAt(state.checkedAt)
   };
