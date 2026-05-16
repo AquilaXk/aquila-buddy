@@ -32,6 +32,8 @@ management:
         include: health,info
 
 app:
+  auth:
+    default-github-id: ${DEFAULT_GITHUB_ID:10001}
   jwt:
     secret: ${JWT_SECRET:local-development-jwt-secret-32bytes-minimum-value}
     expiration: ${JWT_EXPIRATION:1h}

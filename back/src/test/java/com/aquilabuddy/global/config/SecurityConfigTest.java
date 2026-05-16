@@ -46,7 +46,7 @@ class SecurityConfigTest {
 
     @Test
     void allowsProtectedApiWithBearerToken() throws Exception {
-        String token = jwtProvider.generateToken("12345");
+        String token = jwtProvider.generateToken("10001");
 
         mockMvc.perform(get("/api/v1/users/me")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))

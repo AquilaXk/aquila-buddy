@@ -7,12 +7,14 @@ import com.aquilabuddy.domain.user.UserProfile;
 import com.aquilabuddy.domain.user.UserProfileUpdateRequest;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 /**
  * [Outgoing Adapter] 실제 인증/사용자 저장소 연결 전까지 사용할 사용자 프로필 fixture adapter입니다.
  */
 @Component
+@Profile("fixture")
 public class FixtureUserProfileAdapter implements
     LoadUserProfilePort,
     SaveUserProfilePort,
