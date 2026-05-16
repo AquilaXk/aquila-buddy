@@ -10,7 +10,6 @@ import {
 
 type ProfileEditorPanelProps = {
   initialProfile: UserProfile;
-  publicProfile?: UserProfile | null;
 };
 
 type RequestState = {
@@ -19,7 +18,7 @@ type RequestState = {
   error: string | null;
 };
 
-export function ProfileEditorPanel({ initialProfile, publicProfile }: ProfileEditorPanelProps) {
+export function ProfileEditorPanel({ initialProfile }: ProfileEditorPanelProps) {
   const [profile, setProfile] = useState(initialProfile);
   const [name, setName] = useState(initialProfile.name);
   const [email, setEmail] = useState(initialProfile.email);
@@ -67,19 +66,20 @@ export function ProfileEditorPanel({ initialProfile, publicProfile }: ProfileEdi
   }
 
   return (
-    <section className="space-y-4">
-      <div className="surface p-5">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p className="text-sm font-semibold text-github-accent">@{profile.login}</p>
-            <h2 className="mt-2 text-xl font-bold">{profile.name}</h2>
-            <p className="mt-2 text-sm text-github-muted">{profile.email}</p>
+    <div className="max-w-2xl">
+      <h1 className="mb-6 text-2xl font-bold text-github-text">내 프로필</h1>
+
+      <section className="mb-6 rounded-xl border border-github-border bg-github-surface p-6">
+        <div className="mb-6 flex items-center gap-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-github-purple/30 text-lg font-bold text-github-purple-light">
+            {getProfileInitial(profile)}
           </div>
-          <span className="rounded-md border border-github-border px-3 py-2 text-sm font-semibold text-github-muted">
-            GitHub ID {profile.githubId}
-          </span>
+          <div>
+            <p className="font-medium text-github-text">{profile.githubId}</p>
+            <p className="text-xs text-github-muted">GitHub ID</p>
+          </div>
         </div>
-      </div>
+      </section>
 
       <div className="grid gap-4 md:grid-cols-3">
         <div className="surface p-4">
@@ -93,22 +93,6 @@ export function ProfileEditorPanel({ initialProfile, publicProfile }: ProfileEdi
         <TokenList title="Languages" items={profile.primaryLanguages} />
         <TokenList title="Topics" items={profile.topics} />
       </div>
-
-      {publicProfile ? (
-        <div className="surface p-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h3 className="text-sm font-semibold">Public Profile</h3>
-              <p className="mt-2 text-sm leading-6 text-github-muted">
-                @{publicProfile.login} · {publicProfile.primaryLanguages.length} languages
-              </p>
-            </div>
-            <span className="rounded-md border border-github-border px-3 py-2 text-sm font-semibold text-github-muted">
-              {publicProfile.profileReady ? "Ready" : "Pending"}
-            </span>
-          </div>
-        </div>
-      ) : null}
 
       <form className="surface space-y-4 p-5" onSubmit={handleSubmit}>
         <div className="grid gap-4 md:grid-cols-2">
@@ -183,8 +167,12 @@ export function ProfileEditorPanel({ initialProfile, publicProfile }: ProfileEdi
           </button>
         </div>
       </form>
-    </section>
+    </div>
   );
+}
+
+function getProfileInitial(profile: UserProfile) {
+  return (profile.name || profile.login || String(profile.githubId) || "?").at(0)?.toUpperCase() ?? "?";
 }
 
 function TokenList({ title, items }: { title: string; items: string[] }) {
