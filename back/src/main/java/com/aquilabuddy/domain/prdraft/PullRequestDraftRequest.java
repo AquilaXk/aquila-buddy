@@ -10,8 +10,20 @@ public record PullRequestDraftRequest(
     long githubIssueNumber,
     String baseBranch,
     String headBranch,
-    String diffContent
+    String diffContent,
+    PullRequestDraftRepositoryGuideContext repositoryGuideContext
 ) {
+
+    public PullRequestDraftRequest(
+        String upstreamRepo,
+        long githubIssueNumber,
+        String baseBranch,
+        String headBranch,
+        String diffContent
+    ) {
+        this(upstreamRepo, githubIssueNumber, baseBranch, headBranch, diffContent,
+            PullRequestDraftRepositoryGuideContext.empty());
+    }
 
     /**
      * 화면/adapter에서 넘어온 문자열 입력을 domain 경계에서 한 번 더 정규화합니다.
@@ -21,6 +33,9 @@ public record PullRequestDraftRequest(
         baseBranch = requireText(baseBranch, "baseBranch");
         headBranch = requireText(headBranch, "headBranch");
         diffContent = optionalText(diffContent);
+        repositoryGuideContext = repositoryGuideContext == null
+            ? PullRequestDraftRepositoryGuideContext.empty()
+            : repositoryGuideContext;
 
         if (githubIssueNumber < 1) {
             throw new IllegalArgumentException("githubIssueNumber must be positive.");
@@ -37,7 +52,21 @@ public record PullRequestDraftRequest(
             githubIssueNumber,
             baseBranch,
             headBranch,
-            requireText(resolvedDiffContent, "diffContent")
+            requireText(resolvedDiffContent, "diffContent"),
+            repositoryGuideContext
+        );
+    }
+
+    public PullRequestDraftRequest withRepositoryGuideContext(
+        PullRequestDraftRepositoryGuideContext resolvedRepositoryGuideContext
+    ) {
+        return new PullRequestDraftRequest(
+            upstreamRepo,
+            githubIssueNumber,
+            baseBranch,
+            headBranch,
+            diffContent,
+            resolvedRepositoryGuideContext
         );
     }
 

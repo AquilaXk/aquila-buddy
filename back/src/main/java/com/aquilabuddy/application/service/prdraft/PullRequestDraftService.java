@@ -15,6 +15,7 @@ import com.aquilabuddy.application.port.out.prdraft.GeneratePullRequestDraftPort
 import com.aquilabuddy.application.port.out.prdraft.LoadPullRequestDraftDiffPort;
 import com.aquilabuddy.application.port.out.prdraft.LoadPullRequestDraftHistoryPort;
 import com.aquilabuddy.application.port.out.prdraft.LoadPullRequestDraftPort;
+import com.aquilabuddy.application.port.out.prdraft.LoadPullRequestDraftRepositoryGuideContextPort;
 import com.aquilabuddy.application.port.out.prdraft.LoadPullRequestDraftTranslationPort;
 import com.aquilabuddy.application.port.out.prdraft.SavePullRequestDraftPort;
 import com.aquilabuddy.application.port.out.prdraft.UpdatePullRequestDraftPort;
@@ -52,6 +53,7 @@ public class PullRequestDraftService implements
 
     private final GeneratePullRequestDraftPort generatePullRequestDraftPort;
     private final LoadPullRequestDraftDiffPort loadPullRequestDraftDiffPort;
+    private final LoadPullRequestDraftRepositoryGuideContextPort loadPullRequestDraftRepositoryGuideContextPort;
     private final SavePullRequestDraftPort savePullRequestDraftPort;
     private final LoadPullRequestDraftPort loadPullRequestDraftPort;
     private final LoadPullRequestDraftHistoryPort loadPullRequestDraftHistoryPort;
@@ -62,6 +64,7 @@ public class PullRequestDraftService implements
     public PullRequestDraftService(
         GeneratePullRequestDraftPort generatePullRequestDraftPort,
         LoadPullRequestDraftDiffPort loadPullRequestDraftDiffPort,
+        LoadPullRequestDraftRepositoryGuideContextPort loadPullRequestDraftRepositoryGuideContextPort,
         SavePullRequestDraftPort savePullRequestDraftPort,
         LoadPullRequestDraftPort loadPullRequestDraftPort,
         LoadPullRequestDraftHistoryPort loadPullRequestDraftHistoryPort,
@@ -71,6 +74,7 @@ public class PullRequestDraftService implements
     ) {
         this.generatePullRequestDraftPort = generatePullRequestDraftPort;
         this.loadPullRequestDraftDiffPort = loadPullRequestDraftDiffPort;
+        this.loadPullRequestDraftRepositoryGuideContextPort = loadPullRequestDraftRepositoryGuideContextPort;
         this.savePullRequestDraftPort = savePullRequestDraftPort;
         this.loadPullRequestDraftPort = loadPullRequestDraftPort;
         this.loadPullRequestDraftHistoryPort = loadPullRequestDraftHistoryPort;
@@ -84,7 +88,7 @@ public class PullRequestDraftService implements
      */
     @Override
     public StoredPullRequestDraft create(PullRequestDraftRequest request) {
-        PullRequestDraftRequest resolvedRequest = resolveDiffContent(request);
+        PullRequestDraftRequest resolvedRequest = resolveRepositoryGuideContext(resolveDiffContent(request));
         PullRequestDraft generated = generatePullRequestDraftPort.generate(resolvedRequest);
         return savePullRequestDraftPort.savePullRequestDraft(resolvedRequest, generated);
     }
@@ -96,6 +100,12 @@ public class PullRequestDraftService implements
 
         // 서버 수집 diff가 없으면 생성/저장 모두 같은 맥락을 쓰도록 도메인 요청을 보강합니다.
         return request.withDiffContent(loadPullRequestDraftDiffPort.loadDiff(request));
+    }
+
+    private PullRequestDraftRequest resolveRepositoryGuideContext(PullRequestDraftRequest request) {
+        return request.withRepositoryGuideContext(
+            loadPullRequestDraftRepositoryGuideContextPort.loadRepositoryGuideContext(request)
+        );
     }
 
     @Override
