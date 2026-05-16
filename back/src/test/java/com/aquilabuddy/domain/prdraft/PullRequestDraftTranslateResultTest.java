@@ -23,6 +23,28 @@ class PullRequestDraftTranslateResultTest {
     }
 
     @Test
+    void createsTranslateResultWithForkOwnerCompareReference() {
+        PullRequestDraftCompareReference compareReference = new PullRequestDraftCompareReference(
+            "main",
+            "feat/readme-fix",
+            "aquila-dev"
+        );
+
+        PullRequestDraftTranslateResult result = PullRequestDraftTranslateResult.from(
+            storedDraft(),
+            translation(),
+            compareReference
+        );
+
+        assertThat(result.githubUrl())
+            .isEqualTo(
+                "https://github.com/spring-projects/spring-boot/compare/main...aquila-dev:feat/readme-fix"
+                    + "?quick_pull=1&title=docs%3A%20Prepare%20contributor%20guide"
+                    + "&body=%23%23%20Summary%0A-%20Prepare%20contributor%20guide."
+            );
+    }
+
+    @Test
     void rejectsTranslationFromDifferentDraft() {
         PullRequestDraftTranslation otherDraftTranslation = new PullRequestDraftTranslation(
             "translation-1",

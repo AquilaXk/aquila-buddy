@@ -23,8 +23,21 @@ public record PullRequestDraftTranslateResult(
         StoredPullRequestDraft draft,
         PullRequestDraftTranslation translation
     ) {
+        return from(draft, translation, new PullRequestDraftCompareReference(
+            draft.baseBranch(),
+            draft.headBranch(),
+            null
+        ));
+    }
+
+    public static PullRequestDraftTranslateResult from(
+        StoredPullRequestDraft draft,
+        PullRequestDraftTranslation translation,
+        PullRequestDraftCompareReference compareReference
+    ) {
         Objects.requireNonNull(draft, "draft must not be null.");
         Objects.requireNonNull(translation, "translation must not be null.");
+        Objects.requireNonNull(compareReference, "compareReference must not be null.");
         if (!draft.id().equals(translation.draftId())) {
             throw new IllegalArgumentException("translation must belong to draft.");
         }
@@ -32,17 +45,19 @@ public record PullRequestDraftTranslateResult(
         return new PullRequestDraftTranslateResult(
             translation.title(),
             translation.body(),
-            buildGithubUrl(draft, translation)
+            buildGithubUrl(draft, translation, compareReference)
         );
     }
 
-    private static String buildGithubUrl(StoredPullRequestDraft draft, PullRequestDraftTranslation translation) {
+    private static String buildGithubUrl(
+        StoredPullRequestDraft draft,
+        PullRequestDraftTranslation translation,
+        PullRequestDraftCompareReference compareReference
+    ) {
         return "https://github.com/"
             + draft.upstreamRepo()
             + "/compare/"
-            + draft.baseBranch()
-            + "..."
-            + draft.headBranch()
+            + compareReference.comparePath()
             + "?quick_pull=1&title="
             + encodeQueryValue(translation.title())
             + "&body="
