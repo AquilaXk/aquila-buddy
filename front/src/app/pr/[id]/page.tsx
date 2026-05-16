@@ -7,7 +7,9 @@ import { ProtectedLayout } from "@/components/ProtectedLayout";
 import {
   deletePullRequestDraft,
   getPullRequestDraft,
+  translatePullRequestDraft,
   updatePullRequestDraft,
+  type PullRequestDraftTranslateResult,
   type StoredPullRequestDraft
 } from "@/lib/api";
 
@@ -23,6 +25,8 @@ export default function PrDetailPage() {
   const [editBody, setEditBody] = useState("");
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [translating, setTranslating] = useState(false);
+  const [translated, setTranslated] = useState<PullRequestDraftTranslateResult | null>(null);
   const [copied, setCopied] = useState<"title" | "body" | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -77,6 +81,7 @@ export default function PrDetailPage() {
         body: editBody
       });
       setDraft(updatedDraft);
+      setTranslated(null);
       setEditing(false);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "저장에 실패했습니다.");
@@ -99,6 +104,19 @@ export default function PrDetailPage() {
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "삭제에 실패했습니다.");
       setDeleting(false);
+    }
+  }
+
+  async function handleTranslate() {
+    setTranslating(true);
+    setError(null);
+
+    try {
+      setTranslated(await translatePullRequestDraft(prId));
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "번역에 실패했습니다.");
+    } finally {
+      setTranslating(false);
     }
   }
 
@@ -149,6 +167,9 @@ export default function PrDetailPage() {
     );
   }
 
+  const displayTitle = translated?.titleEn ?? draft.title;
+  const displayBody = translated?.bodyEn ?? draft.body;
+
   return (
     <ProtectedLayout>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
@@ -159,7 +180,7 @@ export default function PrDetailPage() {
           ← PR 초안 목록
         </Link>
         <div className="flex items-center gap-2">
-          {!editing ? (
+          {!editing && !translated ? (
             <button
               className="focus-ring rounded-md border border-github-border bg-github-surface px-3 py-1.5 text-xs font-semibold text-github-muted hover:text-github-text"
               onClick={() => setEditing(true)}
@@ -185,6 +206,12 @@ export default function PrDetailPage() {
         </div>
       ) : null}
 
+      {translated ? (
+        <div className="surface mb-4 border-github-accent/30 bg-github-accent/10 p-4 text-sm font-semibold text-github-accent">
+          영어 번역이 완료되었습니다. 아래 내용으로 GitHub PR을 작성하세요.
+        </div>
+      ) : null}
+
       <section className="surface mb-5 flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-xs font-semibold text-github-muted">연결된 이슈</p>
@@ -203,7 +230,7 @@ export default function PrDetailPage() {
           <p className="text-xs font-semibold text-github-muted">PR 제목</p>
           <button
             className="focus-ring text-xs font-semibold text-github-muted hover:text-github-accent"
-            onClick={() => copyToClipboard(draft.title, "title")}
+            onClick={() => copyToClipboard(displayTitle, "title")}
             type="button"
           >
             {copied === "title" ? "복사됨 ✓" : "복사"}
@@ -216,7 +243,7 @@ export default function PrDetailPage() {
             value={editTitle}
           />
         ) : (
-          <p className="text-sm font-semibold leading-6 text-github-text">{draft.title}</p>
+          <p className="text-sm font-semibold leading-6 text-github-text">{displayTitle}</p>
         )}
       </section>
 
@@ -225,7 +252,7 @@ export default function PrDetailPage() {
           <p className="text-xs font-semibold text-github-muted">PR 본문</p>
           <button
             className="focus-ring text-xs font-semibold text-github-muted hover:text-github-accent"
-            onClick={() => copyToClipboard(draft.body, "body")}
+            onClick={() => copyToClipboard(displayBody, "body")}
             type="button"
           >
             {copied === "body" ? "복사됨 ✓" : "복사"}
@@ -239,7 +266,7 @@ export default function PrDetailPage() {
           />
         ) : (
           <pre className="max-h-72 overflow-y-auto whitespace-pre-wrap text-xs leading-6 text-github-text">
-            {draft.body}
+            {displayBody}
           </pre>
         )}
       </section>
@@ -262,7 +289,29 @@ export default function PrDetailPage() {
             취소
           </button>
         </div>
-      ) : null}
+      ) : (
+        <div className="flex flex-wrap gap-3">
+          {translated ? (
+            <a
+              className="focus-ring rounded-md bg-github-accent px-5 py-2.5 text-sm font-semibold text-white hover:bg-github-accent/90"
+              href={translated.githubUrl}
+              rel="noreferrer"
+              target="_blank"
+            >
+              GitHub에서 PR 올리기 ↗
+            </a>
+          ) : (
+            <button
+              className="focus-ring rounded-md bg-github-purple px-5 py-2.5 text-sm font-semibold text-white hover:bg-github-purple/90 disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={translating}
+              onClick={handleTranslate}
+              type="button"
+            >
+              {translating ? "번역 중..." : "영어로 번역하기"}
+            </button>
+          )}
+        </div>
+      )}
     </ProtectedLayout>
   );
 }
