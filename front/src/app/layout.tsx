@@ -3,6 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   applicationName: "aquila buddy",
+  metadataBase: new URL("https://aquila-buddy.aquilaxk.site"),
   title: "aquila buddy",
   description: "GitHub open source contribution assistant for aquila buddy",
   openGraph: {

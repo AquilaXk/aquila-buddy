@@ -50,6 +50,7 @@ for (const asset of [
 }
 
 assertIncludes(layoutSource, 'applicationName: "aquila buddy"', "Metadata must expose the aquila buddy application name.");
+assertIncludes(layoutSource, 'metadataBase: new URL("https://aquila-buddy.aquilaxk.site")', "Metadata must set the aquila buddy metadata base.");
 assertIncludes(layoutSource, 'siteName: "aquila buddy"', "OpenGraph metadata must expose the aquila buddy site name.");
 assertIncludes(layoutSource, 'url: "/brand-mascot.png"', "OpenGraph metadata must use the representative brand image.");
 
