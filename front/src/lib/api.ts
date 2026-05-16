@@ -187,6 +187,12 @@ export type PullRequestDraftTranslation = PullRequestDraft & {
   createdAt: string;
 };
 
+export type PullRequestDraftTranslateResult = {
+  titleEn: string;
+  bodyEn: string;
+  githubUrl: string;
+};
+
 export type PullRequestDraftTranslationActivity = {
   draftId: string;
   translationId: string;
@@ -520,6 +526,24 @@ export async function createPullRequestDraftTranslation(
 
   if (!payload.success || !payload.data) {
     throw new Error(payload.message ?? "Pull request draft translation response was not successful");
+  }
+
+  return payload.data;
+}
+
+export async function translatePullRequestDraft(id: string): Promise<PullRequestDraftTranslateResult> {
+  const response = await fetch(`${API_URL}/api/v1/pr/${encodeURIComponent(id)}/translate`, {
+    method: "POST"
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to translate pull request draft");
+  }
+
+  const payload = (await response.json()) as ApiResponse<PullRequestDraftTranslateResult>;
+
+  if (!payload.success || !payload.data) {
+    throw new Error(payload.message ?? "Pull request draft translate response was not successful");
   }
 
   return payload.data;
