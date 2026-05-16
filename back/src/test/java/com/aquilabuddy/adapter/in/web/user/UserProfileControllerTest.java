@@ -46,7 +46,7 @@ class UserProfileControllerTest {
 
     @Test
     void returnsUserProfileByGithubId() throws Exception {
-        mockMvc.perform(get("/api/v1/users/{githubId}", "aquila-dev"))
+        mockMvc.perform(get("/api/v1/users/{githubId}", "10001"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.success").value(true))
             .andExpect(jsonPath("$.data.githubId").value(10001))
@@ -57,7 +57,7 @@ class UserProfileControllerTest {
 
     @Test
     void returnsNotFoundWhenUserProfileByGithubIdDoesNotExist() throws Exception {
-        mockMvc.perform(get("/api/v1/users/{githubId}", "missing-user"))
+        mockMvc.perform(get("/api/v1/users/{githubId}", "99999"))
             .andExpect(status().isNotFound());
     }
 

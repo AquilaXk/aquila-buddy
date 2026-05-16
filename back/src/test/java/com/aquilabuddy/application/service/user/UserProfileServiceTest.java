@@ -65,6 +65,18 @@ class UserProfileServiceTest {
     }
 
     @Test
+    void returnsUserProfileByGithubId() {
+        RecordingUserProfilePort port = new RecordingUserProfilePort();
+        UserProfileService service = new UserProfileService(port, port, port);
+
+        Optional<UserProfile> profile = service.getUserProfileByGithubId(10001L);
+
+        assertThat(profile).isPresent();
+        assertThat(profile.get().login()).isEqualTo("aquila-dev");
+        assertThat(port.requestedGithubId).isEqualTo(10001L);
+    }
+
+    @Test
     void returnsEmptyWhenUserProfileByLoginDoesNotExist() {
         RecordingUserProfilePort port = new RecordingUserProfilePort();
         UserProfileService service = new UserProfileService(port, port, port);
@@ -75,6 +87,17 @@ class UserProfileServiceTest {
         assertThat(port.requestedLogin).isEqualTo("missing-user");
     }
 
+    @Test
+    void returnsEmptyWhenUserProfileByGithubIdDoesNotExist() {
+        RecordingUserProfilePort port = new RecordingUserProfilePort();
+        UserProfileService service = new UserProfileService(port, port, port);
+
+        Optional<UserProfile> profile = service.getUserProfileByGithubId(99999L);
+
+        assertThat(profile).isEmpty();
+        assertThat(port.requestedGithubId).isEqualTo(99999L);
+    }
+
     private static class RecordingUserProfilePort implements
         LoadUserProfilePort,
         SaveUserProfilePort,
@@ -83,6 +106,7 @@ class UserProfileServiceTest {
         private UserProfileUpdateRequest savedRequest;
         private boolean refreshRequested;
         private String requestedLogin;
+        private long requestedGithubId;
 
         @Override
         public UserProfile loadCurrentUserProfile() {
@@ -102,6 +126,16 @@ class UserProfileServiceTest {
         public Optional<UserProfile> loadUserProfileByLogin(String login) {
             this.requestedLogin = login;
             if (!"aquila-dev".equals(login)) {
+                return Optional.empty();
+            }
+
+            return Optional.of(loadCurrentUserProfile());
+        }
+
+        @Override
+        public Optional<UserProfile> loadUserProfileByGithubId(long githubId) {
+            this.requestedGithubId = githubId;
+            if (githubId != 10001L) {
                 return Optional.empty();
             }
 
