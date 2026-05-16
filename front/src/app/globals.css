@@ -4,8 +4,24 @@
 
 :root {
   color-scheme: dark;
-  color: #c9d1d9;
-  background: #0d1117;
+  --gothic-page: #101214;
+  --gothic-surface: #171a1d;
+  --gothic-surface-muted: #202328;
+  --gothic-iron: #2d3338;
+  --gothic-line: #3b3a32;
+  --gothic-line-strong: #6d5a35;
+  --gothic-parchment: #efe7d3;
+  --gothic-muted: #a8a195;
+  --gothic-brass: #c2a35b;
+  --gothic-brass-strong: #d2b46d;
+  --gothic-brass-soft: #2b2418;
+  --gothic-danger: #ef9a91;
+  --gothic-danger-soft: #2b1716;
+  --gothic-success: #6f9f7b;
+  --gothic-success-soft: #17251d;
+  --gothic-focus: #e5c76f;
+  color: var(--gothic-parchment);
+  background: var(--gothic-page);
 }
 
 * {
@@ -14,9 +30,12 @@
 
 body {
   margin: 0;
-  color: #c9d1d9;
-  background: #0d1117;
-  font-family: Arial, Helvetica, sans-serif;
+  color: var(--gothic-parchment);
+  background:
+    linear-gradient(180deg, rgba(32, 35, 40, 0.62), rgba(16, 18, 20, 0.98)),
+    repeating-linear-gradient(90deg, rgba(194, 163, 91, 0.07) 0 1px, transparent 1px 80px),
+    var(--gothic-page);
+  font-family: "Noto Sans KR", "Malgun Gothic", "Apple SD Gothic Neo", Arial, Helvetica, sans-serif;
 }
 
 a {
@@ -31,69 +50,69 @@ textarea {
 }
 
 .surface {
-  border: 1px solid #30363d;
+  border: 1px solid var(--gothic-line);
   border-radius: 8px;
-  background: #161b22;
+  background: var(--gothic-surface);
 }
 
 .focus-ring:focus-visible {
-  outline: 2px solid #58a6ff;
+  outline: 2px solid var(--gothic-focus);
   outline-offset: 2px;
 }
 
 input,
 textarea,
 select {
-  background: #0d1117;
-  color: #c9d1d9;
+  background: var(--gothic-page);
+  color: var(--gothic-parchment);
 }
 
 input::placeholder,
 textarea::placeholder {
-  color: #8b949e;
+  color: var(--gothic-muted);
 }
 
 /* 기존 밝은 화면 클래스가 남아 있어도 다크 shell 위에서 읽히도록 호환 색상을 제공한다. */
 .bg-white,
 .bg-neutral-50,
 .bg-neutral-100 {
-  background-color: #161b22;
+  background-color: var(--gothic-surface);
 }
 
 .text-neutral-950,
 .text-neutral-900,
 .text-neutral-800 {
-  color: #c9d1d9;
+  color: var(--gothic-parchment);
 }
 
 .text-neutral-700,
 .text-neutral-600,
 .text-neutral-500 {
-  color: #8b949e;
+  color: var(--gothic-muted);
 }
 
 .border-red-200 {
-  border-color: rgba(248, 81, 73, 0.35);
+  border-color: rgba(239, 154, 145, 0.35);
 }
 
 .bg-red-50 {
-  background-color: rgba(248, 81, 73, 0.1);
+  background-color: var(--gothic-danger-soft);
 }
 
 .text-red-700 {
-  color: #ff7b72;
+  color: var(--gothic-danger);
 }
 
 .border-green-200 {
-  border-color: rgba(63, 185, 80, 0.35);
+  border-color: rgba(111, 159, 123, 0.35);
 }
 
 .bg-green-50 {
-  background-color: rgba(63, 185, 80, 0.1);
+  background-color: var(--gothic-success-soft);
 }
 
 .text-green-800 {
-  color: #7ee787;
+  color: var(--gothic-success);
 }
 
 ::-webkit-scrollbar {
@@ -101,14 +120,14 @@ textarea::placeholder {
 }
 
 ::-webkit-scrollbar-track {
-  background: #161b22;
+  background: var(--gothic-surface);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #30363d;
+  background: var(--gothic-line);
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #58a6ff;
+  background: var(--gothic-brass);
 }

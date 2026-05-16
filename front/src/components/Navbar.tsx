@@ -28,24 +28,29 @@ export default function Navbar() {
   }
 
   return (
-    <nav className="sticky top-0 z-50 border-b border-github-border bg-github-surface">
-      <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
+    <nav
+      aria-label="Primary"
+      className="sticky top-0 z-50 border-b border-github-border bg-github-surface/95 shadow-[0_14px_30px_rgba(0,0,0,0.32)]"
+    >
+      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
         <Link
           href="/dashboard"
-          className="flex items-center gap-2 text-lg font-bold tracking-tight text-github-purple-light transition-opacity hover:opacity-80"
+          className="focus-ring flex items-center gap-3 text-lg font-bold text-github-text transition-colors hover:text-github-purple-light"
         >
-          <img alt="" className="h-7 w-7 rounded-md" height="28" src="/brand-mascot.png" width="28" />
-          aquila buddy
+          <span className="grid h-9 w-9 place-items-center rounded-md border border-github-accent/70 bg-github-bg shadow-inner shadow-black/40">
+            <img alt="" className="h-7 w-7 object-contain" height="28" src="/brand-mascot-bank.png" width="28" />
+          </span>
+          <span>aquila buddy</span>
         </Link>
 
         <div className="flex items-center gap-1">
           {navLinks.map((link) => (
             <Link
               key={link.href}
-              className={`rounded-md px-3 py-1.5 text-sm transition-colors ${
+              className={`focus-ring rounded-md border px-3 py-1.5 text-sm font-semibold transition-colors ${
                 isActive(link)
-                  ? "bg-github-purple/20 text-github-purple-light"
-                  : "text-github-muted hover:bg-white/5 hover:text-github-text"
+                  ? "border-github-accent bg-github-accent text-github-bg shadow-inner shadow-black/25"
+                  : "border-transparent text-github-muted hover:border-github-border hover:bg-github-bg hover:text-github-text"
               }`}
               href={link.href}
             >
@@ -53,7 +58,7 @@ export default function Navbar() {
             </Link>
           ))}
           <button
-            className="ml-3 rounded-md px-3 py-1.5 text-sm text-github-muted transition-colors hover:bg-red-500/10 hover:text-red-400"
+            className="ml-3 rounded-md border border-transparent px-3 py-1.5 text-sm font-semibold text-github-muted transition-colors hover:border-red-400/30 hover:bg-red-500/10 hover:text-red-400"
             onClick={handleLogout}
             type="button"
           >

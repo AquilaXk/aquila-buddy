@@ -27,7 +27,7 @@ export function ProtectedLayout({ children }: ProtectedLayoutProps) {
   }
 
   return (
-    <div className="min-h-screen bg-github-bg text-github-text">
+    <div className="min-h-screen bg-transparent text-github-text">
       <Navbar />
       <main className="mx-auto max-w-6xl px-4 py-8">
         {children}

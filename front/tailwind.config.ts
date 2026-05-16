@@ -10,21 +10,21 @@ const config: Config = {
     extend: {
       colors: {
         github: {
-          bg: "#0d1117",
-          surface: "#161b22",
-          border: "#30363d",
-          text: "#c9d1d9",
-          muted: "#8b949e",
-          accent: "#58a6ff",
-          purple: "#7c3aed",
-          "purple-light": "#a78bfa"
+          bg: "#101214",
+          surface: "#171a1d",
+          border: "#3b3a32",
+          text: "#efe7d3",
+          muted: "#a8a195",
+          accent: "#c2a35b",
+          purple: "#c2a35b",
+          "purple-light": "#d2b46d"
         },
-        ink: "#c9d1d9",
-        paper: "#0d1117",
-        line: "#30363d",
-        moss: "#58a6ff",
-        amber: "#f2cc60",
-        plum: "#a78bfa"
+        ink: "#efe7d3",
+        paper: "#101214",
+        line: "#3b3a32",
+        moss: "#8aa0a6",
+        amber: "#c2a35b",
+        plum: "#d2b46d"
       }
     }
   },

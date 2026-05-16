@@ -51,8 +51,10 @@ assertNotIncludes(protectedLayout, "Workspace", "ProtectedLayout must not add a 
 const navbar = readText(navbarPath);
 assertIncludes(navbar, "const navLinks = [", "Navbar must keep the target navLinks contract.");
 assertIncludes(navbar, "export default function Navbar()", "Navbar must be the default export.");
-assertIncludes(navbar, "<nav className=\"sticky top-0 z-50 border-b border-github-border bg-github-surface\">", "Navbar root shell class changed.");
-assertIncludes(navbar, "/brand-mascot.png", "Navbar must render the brand image.");
+assertIncludes(navbar, "aria-label=\"Primary\"", "Navbar must keep an accessible primary navigation label.");
+assertIncludes(navbar, "sticky top-0 z-50 border-b border-github-border", "Navbar root shell class changed.");
+assertIncludes(navbar, "bg-github-surface/95", "Navbar must keep the gothic surface treatment.");
+assertIncludes(navbar, "/brand-mascot-bank.png", "Navbar must render the brand image.");
 assertIncludes(navbar, "aquila buddy", "Navbar must show the service name.");
 assertNotIncludes(navbar, "<header", "Navbar must not add an extra header wrapper.");
 assertNotIncludes(navbar, "OMOS", "Navbar must not use the old service name.");
