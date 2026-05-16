@@ -18,7 +18,7 @@ import org.springframework.test.web.servlet.MockMvc;
  * 현재 사용자 프로필 API가 프로필 화면에 필요한 응답 필드를 제공하는지 검증합니다.
  */
 @SpringBootTest
-@AutoConfigureMockMvc
+@AutoConfigureMockMvc(addFilters = false)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class UserProfileControllerTest {
 

@@ -7,6 +7,16 @@ spring:
     open-in-view: false
     hibernate:
       ddl-auto: none
+  security:
+    oauth2:
+      client:
+        registration:
+          github:
+            client-id: ${GITHUB_CLIENT_ID:local-client-id}
+            client-secret: ${GITHUB_CLIENT_SECRET:local-client-secret}
+            scope:
+              - read:user
+              - user:email
 
 server:
   port: 8080
@@ -22,6 +32,11 @@ management:
         include: health,info
 
 app:
+  jwt:
+    secret: ${JWT_SECRET:local-development-jwt-secret-32bytes-minimum-value}
+    expiration: ${JWT_EXPIRATION:1h}
+  oauth2:
+    redirect-uri: ${OAUTH2_REDIRECT_URI:http://localhost:3000/oauth/callback}
   github:
     api-base-url: https://api.github.com
     token: ${GITHUB_TOKEN:}
