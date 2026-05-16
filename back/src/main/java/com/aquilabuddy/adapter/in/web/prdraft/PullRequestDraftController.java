@@ -2,6 +2,7 @@ package com.aquilabuddy.adapter.in.web.prdraft;
 
 import com.aquilabuddy.application.port.in.prdraft.CreatePullRequestDraftUseCase;
 import com.aquilabuddy.application.port.in.prdraft.CreatePullRequestDraftTranslationUseCase;
+import com.aquilabuddy.application.port.in.prdraft.GetPullRequestDraftTranslationReadinessUseCase;
 import com.aquilabuddy.application.port.in.prdraft.GetPullRequestDraftTranslationSubmissionUseCase;
 import com.aquilabuddy.application.port.in.prdraft.GetPullRequestDraftUseCase;
 import com.aquilabuddy.application.port.in.prdraft.GetPullRequestDraftReadinessUseCase;
@@ -14,6 +15,7 @@ import com.aquilabuddy.domain.prdraft.PullRequestDraftRequest;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftSubmission;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftTimeline;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftTranslation;
+import com.aquilabuddy.domain.prdraft.PullRequestDraftTranslationReadiness;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftTranslationSubmission;
 import com.aquilabuddy.domain.prdraft.StoredPullRequestDraft;
 import com.aquilabuddy.global.response.ApiResponse;
@@ -46,6 +48,7 @@ public class PullRequestDraftController {
     private final GetPullRequestDraftSubmissionUseCase getPullRequestDraftSubmissionUseCase;
     private final CreatePullRequestDraftTranslationUseCase createPullRequestDraftTranslationUseCase;
     private final ListPullRequestDraftTranslationsUseCase listPullRequestDraftTranslationsUseCase;
+    private final GetPullRequestDraftTranslationReadinessUseCase getPullRequestDraftTranslationReadinessUseCase;
     private final GetPullRequestDraftTranslationSubmissionUseCase getPullRequestDraftTranslationSubmissionUseCase;
 
     public PullRequestDraftController(
@@ -57,6 +60,7 @@ public class PullRequestDraftController {
         GetPullRequestDraftSubmissionUseCase getPullRequestDraftSubmissionUseCase,
         CreatePullRequestDraftTranslationUseCase createPullRequestDraftTranslationUseCase,
         ListPullRequestDraftTranslationsUseCase listPullRequestDraftTranslationsUseCase,
+        GetPullRequestDraftTranslationReadinessUseCase getPullRequestDraftTranslationReadinessUseCase,
         GetPullRequestDraftTranslationSubmissionUseCase getPullRequestDraftTranslationSubmissionUseCase
     ) {
         this.createPullRequestDraftUseCase = createPullRequestDraftUseCase;
@@ -67,6 +71,7 @@ public class PullRequestDraftController {
         this.getPullRequestDraftSubmissionUseCase = getPullRequestDraftSubmissionUseCase;
         this.createPullRequestDraftTranslationUseCase = createPullRequestDraftTranslationUseCase;
         this.listPullRequestDraftTranslationsUseCase = listPullRequestDraftTranslationsUseCase;
+        this.getPullRequestDraftTranslationReadinessUseCase = getPullRequestDraftTranslationReadinessUseCase;
         this.getPullRequestDraftTranslationSubmissionUseCase = getPullRequestDraftTranslationSubmissionUseCase;
     }
 
@@ -169,6 +174,21 @@ public class PullRequestDraftController {
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "PR 초안 번역을 찾을 수 없습니다."));
 
         return ApiResponse.success(submission);
+    }
+
+    /**
+     * 저장된 PR 초안 번역 결과의 upstream 제출 전 준비 상태를 checklist로 반환합니다.
+     */
+    @GetMapping("/{id}/translations/{translationId}/readiness")
+    ApiResponse<PullRequestDraftTranslationReadiness> translationReadiness(
+        @PathVariable String id,
+        @PathVariable String translationId
+    ) {
+        PullRequestDraftTranslationReadiness readiness = getPullRequestDraftTranslationReadinessUseCase
+            .getTranslationReadiness(id, translationId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "PR 초안 번역을 찾을 수 없습니다."));
+
+        return ApiResponse.success(readiness);
     }
 
     /**
