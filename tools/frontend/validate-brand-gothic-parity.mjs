@@ -7,9 +7,11 @@ const globalsCss = readFileSync(join(repoRoot, "front/src/app/globals.css"), "ut
 const layoutPath = join(repoRoot, "front/src/app/layout.tsx");
 const manifestPath = join(repoRoot, "front/src/app/manifest.ts");
 const navbarPath = join(repoRoot, "front/src/components/Navbar.tsx");
+const protectedLayoutPath = join(repoRoot, "front/src/components/ProtectedLayout.tsx");
 const layoutSource = readFileSync(layoutPath, "utf8");
 const manifestSource = existsSync(manifestPath) ? readFileSync(manifestPath, "utf8") : "";
 const navbarSource = readFileSync(navbarPath, "utf8");
+const protectedLayoutSource = readFileSync(protectedLayoutPath, "utf8");
 const failures = [];
 
 function fail(message) {
@@ -63,6 +65,10 @@ assertIncludes(navbarSource, "h-16", "Navbar must use the taller gothic header r
 if (navbarSource.includes("tracking-tight")) {
   fail("Navbar must avoid negative letter spacing.");
 }
+
+assertIncludes(protectedLayoutSource, "bg-transparent", "Protected shell must not hide the gothic page backdrop.");
+assertIncludes(protectedLayoutSource, "max-w-6xl", "Protected shell must keep the existing content width.");
+assertIncludes(protectedLayoutSource, "<Navbar />", "Protected shell must keep the existing navigation structure.");
 
 if (failures.length > 0) {
   console.error("Brand gothic parity validation failed:");
