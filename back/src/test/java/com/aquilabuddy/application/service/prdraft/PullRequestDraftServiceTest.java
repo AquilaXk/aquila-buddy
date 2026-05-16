@@ -4,9 +4,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.aquilabuddy.application.port.out.prdraft.GeneratePullRequestDraftPort;
 import com.aquilabuddy.application.port.out.prdraft.LoadPullRequestDraftPort;
+import com.aquilabuddy.application.port.out.prdraft.LoadPullRequestDraftTranslationPort;
 import com.aquilabuddy.application.port.out.prdraft.SavePullRequestDraftPort;
 import com.aquilabuddy.domain.prdraft.PullRequestDraft;
+import com.aquilabuddy.domain.prdraft.PullRequestDraftContributionReport;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftRequest;
+import com.aquilabuddy.domain.prdraft.PullRequestDraftTranslation;
 import com.aquilabuddy.domain.prdraft.StoredPullRequestDraft;
 import java.time.Instant;
 import java.util.List;
@@ -24,7 +27,8 @@ class PullRequestDraftServiceTest {
         PullRequestDraftService service = new PullRequestDraftService(
             new FakeGeneratePullRequestDraftPort(),
             savePort,
-            new FakeLoadPullRequestDraftPort()
+            new FakeLoadPullRequestDraftPort(),
+            new FakeLoadPullRequestDraftTranslationPort()
         );
 
         PullRequestDraftRequest request = new PullRequestDraftRequest(
@@ -51,7 +55,8 @@ class PullRequestDraftServiceTest {
         PullRequestDraftService service = new PullRequestDraftService(
             new FakeGeneratePullRequestDraftPort(),
             new FakeSavePullRequestDraftPort(),
-            loadPort
+            loadPort,
+            new FakeLoadPullRequestDraftTranslationPort()
         );
 
         List<StoredPullRequestDraft> drafts = service.listRecentPullRequestDrafts();
@@ -67,13 +72,33 @@ class PullRequestDraftServiceTest {
         PullRequestDraftService service = new PullRequestDraftService(
             new FakeGeneratePullRequestDraftPort(),
             new FakeSavePullRequestDraftPort(),
-            loadPort
+            loadPort,
+            new FakeLoadPullRequestDraftTranslationPort()
         );
 
         Optional<StoredPullRequestDraft> draft = service.getPullRequestDraft("stored-1");
 
         assertThat(draft).isPresent();
         assertThat(draft.get().title()).isEqualTo("generated title");
+    }
+
+    @Test
+    void getsContributionReportWithTranslationSummary() {
+        PullRequestDraftService service = new PullRequestDraftService(
+            new FakeGeneratePullRequestDraftPort(),
+            new FakeSavePullRequestDraftPort(),
+            new FakeLoadPullRequestDraftPort(),
+            new FakeLoadPullRequestDraftTranslationPort()
+        );
+
+        Optional<PullRequestDraftContributionReport> report = service.getContributionReport("stored-1");
+
+        assertThat(report).isPresent();
+        assertThat(report.get().draftId()).isEqualTo("stored-1");
+        assertThat(report.get().readinessReadyCount()).isEqualTo(2);
+        assertThat(report.get().readinessTotalCount()).isEqualTo(4);
+        assertThat(report.get().translationCount()).isEqualTo(1);
+        assertThat(report.get().latestTranslation().translationId()).isEqualTo("translation-1");
     }
 
     private static class FakeGeneratePullRequestDraftPort implements GeneratePullRequestDraftPort {
@@ -113,6 +138,37 @@ class PullRequestDraftServiceTest {
                 .stream()
                 .filter(draft -> draft.id().equals(id))
                 .findFirst();
+        }
+    }
+
+    private static class FakeLoadPullRequestDraftTranslationPort implements LoadPullRequestDraftTranslationPort {
+
+        @Override
+        public List<PullRequestDraftTranslation> loadPullRequestDraftTranslations(String draftId) {
+            return List.of(new PullRequestDraftTranslation(
+                "translation-1",
+                draftId,
+                "en",
+                "translated title",
+                "translated body",
+                Instant.parse("2026-05-15T02:00:00Z")
+            ));
+        }
+
+        @Override
+        public Optional<PullRequestDraftTranslation> loadPullRequestDraftTranslation(String id) {
+            return loadPullRequestDraftTranslations("stored-1")
+                .stream()
+                .filter(translation -> translation.id().equals(id))
+                .findFirst();
+        }
+
+        @Override
+        public List<PullRequestDraftTranslation> loadRecentPullRequestDraftTranslations(int limit) {
+            return loadPullRequestDraftTranslations("stored-1")
+                .stream()
+                .limit(limit)
+                .toList();
         }
     }
 
