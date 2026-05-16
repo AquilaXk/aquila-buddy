@@ -188,6 +188,33 @@ class PullRequestDraftControllerTest {
     }
 
     @Test
+    void returnsPullRequestDraftTranslationSubmissionBundle() throws Exception {
+        String id = createDraft();
+        String translationId = createTranslation(id);
+
+        mockMvc.perform(get("/api/v1/pr/{id}/translations/{translationId}/submission", id, translationId))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.draftId").value(id))
+            .andExpect(jsonPath("$.data.translationId").value(translationId))
+            .andExpect(jsonPath("$.data.targetLanguage").value("en"))
+            .andExpect(jsonPath("$.data.items[0].key").value("title"))
+            .andExpect(jsonPath("$.data.items[0].value").value("docs: Prepare spring-projects/spring-boot#2 update"))
+            .andExpect(jsonPath("$.data.items[2].value").value("base: main\nhead: feat/validation-docs"))
+            .andExpect(jsonPath("$.data.items[3].key").value("test-plan"));
+    }
+
+    @Test
+    void returnsNotFoundForTranslationSubmissionWhenTranslationBelongsToAnotherDraft() throws Exception {
+        String sourceDraftId = createDraft();
+        String translationId = createTranslation(sourceDraftId);
+        String otherDraftId = createDraft();
+
+        mockMvc.perform(get("/api/v1/pr/{id}/translations/{translationId}/submission", otherDraftId, translationId))
+            .andExpect(status().isNotFound());
+    }
+
+    @Test
     void returnsNotFoundWhenCreatingTranslationForMissingDraft() throws Exception {
         mockMvc.perform(post("/api/v1/pr/{id}/translations", "missing")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -251,14 +278,17 @@ class PullRequestDraftControllerTest {
         return JsonPath.read(result.getResponse().getContentAsString(), "$.data.id");
     }
 
-    private void createTranslation(String id) throws Exception {
-        mockMvc.perform(post("/api/v1/pr/{id}/translations", id)
+    private String createTranslation(String id) throws Exception {
+        MvcResult result = mockMvc.perform(post("/api/v1/pr/{id}/translations", id)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                     {
                       "targetLanguage": "en"
                     }
                     """))
-            .andExpect(status().isOk());
+            .andExpect(status().isOk())
+            .andReturn();
+
+        return JsonPath.read(result.getResponse().getContentAsString(), "$.data.id");
     }
 }

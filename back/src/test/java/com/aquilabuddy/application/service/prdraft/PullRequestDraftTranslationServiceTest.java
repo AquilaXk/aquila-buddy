@@ -7,6 +7,8 @@ import com.aquilabuddy.application.port.out.prdraft.LoadPullRequestDraftTranslat
 import com.aquilabuddy.application.port.out.prdraft.SavePullRequestDraftTranslationPort;
 import com.aquilabuddy.application.port.out.prdraft.TranslatePullRequestDraftPort;
 import com.aquilabuddy.domain.prdraft.PullRequestDraft;
+import com.aquilabuddy.domain.prdraft.PullRequestDraftSubmissionItem;
+import com.aquilabuddy.domain.prdraft.PullRequestDraftTranslationSubmission;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftTranslation;
 import com.aquilabuddy.domain.prdraft.StoredPullRequestDraft;
 import java.time.Instant;
@@ -69,6 +71,45 @@ class PullRequestDraftTranslationServiceTest {
         assertThat(translations)
             .extracting(PullRequestDraftTranslation::id)
             .containsExactly("translation-1");
+    }
+
+    @Test
+    void returnsTranslationSubmissionBundleWhenTranslationBelongsToDraft() {
+        PullRequestDraftTranslationService service = new PullRequestDraftTranslationService(
+            new FakeLoadDraftPort(storedDraft()),
+            new FakeTranslatePullRequestDraftPort(),
+            new FakeSaveTranslationPort(),
+            new FakeLoadTranslationPort()
+        );
+
+        Optional<PullRequestDraftTranslationSubmission> submission = service.getTranslationSubmission(
+            "draft-1",
+            "translation-1"
+        );
+
+        assertThat(submission).isPresent();
+        assertThat(submission.get().draftId()).isEqualTo("draft-1");
+        assertThat(submission.get().translationId()).isEqualTo("translation-1");
+        assertThat(submission.get().items())
+            .extracting(PullRequestDraftSubmissionItem::key)
+            .containsExactly("title", "body", "branch", "test-plan");
+    }
+
+    @Test
+    void returnsEmptyWhenTranslationDoesNotBelongToDraft() {
+        PullRequestDraftTranslationService service = new PullRequestDraftTranslationService(
+            new FakeLoadDraftPort(storedDraft()),
+            new FakeTranslatePullRequestDraftPort(),
+            new FakeSaveTranslationPort(),
+            new FakeLoadTranslationPort()
+        );
+
+        Optional<PullRequestDraftTranslationSubmission> submission = service.getTranslationSubmission(
+            "other-draft",
+            "translation-1"
+        );
+
+        assertThat(submission).isEmpty();
     }
 
     private static class FakeLoadDraftPort implements LoadPullRequestDraftPort {
