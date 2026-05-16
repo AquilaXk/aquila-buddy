@@ -116,6 +116,24 @@ class PullRequestDraftControllerTest {
     }
 
     @Test
+    void returnsPullRequestDraftContributionReport() throws Exception {
+        String id = createDraft();
+        String translationId = createTranslation(id);
+
+        mockMvc.perform(get("/api/v1/pr/{id}/report", id))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.draftId").value(id))
+            .andExpect(jsonPath("$.data.upstreamRepo").value("spring-projects/spring-boot"))
+            .andExpect(jsonPath("$.data.githubIssueNumber").value(2))
+            .andExpect(jsonPath("$.data.readinessReadyCount").value(4))
+            .andExpect(jsonPath("$.data.readinessTotalCount").value(4))
+            .andExpect(jsonPath("$.data.translationCount").value(1))
+            .andExpect(jsonPath("$.data.latestTranslation.translationId").value(translationId))
+            .andExpect(jsonPath("$.data.latestTranslation.targetLanguage").value("en"));
+    }
+
+    @Test
     void returnsPullRequestDraftSubmissionBundle() throws Exception {
         String id = createDraft();
 
@@ -146,6 +164,12 @@ class PullRequestDraftControllerTest {
     @Test
     void returnsNotFoundForMissingDraftTimeline() throws Exception {
         mockMvc.perform(get("/api/v1/pr/{id}/timeline", "missing"))
+            .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void returnsNotFoundForMissingDraftContributionReport() throws Exception {
+        mockMvc.perform(get("/api/v1/pr/{id}/report", "missing"))
             .andExpect(status().isNotFound());
     }
 

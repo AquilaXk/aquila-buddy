@@ -2,6 +2,7 @@ package com.aquilabuddy.adapter.in.web.prdraft;
 
 import com.aquilabuddy.application.port.in.prdraft.CreatePullRequestDraftUseCase;
 import com.aquilabuddy.application.port.in.prdraft.CreatePullRequestDraftTranslationUseCase;
+import com.aquilabuddy.application.port.in.prdraft.GetPullRequestDraftContributionReportUseCase;
 import com.aquilabuddy.application.port.in.prdraft.GetPullRequestDraftTranslationReadinessUseCase;
 import com.aquilabuddy.application.port.in.prdraft.GetPullRequestDraftTranslationSubmissionUseCase;
 import com.aquilabuddy.application.port.in.prdraft.GetPullRequestDraftTranslationTimelineUseCase;
@@ -13,6 +14,7 @@ import com.aquilabuddy.application.port.in.prdraft.ListPullRequestDraftsUseCase;
 import com.aquilabuddy.application.port.in.prdraft.ListPullRequestDraftTranslationActivitiesUseCase;
 import com.aquilabuddy.application.port.in.prdraft.ListPullRequestDraftTranslationsUseCase;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftReadiness;
+import com.aquilabuddy.domain.prdraft.PullRequestDraftContributionReport;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftRequest;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftSubmission;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftTimeline;
@@ -51,6 +53,7 @@ public class PullRequestDraftController {
     private final GetPullRequestDraftReadinessUseCase getPullRequestDraftReadinessUseCase;
     private final GetPullRequestDraftTimelineUseCase getPullRequestDraftTimelineUseCase;
     private final GetPullRequestDraftSubmissionUseCase getPullRequestDraftSubmissionUseCase;
+    private final GetPullRequestDraftContributionReportUseCase getPullRequestDraftContributionReportUseCase;
     private final CreatePullRequestDraftTranslationUseCase createPullRequestDraftTranslationUseCase;
     private final ListPullRequestDraftTranslationsUseCase listPullRequestDraftTranslationsUseCase;
     private final GetPullRequestDraftTranslationReadinessUseCase getPullRequestDraftTranslationReadinessUseCase;
@@ -65,6 +68,7 @@ public class PullRequestDraftController {
         GetPullRequestDraftReadinessUseCase getPullRequestDraftReadinessUseCase,
         GetPullRequestDraftTimelineUseCase getPullRequestDraftTimelineUseCase,
         GetPullRequestDraftSubmissionUseCase getPullRequestDraftSubmissionUseCase,
+        GetPullRequestDraftContributionReportUseCase getPullRequestDraftContributionReportUseCase,
         CreatePullRequestDraftTranslationUseCase createPullRequestDraftTranslationUseCase,
         ListPullRequestDraftTranslationsUseCase listPullRequestDraftTranslationsUseCase,
         GetPullRequestDraftTranslationReadinessUseCase getPullRequestDraftTranslationReadinessUseCase,
@@ -78,6 +82,7 @@ public class PullRequestDraftController {
         this.getPullRequestDraftReadinessUseCase = getPullRequestDraftReadinessUseCase;
         this.getPullRequestDraftTimelineUseCase = getPullRequestDraftTimelineUseCase;
         this.getPullRequestDraftSubmissionUseCase = getPullRequestDraftSubmissionUseCase;
+        this.getPullRequestDraftContributionReportUseCase = getPullRequestDraftContributionReportUseCase;
         this.createPullRequestDraftTranslationUseCase = createPullRequestDraftTranslationUseCase;
         this.listPullRequestDraftTranslationsUseCase = listPullRequestDraftTranslationsUseCase;
         this.getPullRequestDraftTranslationReadinessUseCase = getPullRequestDraftTranslationReadinessUseCase;
@@ -144,6 +149,18 @@ public class PullRequestDraftController {
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "PR 초안을 찾을 수 없습니다."));
 
         return ApiResponse.success(timeline);
+    }
+
+    /**
+     * 저장된 PR 초안의 제출 전 상태를 report로 반환합니다.
+     */
+    @GetMapping("/{id}/report")
+    ApiResponse<PullRequestDraftContributionReport> report(@PathVariable String id) {
+        PullRequestDraftContributionReport report = getPullRequestDraftContributionReportUseCase
+            .getContributionReport(id)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "PR 초안을 찾을 수 없습니다."));
+
+        return ApiResponse.success(report);
     }
 
     /**
