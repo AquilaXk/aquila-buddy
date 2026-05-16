@@ -318,7 +318,7 @@ class PullRequestDraftControllerTest {
             .andExpect(jsonPath("$.data.titleEn").value("docs: Prepare spring-projects/spring-boot#2 update"))
             .andExpect(jsonPath("$.data.bodyEn").value(org.hamcrest.Matchers.containsString("## Summary")))
             .andExpect(jsonPath("$.data.githubUrl").value(org.hamcrest.Matchers.containsString(
-                "https://github.com/spring-projects/spring-boot/compare/main...feat/validation-docs"
+                "https://github.com/spring-projects/spring-boot/compare/main...aquila-dev:feat/validation-docs"
             )))
             .andExpect(jsonPath("$.data.githubUrl").value(org.hamcrest.Matchers.containsString("quick_pull=1")));
 
