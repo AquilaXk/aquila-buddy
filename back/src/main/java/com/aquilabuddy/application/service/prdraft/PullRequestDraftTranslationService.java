@@ -6,11 +6,13 @@ import com.aquilabuddy.application.port.in.prdraft.GetPullRequestDraftTranslatio
 import com.aquilabuddy.application.port.in.prdraft.GetPullRequestDraftTranslationTimelineUseCase;
 import com.aquilabuddy.application.port.in.prdraft.ListPullRequestDraftTranslationActivitiesUseCase;
 import com.aquilabuddy.application.port.in.prdraft.ListPullRequestDraftTranslationsUseCase;
+import com.aquilabuddy.application.port.in.prdraft.TranslatePullRequestDraftUseCase;
 import com.aquilabuddy.application.port.out.prdraft.LoadPullRequestDraftPort;
 import com.aquilabuddy.application.port.out.prdraft.LoadPullRequestDraftTranslationPort;
 import com.aquilabuddy.application.port.out.prdraft.SavePullRequestDraftTranslationPort;
 import com.aquilabuddy.application.port.out.prdraft.TranslatePullRequestDraftPort;
 import com.aquilabuddy.domain.prdraft.PullRequestDraft;
+import com.aquilabuddy.domain.prdraft.PullRequestDraftTranslateResult;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftTranslation;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftTranslationActivity;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftTranslationReadiness;
@@ -32,7 +34,8 @@ public class PullRequestDraftTranslationService implements
     ListPullRequestDraftTranslationActivitiesUseCase,
     GetPullRequestDraftTranslationReadinessUseCase,
     GetPullRequestDraftTranslationSubmissionUseCase,
-    GetPullRequestDraftTranslationTimelineUseCase {
+    GetPullRequestDraftTranslationTimelineUseCase,
+    TranslatePullRequestDraftUseCase {
 
     private final LoadPullRequestDraftPort loadPullRequestDraftPort;
     private final TranslatePullRequestDraftPort translatePullRequestDraftPort;
@@ -69,6 +72,28 @@ public class PullRequestDraftTranslationService implements
             normalizedLanguage,
             translatedDraft
         ));
+    }
+
+    /**
+     * 기존 단일 action 계약은 항상 영문 번역 결과와 GitHub PR 작성 URL을 함께 반환합니다.
+     */
+    @Override
+    public Optional<PullRequestDraftTranslateResult> translate(String draftId) {
+        Optional<StoredPullRequestDraft> draft = loadPullRequestDraftPort.loadPullRequestDraft(draftId);
+
+        if (draft.isEmpty()) {
+            return Optional.empty();
+        }
+
+        String targetLanguage = "en";
+        PullRequestDraft translatedDraft = translatePullRequestDraftPort.translate(draft.get(), targetLanguage);
+        PullRequestDraftTranslation translation = savePullRequestDraftTranslationPort.savePullRequestDraftTranslation(
+            draftId,
+            targetLanguage,
+            translatedDraft
+        );
+
+        return Optional.of(PullRequestDraftTranslateResult.from(draft.get(), translation));
     }
 
     @Override

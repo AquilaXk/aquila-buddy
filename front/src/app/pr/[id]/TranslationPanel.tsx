@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import {
-  createPullRequestDraftTranslation,
   getPullRequestDraftTranslations,
+  translatePullRequestDraft,
+  type PullRequestDraftTranslateResult,
   type PullRequestDraftTranslation
 } from "@/lib/api";
 import { TranslationReadinessPanel } from "./TranslationReadinessPanel";
@@ -20,6 +21,7 @@ export function TranslationPanel({ draftId }: TranslationPanelProps) {
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [translateResult, setTranslateResult] = useState<PullRequestDraftTranslateResult | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -54,11 +56,11 @@ export function TranslationPanel({ draftId }: TranslationPanelProps) {
     setError(null);
 
     try {
-      const createdTranslation = await createPullRequestDraftTranslation(draftId, "en");
-      setTranslations((currentTranslations) => [
-        createdTranslation,
-        ...currentTranslations.filter((translation) => translation.id !== createdTranslation.id)
-      ]);
+      const createdResult = await translatePullRequestDraft(draftId);
+      setTranslateResult(createdResult);
+
+      const loadedTranslations = await getPullRequestDraftTranslations(draftId);
+      setTranslations(loadedTranslations);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "PR 초안 번역 생성에 실패했습니다.");
     } finally {
@@ -100,6 +102,26 @@ export function TranslationPanel({ draftId }: TranslationPanelProps) {
 
       {loading ? (
         <p className="mt-4 text-sm font-semibold text-neutral-600">불러오는 중...</p>
+      ) : null}
+
+      {translateResult ? (
+        <article className="mt-4 rounded-md border border-moss/30 bg-moss/5 p-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-xs font-semibold uppercase text-moss">latest translate action</p>
+            <a
+              className="focus-ring rounded-md bg-moss px-2 py-1 text-xs font-semibold text-white"
+              href={translateResult.githubUrl}
+              rel="noreferrer"
+              target="_blank"
+            >
+              GitHub PR 작성
+            </a>
+          </div>
+          <p className="mt-3 text-sm font-semibold leading-6 text-ink">{translateResult.titleEn}</p>
+          <pre className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap text-sm leading-6 text-neutral-800">
+            {translateResult.bodyEn}
+          </pre>
+        </article>
       ) : null}
 
       {!loading && translations.length === 0 ? (
