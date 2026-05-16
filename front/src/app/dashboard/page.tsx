@@ -137,6 +137,23 @@ export default function DashboardPage() {
           </dl>
         </section>
       ) : null}
+
+      <section className="mt-6 grid gap-4 md:grid-cols-3">
+        {serviceSteps.map((step) => (
+          <Link
+            className={`focus-ring surface block p-5 transition hover:border-github-accent ${step.accentClass}`}
+            href={step.href}
+            key={step.step}
+          >
+            <p className="text-xs font-bold uppercase tracking-wide text-github-muted">{step.step}</p>
+            <h3 className="mt-3 text-lg font-bold text-github-text">{step.title}</h3>
+            <p className="mt-3 text-sm leading-6 text-github-muted">{step.description}</p>
+            <span className="mt-5 inline-flex text-sm font-semibold text-github-accent">
+              {step.action}
+            </span>
+          </Link>
+        ))}
+      </section>
     </ProtectedLayout>
   );
 }
@@ -147,3 +164,30 @@ function formatDate(value: string) {
     timeStyle: "short"
   }).format(new Date(value));
 }
+
+const serviceSteps = [
+  {
+    step: "STEP 1",
+    title: "프로필 분석",
+    description: "GitHub 활동 기반 기술 스택과 관심 주제를 정리합니다.",
+    action: "프로필로 이동",
+    href: "/profile",
+    accentClass: "hover:bg-github-accent/5"
+  },
+  {
+    step: "STEP 2",
+    title: "이슈 추천",
+    description: "분석된 프로필과 맞는 오픈소스 이슈를 탐색합니다.",
+    action: "이슈 추천 보기",
+    href: "/issues",
+    accentClass: "hover:bg-emerald-500/5"
+  },
+  {
+    step: "STEP 3",
+    title: "PR 초안 생성",
+    description: "선택한 이슈의 맥락을 바탕으로 기여 초안을 작성합니다.",
+    action: "초안 만들기",
+    href: "/pr-draft",
+    accentClass: "hover:bg-yellow-500/5"
+  }
+];
