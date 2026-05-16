@@ -1,7 +1,9 @@
 package com.aquilabuddy.adapter.in.web.analysis;
 
 import com.aquilabuddy.application.port.in.analysis.GetIssueGuideUseCase;
+import com.aquilabuddy.application.port.in.analysis.GetIssuePseudoCodeUseCase;
 import com.aquilabuddy.domain.analysis.IssueGuide;
+import com.aquilabuddy.domain.analysis.IssuePseudoCode;
 import com.aquilabuddy.domain.analysis.IssueGuideWorkflow;
 import com.aquilabuddy.global.response.ApiResponse;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -17,9 +19,14 @@ import org.springframework.web.bind.annotation.RestController;
 public class IssueGuideController {
 
     private final GetIssueGuideUseCase getIssueGuideUseCase;
+    private final GetIssuePseudoCodeUseCase getIssuePseudoCodeUseCase;
 
-    public IssueGuideController(GetIssueGuideUseCase getIssueGuideUseCase) {
+    public IssueGuideController(
+        GetIssueGuideUseCase getIssueGuideUseCase,
+        GetIssuePseudoCodeUseCase getIssuePseudoCodeUseCase
+    ) {
         this.getIssueGuideUseCase = getIssueGuideUseCase;
+        this.getIssuePseudoCodeUseCase = getIssuePseudoCodeUseCase;
     }
 
     /**
@@ -36,5 +43,13 @@ public class IssueGuideController {
     @GetMapping("/{issueId}/guide/workflow")
     ApiResponse<IssueGuideWorkflow> workflow(@PathVariable String issueId) {
         return ApiResponse.success(getIssueGuideUseCase.findWorkflowByIssueId(issueId));
+    }
+
+    /**
+     * 이슈 가이드에서 의사코드만 분리한 projection을 반환합니다.
+     */
+    @GetMapping("/{issueId}/pseudo")
+    ApiResponse<IssuePseudoCode> pseudoCode(@PathVariable String issueId) {
+        return ApiResponse.success(getIssuePseudoCodeUseCase.findPseudoCodeByIssueId(issueId));
     }
 }

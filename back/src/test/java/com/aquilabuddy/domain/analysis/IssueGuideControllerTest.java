@@ -42,4 +42,13 @@ class IssueGuideControllerTest {
             .andExpect(jsonPath("$.data.steps[0].status").value("READY"))
             .andExpect(jsonPath("$.data.steps[3].key").value("pr-draft"));
     }
+
+    @Test
+    void returnsIssuePseudoCode() throws Exception {
+        mockMvc.perform(get("/api/v1/issues/demo-1/pseudo"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.issueKey").value("demo-1"))
+            .andExpect(jsonPath("$.data.pseudoCode").isNotEmpty());
+    }
 }
