@@ -10,12 +10,14 @@ import com.aquilabuddy.application.port.in.prdraft.GetPullRequestDraftReadinessU
 import com.aquilabuddy.application.port.in.prdraft.GetPullRequestDraftSubmissionUseCase;
 import com.aquilabuddy.application.port.in.prdraft.GetPullRequestDraftTimelineUseCase;
 import com.aquilabuddy.application.port.in.prdraft.ListPullRequestDraftsUseCase;
+import com.aquilabuddy.application.port.in.prdraft.ListPullRequestDraftTranslationActivitiesUseCase;
 import com.aquilabuddy.application.port.in.prdraft.ListPullRequestDraftTranslationsUseCase;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftReadiness;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftRequest;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftSubmission;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftTimeline;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftTranslation;
+import com.aquilabuddy.domain.prdraft.PullRequestDraftTranslationActivity;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftTranslationReadiness;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftTranslationSubmission;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftTranslationTimeline;
@@ -32,6 +34,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -53,6 +56,7 @@ public class PullRequestDraftController {
     private final GetPullRequestDraftTranslationReadinessUseCase getPullRequestDraftTranslationReadinessUseCase;
     private final GetPullRequestDraftTranslationSubmissionUseCase getPullRequestDraftTranslationSubmissionUseCase;
     private final GetPullRequestDraftTranslationTimelineUseCase getPullRequestDraftTranslationTimelineUseCase;
+    private final ListPullRequestDraftTranslationActivitiesUseCase listPullRequestDraftTranslationActivitiesUseCase;
 
     public PullRequestDraftController(
         CreatePullRequestDraftUseCase createPullRequestDraftUseCase,
@@ -65,7 +69,8 @@ public class PullRequestDraftController {
         ListPullRequestDraftTranslationsUseCase listPullRequestDraftTranslationsUseCase,
         GetPullRequestDraftTranslationReadinessUseCase getPullRequestDraftTranslationReadinessUseCase,
         GetPullRequestDraftTranslationSubmissionUseCase getPullRequestDraftTranslationSubmissionUseCase,
-        GetPullRequestDraftTranslationTimelineUseCase getPullRequestDraftTranslationTimelineUseCase
+        GetPullRequestDraftTranslationTimelineUseCase getPullRequestDraftTranslationTimelineUseCase,
+        ListPullRequestDraftTranslationActivitiesUseCase listPullRequestDraftTranslationActivitiesUseCase
     ) {
         this.createPullRequestDraftUseCase = createPullRequestDraftUseCase;
         this.listPullRequestDraftsUseCase = listPullRequestDraftsUseCase;
@@ -78,6 +83,7 @@ public class PullRequestDraftController {
         this.getPullRequestDraftTranslationReadinessUseCase = getPullRequestDraftTranslationReadinessUseCase;
         this.getPullRequestDraftTranslationSubmissionUseCase = getPullRequestDraftTranslationSubmissionUseCase;
         this.getPullRequestDraftTranslationTimelineUseCase = getPullRequestDraftTranslationTimelineUseCase;
+        this.listPullRequestDraftTranslationActivitiesUseCase = listPullRequestDraftTranslationActivitiesUseCase;
     }
 
     /**
@@ -94,6 +100,17 @@ public class PullRequestDraftController {
     @GetMapping
     ApiResponse<List<StoredPullRequestDraft>> list() {
         return ApiResponse.success(listPullRequestDraftsUseCase.listRecentPullRequestDrafts());
+    }
+
+    /**
+     * Dashboard 최근 활동에 표시할 PR 초안 번역 결과를 반환합니다.
+     */
+    @GetMapping("/translations/activity")
+    ApiResponse<List<PullRequestDraftTranslationActivity>> translationActivities(
+        @RequestParam(defaultValue = "4") int limit
+    ) {
+        return ApiResponse.success(listPullRequestDraftTranslationActivitiesUseCase
+            .listRecentTranslationActivities(limit));
     }
 
     /**
