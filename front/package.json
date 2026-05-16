@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build --webpack",
     "start": "next start",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "validate:shell": "node ../tools/frontend/validate-shell-parity.mjs"
   },
   "dependencies": {
     "next": "16.2.6",
