@@ -11,7 +11,9 @@ import com.aquilabuddy.application.port.out.prdraft.LoadPullRequestDraftPort;
 import com.aquilabuddy.application.port.out.prdraft.LoadPullRequestDraftTranslationPort;
 import com.aquilabuddy.application.port.out.prdraft.SavePullRequestDraftTranslationPort;
 import com.aquilabuddy.application.port.out.prdraft.TranslatePullRequestDraftPort;
+import com.aquilabuddy.application.port.out.user.LoadUserProfilePort;
 import com.aquilabuddy.domain.prdraft.PullRequestDraft;
+import com.aquilabuddy.domain.prdraft.PullRequestDraftCompareReference;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftTranslateResult;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftTranslation;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftTranslationActivity;
@@ -19,8 +21,10 @@ import com.aquilabuddy.domain.prdraft.PullRequestDraftTranslationReadiness;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftTranslationSubmission;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftTranslationTimeline;
 import com.aquilabuddy.domain.prdraft.StoredPullRequestDraft;
+import com.aquilabuddy.domain.user.UserProfile;
 import java.util.List;
 import java.util.Locale;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 import org.springframework.stereotype.Service;
 
@@ -38,17 +42,20 @@ public class PullRequestDraftTranslationService implements
     TranslatePullRequestDraftUseCase {
 
     private final LoadPullRequestDraftPort loadPullRequestDraftPort;
+    private final LoadUserProfilePort loadUserProfilePort;
     private final TranslatePullRequestDraftPort translatePullRequestDraftPort;
     private final SavePullRequestDraftTranslationPort savePullRequestDraftTranslationPort;
     private final LoadPullRequestDraftTranslationPort loadPullRequestDraftTranslationPort;
 
     public PullRequestDraftTranslationService(
         LoadPullRequestDraftPort loadPullRequestDraftPort,
+        LoadUserProfilePort loadUserProfilePort,
         TranslatePullRequestDraftPort translatePullRequestDraftPort,
         SavePullRequestDraftTranslationPort savePullRequestDraftTranslationPort,
         LoadPullRequestDraftTranslationPort loadPullRequestDraftTranslationPort
     ) {
         this.loadPullRequestDraftPort = loadPullRequestDraftPort;
+        this.loadUserProfilePort = loadUserProfilePort;
         this.translatePullRequestDraftPort = translatePullRequestDraftPort;
         this.savePullRequestDraftTranslationPort = savePullRequestDraftTranslationPort;
         this.loadPullRequestDraftTranslationPort = loadPullRequestDraftTranslationPort;
@@ -93,7 +100,11 @@ public class PullRequestDraftTranslationService implements
             translatedDraft
         );
 
-        return Optional.of(PullRequestDraftTranslateResult.from(draft.get(), translation));
+        return Optional.of(PullRequestDraftTranslateResult.from(
+            draft.get(),
+            translation,
+            compareReference(draft.get())
+        ));
     }
 
     @Override
@@ -154,5 +165,27 @@ public class PullRequestDraftTranslationService implements
         }
 
         return targetLanguage.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private PullRequestDraftCompareReference compareReference(StoredPullRequestDraft draft) {
+        return new PullRequestDraftCompareReference(
+            draft.baseBranch(),
+            draft.headBranch(),
+            currentUserLogin().orElse(null)
+        );
+    }
+
+    private Optional<String> currentUserLogin() {
+        try {
+            UserProfile profile = loadUserProfilePort.loadCurrentUserProfile();
+            if (profile.login() == null || profile.login().isBlank()) {
+                return Optional.empty();
+            }
+
+            // GitHub compare URL은 forkOwner:head 형태가 필요하므로 현재 사용자 login만 선택적으로 사용합니다.
+            return Optional.of(profile.login());
+        } catch (NoSuchElementException exception) {
+            return Optional.empty();
+        }
     }
 }
