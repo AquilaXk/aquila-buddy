@@ -1,0 +1,6 @@
+{
+  "private": true,
+  "scripts": {
+    "validate": "node ../tools/extension/validate-extension.mjs"
+  }
+}
