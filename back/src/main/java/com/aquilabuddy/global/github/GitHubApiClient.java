@@ -194,6 +194,37 @@ public class GitHubApiClient {
         );
     }
 
+    /**
+     * GitHub compare API의 파일 patch들을 PR 초안 입력 diff 문자열로 변환합니다.
+     */
+    public Optional<String> getCompareDiff(String upstreamRepo, String baseBranch, String headReference) {
+        try {
+            GitHubCompareResponse response = restClient.get()
+                .uri("/repos/" + upstreamRepo + "/compare/" + baseBranch + "..." + headReference)
+                .headers(this::applyAuthorization)
+                .retrieve()
+                .body(GitHubCompareResponse.class);
+
+            return Optional.ofNullable(response)
+                .map(GitHubCompareResponse::files)
+                .map(this::formatCompareDiff)
+                .filter(this::hasText);
+        } catch (RestClientException exception) {
+            return Optional.empty();
+        }
+    }
+
+    private String formatCompareDiff(List<GitHubCompareFileResponse> files) {
+        if (files == null) {
+            return "";
+        }
+
+        return files.stream()
+            .filter(file -> hasText(file.patch()))
+            .map(file -> "--- " + file.filename() + "\n" + file.patch())
+            .collect(Collectors.joining("\n"));
+    }
+
     private List<String> aggregateTopics(List<GitHubRepository> repositories) {
         return repositories.stream()
             .flatMap(repository -> repository.topics().stream())
@@ -274,5 +305,11 @@ public class GitHubApiClient {
                 stargazersCount
             );
         }
+    }
+
+    private record GitHubCompareResponse(List<GitHubCompareFileResponse> files) {
+    }
+
+    private record GitHubCompareFileResponse(String filename, String patch) {
     }
 }
