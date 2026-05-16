@@ -16,10 +16,6 @@ public class OAuthCallbackController {
 
     @GetMapping("/oauth/callback")
     ApiResponse<Map<String, String>> callback(@RequestParam String token) {
-        return new ApiResponse<>(
-            true,
-            Map.of("token", token),
-            "로그인 성공. 아래 토큰을 Authorization 헤더에 사용하세요."
-        );
+        return ApiResponse.success(Map.of("token", token));
     }
 }
