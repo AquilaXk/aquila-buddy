@@ -37,8 +37,21 @@ class UserProfilePersistenceAdapterTest {
     }
 
     @Test
+    void loadsUserProfileByGithubId() {
+        assertThat(adapter.loadUserProfileByGithubId(10001L))
+            .get()
+            .extracting(UserProfile::login)
+            .isEqualTo("aquila-dev");
+    }
+
+    @Test
     void returnsEmptyWhenLoginDoesNotExist() {
         assertThat(adapter.loadUserProfileByLogin("missing-user")).isEmpty();
+    }
+
+    @Test
+    void returnsEmptyWhenGithubIdDoesNotExist() {
+        assertThat(adapter.loadUserProfileByGithubId(99999L)).isEmpty();
     }
 
     @Test

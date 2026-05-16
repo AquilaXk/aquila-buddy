@@ -48,6 +48,13 @@ public class UserProfilePersistenceAdapter implements
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public Optional<UserProfile> loadUserProfileByGithubId(long githubId) {
+        return repository.findById(githubId)
+            .map(UserProfilePersistenceMapper::toDomain);
+    }
+
+    @Override
     public UserProfile saveCurrentUserProfile(UserProfileUpdateRequest request) {
         UserProfileJpaEntity entity = loadCurrentEntity();
         entity.updateProfile(request.name(), request.email(), request.primaryLanguages(), request.topics());
