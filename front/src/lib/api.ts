@@ -22,6 +22,13 @@ export type UserProfile = {
   vectorUpdatedAt: string;
 };
 
+export type UpdateUserProfileRequest = {
+  name: string;
+  email: string;
+  primaryLanguages: string[];
+  topics: string[];
+};
+
 export type RecommendedIssue = {
   id: string;
   repoFullName: string;
@@ -230,6 +237,46 @@ export async function getUserProfile(): Promise<UserProfile> {
 
   if (!payload.success || !payload.data) {
     throw new Error(payload.message ?? "User profile response was not successful");
+  }
+
+  return payload.data;
+}
+
+export async function updateUserProfile(request: UpdateUserProfileRequest): Promise<UserProfile> {
+  const response = await fetch(`${API_URL}/api/v1/users/me`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(request)
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to update user profile");
+  }
+
+  const payload = (await response.json()) as ApiResponse<UserProfile>;
+
+  if (!payload.success || !payload.data) {
+    throw new Error(payload.message ?? "User profile update response was not successful");
+  }
+
+  return payload.data;
+}
+
+export async function refreshUserProfileVector(): Promise<UserProfile> {
+  const response = await fetch(`${API_URL}/api/v1/users/me/vector`, {
+    method: "POST"
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to refresh user profile vector");
+  }
+
+  const payload = (await response.json()) as ApiResponse<UserProfile>;
+
+  if (!payload.success || !payload.data) {
+    throw new Error(payload.message ?? "User profile vector refresh response was not successful");
   }
 
   return payload.data;
