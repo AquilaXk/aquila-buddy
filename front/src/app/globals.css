@@ -3,8 +3,9 @@
 @tailwind utilities;
 
 :root {
-  color: #161513;
-  background: #fbfaf7;
+  color-scheme: dark;
+  color: #c9d1d9;
+  background: #0d1117;
 }
 
 * {
@@ -13,8 +14,8 @@
 
 body {
   margin: 0;
-  color: #161513;
-  background: #fbfaf7;
+  color: #c9d1d9;
+  background: #0d1117;
   font-family: Arial, Helvetica, sans-serif;
 }
 
@@ -30,12 +31,84 @@ textarea {
 }
 
 .surface {
-  border: 1px solid #d8d2c8;
+  border: 1px solid #30363d;
   border-radius: 8px;
-  background: #ffffff;
+  background: #161b22;
 }
 
 .focus-ring:focus-visible {
-  outline: 2px solid #2f6b4f;
+  outline: 2px solid #58a6ff;
   outline-offset: 2px;
+}
+
+input,
+textarea,
+select {
+  background: #0d1117;
+  color: #c9d1d9;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #8b949e;
+}
+
+/* 기존 밝은 화면 클래스가 남아 있어도 다크 shell 위에서 읽히도록 호환 색상을 제공한다. */
+.bg-white,
+.bg-neutral-50,
+.bg-neutral-100 {
+  background-color: #161b22;
+}
+
+.text-neutral-950,
+.text-neutral-900,
+.text-neutral-800 {
+  color: #c9d1d9;
+}
+
+.text-neutral-700,
+.text-neutral-600,
+.text-neutral-500 {
+  color: #8b949e;
+}
+
+.border-red-200 {
+  border-color: rgba(248, 81, 73, 0.35);
+}
+
+.bg-red-50 {
+  background-color: rgba(248, 81, 73, 0.1);
+}
+
+.text-red-700 {
+  color: #ff7b72;
+}
+
+.border-green-200 {
+  border-color: rgba(63, 185, 80, 0.35);
+}
+
+.bg-green-50 {
+  background-color: rgba(63, 185, 80, 0.1);
+}
+
+.text-green-800 {
+  color: #7ee787;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #161b22;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #30363d;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #58a6ff;
 }

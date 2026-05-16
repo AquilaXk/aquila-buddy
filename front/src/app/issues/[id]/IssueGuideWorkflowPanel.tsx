@@ -7,8 +7,8 @@ const statusLabels: Record<IssueGuideWorkflowStatus, string> = {
 };
 
 const statusClassNames: Record<IssueGuideWorkflowStatus, string> = {
-  READY: "border-moss bg-white text-moss",
-  WAITING: "border-line bg-neutral-50 text-neutral-600"
+  READY: "border-github-accent bg-github-surface text-github-accent",
+  WAITING: "border-github-border bg-github-bg text-github-muted"
 };
 
 type IssueGuideWorkflowPanelProps = {
@@ -24,7 +24,7 @@ export function IssueGuideWorkflowPanel({
 }: IssueGuideWorkflowPanelProps) {
   if (hasError) {
     return (
-      <section className="surface mb-5 border-red-200 bg-red-50 p-5 text-sm font-semibold text-red-700">
+      <section className="surface mb-5 border-red-500/30 bg-red-500/10 p-5 text-sm font-semibold text-red-400">
         가이드 workflow를 불러오지 못했습니다. backend API 상태를 확인해 주세요.
       </section>
     );
@@ -32,7 +32,7 @@ export function IssueGuideWorkflowPanel({
 
   if (!workflow) {
     return (
-      <section className="surface mb-5 p-5 text-sm font-semibold text-neutral-600">
+      <section className="surface mb-5 p-5 text-sm font-semibold text-github-muted">
         가이드 workflow 데이터가 준비되지 않았습니다.
       </section>
     );
@@ -42,17 +42,17 @@ export function IssueGuideWorkflowPanel({
     <section className="surface mb-5 p-5">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-sm font-semibold text-moss">Guide Workflow</p>
-          <h3 className="mt-1 text-lg font-bold text-neutral-950">
+          <p className="text-sm font-semibold text-github-accent">Guide Workflow</p>
+          <h3 className="mt-1 text-lg font-bold text-github-text">
             {workflow.readyCount} / {workflow.steps.length} 단계 준비됨
           </h3>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-neutral-700">
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-github-muted">
             가이드 확인부터 PR 초안 작성까지 필요한 작업 순서를 점검합니다.
           </p>
         </div>
         {draftHref ? (
           <Link
-            className="focus-ring rounded-md bg-moss px-4 py-2 text-sm font-bold text-white hover:bg-moss-dark"
+            className="focus-ring rounded-md bg-github-accent px-4 py-2 text-sm font-bold text-white hover:bg-github-accent-dark"
             href={draftHref}
           >
             PR Draft
@@ -60,26 +60,26 @@ export function IssueGuideWorkflowPanel({
         ) : null}
       </div>
 
-      <ol className="mt-5 divide-y divide-line">
+      <ol className="mt-5 divide-y divide-github-border">
         {workflow.steps.map((step, index) => (
           <li className="grid gap-3 py-4 sm:grid-cols-[2rem_1fr]" key={step.key}>
             <div
               aria-hidden="true"
-              className="flex h-8 w-8 items-center justify-center rounded-md bg-neutral-100 text-sm font-bold text-moss"
+              className="flex h-8 w-8 items-center justify-center rounded-md bg-github-bg text-sm font-bold text-github-accent"
             >
               {index + 1}
             </div>
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <h4 className="text-base font-bold text-ink">{step.label}</h4>
+                <h4 className="text-base font-bold text-github-text">{step.label}</h4>
                 <span
                   className={`rounded-md border px-2 py-1 text-xs font-semibold ${statusClassNames[step.status]}`}
                 >
                   {statusLabels[step.status]}
                 </span>
               </div>
-              <p className="mt-2 text-sm leading-6 text-neutral-700">{step.description}</p>
-              <p className="mt-1 whitespace-pre-wrap break-words text-xs font-semibold leading-5 text-neutral-500">
+              <p className="mt-2 text-sm leading-6 text-github-muted">{step.description}</p>
+              <p className="mt-1 whitespace-pre-wrap break-words text-xs font-semibold leading-5 text-github-muted">
                 {step.detail}
               </p>
             </div>

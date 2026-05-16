@@ -127,18 +127,18 @@ function PrDraftContent() {
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(360px,0.8fr)]">
         <form className="surface space-y-4 p-5" onSubmit={handleSubmit}>
           {hasDraftPrefill ? (
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-line bg-neutral-50 px-3 py-2">
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-github-border bg-github-bg px-3 py-2">
               <div>
-                <p className="text-sm font-semibold text-neutral-900">
+                <p className="text-sm font-semibold text-github-text">
                   이슈 상세에서 가져온 입력값입니다.
                 </p>
-                <p className="mt-1 break-all text-xs font-semibold text-neutral-500">
+                <p className="mt-1 break-all text-xs font-semibold text-github-muted">
                   {upstreamRepo} #{githubIssueNumber}
                 </p>
               </div>
               {sourceIssueId ? (
                 <Link
-                  className="focus-ring rounded-md border border-line px-3 py-1.5 text-xs font-semibold text-neutral-700 hover:border-moss hover:text-moss"
+                  className="focus-ring rounded-md border border-github-border px-3 py-1.5 text-xs font-semibold text-github-muted hover:border-github-accent hover:text-github-accent"
                   href={`/issues/${encodeURIComponent(sourceIssueId)}`}
                 >
                   Issue Guide
@@ -151,7 +151,7 @@ function PrDraftContent() {
             <label className="block">
               <span className="text-sm font-semibold">Repository</span>
               <input
-                className="focus-ring mt-2 w-full rounded-md border border-line px-3 py-2"
+                className="focus-ring mt-2 w-full rounded-md border border-github-border px-3 py-2"
                 onChange={(event) => setUpstreamRepo(event.target.value)}
                 placeholder="owner/repo"
                 value={upstreamRepo}
@@ -160,7 +160,7 @@ function PrDraftContent() {
             <label className="block">
               <span className="text-sm font-semibold">Issue Number</span>
               <input
-                className="focus-ring mt-2 w-full rounded-md border border-line px-3 py-2"
+                className="focus-ring mt-2 w-full rounded-md border border-github-border px-3 py-2"
                 min="1"
                 onChange={(event) => setGithubIssueNumber(event.target.value)}
                 type="number"
@@ -173,7 +173,7 @@ function PrDraftContent() {
             <label className="block">
               <span className="text-sm font-semibold">Base Branch</span>
               <input
-                className="focus-ring mt-2 w-full rounded-md border border-line px-3 py-2 font-mono text-sm"
+                className="focus-ring mt-2 w-full rounded-md border border-github-border px-3 py-2 font-mono text-sm"
                 onChange={(event) => setBaseBranch(event.target.value)}
                 placeholder="main"
                 value={baseBranch}
@@ -182,7 +182,7 @@ function PrDraftContent() {
             <label className="block">
               <span className="text-sm font-semibold">Head Branch</span>
               <input
-                className="focus-ring mt-2 w-full rounded-md border border-line px-3 py-2 font-mono text-sm"
+                className="focus-ring mt-2 w-full rounded-md border border-github-border px-3 py-2 font-mono text-sm"
                 onChange={(event) => setHeadBranch(event.target.value)}
                 placeholder="feat/my-change"
                 value={headBranch}
@@ -193,7 +193,7 @@ function PrDraftContent() {
           <label className="block">
             <span className="text-sm font-semibold">Diff</span>
             <textarea
-              className="focus-ring mt-2 min-h-52 w-full resize-y rounded-md border border-line px-3 py-2 font-mono text-sm leading-6"
+              className="focus-ring mt-2 min-h-52 w-full resize-y rounded-md border border-github-border px-3 py-2 font-mono text-sm leading-6"
               onChange={(event) => setDiffContent(event.target.value)}
               placeholder="git diff 내용을 입력"
               value={diffContent}
@@ -201,13 +201,13 @@ function PrDraftContent() {
           </label>
 
           {error ? (
-            <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">
+            <div className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm font-semibold text-red-400">
               {error}
             </div>
           ) : null}
 
           <button
-            className="focus-ring rounded-md bg-moss px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+            className="focus-ring rounded-md bg-github-accent px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
             disabled={submitting || !canSubmit}
             type="submit"
           >
@@ -221,17 +221,17 @@ function PrDraftContent() {
               <div className="space-y-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <p className="text-xs font-semibold text-moss">
+                    <p className="text-xs font-semibold text-github-accent">
                       {draft.upstreamRepo} #{draft.githubIssueNumber}
                     </p>
                     <Link
-                      className="focus-ring mt-1 inline-block break-all text-sm font-semibold text-neutral-700 hover:text-moss"
+                      className="focus-ring mt-1 inline-block break-all text-sm font-semibold text-github-muted hover:text-github-accent"
                       href={`/pr/${draft.id}`}
                     >
                       Draft #{draft.id}
                     </Link>
                   </div>
-                  <span className="text-xs font-semibold text-neutral-500">
+                  <span className="text-xs font-semibold text-github-muted">
                     {formatDate(draft.createdAt)}
                   </span>
                 </div>
@@ -240,14 +240,14 @@ function PrDraftContent() {
                   <div className="mb-2 flex items-center justify-between gap-3">
                     <h2 className="text-sm font-semibold">Title</h2>
                     <button
-                      className="focus-ring rounded-md border border-line px-2 py-1 text-xs font-semibold text-neutral-700"
+                      className="focus-ring rounded-md border border-github-border px-2 py-1 text-xs font-semibold text-github-muted"
                       onClick={() => copyDraft(draft.title, "title")}
                       type="button"
                     >
                       {copied === "title" ? "복사됨" : "복사"}
                     </button>
                   </div>
-                  <p className="rounded-md bg-neutral-100 p-3 text-sm font-semibold leading-6 text-ink">
+                  <p className="rounded-md bg-github-bg p-3 text-sm font-semibold leading-6 text-github-text">
                     {draft.title}
                   </p>
                 </div>
@@ -256,20 +256,20 @@ function PrDraftContent() {
                   <div className="mb-2 flex items-center justify-between gap-3">
                     <h2 className="text-sm font-semibold">Body</h2>
                     <button
-                      className="focus-ring rounded-md border border-line px-2 py-1 text-xs font-semibold text-neutral-700"
+                      className="focus-ring rounded-md border border-github-border px-2 py-1 text-xs font-semibold text-github-muted"
                       onClick={() => copyDraft(draft.body, "body")}
                       type="button"
                     >
                       {copied === "body" ? "복사됨" : "복사"}
                     </button>
                   </div>
-                  <pre className="max-h-96 overflow-auto whitespace-pre-wrap rounded-md bg-neutral-100 p-3 text-sm leading-6 text-neutral-800">
+                  <pre className="max-h-96 overflow-auto whitespace-pre-wrap rounded-md bg-github-bg p-3 text-sm leading-6 text-github-text">
                     {draft.body}
                   </pre>
                 </div>
               </div>
             ) : (
-              <div className="flex h-full min-h-72 items-center justify-center text-center text-sm leading-6 text-neutral-600">
+              <div className="flex h-full min-h-72 items-center justify-center text-center text-sm leading-6 text-github-muted">
                 입력값을 채우고 초안을 생성하면 제목과 본문이 여기에 표시됩니다.
               </div>
             )}
@@ -277,59 +277,59 @@ function PrDraftContent() {
 
           <section className="surface p-5">
             <div className="flex flex-wrap items-end justify-between gap-3">
-              <h2 className="text-sm font-bold text-neutral-900">Recent drafts</h2>
-              <span className="text-xs font-semibold text-neutral-500">{totalDrafts} drafts</span>
+              <h2 className="text-sm font-bold text-github-text">Recent drafts</h2>
+              <span className="text-xs font-semibold text-github-muted">{totalDrafts} drafts</span>
             </div>
             {historyError ? (
-              <div className="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">
+              <div className="mt-4 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm font-semibold text-red-400">
                 {historyError}
               </div>
             ) : null}
             {loadingHistory ? (
-              <p className="mt-4 text-sm font-semibold text-neutral-600">불러오는 중...</p>
+              <p className="mt-4 text-sm font-semibold text-github-muted">불러오는 중...</p>
             ) : null}
             {!loadingHistory && drafts.length === 0 ? (
-              <p className="mt-4 text-sm font-semibold text-neutral-600">저장된 PR 초안이 없습니다.</p>
+              <p className="mt-4 text-sm font-semibold text-github-muted">저장된 PR 초안이 없습니다.</p>
             ) : null}
             <div className="mt-4 space-y-3">
               {drafts.map((item) => (
                 <Link
-                  className="focus-ring block rounded-md border border-line p-3 hover:border-moss"
+                  className="focus-ring block rounded-md border border-github-border p-3 hover:border-github-accent"
                   href={`/pr/${item.id}`}
                   key={item.id}
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className="break-all text-xs font-semibold text-moss">
+                    <p className="break-all text-xs font-semibold text-github-accent">
                       {item.upstreamRepo} #{item.githubIssueNumber}
                     </p>
-                    <span className="text-xs font-semibold text-neutral-500">
+                    <span className="text-xs font-semibold text-github-muted">
                       {formatDate(item.createdAt)}
                     </span>
                   </div>
-                  <h3 className="mt-2 line-clamp-2 text-sm font-bold leading-5 text-ink">
+                  <h3 className="mt-2 line-clamp-2 text-sm font-bold leading-5 text-github-text">
                     {item.title}
                   </h3>
-                  <p className="mt-2 break-all font-mono text-xs text-neutral-500">
+                  <p className="mt-2 break-all font-mono text-xs text-github-muted">
                     {item.baseBranch} -&gt; {item.headBranch}
                   </p>
                 </Link>
               ))}
             </div>
             {historyPage ? (
-              <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-github-border pt-4">
                 <button
-                  className="focus-ring rounded-md border border-line px-3 py-2 text-sm font-semibold text-neutral-700 hover:border-moss hover:text-moss disabled:cursor-not-allowed disabled:opacity-50"
+                  className="focus-ring rounded-md border border-github-border px-3 py-2 text-sm font-semibold text-github-muted hover:border-github-accent hover:text-github-accent disabled:cursor-not-allowed disabled:opacity-50"
                   disabled={loadingHistory || historyPage.first}
                   onClick={() => setHistoryPageIndex((page) => Math.max(0, page - 1))}
                   type="button"
                 >
                   이전
                 </button>
-                <span className="text-sm font-semibold text-neutral-600">
+                <span className="text-sm font-semibold text-github-muted">
                   {currentHistoryPage} / {totalHistoryPages}
                 </span>
                 <button
-                  className="focus-ring rounded-md border border-line px-3 py-2 text-sm font-semibold text-neutral-700 hover:border-moss hover:text-moss disabled:cursor-not-allowed disabled:opacity-50"
+                  className="focus-ring rounded-md border border-github-border px-3 py-2 text-sm font-semibold text-github-muted hover:border-github-accent hover:text-github-accent disabled:cursor-not-allowed disabled:opacity-50"
                   disabled={loadingHistory || historyPage.last}
                   onClick={() => setHistoryPageIndex((page) => page + 1)}
                   type="button"
@@ -348,7 +348,7 @@ function PrDraftContent() {
 function PrDraftFallback() {
   return (
     <ProtectedLayout title="PR Draft">
-      <div className="surface p-5 text-sm font-semibold text-neutral-600">불러오는 중...</div>
+      <div className="surface p-5 text-sm font-semibold text-github-muted">불러오는 중...</div>
     </ProtectedLayout>
   );
 }

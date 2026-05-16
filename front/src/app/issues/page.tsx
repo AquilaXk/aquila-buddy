@@ -21,17 +21,17 @@ export default async function IssuesPage() {
   return (
     <ProtectedLayout title="Recommended Issues">
       {recommendResult.error ? (
-        <div className="surface mb-4 border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
+        <div className="surface mb-4 border-red-500/30 bg-red-500/10 p-4 text-sm font-semibold text-red-400">
           추천 이슈를 불러오지 못했습니다. backend API 상태를 확인해 주세요.
         </div>
       ) : null}
       {historyResult.error ? (
-        <div className="surface mb-4 border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
+        <div className="surface mb-4 border-red-500/30 bg-red-500/10 p-4 text-sm font-semibold text-red-400">
           추천 이력을 불러오지 못했습니다. backend API 상태를 확인해 주세요.
         </div>
       ) : null}
       {catalogResult.error ? (
-        <div className="surface mb-4 border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
+        <div className="surface mb-4 border-red-500/30 bg-red-500/10 p-4 text-sm font-semibold text-red-400">
           수집 이슈 catalog를 불러오지 못했습니다. backend API 상태를 확인해 주세요.
         </div>
       ) : null}
@@ -40,8 +40,8 @@ export default async function IssuesPage() {
 
       <section className="mb-8 space-y-3">
         <div className="flex flex-wrap items-end justify-between gap-3">
-          <h2 className="text-base font-bold text-neutral-900">Collected catalog</h2>
-          <span className="text-xs font-semibold text-neutral-500">
+          <h2 className="text-base font-bold text-github-text">Collected catalog</h2>
+          <span className="text-xs font-semibold text-github-muted">
             {catalogResult.issues.length} issues
           </span>
         </div>
@@ -50,14 +50,14 @@ export default async function IssuesPage() {
             <IssueCard key={issue.id} issue={issue} reason={issue.reason} />
           ))
         ) : (
-          <div className="surface p-4 text-sm font-semibold text-neutral-600">
+          <div className="surface p-4 text-sm font-semibold text-github-muted">
             수집된 이슈 catalog가 없습니다.
           </div>
         )}
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-base font-bold text-neutral-900">Current recommendations</h2>
+        <h2 className="text-base font-bold text-github-text">Current recommendations</h2>
         {recommendResult.issues.map((issue) => (
           <IssueCard key={issue.id} issue={issue} reason={issue.reason} />
         ))}
@@ -65,8 +65,8 @@ export default async function IssuesPage() {
 
       <section className="mt-8 space-y-3">
         <div className="flex flex-wrap items-end justify-between gap-3">
-          <h2 className="text-base font-bold text-neutral-900">Saved history</h2>
-          <span className="text-xs font-semibold text-neutral-500">
+          <h2 className="text-base font-bold text-github-text">Saved history</h2>
+          <span className="text-xs font-semibold text-github-muted">
             {historyResult.issues.length} issues
           </span>
         </div>
@@ -80,7 +80,7 @@ export default async function IssuesPage() {
             />
           ))
         ) : (
-          <div className="surface p-4 text-sm font-semibold text-neutral-600">
+          <div className="surface p-4 text-sm font-semibold text-github-muted">
             저장된 추천 이력이 없습니다.
           </div>
         )}
@@ -101,32 +101,32 @@ function IssueCard({
   return (
     <Link
       href={`/issues/${issue.id}`}
-      className="focus-ring surface block p-4 hover:border-moss"
+      className="focus-ring surface block p-4 hover:border-github-accent"
     >
       <div className="flex flex-wrap items-center gap-2">
-        <p className="break-all text-sm font-semibold text-moss">
+        <p className="break-all text-sm font-semibold text-github-accent">
           {issue.repoFullName} #{issue.issueNumber}
         </p>
-        <span className="rounded-md border border-line px-2 py-1 text-xs font-semibold text-neutral-600">
+        <span className="rounded-md border border-github-border px-2 py-1 text-xs font-semibold text-github-muted">
           {Math.round(issue.score * 100)}%
         </span>
-        <span className="rounded-md border border-line px-2 py-1 text-xs font-semibold text-neutral-600">
+        <span className="rounded-md border border-github-border px-2 py-1 text-xs font-semibold text-github-muted">
           {issue.status}
         </span>
         {analysisResultId ? (
-          <span className="rounded-md border border-line px-2 py-1 text-xs font-semibold text-neutral-600">
+          <span className="rounded-md border border-github-border px-2 py-1 text-xs font-semibold text-github-muted">
             analysis #{analysisResultId}
           </span>
         ) : null}
       </div>
       <h3 className="mt-1 text-lg font-bold">{issue.title}</h3>
-      <p className="mt-2 text-sm leading-6 text-neutral-700">{issue.summary}</p>
-      <p className="mt-2 text-sm leading-6 text-neutral-700">{reason}</p>
+      <p className="mt-2 text-sm leading-6 text-github-muted">{issue.summary}</p>
+      <p className="mt-2 text-sm leading-6 text-github-muted">{reason}</p>
       <div className="mt-3 flex flex-wrap gap-2">
         {issue.labels.map((label) => (
           <span
             key={label}
-            className="rounded-md bg-neutral-100 px-2 py-1 text-xs font-semibold text-neutral-700"
+            className="rounded-md bg-github-bg px-2 py-1 text-xs font-semibold text-github-muted"
           >
             {label}
           </span>

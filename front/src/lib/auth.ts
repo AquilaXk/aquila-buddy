@@ -1,5 +1,13 @@
 const tokenKey = "aquila-buddy-token";
 
+function getBrowserStorage() {
+  if (typeof window === "undefined" || typeof window.localStorage === "undefined") {
+    return null;
+  }
+
+  return window.localStorage;
+}
+
 export function getOAuthUrl(state?: string) {
   const oauthUrl = process.env.NEXT_PUBLIC_BACKEND_OAUTH_URL ?? "http://localhost:8080/oauth2/authorization/github";
 
@@ -12,17 +20,17 @@ export function getOAuthUrl(state?: string) {
 }
 
 export function getToken() {
-  if (typeof window === "undefined") {
-    return null;
-  }
+  return getBrowserStorage()?.getItem(tokenKey) ?? null;
+}
 
-  return window.localStorage.getItem(tokenKey);
+export function isLoggedIn() {
+  return getToken() !== null;
 }
 
 export function setToken(token: string) {
-  window.localStorage.setItem(tokenKey, token);
+  getBrowserStorage()?.setItem(tokenKey, token);
 }
 
 export function clearToken() {
-  window.localStorage.removeItem(tokenKey);
+  getBrowserStorage()?.removeItem(tokenKey);
 }

@@ -19,8 +19,8 @@ const statusLabels: Record<PullRequestDraftReadinessStatus, string> = {
 };
 
 const statusClassNames: Record<PullRequestDraftReadinessStatus, string> = {
-  READY: "border-moss bg-white text-moss",
-  ACTION_REQUIRED: "border-red-200 bg-red-50 text-red-700"
+  READY: "border-github-accent bg-github-surface text-github-accent",
+  ACTION_REQUIRED: "border-red-500/30 bg-red-500/10 text-red-400"
 };
 
 export function TranslationReadinessPanel({ draftId, translation }: TranslationReadinessPanelProps) {
@@ -58,12 +58,12 @@ export function TranslationReadinessPanel({ draftId, translation }: TranslationR
   }, [draftId, translation.id]);
 
   if (loading) {
-    return <p className="mt-4 text-sm font-semibold text-neutral-600">영문 readiness를 불러오는 중...</p>;
+    return <p className="mt-4 text-sm font-semibold text-github-muted">영문 readiness를 불러오는 중...</p>;
   }
 
   if (error) {
     return (
-      <div className="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">
+      <div className="mt-4 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm font-semibold text-red-400">
         {error}
       </div>
     );
@@ -71,7 +71,7 @@ export function TranslationReadinessPanel({ draftId, translation }: TranslationR
 
   if (!readiness) {
     return (
-      <p className="mt-4 rounded-md border border-line bg-white px-3 py-2 text-sm font-semibold text-neutral-600">
+      <p className="mt-4 rounded-md border border-github-border bg-github-surface px-3 py-2 text-sm font-semibold text-github-muted">
         영문 readiness가 준비되지 않았습니다.
       </p>
     );
@@ -80,36 +80,36 @@ export function TranslationReadinessPanel({ draftId, translation }: TranslationR
   const totalCount = readiness.items.length;
 
   return (
-    <div className="mt-4 rounded-md border border-line bg-white p-3">
+    <div className="mt-4 rounded-md border border-github-border bg-github-surface p-3">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold uppercase text-moss">English Readiness</p>
-          <h4 className="mt-1 text-sm font-semibold text-ink">
+          <p className="text-xs font-semibold uppercase text-github-accent">English Readiness</p>
+          <h4 className="mt-1 text-sm font-semibold text-github-text">
             {readiness.readyCount} / {totalCount} 항목 준비됨
           </h4>
         </div>
-        <span className="max-w-full break-all rounded-md border border-line px-2 py-1 text-xs font-semibold text-neutral-700">
+        <span className="max-w-full break-all rounded-md border border-github-border px-2 py-1 text-xs font-semibold text-github-muted">
           {readiness.targetLanguage} / {readiness.translationId}
         </span>
       </div>
 
-      <ol className="mt-3 divide-y divide-line">
+      <ol className="mt-3 divide-y divide-github-border">
         {readiness.items.map((item, index) => (
           <li className="grid gap-3 py-3 first:pt-0 last:pb-0 md:grid-cols-[2rem_1fr]" key={item.key}>
-            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-neutral-100 text-sm font-bold text-moss">
+            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-github-bg text-sm font-bold text-github-accent">
               {index + 1}
             </div>
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <h5 className="text-sm font-semibold text-ink">{item.label}</h5>
+                <h5 className="text-sm font-semibold text-github-text">{item.label}</h5>
                 <span
                   className={`rounded-md border px-2 py-1 text-xs font-semibold ${statusClassNames[item.status]}`}
                 >
                   {statusLabels[item.status]}
                 </span>
               </div>
-              <p className="mt-2 text-sm leading-6 text-neutral-700">{item.description}</p>
-              <p className="mt-2 break-words rounded-md bg-neutral-100 px-3 py-2 text-sm leading-6 text-neutral-800">
+              <p className="mt-2 text-sm leading-6 text-github-muted">{item.description}</p>
+              <p className="mt-2 break-words rounded-md bg-github-bg px-3 py-2 text-sm leading-6 text-github-text">
                 {item.detail}
               </p>
             </div>

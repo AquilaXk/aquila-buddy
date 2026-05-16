@@ -52,43 +52,47 @@ function OAuthCallbackContent() {
   const content = getCallbackContent(status, callbackParams.error);
 
   return (
-    <section className="mx-auto max-w-lg space-y-5">
-      <div>
-        <p className="text-sm font-semibold text-moss">GitHub OAuth</p>
-        <h1 className="mt-2 text-2xl font-bold">{content.title}</h1>
-        <p className="mt-2 text-sm leading-6 text-neutral-700">{content.description}</p>
-      </div>
+    <main className="flex min-h-screen items-center justify-center bg-github-bg px-4 py-10 text-github-text">
+      <section className="w-full max-w-lg rounded-xl border border-github-border bg-github-surface p-8 shadow-2xl shadow-black/30">
+        <div>
+          <p className="text-sm font-semibold text-github-purple-light">GitHub OAuth</p>
+          <h1 className="mt-3 text-2xl font-bold text-github-text">{content.title}</h1>
+          <p className="mt-3 text-sm leading-6 text-github-muted">{content.description}</p>
+        </div>
 
-      <div className={`surface p-4 ${content.panelClassName}`}>
-        <p className={`text-sm font-semibold ${content.messageClassName}`}>{content.message}</p>
-      </div>
+        <div className={`mt-5 rounded-md border px-4 py-3 ${content.panelClassName}`}>
+          <p className={`text-sm font-semibold ${content.messageClassName}`}>{content.message}</p>
+        </div>
 
-      <div className="flex flex-wrap gap-3">
-        <Link
-          href={callbackParams.redirectTo}
-          className="focus-ring inline-block rounded-md bg-moss px-4 py-2 text-sm font-semibold text-white"
-        >
-          계속하기
-        </Link>
-        {status !== "stored" ? (
+        <div className="mt-6 flex flex-wrap gap-3">
           <Link
-            href="/login"
-            className="focus-ring inline-block rounded-md border border-line px-4 py-2 text-sm font-semibold text-neutral-700"
+            href={callbackParams.redirectTo}
+            className="focus-ring inline-block rounded-md bg-github-accent px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-github-accent/85"
           >
-            다시 로그인
+            계속하기
           </Link>
-        ) : null}
-      </div>
-    </section>
+          {status !== "stored" ? (
+            <Link
+              href="/login"
+              className="focus-ring inline-block rounded-md border border-github-border px-4 py-2 text-sm font-semibold text-github-muted transition-colors hover:border-github-accent hover:text-github-accent"
+            >
+              다시 로그인
+            </Link>
+          ) : null}
+        </div>
+      </section>
+    </main>
   );
 }
 
 function OAuthCallbackFallback() {
   return (
-    <section className="mx-auto max-w-lg space-y-4">
-      <h1 className="text-2xl font-bold">OAuth Callback</h1>
-      <p className="text-sm leading-6 text-neutral-700">로그인 결과를 확인하는 중입니다.</p>
-    </section>
+    <main className="flex min-h-screen items-center justify-center bg-github-bg px-4 py-10 text-github-text">
+      <section className="w-full max-w-lg rounded-xl border border-github-border bg-github-surface p-8">
+        <h1 className="text-2xl font-bold text-github-text">OAuth Callback</h1>
+        <p className="mt-3 text-sm leading-6 text-github-muted">로그인 결과를 확인하는 중입니다.</p>
+      </section>
+    </main>
   );
 }
 
@@ -98,8 +102,8 @@ function getCallbackContent(status: CallbackStatus, error: string | null) {
       title: "로그인이 완료되었습니다.",
       description: "GitHub OAuth token을 브라우저 세션에 저장했습니다.",
       message: "잠시 후 작업 공간으로 이동합니다.",
-      panelClassName: "border-green-200 bg-green-50",
-      messageClassName: "text-green-800"
+      panelClassName: "border-green-500/30 bg-green-500/10",
+      messageClassName: "text-green-400"
     };
   }
 
@@ -108,8 +112,8 @@ function getCallbackContent(status: CallbackStatus, error: string | null) {
       title: "로그인을 완료하지 못했습니다.",
       description: "OAuth callback에서 오류 응답을 받았습니다.",
       message: error ?? "GitHub OAuth 오류가 발생했습니다.",
-      panelClassName: "border-red-200 bg-red-50",
-      messageClassName: "text-red-700"
+      panelClassName: "border-red-500/30 bg-red-500/10",
+      messageClassName: "text-red-400"
     };
   }
 
@@ -118,8 +122,8 @@ function getCallbackContent(status: CallbackStatus, error: string | null) {
       title: "로그인 token이 없습니다.",
       description: "OAuth callback URL에서 token query를 찾지 못했습니다.",
       message: "GitHub 로그인을 다시 시작해 주세요.",
-      panelClassName: "border-red-200 bg-red-50",
-      messageClassName: "text-red-700"
+      panelClassName: "border-red-500/30 bg-red-500/10",
+      messageClassName: "text-red-400"
     };
   }
 
@@ -127,7 +131,7 @@ function getCallbackContent(status: CallbackStatus, error: string | null) {
     title: "로그인 결과를 확인하는 중입니다.",
     description: "OAuth callback query를 읽고 있습니다.",
     message: "잠시만 기다려 주세요.",
-    panelClassName: "border-line bg-neutral-50",
-    messageClassName: "text-neutral-700"
+    panelClassName: "border-github-border bg-github-bg",
+    messageClassName: "text-github-muted"
   };
 }

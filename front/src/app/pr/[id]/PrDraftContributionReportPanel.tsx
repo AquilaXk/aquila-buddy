@@ -11,7 +11,7 @@ export function PrDraftContributionReportPanel({
 }: PrDraftContributionReportPanelProps) {
   if (hasError) {
     return (
-      <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">
+      <div className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm font-semibold text-red-400">
         Contribution report를 불러오지 못했습니다.
       </div>
     );
@@ -19,7 +19,7 @@ export function PrDraftContributionReportPanel({
 
   if (!report) {
     return (
-      <div className="rounded-md border border-line bg-neutral-50 px-3 py-2 text-sm font-semibold text-neutral-600">
+      <div className="rounded-md border border-github-border bg-github-bg px-3 py-2 text-sm font-semibold text-github-muted">
         Contribution report가 아직 준비되지 않았습니다.
       </div>
     );
@@ -28,13 +28,13 @@ export function PrDraftContributionReportPanel({
   const readinessLabel = `${report.readinessReadyCount}/${report.readinessTotalCount}`;
 
   return (
-    <section className="rounded-md border border-line p-4">
+    <section className="rounded-md border border-github-border p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold uppercase text-moss">Contribution Report</p>
-          <h3 className="mt-1 text-base font-bold text-ink">제출 전 요약</h3>
+          <p className="text-xs font-semibold uppercase text-github-accent">Contribution Report</p>
+          <h3 className="mt-1 text-base font-bold text-github-text">제출 전 요약</h3>
         </div>
-        <span className="rounded-md border border-line px-2 py-1 text-xs font-semibold text-neutral-600">
+        <span className="rounded-md border border-github-border px-2 py-1 text-xs font-semibold text-github-muted">
           {formatDate(report.createdAt)}
         </span>
       </div>
@@ -49,24 +49,24 @@ export function PrDraftContributionReportPanel({
         <ReportMetric label="Issue" value={`#${report.githubIssueNumber}`} detail={report.upstreamRepo} />
       </div>
 
-      <div className="mt-4 rounded-md bg-neutral-100 p-3">
-        <p className="break-all text-sm font-semibold text-ink">{report.title}</p>
-        <p className="mt-2 break-all font-mono text-xs text-neutral-600">
+      <div className="mt-4 rounded-md bg-github-bg p-3">
+        <p className="break-all text-sm font-semibold text-github-text">{report.title}</p>
+        <p className="mt-2 break-all font-mono text-xs text-github-muted">
           {report.baseBranch} -&gt; {report.headBranch}
         </p>
       </div>
 
       {report.latestTranslation ? (
-        <div className="mt-3 rounded-md border border-line bg-white p-3">
+        <div className="mt-3 rounded-md border border-github-border bg-github-surface p-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="text-xs font-semibold uppercase text-moss">
+            <p className="text-xs font-semibold uppercase text-github-accent">
               Latest {report.latestTranslation.targetLanguage}
             </p>
-            <span className="text-xs font-semibold text-neutral-500">
+            <span className="text-xs font-semibold text-github-muted">
               {formatDate(report.latestTranslation.createdAt)}
             </span>
           </div>
-          <p className="mt-2 text-sm font-semibold leading-6 text-ink">
+          <p className="mt-2 text-sm font-semibold leading-6 text-github-text">
             {report.latestTranslation.title}
           </p>
         </div>
@@ -77,10 +77,10 @@ export function PrDraftContributionReportPanel({
 
 function ReportMetric({ detail, label, value }: { detail: string; label: string; value: string }) {
   return (
-    <div className="rounded-md bg-neutral-100 p-3">
-      <p className="text-xs font-semibold uppercase text-neutral-500">{label}</p>
-      <p className="mt-2 text-xl font-bold text-ink">{value}</p>
-      <p className="mt-1 break-all text-xs font-semibold text-neutral-600">{detail}</p>
+    <div className="rounded-md bg-github-bg p-3">
+      <p className="text-xs font-semibold uppercase text-github-muted">{label}</p>
+      <p className="mt-2 text-xl font-bold text-github-text">{value}</p>
+      <p className="mt-1 break-all text-xs font-semibold text-github-muted">{detail}</p>
     </div>
   );
 }

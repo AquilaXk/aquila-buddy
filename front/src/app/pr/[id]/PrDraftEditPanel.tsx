@@ -72,14 +72,14 @@ export function PrDraftEditPanel({ draft }: PrDraftEditPanelProps) {
   }
 
   return (
-    <section className="rounded-md border border-line p-4">
+    <section className="rounded-md border border-github-border p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-semibold text-moss">Draft Editor</p>
-          <h3 className="mt-1 text-lg font-bold text-ink">제목과 본문</h3>
+          <p className="text-sm font-semibold text-github-accent">Draft Editor</p>
+          <h3 className="mt-1 text-lg font-bold text-github-text">제목과 본문</h3>
         </div>
         <button
-          className="focus-ring rounded-md border border-red-200 px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+          className="focus-ring rounded-md border border-red-500/30 px-3 py-2 text-sm font-semibold text-red-400 hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-50"
           disabled={deleting || saving}
           onClick={handleDelete}
           type="button"
@@ -92,7 +92,7 @@ export function PrDraftEditPanel({ draft }: PrDraftEditPanelProps) {
         <label className="block">
           <span className="text-sm font-semibold">Title</span>
           <input
-            className="focus-ring mt-2 w-full rounded-md border border-line px-3 py-2 text-sm font-semibold"
+            className="focus-ring mt-2 w-full rounded-md border border-github-border px-3 py-2 text-sm font-semibold"
             onChange={(event) => setTitle(event.target.value)}
             value={title}
           />
@@ -101,25 +101,25 @@ export function PrDraftEditPanel({ draft }: PrDraftEditPanelProps) {
         <label className="block">
           <span className="text-sm font-semibold">Body</span>
           <textarea
-            className="focus-ring mt-2 min-h-72 w-full resize-y rounded-md border border-line px-3 py-2 font-mono text-sm leading-6"
+            className="focus-ring mt-2 min-h-72 w-full resize-y rounded-md border border-github-border px-3 py-2 font-mono text-sm leading-6"
             onChange={(event) => setBody(event.target.value)}
             value={body}
           />
         </label>
 
         {error ? (
-          <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">
+          <div className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm font-semibold text-red-400">
             {error}
           </div>
         ) : null}
         {message ? (
-          <div className="rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm font-semibold text-green-700">
+          <div className="rounded-md border border-green-500/30 bg-green-500/10 px-3 py-2 text-sm font-semibold text-green-400">
             {message}
           </div>
         ) : null}
 
         <button
-          className="focus-ring rounded-md bg-moss px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+          className="focus-ring rounded-md bg-github-accent px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
           disabled={!canSave || saving || deleting}
           type="submit"
         >

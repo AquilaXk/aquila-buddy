@@ -9,12 +9,22 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        ink: "#161513",
-        paper: "#fbfaf7",
-        line: "#d8d2c8",
-        moss: "#2f6b4f",
-        amber: "#b96b2c",
-        plum: "#6d4b70"
+        github: {
+          bg: "#0d1117",
+          surface: "#161b22",
+          border: "#30363d",
+          text: "#c9d1d9",
+          muted: "#8b949e",
+          accent: "#58a6ff",
+          purple: "#7c3aed",
+          "purple-light": "#a78bfa"
+        },
+        ink: "#c9d1d9",
+        paper: "#0d1117",
+        line: "#30363d",
+        moss: "#58a6ff",
+        amber: "#f2cc60",
+        plum: "#a78bfa"
       }
     }
   },
