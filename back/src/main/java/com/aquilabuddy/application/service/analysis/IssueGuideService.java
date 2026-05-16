@@ -1,8 +1,10 @@
 package com.aquilabuddy.application.service.analysis;
 
 import com.aquilabuddy.application.port.in.analysis.GetIssueGuideUseCase;
+import com.aquilabuddy.application.port.in.analysis.GetIssuePseudoCodeUseCase;
 import com.aquilabuddy.application.port.out.analysis.LoadIssueGuidePort;
 import com.aquilabuddy.domain.analysis.IssueGuide;
+import com.aquilabuddy.domain.analysis.IssuePseudoCode;
 import com.aquilabuddy.domain.analysis.IssueGuideWorkflow;
 import org.springframework.stereotype.Service;
 
@@ -12,7 +14,7 @@ import org.springframework.stereotype.Service;
  * <p>가이드 생성/저장 방식이 바뀌어도 incoming port 계약은 유지되도록 outbound port만 호출합니다.
  */
 @Service
-public class IssueGuideService implements GetIssueGuideUseCase {
+public class IssueGuideService implements GetIssueGuideUseCase, GetIssuePseudoCodeUseCase {
 
     private final LoadIssueGuidePort loadIssueGuidePort;
 
@@ -34,5 +36,13 @@ public class IssueGuideService implements GetIssueGuideUseCase {
     @Override
     public IssueGuideWorkflow findWorkflowByIssueId(String issueId) {
         return IssueGuideWorkflow.from(findByIssueId(issueId));
+    }
+
+    /**
+     * 저장된 작업 가이드에서 의사코드만 분리해 반환합니다.
+     */
+    @Override
+    public IssuePseudoCode findPseudoCodeByIssueId(String issueId) {
+        return IssuePseudoCode.from(findByIssueId(issueId));
     }
 }
