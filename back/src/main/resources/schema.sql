@@ -4,6 +4,40 @@ DROP TABLE IF EXISTS pr_draft_translations;
 DROP TABLE IF EXISTS pr_drafts;
 DROP TABLE IF EXISTS recommended_issue_labels;
 DROP TABLE IF EXISTS recommended_issues;
+DROP TABLE IF EXISTS user_profile_topics;
+DROP TABLE IF EXISTS user_profile_primary_languages;
+DROP TABLE IF EXISTS user_profiles;
+
+CREATE TABLE user_profiles (
+    github_id BIGINT PRIMARY KEY,
+    login VARCHAR(255) NOT NULL UNIQUE,
+    name VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL,
+    profile_ready BOOLEAN NOT NULL,
+    vector_updated_at VARCHAR(40) NOT NULL
+);
+
+CREATE TABLE user_profile_primary_languages (
+    user_github_id BIGINT NOT NULL,
+    language_order INTEGER NOT NULL,
+    language VARCHAR(255) NOT NULL,
+    PRIMARY KEY (user_github_id, language_order),
+    CONSTRAINT fk_user_profile_primary_languages_profile
+        FOREIGN KEY (user_github_id)
+        REFERENCES user_profiles(github_id)
+        ON DELETE CASCADE
+);
+
+CREATE TABLE user_profile_topics (
+    user_github_id BIGINT NOT NULL,
+    topic_order INTEGER NOT NULL,
+    topic VARCHAR(255) NOT NULL,
+    PRIMARY KEY (user_github_id, topic_order),
+    CONSTRAINT fk_user_profile_topics_profile
+        FOREIGN KEY (user_github_id)
+        REFERENCES user_profiles(github_id)
+        ON DELETE CASCADE
+);
 
 CREATE TABLE recommended_issues (
     issue_id VARCHAR(100) PRIMARY KEY,

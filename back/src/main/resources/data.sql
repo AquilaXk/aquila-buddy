@@ -1,3 +1,37 @@
+INSERT INTO user_profiles (
+    github_id,
+    login,
+    name,
+    email,
+    profile_ready,
+    vector_updated_at
+) VALUES (
+    10001,
+    'aquila-dev',
+    'Aquila Developer',
+    'aquila@example.com',
+    TRUE,
+    '2026-05-15T09:00:00Z'
+);
+
+INSERT INTO user_profile_primary_languages (
+    user_github_id,
+    language_order,
+    language
+) VALUES
+(10001, 0, 'Java'),
+(10001, 1, 'TypeScript'),
+(10001, 2, 'SQL');
+
+INSERT INTO user_profile_topics (
+    user_github_id,
+    topic_order,
+    topic
+) VALUES
+(10001, 0, 'spring'),
+(10001, 1, 'nextjs'),
+(10001, 2, 'open-source');
+
 INSERT INTO recommended_issues (
     issue_id,
     repo_full_name,
