@@ -1,8 +1,10 @@
 import {
   getPullRequestDraft,
+  getPullRequestDraftContributionReport,
   getPullRequestDraftReadiness,
   getPullRequestDraftSubmission,
   getPullRequestDraftTimeline,
+  type PullRequestDraftContributionReport,
   type PullRequestDraftReadiness,
   type PullRequestDraftSubmission,
   type PullRequestDraftTimeline,
@@ -11,11 +13,13 @@ import {
 
 export type PrDetailOverview = {
   draft: StoredPullRequestDraft | null;
+  report: PullRequestDraftContributionReport | null;
   readiness: PullRequestDraftReadiness | null;
   submission: PullRequestDraftSubmission | null;
   timeline: PullRequestDraftTimeline | null;
   errors: {
     draft: boolean;
+    report: boolean;
     readiness: boolean;
     submission: boolean;
     timeline: boolean;
@@ -28,8 +32,9 @@ type LoadResult<T> = {
 };
 
 export async function loadPrDetailOverview(id: string): Promise<PrDetailOverview> {
-  const [draftResult, readinessResult, submissionResult, timelineResult] = await Promise.all([
+  const [draftResult, reportResult, readinessResult, submissionResult, timelineResult] = await Promise.all([
     loadSafely(getPullRequestDraft(id), null),
+    loadSafely(getPullRequestDraftContributionReport(id), null),
     loadSafely(getPullRequestDraftReadiness(id), null),
     loadSafely(getPullRequestDraftSubmission(id), null),
     loadSafely(getPullRequestDraftTimeline(id), null)
@@ -37,11 +42,13 @@ export async function loadPrDetailOverview(id: string): Promise<PrDetailOverview
 
   return {
     draft: draftResult.data,
+    report: reportResult.data,
     readiness: readinessResult.data,
     submission: submissionResult.data,
     timeline: timelineResult.data,
     errors: {
       draft: draftResult.error,
+      report: reportResult.error,
       readiness: readinessResult.error,
       submission: submissionResult.error,
       timeline: timelineResult.error
