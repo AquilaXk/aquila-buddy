@@ -16,7 +16,8 @@
     "validate:pr-draft": "node ../tools/frontend/validate-pr-draft-parity.mjs",
     "validate:pr-detail": "node ../tools/frontend/validate-pr-detail-parity.mjs",
     "validate:brand-gothic": "node ../tools/frontend/validate-brand-gothic-parity.mjs",
-    "validate:api-envelope": "node ../tools/frontend/validate-api-envelope-parity.mjs"
+    "validate:api-envelope": "node ../tools/frontend/validate-api-envelope-parity.mjs",
+    "validate:oauth-callback": "node ../tools/frontend/validate-oauth-callback-parity.mjs"
   },
   "dependencies": {
     "next": "16.2.6",
