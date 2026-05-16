@@ -19,7 +19,7 @@ export default async function IssuesPage() {
   ]);
 
   return (
-    <ProtectedLayout title="Recommended Issues">
+    <ProtectedLayout>
       {recommendResult.error ? (
         <div className="surface mb-4 border-red-500/30 bg-red-500/10 p-4 text-sm font-semibold text-red-400">
           추천 이슈를 불러오지 못했습니다. backend API 상태를 확인해 주세요.

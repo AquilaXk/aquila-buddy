@@ -17,7 +17,7 @@ export default async function IssueDetailPage({ params }: IssueDetailPageProps) 
   const result = await loadIssueDetailOverview(id);
 
   return (
-    <ProtectedLayout title="Issue Guide">
+    <ProtectedLayout>
       {result.errors.issue ? (
         <div className="surface mb-4 border-red-500/30 bg-red-500/10 p-4 text-sm font-semibold text-red-400">
           추천 이슈 정보를 불러오지 못했습니다. backend API 상태를 확인해 주세요.
