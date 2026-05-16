@@ -16,8 +16,15 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
     <main className="flex min-h-screen items-center justify-center bg-github-bg px-4">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          <h1 className="mb-2 text-3xl font-bold text-github-purple-light">OMOS</h1>
-          <p className="text-sm text-github-muted">Oh My OpenSource</p>
+          <img
+            alt=""
+            className="mx-auto mb-3 h-16 w-16 rounded-2xl"
+            height="64"
+            src="/brand-mascot.png"
+            width="64"
+          />
+          <h1 className="mb-2 text-3xl font-bold text-github-purple-light">aquila buddy</h1>
+          <p className="text-sm text-github-muted">OpenSource contribution assistant</p>
         </div>
 
         <section className="rounded-xl border border-github-border bg-github-surface p-8 shadow-xl">

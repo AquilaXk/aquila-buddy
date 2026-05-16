@@ -25,7 +25,9 @@ function assertNotIncludes(needle, message) {
 assertIncludes("normalizeInternalRedirect", "Login page must keep internal next redirect normalization.");
 assertIncludes("const oauthUrl = getOAuthUrl(nextPath);", "Login page must preserve OAuth state propagation.");
 assertIncludes("max-w-sm", "Login page must use the target compact card width.");
-assertIncludes("Oh My OpenSource", "Login page must show the target brand subtitle.");
+assertIncludes("/brand-mascot.png", "Login page must render the brand image.");
+assertIncludes("aquila buddy", "Login page must show the service name.");
+assertIncludes("OpenSource contribution assistant", "Login page must show the target brand subtitle.");
 assertIncludes("text-3xl font-bold text-github-purple-light", "Login page brand heading style changed.");
 assertIncludes("text-xl font-semibold text-github-text", "Login card title style changed.");
 assertIncludes("GitHub 계정으로 로그인하여 오픈소스 이슈를 탐색하세요", "Login card description changed.");
@@ -39,6 +41,8 @@ assertIncludes("localhost:8080", "Backend server hint must keep the local backen
 assertNotIncludes("GitHub 로그인", "Login page must not use the old GitHub-specific heading.");
 assertNotIncludes("GitHub로 계속하기", "Login page must not use the old CTA label.");
 assertNotIncludes("bg-github-accent px-4 py-3", "Login CTA must not use the old accent button style.");
+assertNotIncludes("OMOS", "Login page must not use the old service name.");
+assertNotIncludes("Oh My OpenSource", "Login page must not use the old service subtitle.");
 
 if (failures.length > 0) {
   console.error("Login page parity validation failed:");

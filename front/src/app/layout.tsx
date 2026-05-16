@@ -2,8 +2,12 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "OMOS",
-  description: "GitHub open source contribution assistant"
+  title: "aquila buddy",
+  description: "GitHub open source contribution assistant for aquila buddy",
+  icons: {
+    icon: "/favicon.ico",
+    apple: "/apple-touch-icon.png"
+  }
 };
 
 export default function RootLayout({
