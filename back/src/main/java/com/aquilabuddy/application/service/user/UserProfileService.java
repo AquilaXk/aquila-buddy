@@ -1,6 +1,7 @@
 package com.aquilabuddy.application.service.user;
 
 import com.aquilabuddy.application.port.in.user.GetCurrentUserProfileUseCase;
+import com.aquilabuddy.application.port.in.user.GetUserProfileByLoginUseCase;
 import com.aquilabuddy.application.port.in.user.RefreshCurrentUserProfileVectorUseCase;
 import com.aquilabuddy.application.port.in.user.UpdateCurrentUserProfileUseCase;
 import com.aquilabuddy.application.port.out.user.LoadUserProfilePort;
@@ -8,6 +9,7 @@ import com.aquilabuddy.application.port.out.user.RefreshUserProfileVectorPort;
 import com.aquilabuddy.application.port.out.user.SaveUserProfilePort;
 import com.aquilabuddy.domain.user.UserProfile;
 import com.aquilabuddy.domain.user.UserProfileUpdateRequest;
+import java.util.Optional;
 import org.springframework.stereotype.Service;
 
 /**
@@ -18,6 +20,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class UserProfileService implements
     GetCurrentUserProfileUseCase,
+    GetUserProfileByLoginUseCase,
     UpdateCurrentUserProfileUseCase,
     RefreshCurrentUserProfileVectorUseCase {
 
@@ -41,6 +44,14 @@ public class UserProfileService implements
     @Override
     public UserProfile currentUser() {
         return loadUserProfilePort.loadCurrentUserProfile();
+    }
+
+    /**
+     * GitHub login 기준 공개 프로필 조회를 outbound port에 위임합니다.
+     */
+    @Override
+    public Optional<UserProfile> getUserProfileByLogin(String login) {
+        return loadUserProfilePort.loadUserProfileByLogin(login);
     }
 
     /**
