@@ -12,6 +12,7 @@ import com.aquilabuddy.application.port.in.prdraft.ListPullRequestDraftsUseCase;
 import com.aquilabuddy.application.port.in.prdraft.UpdatePullRequestDraftUseCase;
 import com.aquilabuddy.application.port.out.prdraft.DeletePullRequestDraftPort;
 import com.aquilabuddy.application.port.out.prdraft.GeneratePullRequestDraftPort;
+import com.aquilabuddy.application.port.out.prdraft.LoadPullRequestDraftDiffPort;
 import com.aquilabuddy.application.port.out.prdraft.LoadPullRequestDraftHistoryPort;
 import com.aquilabuddy.application.port.out.prdraft.LoadPullRequestDraftPort;
 import com.aquilabuddy.application.port.out.prdraft.LoadPullRequestDraftTranslationPort;
@@ -50,6 +51,7 @@ public class PullRequestDraftService implements
     DeletePullRequestDraftUseCase {
 
     private final GeneratePullRequestDraftPort generatePullRequestDraftPort;
+    private final LoadPullRequestDraftDiffPort loadPullRequestDraftDiffPort;
     private final SavePullRequestDraftPort savePullRequestDraftPort;
     private final LoadPullRequestDraftPort loadPullRequestDraftPort;
     private final LoadPullRequestDraftHistoryPort loadPullRequestDraftHistoryPort;
@@ -59,6 +61,7 @@ public class PullRequestDraftService implements
 
     public PullRequestDraftService(
         GeneratePullRequestDraftPort generatePullRequestDraftPort,
+        LoadPullRequestDraftDiffPort loadPullRequestDraftDiffPort,
         SavePullRequestDraftPort savePullRequestDraftPort,
         LoadPullRequestDraftPort loadPullRequestDraftPort,
         LoadPullRequestDraftHistoryPort loadPullRequestDraftHistoryPort,
@@ -67,6 +70,7 @@ public class PullRequestDraftService implements
         LoadPullRequestDraftTranslationPort loadPullRequestDraftTranslationPort
     ) {
         this.generatePullRequestDraftPort = generatePullRequestDraftPort;
+        this.loadPullRequestDraftDiffPort = loadPullRequestDraftDiffPort;
         this.savePullRequestDraftPort = savePullRequestDraftPort;
         this.loadPullRequestDraftPort = loadPullRequestDraftPort;
         this.loadPullRequestDraftHistoryPort = loadPullRequestDraftHistoryPort;
@@ -80,8 +84,18 @@ public class PullRequestDraftService implements
      */
     @Override
     public StoredPullRequestDraft create(PullRequestDraftRequest request) {
-        PullRequestDraft generated = generatePullRequestDraftPort.generate(request);
-        return savePullRequestDraftPort.savePullRequestDraft(request, generated);
+        PullRequestDraftRequest resolvedRequest = resolveDiffContent(request);
+        PullRequestDraft generated = generatePullRequestDraftPort.generate(resolvedRequest);
+        return savePullRequestDraftPort.savePullRequestDraft(resolvedRequest, generated);
+    }
+
+    private PullRequestDraftRequest resolveDiffContent(PullRequestDraftRequest request) {
+        if (request.hasDiffContent()) {
+            return request;
+        }
+
+        // 서버 수집 diff가 없으면 생성/저장 모두 같은 맥락을 쓰도록 도메인 요청을 보강합니다.
+        return request.withDiffContent(loadPullRequestDraftDiffPort.loadDiff(request));
     }
 
     @Override

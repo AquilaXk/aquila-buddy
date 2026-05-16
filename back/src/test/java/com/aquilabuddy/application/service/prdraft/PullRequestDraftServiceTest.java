@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.aquilabuddy.application.port.out.prdraft.DeletePullRequestDraftPort;
 import com.aquilabuddy.application.port.out.prdraft.GeneratePullRequestDraftPort;
+import com.aquilabuddy.application.port.out.prdraft.LoadPullRequestDraftDiffPort;
 import com.aquilabuddy.application.port.out.prdraft.LoadPullRequestDraftHistoryPort;
 import com.aquilabuddy.application.port.out.prdraft.LoadPullRequestDraftPort;
 import com.aquilabuddy.application.port.out.prdraft.LoadPullRequestDraftTranslationPort;
@@ -32,6 +33,7 @@ class PullRequestDraftServiceTest {
         FakeSavePullRequestDraftPort savePort = new FakeSavePullRequestDraftPort();
         PullRequestDraftService service = new PullRequestDraftService(
             new FakeGeneratePullRequestDraftPort(),
+            new FakeLoadPullRequestDraftDiffPort(),
             savePort,
             new FakeLoadPullRequestDraftPort(),
             new FakeLoadPullRequestDraftHistoryPort(),
@@ -59,10 +61,73 @@ class PullRequestDraftServiceTest {
     }
 
     @Test
+    void resolvesDiffBeforeGeneratingAndSavingWhenRequestHasNoDiffContent() {
+        FakeLoadPullRequestDraftDiffPort diffPort = new FakeLoadPullRequestDraftDiffPort();
+        FakeGeneratePullRequestDraftPort generatePort = new FakeGeneratePullRequestDraftPort();
+        FakeSavePullRequestDraftPort savePort = new FakeSavePullRequestDraftPort();
+        PullRequestDraftService service = new PullRequestDraftService(
+            generatePort,
+            diffPort,
+            savePort,
+            new FakeLoadPullRequestDraftPort(),
+            new FakeLoadPullRequestDraftHistoryPort(),
+            new FakeUpdatePullRequestDraftPort(),
+            new FakeDeletePullRequestDraftPort(),
+            new FakeLoadPullRequestDraftTranslationPort()
+        );
+
+        PullRequestDraftRequest request = new PullRequestDraftRequest(
+            "spring-projects/spring-boot",
+            2,
+            "main",
+            "feat/validation-docs",
+            null
+        );
+
+        StoredPullRequestDraft draft = service.create(request);
+
+        assertThat(diffPort.receivedRequest).isEqualTo(request);
+        assertThat(generatePort.generatedRequest.diffContent())
+            .isEqualTo("diff --git a/docs.adoc b/docs.adoc\n+Loaded from GitHub compare");
+        assertThat(savePort.savedRequest).isEqualTo(generatePort.generatedRequest);
+        assertThat(draft.body()).contains("spring-projects/spring-boot");
+    }
+
+    @Test
+    void keepsExplicitDiffContentWithoutResolvingFromGitHub() {
+        FakeLoadPullRequestDraftDiffPort diffPort = new FakeLoadPullRequestDraftDiffPort();
+        FakeGeneratePullRequestDraftPort generatePort = new FakeGeneratePullRequestDraftPort();
+        PullRequestDraftService service = new PullRequestDraftService(
+            generatePort,
+            diffPort,
+            new FakeSavePullRequestDraftPort(),
+            new FakeLoadPullRequestDraftPort(),
+            new FakeLoadPullRequestDraftHistoryPort(),
+            new FakeUpdatePullRequestDraftPort(),
+            new FakeDeletePullRequestDraftPort(),
+            new FakeLoadPullRequestDraftTranslationPort()
+        );
+
+        PullRequestDraftRequest request = new PullRequestDraftRequest(
+            "spring-projects/spring-boot",
+            2,
+            "main",
+            "feat/validation-docs",
+            "diff --git a/docs.adoc b/docs.adoc\n+Provided by client"
+        );
+
+        service.create(request);
+
+        assertThat(diffPort.receivedRequest).isNull();
+        assertThat(generatePort.generatedRequest).isEqualTo(request);
+    }
+
+    @Test
     void listsRecentStoredDrafts() {
         FakeLoadPullRequestDraftPort loadPort = new FakeLoadPullRequestDraftPort();
         PullRequestDraftService service = new PullRequestDraftService(
             new FakeGeneratePullRequestDraftPort(),
+            new FakeLoadPullRequestDraftDiffPort(),
             new FakeSavePullRequestDraftPort(),
             loadPort,
             new FakeLoadPullRequestDraftHistoryPort(),
@@ -83,6 +148,7 @@ class PullRequestDraftServiceTest {
         FakeLoadPullRequestDraftPort loadPort = new FakeLoadPullRequestDraftPort();
         PullRequestDraftService service = new PullRequestDraftService(
             new FakeGeneratePullRequestDraftPort(),
+            new FakeLoadPullRequestDraftDiffPort(),
             new FakeSavePullRequestDraftPort(),
             loadPort,
             new FakeLoadPullRequestDraftHistoryPort(),
@@ -101,6 +167,7 @@ class PullRequestDraftServiceTest {
     void getsContributionReportWithTranslationSummary() {
         PullRequestDraftService service = new PullRequestDraftService(
             new FakeGeneratePullRequestDraftPort(),
+            new FakeLoadPullRequestDraftDiffPort(),
             new FakeSavePullRequestDraftPort(),
             new FakeLoadPullRequestDraftPort(),
             new FakeLoadPullRequestDraftHistoryPort(),
@@ -124,6 +191,7 @@ class PullRequestDraftServiceTest {
         FakeUpdatePullRequestDraftPort updatePort = new FakeUpdatePullRequestDraftPort();
         PullRequestDraftService service = new PullRequestDraftService(
             new FakeGeneratePullRequestDraftPort(),
+            new FakeLoadPullRequestDraftDiffPort(),
             new FakeSavePullRequestDraftPort(),
             new FakeLoadPullRequestDraftPort(),
             new FakeLoadPullRequestDraftHistoryPort(),
@@ -151,6 +219,7 @@ class PullRequestDraftServiceTest {
         FakeDeletePullRequestDraftPort deletePort = new FakeDeletePullRequestDraftPort();
         PullRequestDraftService service = new PullRequestDraftService(
             new FakeGeneratePullRequestDraftPort(),
+            new FakeLoadPullRequestDraftDiffPort(),
             new FakeSavePullRequestDraftPort(),
             new FakeLoadPullRequestDraftPort(),
             new FakeLoadPullRequestDraftHistoryPort(),
@@ -170,6 +239,7 @@ class PullRequestDraftServiceTest {
         FakeLoadPullRequestDraftHistoryPort historyPort = new FakeLoadPullRequestDraftHistoryPort();
         PullRequestDraftService service = new PullRequestDraftService(
             new FakeGeneratePullRequestDraftPort(),
+            new FakeLoadPullRequestDraftDiffPort(),
             new FakeSavePullRequestDraftPort(),
             new FakeLoadPullRequestDraftPort(),
             historyPort,
@@ -196,9 +266,23 @@ class PullRequestDraftServiceTest {
 
     private static class FakeGeneratePullRequestDraftPort implements GeneratePullRequestDraftPort {
 
+        private PullRequestDraftRequest generatedRequest;
+
         @Override
         public PullRequestDraft generate(PullRequestDraftRequest request) {
+            generatedRequest = request;
             return new PullRequestDraft("generated title", "body for " + request.upstreamRepo());
+        }
+    }
+
+    private static class FakeLoadPullRequestDraftDiffPort implements LoadPullRequestDraftDiffPort {
+
+        private PullRequestDraftRequest receivedRequest;
+
+        @Override
+        public String loadDiff(PullRequestDraftRequest request) {
+            receivedRequest = request;
+            return "diff --git a/docs.adoc b/docs.adoc\n+Loaded from GitHub compare";
         }
     }
 
