@@ -11,6 +11,8 @@ import com.aquilabuddy.domain.prdraft.PullRequestDraftReadinessItem;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftSubmissionItem;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftTranslationReadiness;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftTranslationSubmission;
+import com.aquilabuddy.domain.prdraft.PullRequestDraftTimelineItem;
+import com.aquilabuddy.domain.prdraft.PullRequestDraftTranslationTimeline;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftTranslation;
 import com.aquilabuddy.domain.prdraft.StoredPullRequestDraft;
 import java.time.Instant;
@@ -152,6 +154,45 @@ class PullRequestDraftTranslationServiceTest {
         );
 
         assertThat(readiness).isEmpty();
+    }
+
+    @Test
+    void returnsTranslationTimelineWhenTranslationBelongsToDraft() {
+        PullRequestDraftTranslationService service = new PullRequestDraftTranslationService(
+            new FakeLoadDraftPort(storedDraft()),
+            new FakeTranslatePullRequestDraftPort(),
+            new FakeSaveTranslationPort(),
+            new FakeLoadTranslationPort()
+        );
+
+        Optional<PullRequestDraftTranslationTimeline> timeline = service.getTranslationTimeline(
+            "draft-1",
+            "translation-1"
+        );
+
+        assertThat(timeline).isPresent();
+        assertThat(timeline.get().draftId()).isEqualTo("draft-1");
+        assertThat(timeline.get().translationId()).isEqualTo("translation-1");
+        assertThat(timeline.get().items())
+            .extracting(PullRequestDraftTimelineItem::key)
+            .containsExactly("translation-created", "translation-ready", "readiness-reviewed", "submission-prepared");
+    }
+
+    @Test
+    void returnsEmptyWhenTranslationTimelineDoesNotBelongToDraft() {
+        PullRequestDraftTranslationService service = new PullRequestDraftTranslationService(
+            new FakeLoadDraftPort(storedDraft()),
+            new FakeTranslatePullRequestDraftPort(),
+            new FakeSaveTranslationPort(),
+            new FakeLoadTranslationPort()
+        );
+
+        Optional<PullRequestDraftTranslationTimeline> timeline = service.getTranslationTimeline(
+            "other-draft",
+            "translation-1"
+        );
+
+        assertThat(timeline).isEmpty();
     }
 
     private static class FakeLoadDraftPort implements LoadPullRequestDraftPort {
