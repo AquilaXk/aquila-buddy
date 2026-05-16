@@ -4,8 +4,10 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ProtectedLayout } from "@/components/ProtectedLayout";
 import {
+  crawlSearchIssues,
   getRecommendedIssueHistory,
   getRecommendedIssues,
+  getUserProfile,
   type RecommendedIssueHistory
 } from "@/lib/api";
 
@@ -37,9 +39,24 @@ export default function IssuesPage() {
   async function handleRecommend() {
     setRecommending(true);
     setError(null);
-    setRecommendStep("나에게 맞는 이슈 분석 중...");
+    setRecommendStep("사용자 정보 확인 중...");
 
     try {
+      const user = await getUserProfile();
+      const languages = user.primaryLanguages;
+
+      if (!languages || languages.length === 0) {
+        throw new Error("프로필 분석이 필요합니다. 마이페이지에서 벡터 업데이트를 먼저 실행해주세요.");
+      }
+
+      setRecommendStep("GitHub에서 이슈 수집 중...");
+      await Promise.all(
+        languages.slice(0, 3).map((language) =>
+          crawlSearchIssues(`language:${language.toLowerCase()} label:"good first issue" state:open`)
+        )
+      );
+
+      setRecommendStep("나에게 맞는 이슈 분석 중...");
       await getRecommendedIssues();
       setRecommendStep(null);
       await loadHistory();
