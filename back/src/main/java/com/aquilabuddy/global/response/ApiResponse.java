@@ -20,6 +20,6 @@ public record ApiResponse<T>(
      * 실패한 요청의 사용자 노출 메시지를 감싸서 반환합니다.
      */
     public static <T> ApiResponse<T> error(String message) {
-        return new ApiResponse<>(false, "fail", null, message);
+        return new ApiResponse<>(false, "fail", null, message == null ? "fail" : message);
     }
 }
