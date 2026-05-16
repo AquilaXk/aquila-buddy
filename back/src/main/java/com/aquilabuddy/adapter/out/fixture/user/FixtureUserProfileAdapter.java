@@ -1,6 +1,7 @@
 package com.aquilabuddy.adapter.out.fixture.user;
 
 import com.aquilabuddy.application.port.out.user.LoadUserProfilePort;
+import com.aquilabuddy.application.port.out.user.RefreshUserProfileVectorPort;
 import com.aquilabuddy.application.port.out.user.SaveUserProfilePort;
 import com.aquilabuddy.domain.user.UserProfile;
 import com.aquilabuddy.domain.user.UserProfileUpdateRequest;
@@ -11,7 +12,12 @@ import org.springframework.stereotype.Component;
  * [Outgoing Adapter] 실제 인증/사용자 저장소 연결 전까지 사용할 사용자 프로필 fixture adapter입니다.
  */
 @Component
-public class FixtureUserProfileAdapter implements LoadUserProfilePort, SaveUserProfilePort {
+public class FixtureUserProfileAdapter implements
+    LoadUserProfilePort,
+    SaveUserProfilePort,
+    RefreshUserProfileVectorPort {
+
+    private static final String FIXTURE_VECTOR_UPDATED_AT = "2026-05-16T00:00:00Z";
 
     private UserProfile currentProfile = new UserProfile(
         10001L,
@@ -46,6 +52,24 @@ public class FixtureUserProfileAdapter implements LoadUserProfilePort, SaveUserP
             request.topics(),
             currentProfile.profileReady(),
             currentProfile.vectorUpdatedAt()
+        );
+        return currentProfile;
+    }
+
+    /**
+     * 실제 embedding provider 연결 전까지 추천 준비 상태와 갱신 시각만 deterministic하게 갱신합니다.
+     */
+    @Override
+    public UserProfile refreshCurrentUserProfileVector() {
+        currentProfile = new UserProfile(
+            currentProfile.githubId(),
+            currentProfile.login(),
+            currentProfile.name(),
+            currentProfile.email(),
+            currentProfile.primaryLanguages(),
+            currentProfile.topics(),
+            true,
+            FIXTURE_VECTOR_UPDATED_AT
         );
         return currentProfile;
     }
