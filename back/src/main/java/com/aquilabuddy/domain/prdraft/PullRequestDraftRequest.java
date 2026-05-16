@@ -20,11 +20,25 @@ public record PullRequestDraftRequest(
         upstreamRepo = requireText(upstreamRepo, "upstreamRepo");
         baseBranch = requireText(baseBranch, "baseBranch");
         headBranch = requireText(headBranch, "headBranch");
-        diffContent = requireText(diffContent, "diffContent");
+        diffContent = optionalText(diffContent);
 
         if (githubIssueNumber < 1) {
             throw new IllegalArgumentException("githubIssueNumber must be positive.");
         }
+    }
+
+    public boolean hasDiffContent() {
+        return diffContent != null;
+    }
+
+    public PullRequestDraftRequest withDiffContent(String resolvedDiffContent) {
+        return new PullRequestDraftRequest(
+            upstreamRepo,
+            githubIssueNumber,
+            baseBranch,
+            headBranch,
+            requireText(resolvedDiffContent, "diffContent")
+        );
     }
 
     private static String requireText(String value, String fieldName) {
@@ -33,5 +47,14 @@ public record PullRequestDraftRequest(
             throw new IllegalArgumentException(fieldName + " must not be blank.");
         }
         return normalized;
+    }
+
+    private static String optionalText(String value) {
+        if (value == null) {
+            return null;
+        }
+
+        String normalized = value.trim();
+        return normalized.isBlank() ? null : normalized;
     }
 }
