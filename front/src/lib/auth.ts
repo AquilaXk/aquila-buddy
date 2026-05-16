@@ -19,6 +19,10 @@ export function getToken() {
   return window.localStorage.getItem(tokenKey);
 }
 
+export function isLoggedIn() {
+  return getToken() !== null;
+}
+
 export function setToken(token: string) {
   window.localStorage.setItem(tokenKey, token);
 }
