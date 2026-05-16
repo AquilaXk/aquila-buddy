@@ -10,7 +10,8 @@
     "validate:shell": "node ../tools/frontend/validate-shell-parity.mjs",
     "validate:login": "node ../tools/frontend/validate-login-parity.mjs",
     "validate:profile": "node ../tools/frontend/validate-profile-parity.mjs",
-    "validate:issues": "node ../tools/frontend/validate-issues-parity.mjs"
+    "validate:issues": "node ../tools/frontend/validate-issues-parity.mjs",
+    "validate:dashboard": "node ../tools/frontend/validate-dashboard-parity.mjs"
   },
   "dependencies": {
     "next": "16.2.6",

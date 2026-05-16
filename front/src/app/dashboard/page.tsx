@@ -1,160 +1,161 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ProtectedLayout } from "@/components/ProtectedLayout";
-import { DashboardActivityPanel } from "./DashboardActivityPanel";
-import { DashboardWorkflowPanel } from "./DashboardWorkflowPanel";
-import { loadDashboardOverview, type DashboardOverview } from "./dashboardData";
-import { buildDashboardActivities, buildDashboardWorkflow } from "./dashboardWorkflow";
+import { getUserProfile, type UserProfile } from "@/lib/api";
 
-export const dynamic = "force-dynamic";
+export default function DashboardPage() {
+  const [user, setUser] = useState<UserProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-export default async function DashboardPage() {
-  const overview = await loadDashboardOverview();
-  const lanes = buildSummaryLanes(overview);
-  const workflow = buildDashboardWorkflow(overview);
-  const activities = buildDashboardActivities(overview);
+  useEffect(() => {
+    let isMounted = true;
+
+    getUserProfile()
+      .then((profile) => {
+        if (!isMounted) {
+          return;
+        }
+
+        setUser(profile);
+        setError(null);
+      })
+      .catch((caught) => {
+        if (!isMounted) {
+          return;
+        }
+
+        setError(caught instanceof Error ? caught.message : "사용자 정보를 불러오지 못했습니다.");
+      })
+      .finally(() => {
+        if (isMounted) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const displayName = user?.name || user?.login || (user?.githubId ? String(user.githubId) : "");
+  const hasVector = Boolean(user?.profileReady || user?.vectorUpdatedAt);
 
   return (
     <ProtectedLayout>
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {lanes.map((lane) => (
-          <section key={lane.label} className="surface p-4">
-            <p className="text-sm font-semibold text-github-muted">{lane.label}</p>
-            <p className="mt-3 text-2xl font-bold text-github-text">{lane.value}</p>
-            <p className="mt-2 text-sm leading-6 text-github-muted">{lane.detail}</p>
-            {lane.error ? (
-              <p className="mt-2 text-xs font-semibold text-red-400">backend API 확인 필요</p>
-            ) : null}
-          </section>
-        ))}
-      </div>
-
-      <div className="mt-6 grid gap-5 lg:grid-cols-[1.35fr_0.65fr]">
-        <DashboardWorkflowPanel workflow={workflow} />
-        <DashboardActivityPanel activities={activities} />
-      </div>
-
-      <section className="mt-8 space-y-3">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <h2 className="text-base font-bold text-github-text">Recent Issues</h2>
-          <Link className="focus-ring text-sm font-semibold text-github-accent" href="/issues">
-            전체 보기
-          </Link>
-        </div>
-        {overview.errors.issueHistory ? (
-          <div className="surface border-red-500/30 bg-red-500/10 p-4 text-sm font-semibold text-red-400">
-            추천 이력을 불러오지 못했습니다. backend API 상태를 확인해 주세요.
-          </div>
-        ) : null}
-        {overview.issueHistory.length > 0 ? (
-          <div className="grid gap-3">
-            {overview.issueHistory.slice(0, 3).map((issue) => (
-              <Link
-                className="focus-ring surface block p-4 hover:border-github-accent"
-                href={`/issues/${issue.id}`}
-                key={issue.id}
-              >
-                <div className="flex flex-wrap items-center gap-2">
-                  <p className="break-all text-sm font-semibold text-github-accent">
-                    {issue.repoFullName} #{issue.issueNumber}
-                  </p>
-                  <span className="rounded-md border border-github-border px-2 py-1 text-xs font-semibold text-github-muted">
-                    {issue.isAnalyzed ? "분석 완료" : "분석 전"}
-                  </span>
-                </div>
-                <h3 className="mt-2 text-base font-bold leading-6 text-github-text">{issue.title}</h3>
-                <p className="mt-2 text-sm leading-6 text-github-muted">{issue.summary}</p>
-              </Link>
-            ))}
-          </div>
-        ) : !overview.errors.issueHistory ? (
-          <div className="surface p-4 text-sm font-semibold text-github-muted">
-            저장된 추천 이력이 없습니다.
-          </div>
-        ) : null}
+      <section className="mb-8 space-y-3">
+        <p className="text-sm font-semibold uppercase tracking-wide text-github-muted">Dashboard</p>
+        <h1 className="text-3xl font-bold leading-tight text-github-text">
+          안녕하세요, {loading ? "..." : displayName ? `${displayName}님` : "사용자님"}
+        </h1>
+        <p className="max-w-2xl text-base leading-7 text-github-muted">
+          aquila buddy — OpenSource contribution assistant 대시보드
+        </p>
       </section>
 
-      <section className="mt-8 space-y-3">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <h2 className="text-base font-bold text-github-text">Recent PR Drafts</h2>
-          <Link className="focus-ring text-sm font-semibold text-github-accent" href="/pr-draft">
-            초안 생성
+      {error ? (
+        <section className="surface mb-5 border-red-500/30 bg-red-500/10 p-4 text-sm font-semibold text-red-400">
+          사용자 정보를 불러오지 못했습니다. backend API 상태를 확인해 주세요.
+        </section>
+      ) : null}
+
+      {loading ? (
+        <section className="surface p-6 text-sm font-semibold text-github-muted">
+          사용자 정보를 불러오는 중...
+        </section>
+      ) : null}
+
+      {!loading && !hasVector ? (
+        <section className="surface mb-5 border-yellow-500/30 bg-yellow-500/10 p-5">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-base font-bold text-yellow-300">프로필 분석이 필요합니다</p>
+              <p className="mt-2 text-sm leading-6 text-github-muted">
+                GitHub 활동과 기술 스택을 분석하면 이슈 추천과 PR 초안 품질이 높아집니다.
+              </p>
+            </div>
+            <Link
+              className="focus-ring inline-flex items-center justify-center rounded-md border border-yellow-400/60 px-4 py-2 text-sm font-semibold text-yellow-200 hover:bg-yellow-500/10"
+              href="/profile"
+            >
+              프로필 편집
+            </Link>
+          </div>
+        </section>
+      ) : null}
+
+      {user ? (
+        <section className="surface p-5">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <p className="text-sm font-semibold text-github-muted">내 계정 정보</p>
+              <h2 className="mt-2 text-xl font-bold text-github-text">{displayName || "GitHub 사용자"}</h2>
+            </div>
+            <Link className="focus-ring text-sm font-semibold text-github-accent" href="/profile">
+              프로필 편집
+            </Link>
+          </div>
+
+          <dl className="mt-5 grid gap-4 md:grid-cols-2">
+            <div>
+              <dt className="text-xs font-semibold uppercase tracking-wide text-github-muted">GitHub ID</dt>
+              <dd className="mt-1 break-all text-sm font-semibold text-github-text">
+                {user.login || user.githubId}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs font-semibold uppercase tracking-wide text-github-muted">Email</dt>
+              <dd className="mt-1 break-all text-sm font-semibold text-github-text">
+                {user.email || "등록된 이메일 없음"}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs font-semibold uppercase tracking-wide text-github-muted">주요 언어</dt>
+              <dd className="mt-2 flex flex-wrap gap-2">
+                {user.primaryLanguages.length > 0 ? (
+                  user.primaryLanguages.map((language) => (
+                    <span
+                      className="rounded-md border border-github-border px-2 py-1 text-xs font-semibold text-github-muted"
+                      key={language}
+                    >
+                      {language}
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-sm font-semibold text-github-muted">분석된 언어 없음</span>
+                )}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs font-semibold uppercase tracking-wide text-github-muted">벡터 업데이트</dt>
+              <dd className="mt-1 text-sm font-semibold text-github-text">
+                {user.vectorUpdatedAt ? formatDate(user.vectorUpdatedAt) : "업데이트 전"}
+              </dd>
+            </div>
+          </dl>
+        </section>
+      ) : null}
+
+      <section className="mt-6 grid gap-4 md:grid-cols-3">
+        {serviceSteps.map((step) => (
+          <Link
+            className={`focus-ring surface block p-5 transition hover:border-github-accent ${step.accentClass}`}
+            href={step.href}
+            key={step.step}
+          >
+            <p className="text-xs font-bold uppercase tracking-wide text-github-muted">{step.step}</p>
+            <h3 className="mt-3 text-lg font-bold text-github-text">{step.title}</h3>
+            <p className="mt-3 text-sm leading-6 text-github-muted">{step.description}</p>
+            <span className="mt-5 inline-flex text-sm font-semibold text-github-accent">
+              {step.action}
+            </span>
           </Link>
-        </div>
-        {overview.errors.prDrafts ? (
-          <div className="surface border-red-500/30 bg-red-500/10 p-4 text-sm font-semibold text-red-400">
-            PR 초안 이력을 불러오지 못했습니다. backend API 상태를 확인해 주세요.
-          </div>
-        ) : null}
-        {overview.prDrafts.length > 0 ? (
-          <div className="grid gap-3 lg:grid-cols-3">
-            {overview.prDrafts.slice(0, 3).map((draft) => (
-              <Link
-                className="focus-ring surface block p-4 hover:border-github-accent"
-                href={`/pr/${draft.id}`}
-                key={draft.id}
-              >
-                <p className="break-all text-sm font-semibold text-github-accent">
-                  {draft.upstreamRepo} #{draft.githubIssueNumber}
-                </p>
-                <h3 className="mt-2 line-clamp-2 text-base font-bold leading-6 text-github-text">
-                  {draft.title}
-                </h3>
-                <p className="mt-3 break-all font-mono text-xs text-github-muted">
-                  {draft.baseBranch} -&gt; {draft.headBranch}
-                </p>
-                <p className="mt-3 text-xs font-semibold text-github-muted">
-                  {formatDate(draft.createdAt)}
-                </p>
-              </Link>
-            ))}
-          </div>
-        ) : !overview.errors.prDrafts ? (
-          <div className="surface p-4 text-sm font-semibold text-github-muted">
-            저장된 PR 초안이 없습니다.
-          </div>
-        ) : null}
+        ))}
       </section>
     </ProtectedLayout>
   );
-}
-
-function buildSummaryLanes(overview: DashboardOverview) {
-  const analyzedIssueCount = overview.issueHistory.filter((issue) => issue.isAnalyzed).length;
-  const latestDraft = overview.prDrafts.at(0);
-  const latestTranslation = overview.translationActivities.at(0);
-
-  return [
-    {
-      label: "Profile",
-      value: overview.profile?.profileReady ? "Ready" : "Pending",
-      detail: overview.profile
-        ? `@${overview.profile.login} · ${overview.profile.primaryLanguages.length} languages`
-        : "GitHub OAuth 연동 후 분석 가능",
-      error: overview.errors.profile
-    },
-    {
-      label: "Issues",
-      value: String(overview.issueHistory.length),
-      detail: `${analyzedIssueCount}개 분석 완료 · ${overview.issueHistory.length - analyzedIssueCount}개 분석 전`,
-      error: overview.errors.issueHistory
-    },
-    {
-      label: "PR Drafts",
-      value: String(overview.prDrafts.length),
-      detail: latestDraft
-        ? `${latestDraft.upstreamRepo} #${latestDraft.githubIssueNumber} 최근 초안`
-        : "저장된 PR 초안 없음",
-      error: overview.errors.prDrafts
-    },
-    {
-      label: "Translations",
-      value: String(overview.translationActivities.length),
-      detail: latestTranslation
-        ? `${latestTranslation.upstreamRepo} #${latestTranslation.githubIssueNumber} · ${latestTranslation.targetLanguage.toUpperCase()}`
-        : "저장된 영어 번역 없음",
-      error: overview.errors.translationActivities
-    }
-  ];
 }
 
 function formatDate(value: string) {
@@ -163,3 +164,30 @@ function formatDate(value: string) {
     timeStyle: "short"
   }).format(new Date(value));
 }
+
+const serviceSteps = [
+  {
+    step: "STEP 1",
+    title: "프로필 분석",
+    description: "GitHub 활동 기반 기술 스택과 관심 주제를 정리합니다.",
+    action: "프로필로 이동",
+    href: "/profile",
+    accentClass: "hover:bg-github-accent/5"
+  },
+  {
+    step: "STEP 2",
+    title: "이슈 추천",
+    description: "분석된 프로필과 맞는 오픈소스 이슈를 탐색합니다.",
+    action: "이슈 추천 보기",
+    href: "/issues",
+    accentClass: "hover:bg-emerald-500/5"
+  },
+  {
+    step: "STEP 3",
+    title: "PR 초안 생성",
+    description: "선택한 이슈의 맥락을 바탕으로 기여 초안을 작성합니다.",
+    action: "초안 만들기",
+    href: "/pr-draft",
+    accentClass: "hover:bg-yellow-500/5"
+  }
+];
