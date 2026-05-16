@@ -1,10 +1,13 @@
 package com.aquilabuddy.adapter.out.persistence.prdraft;
 
 import com.aquilabuddy.application.port.out.prdraft.DeletePullRequestDraftPort;
+import com.aquilabuddy.application.port.out.prdraft.LoadPullRequestDraftHistoryPort;
 import com.aquilabuddy.application.port.out.prdraft.LoadPullRequestDraftPort;
 import com.aquilabuddy.application.port.out.prdraft.SavePullRequestDraftPort;
 import com.aquilabuddy.application.port.out.prdraft.UpdatePullRequestDraftPort;
 import com.aquilabuddy.domain.prdraft.PullRequestDraft;
+import com.aquilabuddy.domain.prdraft.PullRequestDraftHistoryPage;
+import com.aquilabuddy.domain.prdraft.PullRequestDraftHistoryQuery;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftRequest;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftUpdateRequest;
 import com.aquilabuddy.domain.prdraft.StoredPullRequestDraft;
@@ -12,6 +15,8 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 
 /**
@@ -21,6 +26,7 @@ import org.springframework.stereotype.Component;
 public class PullRequestDraftPersistenceAdapter implements
     SavePullRequestDraftPort,
     LoadPullRequestDraftPort,
+    LoadPullRequestDraftHistoryPort,
     UpdatePullRequestDraftPort,
     DeletePullRequestDraftPort {
 
@@ -54,6 +60,26 @@ public class PullRequestDraftPersistenceAdapter implements
     public Optional<StoredPullRequestDraft> loadPullRequestDraft(String id) {
         return repository.findById(id)
             .map(PullRequestDraftPersistenceMapper::toDomain);
+    }
+
+    @Override
+    public PullRequestDraftHistoryPage loadPullRequestDraftHistory(PullRequestDraftHistoryQuery query) {
+        Page<PullRequestDraftJpaEntity> page = repository.findAllByOrderByCreatedAtDesc(
+            PageRequest.of(query.page(), query.size())
+        );
+
+        return new PullRequestDraftHistoryPage(
+            page.getContent()
+                .stream()
+                .map(PullRequestDraftPersistenceMapper::toDomain)
+                .toList(),
+            page.getNumber(),
+            page.getSize(),
+            page.getTotalElements(),
+            page.getTotalPages(),
+            page.isFirst(),
+            page.isLast()
+        );
     }
 
     @Override

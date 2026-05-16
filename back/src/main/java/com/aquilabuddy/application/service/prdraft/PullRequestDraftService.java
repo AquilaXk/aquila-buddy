@@ -7,16 +7,20 @@ import com.aquilabuddy.application.port.in.prdraft.GetPullRequestDraftUseCase;
 import com.aquilabuddy.application.port.in.prdraft.GetPullRequestDraftReadinessUseCase;
 import com.aquilabuddy.application.port.in.prdraft.GetPullRequestDraftSubmissionUseCase;
 import com.aquilabuddy.application.port.in.prdraft.GetPullRequestDraftTimelineUseCase;
+import com.aquilabuddy.application.port.in.prdraft.ListPullRequestDraftHistoryUseCase;
 import com.aquilabuddy.application.port.in.prdraft.ListPullRequestDraftsUseCase;
 import com.aquilabuddy.application.port.in.prdraft.UpdatePullRequestDraftUseCase;
 import com.aquilabuddy.application.port.out.prdraft.DeletePullRequestDraftPort;
 import com.aquilabuddy.application.port.out.prdraft.GeneratePullRequestDraftPort;
+import com.aquilabuddy.application.port.out.prdraft.LoadPullRequestDraftHistoryPort;
 import com.aquilabuddy.application.port.out.prdraft.LoadPullRequestDraftPort;
 import com.aquilabuddy.application.port.out.prdraft.LoadPullRequestDraftTranslationPort;
 import com.aquilabuddy.application.port.out.prdraft.SavePullRequestDraftPort;
 import com.aquilabuddy.application.port.out.prdraft.UpdatePullRequestDraftPort;
 import com.aquilabuddy.domain.prdraft.PullRequestDraft;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftContributionReport;
+import com.aquilabuddy.domain.prdraft.PullRequestDraftHistoryPage;
+import com.aquilabuddy.domain.prdraft.PullRequestDraftHistoryQuery;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftReadiness;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftRequest;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftSubmission;
@@ -36,6 +40,7 @@ import org.springframework.stereotype.Service;
 public class PullRequestDraftService implements
     CreatePullRequestDraftUseCase,
     ListPullRequestDraftsUseCase,
+    ListPullRequestDraftHistoryUseCase,
     GetPullRequestDraftUseCase,
     GetPullRequestDraftContributionReportUseCase,
     GetPullRequestDraftReadinessUseCase,
@@ -47,6 +52,7 @@ public class PullRequestDraftService implements
     private final GeneratePullRequestDraftPort generatePullRequestDraftPort;
     private final SavePullRequestDraftPort savePullRequestDraftPort;
     private final LoadPullRequestDraftPort loadPullRequestDraftPort;
+    private final LoadPullRequestDraftHistoryPort loadPullRequestDraftHistoryPort;
     private final UpdatePullRequestDraftPort updatePullRequestDraftPort;
     private final DeletePullRequestDraftPort deletePullRequestDraftPort;
     private final LoadPullRequestDraftTranslationPort loadPullRequestDraftTranslationPort;
@@ -55,6 +61,7 @@ public class PullRequestDraftService implements
         GeneratePullRequestDraftPort generatePullRequestDraftPort,
         SavePullRequestDraftPort savePullRequestDraftPort,
         LoadPullRequestDraftPort loadPullRequestDraftPort,
+        LoadPullRequestDraftHistoryPort loadPullRequestDraftHistoryPort,
         UpdatePullRequestDraftPort updatePullRequestDraftPort,
         DeletePullRequestDraftPort deletePullRequestDraftPort,
         LoadPullRequestDraftTranslationPort loadPullRequestDraftTranslationPort
@@ -62,6 +69,7 @@ public class PullRequestDraftService implements
         this.generatePullRequestDraftPort = generatePullRequestDraftPort;
         this.savePullRequestDraftPort = savePullRequestDraftPort;
         this.loadPullRequestDraftPort = loadPullRequestDraftPort;
+        this.loadPullRequestDraftHistoryPort = loadPullRequestDraftHistoryPort;
         this.updatePullRequestDraftPort = updatePullRequestDraftPort;
         this.deletePullRequestDraftPort = deletePullRequestDraftPort;
         this.loadPullRequestDraftTranslationPort = loadPullRequestDraftTranslationPort;
@@ -79,6 +87,11 @@ public class PullRequestDraftService implements
     @Override
     public List<StoredPullRequestDraft> listRecentPullRequestDrafts() {
         return loadPullRequestDraftPort.loadRecentPullRequestDrafts();
+    }
+
+    @Override
+    public PullRequestDraftHistoryPage listPullRequestDraftHistory(PullRequestDraftHistoryQuery query) {
+        return loadPullRequestDraftHistoryPort.loadPullRequestDraftHistory(query);
     }
 
     @Override

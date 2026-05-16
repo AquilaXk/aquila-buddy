@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { FormEvent, Suspense, useEffect, useMemo, useState } from "react";
+import { FormEvent, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { ProtectedLayout } from "@/components/ProtectedLayout";
 import {
   createPullRequestDraft,
-  getPullRequestDrafts,
+  getPullRequestDraftHistory,
+  type PullRequestDraftHistoryPage,
   type StoredPullRequestDraft
 } from "@/lib/api";
 
@@ -30,6 +31,8 @@ const defaultDraftInput: DraftInput = {
   diffContent: "diff --git a/docs.adoc b/docs.adoc\n+Add validation example"
 };
 
+const historyPageSize = 5;
+
 export default function PrDraftPage() {
   return (
     <Suspense fallback={<PrDraftFallback />}>
@@ -49,40 +52,32 @@ function PrDraftContent() {
   const [headBranch, setHeadBranch] = useState(initialDraftInput.headBranch);
   const [diffContent, setDiffContent] = useState(initialDraftInput.diffContent);
   const [draft, setDraft] = useState<StoredPullRequestDraft | null>(null);
-  const [drafts, setDrafts] = useState<StoredPullRequestDraft[]>([]);
+  const [historyPageIndex, setHistoryPageIndex] = useState(0);
+  const [historyPage, setHistoryPage] = useState<PullRequestDraftHistoryPage | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [historyError, setHistoryError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [loadingHistory, setLoadingHistory] = useState(true);
   const [copied, setCopied] = useState<"title" | "body" | null>(null);
 
-  useEffect(() => {
-    let mounted = true;
+  const loadDraftHistory = useCallback(async (page: number) => {
+    setLoadingHistory(true);
 
-    async function loadDrafts() {
-      try {
-        const loadedDrafts = await getPullRequestDrafts();
-        if (mounted) {
-          setDrafts(loadedDrafts);
-          setHistoryError(null);
-        }
-      } catch (caught) {
-        if (mounted) {
-          setHistoryError(caught instanceof Error ? caught.message : "PR 초안 이력을 불러오지 못했습니다.");
-        }
-      } finally {
-        if (mounted) {
-          setLoadingHistory(false);
-        }
-      }
+    try {
+      const loadedHistoryPage = await getPullRequestDraftHistory(page, historyPageSize);
+      setHistoryPage(loadedHistoryPage);
+      setHistoryPageIndex(loadedHistoryPage.page);
+      setHistoryError(null);
+    } catch (caught) {
+      setHistoryError(caught instanceof Error ? caught.message : "PR 초안 이력을 불러오지 못했습니다.");
+    } finally {
+      setLoadingHistory(false);
     }
-
-    loadDrafts();
-
-    return () => {
-      mounted = false;
-    };
   }, []);
+
+  useEffect(() => {
+    loadDraftHistory(historyPageIndex);
+  }, [historyPageIndex, loadDraftHistory]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -99,10 +94,11 @@ function PrDraftContent() {
         diffContent
       });
       setDraft(createdDraft);
-      setDrafts((currentDrafts) => [
-        createdDraft,
-        ...currentDrafts.filter((currentDraft) => currentDraft.id !== createdDraft.id)
-      ]);
+      if (historyPageIndex === 0) {
+        await loadDraftHistory(0);
+      } else {
+        setHistoryPageIndex(0);
+      }
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "PR 초안 생성에 실패했습니다.");
     } finally {
@@ -121,6 +117,10 @@ function PrDraftContent() {
     && baseBranch.trim()
     && headBranch.trim()
     && diffContent.trim();
+  const drafts = historyPage?.content ?? [];
+  const totalDrafts = historyPage?.totalElements ?? 0;
+  const currentHistoryPage = historyPage ? historyPage.page + 1 : historyPageIndex + 1;
+  const totalHistoryPages = Math.max(historyPage?.totalPages ?? 1, 1);
 
   return (
     <ProtectedLayout title="PR Draft">
@@ -278,7 +278,7 @@ function PrDraftContent() {
           <section className="surface p-5">
             <div className="flex flex-wrap items-end justify-between gap-3">
               <h2 className="text-sm font-bold text-neutral-900">Recent drafts</h2>
-              <span className="text-xs font-semibold text-neutral-500">{drafts.length} drafts</span>
+              <span className="text-xs font-semibold text-neutral-500">{totalDrafts} drafts</span>
             </div>
             {historyError ? (
               <div className="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">
@@ -315,6 +315,29 @@ function PrDraftContent() {
                 </Link>
               ))}
             </div>
+            {historyPage ? (
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
+                <button
+                  className="focus-ring rounded-md border border-line px-3 py-2 text-sm font-semibold text-neutral-700 hover:border-moss hover:text-moss disabled:cursor-not-allowed disabled:opacity-50"
+                  disabled={loadingHistory || historyPage.first}
+                  onClick={() => setHistoryPageIndex((page) => Math.max(0, page - 1))}
+                  type="button"
+                >
+                  이전
+                </button>
+                <span className="text-sm font-semibold text-neutral-600">
+                  {currentHistoryPage} / {totalHistoryPages}
+                </span>
+                <button
+                  className="focus-ring rounded-md border border-line px-3 py-2 text-sm font-semibold text-neutral-700 hover:border-moss hover:text-moss disabled:cursor-not-allowed disabled:opacity-50"
+                  disabled={loadingHistory || historyPage.last}
+                  onClick={() => setHistoryPageIndex((page) => page + 1)}
+                  type="button"
+                >
+                  다음
+                </button>
+              </div>
+            ) : null}
           </section>
         </div>
       </div>

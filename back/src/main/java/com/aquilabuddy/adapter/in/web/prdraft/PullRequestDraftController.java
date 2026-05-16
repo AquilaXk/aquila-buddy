@@ -11,10 +11,13 @@ import com.aquilabuddy.application.port.in.prdraft.GetPullRequestDraftUseCase;
 import com.aquilabuddy.application.port.in.prdraft.GetPullRequestDraftReadinessUseCase;
 import com.aquilabuddy.application.port.in.prdraft.GetPullRequestDraftSubmissionUseCase;
 import com.aquilabuddy.application.port.in.prdraft.GetPullRequestDraftTimelineUseCase;
+import com.aquilabuddy.application.port.in.prdraft.ListPullRequestDraftHistoryUseCase;
 import com.aquilabuddy.application.port.in.prdraft.ListPullRequestDraftsUseCase;
 import com.aquilabuddy.application.port.in.prdraft.ListPullRequestDraftTranslationActivitiesUseCase;
 import com.aquilabuddy.application.port.in.prdraft.ListPullRequestDraftTranslationsUseCase;
 import com.aquilabuddy.application.port.in.prdraft.UpdatePullRequestDraftUseCase;
+import com.aquilabuddy.domain.prdraft.PullRequestDraftHistoryPage;
+import com.aquilabuddy.domain.prdraft.PullRequestDraftHistoryQuery;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftReadiness;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftContributionReport;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftRequest;
@@ -54,6 +57,7 @@ public class PullRequestDraftController {
 
     private final CreatePullRequestDraftUseCase createPullRequestDraftUseCase;
     private final ListPullRequestDraftsUseCase listPullRequestDraftsUseCase;
+    private final ListPullRequestDraftHistoryUseCase listPullRequestDraftHistoryUseCase;
     private final GetPullRequestDraftUseCase getPullRequestDraftUseCase;
     private final UpdatePullRequestDraftUseCase updatePullRequestDraftUseCase;
     private final DeletePullRequestDraftUseCase deletePullRequestDraftUseCase;
@@ -71,6 +75,7 @@ public class PullRequestDraftController {
     public PullRequestDraftController(
         CreatePullRequestDraftUseCase createPullRequestDraftUseCase,
         ListPullRequestDraftsUseCase listPullRequestDraftsUseCase,
+        ListPullRequestDraftHistoryUseCase listPullRequestDraftHistoryUseCase,
         GetPullRequestDraftUseCase getPullRequestDraftUseCase,
         UpdatePullRequestDraftUseCase updatePullRequestDraftUseCase,
         DeletePullRequestDraftUseCase deletePullRequestDraftUseCase,
@@ -87,6 +92,7 @@ public class PullRequestDraftController {
     ) {
         this.createPullRequestDraftUseCase = createPullRequestDraftUseCase;
         this.listPullRequestDraftsUseCase = listPullRequestDraftsUseCase;
+        this.listPullRequestDraftHistoryUseCase = listPullRequestDraftHistoryUseCase;
         this.getPullRequestDraftUseCase = getPullRequestDraftUseCase;
         this.updatePullRequestDraftUseCase = updatePullRequestDraftUseCase;
         this.deletePullRequestDraftUseCase = deletePullRequestDraftUseCase;
@@ -116,6 +122,19 @@ public class PullRequestDraftController {
     @GetMapping
     ApiResponse<List<StoredPullRequestDraft>> list() {
         return ApiResponse.success(listPullRequestDraftsUseCase.listRecentPullRequestDrafts());
+    }
+
+    /**
+     * 저장된 PR 초안 이력을 페이지 단위로 반환합니다.
+     */
+    @GetMapping("/history")
+    ApiResponse<PullRequestDraftHistoryPage> history(
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "10") int size
+    ) {
+        return ApiResponse.success(listPullRequestDraftHistoryUseCase.listPullRequestDraftHistory(
+            new PullRequestDraftHistoryQuery(page, size)
+        ));
     }
 
     /**

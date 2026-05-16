@@ -101,6 +101,16 @@ export type StoredPullRequestDraft = PullRequestDraft & {
   createdAt: string;
 };
 
+export type PullRequestDraftHistoryPage = {
+  content: StoredPullRequestDraft[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  first: boolean;
+  last: boolean;
+};
+
 export type PullRequestDraftReadinessStatus = "READY" | "ACTION_REQUIRED";
 
 export type PullRequestDraftReadinessItem = {
@@ -329,6 +339,29 @@ export async function getPullRequestDrafts(): Promise<StoredPullRequestDraft[]> 
 
   if (!payload.success || !payload.data) {
     throw new Error(payload.message ?? "Pull request drafts response was not successful");
+  }
+
+  return payload.data;
+}
+
+export async function getPullRequestDraftHistory(page = 0, size = 5): Promise<PullRequestDraftHistoryPage> {
+  const searchParams = new URLSearchParams({
+    page: String(page),
+    size: String(size)
+  });
+
+  const response = await fetch(`${API_URL}/api/v1/pr/history?${searchParams.toString()}`, {
+    cache: "no-store"
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch pull request draft history");
+  }
+
+  const payload = (await response.json()) as ApiResponse<PullRequestDraftHistoryPage>;
+
+  if (!payload.success || !payload.data) {
+    throw new Error(payload.message ?? "Pull request draft history response was not successful");
   }
 
   return payload.data;

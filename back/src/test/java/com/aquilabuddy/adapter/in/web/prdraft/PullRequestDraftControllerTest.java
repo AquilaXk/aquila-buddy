@@ -77,6 +77,35 @@ class PullRequestDraftControllerTest {
     }
 
     @Test
+    void returnsPullRequestDraftHistoryPage() throws Exception {
+        String oldestId = createDraft(2, "feat/oldest");
+        String middleId = createDraft(3, "feat/middle");
+        String newestId = createDraft(4, "feat/newest");
+
+        mockMvc.perform(get("/api/v1/pr/history")
+                .param("page", "0")
+                .param("size", "2"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.content[0].id").value(newestId))
+            .andExpect(jsonPath("$.data.content[1].id").value(middleId))
+            .andExpect(jsonPath("$.data.page").value(0))
+            .andExpect(jsonPath("$.data.size").value(2))
+            .andExpect(jsonPath("$.data.totalElements").value(3))
+            .andExpect(jsonPath("$.data.totalPages").value(2))
+            .andExpect(jsonPath("$.data.first").value(true))
+            .andExpect(jsonPath("$.data.last").value(false));
+
+        mockMvc.perform(get("/api/v1/pr/history")
+                .param("page", "1")
+                .param("size", "2"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.content[0].id").value(oldestId))
+            .andExpect(jsonPath("$.data.first").value(false))
+            .andExpect(jsonPath("$.data.last").value(true));
+    }
+
+    @Test
     void returnsPullRequestDraftDetail() throws Exception {
         String id = createDraft();
 
@@ -432,17 +461,21 @@ class PullRequestDraftControllerTest {
     }
 
     private String createDraft() throws Exception {
+        return createDraft(2, "feat/validation-docs");
+    }
+
+    private String createDraft(long githubIssueNumber, String headBranch) throws Exception {
         MvcResult result = mockMvc.perform(post("/api/v1/pr")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("""
+                .content(String.format("""
                     {
                       "upstreamRepo": "spring-projects/spring-boot",
-                      "githubIssueNumber": 2,
+                      "githubIssueNumber": %d,
                       "baseBranch": "main",
-                      "headBranch": "feat/validation-docs",
+                      "headBranch": "%s",
                       "diffContent": "diff --git a/docs.adoc b/docs.adoc\\n+Add validation example"
                     }
-                    """))
+                    """, githubIssueNumber, headBranch)))
             .andExpect(status().isOk())
             .andReturn();
 
