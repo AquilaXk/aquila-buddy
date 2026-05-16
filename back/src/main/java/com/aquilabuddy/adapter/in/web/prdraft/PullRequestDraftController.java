@@ -2,6 +2,7 @@ package com.aquilabuddy.adapter.in.web.prdraft;
 
 import com.aquilabuddy.application.port.in.prdraft.CreatePullRequestDraftUseCase;
 import com.aquilabuddy.application.port.in.prdraft.CreatePullRequestDraftTranslationUseCase;
+import com.aquilabuddy.application.port.in.prdraft.DeletePullRequestDraftUseCase;
 import com.aquilabuddy.application.port.in.prdraft.GetPullRequestDraftContributionReportUseCase;
 import com.aquilabuddy.application.port.in.prdraft.GetPullRequestDraftTranslationReadinessUseCase;
 import com.aquilabuddy.application.port.in.prdraft.GetPullRequestDraftTranslationSubmissionUseCase;
@@ -13,6 +14,7 @@ import com.aquilabuddy.application.port.in.prdraft.GetPullRequestDraftTimelineUs
 import com.aquilabuddy.application.port.in.prdraft.ListPullRequestDraftsUseCase;
 import com.aquilabuddy.application.port.in.prdraft.ListPullRequestDraftTranslationActivitiesUseCase;
 import com.aquilabuddy.application.port.in.prdraft.ListPullRequestDraftTranslationsUseCase;
+import com.aquilabuddy.application.port.in.prdraft.UpdatePullRequestDraftUseCase;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftReadiness;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftContributionReport;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftRequest;
@@ -23,6 +25,7 @@ import com.aquilabuddy.domain.prdraft.PullRequestDraftTranslationActivity;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftTranslationReadiness;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftTranslationSubmission;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftTranslationTimeline;
+import com.aquilabuddy.domain.prdraft.PullRequestDraftUpdateRequest;
 import com.aquilabuddy.domain.prdraft.StoredPullRequestDraft;
 import com.aquilabuddy.global.response.ApiResponse;
 import jakarta.validation.Valid;
@@ -31,7 +34,9 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Positive;
 import java.util.List;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -50,6 +55,8 @@ public class PullRequestDraftController {
     private final CreatePullRequestDraftUseCase createPullRequestDraftUseCase;
     private final ListPullRequestDraftsUseCase listPullRequestDraftsUseCase;
     private final GetPullRequestDraftUseCase getPullRequestDraftUseCase;
+    private final UpdatePullRequestDraftUseCase updatePullRequestDraftUseCase;
+    private final DeletePullRequestDraftUseCase deletePullRequestDraftUseCase;
     private final GetPullRequestDraftReadinessUseCase getPullRequestDraftReadinessUseCase;
     private final GetPullRequestDraftTimelineUseCase getPullRequestDraftTimelineUseCase;
     private final GetPullRequestDraftSubmissionUseCase getPullRequestDraftSubmissionUseCase;
@@ -65,6 +72,8 @@ public class PullRequestDraftController {
         CreatePullRequestDraftUseCase createPullRequestDraftUseCase,
         ListPullRequestDraftsUseCase listPullRequestDraftsUseCase,
         GetPullRequestDraftUseCase getPullRequestDraftUseCase,
+        UpdatePullRequestDraftUseCase updatePullRequestDraftUseCase,
+        DeletePullRequestDraftUseCase deletePullRequestDraftUseCase,
         GetPullRequestDraftReadinessUseCase getPullRequestDraftReadinessUseCase,
         GetPullRequestDraftTimelineUseCase getPullRequestDraftTimelineUseCase,
         GetPullRequestDraftSubmissionUseCase getPullRequestDraftSubmissionUseCase,
@@ -79,6 +88,8 @@ public class PullRequestDraftController {
         this.createPullRequestDraftUseCase = createPullRequestDraftUseCase;
         this.listPullRequestDraftsUseCase = listPullRequestDraftsUseCase;
         this.getPullRequestDraftUseCase = getPullRequestDraftUseCase;
+        this.updatePullRequestDraftUseCase = updatePullRequestDraftUseCase;
+        this.deletePullRequestDraftUseCase = deletePullRequestDraftUseCase;
         this.getPullRequestDraftReadinessUseCase = getPullRequestDraftReadinessUseCase;
         this.getPullRequestDraftTimelineUseCase = getPullRequestDraftTimelineUseCase;
         this.getPullRequestDraftSubmissionUseCase = getPullRequestDraftSubmissionUseCase;
@@ -127,6 +138,34 @@ public class PullRequestDraftController {
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "PR 초안을 찾을 수 없습니다."));
 
         return ApiResponse.success(draft);
+    }
+
+    /**
+     * 저장된 PR 초안의 제목과 본문을 사용자가 다듬은 값으로 갱신합니다.
+     */
+    @PatchMapping("/{id}")
+    ApiResponse<StoredPullRequestDraft> update(
+        @PathVariable String id,
+        @Valid @RequestBody UpdatePullRequestDraftRequestBody request
+    ) {
+        StoredPullRequestDraft draft = updatePullRequestDraftUseCase
+            .updatePullRequestDraft(id, request.toDomain())
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "PR 초안을 찾을 수 없습니다."));
+
+        return ApiResponse.success(draft);
+    }
+
+    /**
+     * 저장된 PR 초안과 연결된 번역 결과를 함께 삭제합니다.
+     */
+    @DeleteMapping("/{id}")
+    ApiResponse<Void> delete(@PathVariable String id) {
+        boolean deleted = deletePullRequestDraftUseCase.deletePullRequestDraft(id);
+        if (!deleted) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "PR 초안을 찾을 수 없습니다.");
+        }
+
+        return ApiResponse.success(null);
     }
 
     /**
@@ -280,5 +319,20 @@ public class PullRequestDraftController {
         @Pattern(regexp = "en", message = "targetLanguage는 en만 지원합니다.")
         String targetLanguage
     ) {
+    }
+
+    /**
+     * web 요청 body를 사용자가 수정한 PR 초안 domain 요청 모델로 변환합니다.
+     */
+    record UpdatePullRequestDraftRequestBody(
+        @NotBlank(message = "title은 비어 있을 수 없습니다.")
+        String title,
+        @NotBlank(message = "body는 비어 있을 수 없습니다.")
+        String body
+    ) {
+
+        PullRequestDraftUpdateRequest toDomain() {
+            return new PullRequestDraftUpdateRequest(title, body);
+        }
     }
 }
