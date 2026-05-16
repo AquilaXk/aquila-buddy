@@ -3,6 +3,7 @@ package com.aquilabuddy.adapter.out.fixture.prdraft;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.aquilabuddy.domain.prdraft.PullRequestDraft;
+import com.aquilabuddy.domain.prdraft.PullRequestDraftIssueContext;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftRequest;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftRepositoryGuideContext;
 import java.util.List;
@@ -52,5 +53,29 @@ class RuleBasedPullRequestDraftAdapterTest {
         assertThat(draft.body()).contains("CONTRIBUTING: Please run tests before opening a PR.");
         assertThat(draft.body()).contains("PR template: ## Summary");
         assertThat(draft.body()).contains("Merged PR samples: 1");
+    }
+
+    @Test
+    void includesIssueContextWhenAvailable() {
+        RuleBasedPullRequestDraftAdapter adapter = new RuleBasedPullRequestDraftAdapter();
+
+        PullRequestDraft draft = adapter.generate(new PullRequestDraftRequest(
+            "spring-projects/spring-boot",
+            2,
+            "main",
+            "feat/validation-docs",
+            "diff --git a/docs.adoc b/docs.adoc\n+Add validation example",
+            PullRequestDraftRepositoryGuideContext.empty(),
+            new PullRequestDraftIssueContext(
+                "Fix validation message",
+                "Error message should explain invalid input.",
+                "Matches Java validation topic"
+            )
+        ));
+
+        assertThat(draft.body()).contains("## 연결 이슈");
+        assertThat(draft.body()).contains("Issue title: Fix validation message");
+        assertThat(draft.body()).contains("Issue summary: Error message should explain invalid input.");
+        assertThat(draft.body()).contains("Recommendation reason: Matches Java validation topic");
     }
 }
