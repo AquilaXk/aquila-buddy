@@ -1,5 +1,6 @@
 package com.aquilabuddy.global.github;
 
+import static java.util.Map.entry;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.sun.net.httpserver.HttpExchange;
@@ -8,6 +9,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -106,6 +108,24 @@ class GitHubApiClientTest {
             .extracting(GitHubApiClient.GitHubRepository::name)
             .containsExactly("popular-tool", "small-tool");
         assertThat(repositories.getFirst().topics()).containsExactly("nextjs", "oss");
+    }
+
+    @Test
+    void aggregatesRepositoryLanguagesByFrequencyDescending() {
+        GitHubApiClient client = client();
+        List<GitHubApiClient.GitHubRepository> repositories = List.of(
+            new GitHubApiClient.GitHubRepository("api", "Spring API", "Java", List.of("spring"), 7),
+            new GitHubApiClient.GitHubRepository("web", "Next app", "TypeScript", List.of("nextjs"), 5),
+            new GitHubApiClient.GitHubRepository("worker", "Batch worker", "Java", List.of("batch"), 3),
+            new GitHubApiClient.GitHubRepository("docs", "Docs", null, List.of("docs"), 1)
+        );
+
+        Map<String, Integer> languages = client.aggregateLanguages(repositories);
+
+        assertThat(languages).containsExactly(
+            entry("Java", 2),
+            entry("TypeScript", 1)
+        );
     }
 
     private GitHubApiClient client() {

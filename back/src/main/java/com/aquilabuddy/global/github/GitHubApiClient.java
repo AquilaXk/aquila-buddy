@@ -3,8 +3,11 @@ package com.aquilabuddy.global.github;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
@@ -92,6 +95,25 @@ public class GitHubApiClient {
         if (!token.isBlank()) {
             headers.setBearerAuth(token);
         }
+    }
+
+    /**
+     * repository 목록에서 주 사용 언어를 빈도 내림차순으로 집계합니다.
+     */
+    public Map<String, Integer> aggregateLanguages(List<GitHubRepository> repositories) {
+        return repositories.stream()
+            .map(GitHubRepository::language)
+            .filter(language -> language != null && !language.isBlank())
+            .collect(Collectors.groupingBy(language -> language, Collectors.summingInt(language -> 1)))
+            .entrySet()
+            .stream()
+            .sorted(Map.Entry.<String, Integer>comparingByValue().reversed())
+            .collect(Collectors.toMap(
+                Map.Entry::getKey,
+                Map.Entry::getValue,
+                (left, right) -> left,
+                LinkedHashMap::new
+            ));
     }
 
     public record GitHubUserProfile(String login, String bio, int publicRepos) {
