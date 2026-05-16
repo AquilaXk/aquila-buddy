@@ -139,6 +139,14 @@ export type PullRequestDraftTranslation = PullRequestDraft & {
   createdAt: string;
 };
 
+export type PullRequestDraftTranslationReadiness = {
+  draftId: string;
+  translationId: string;
+  targetLanguage: "en";
+  items: PullRequestDraftReadinessItem[];
+  readyCount: number;
+};
+
 export type PullRequestDraftTranslationSubmission = {
   draftId: string;
   translationId: string;
@@ -332,6 +340,30 @@ export async function getPullRequestDraftTranslations(id: string): Promise<PullR
 
   if (!payload.success || !payload.data) {
     throw new Error(payload.message ?? "Pull request draft translations response was not successful");
+  }
+
+  return payload.data;
+}
+
+export async function getPullRequestDraftTranslationReadiness(
+  id: string,
+  translationId: string
+): Promise<PullRequestDraftTranslationReadiness> {
+  const response = await fetch(
+    `${API_URL}/api/v1/pr/${encodeURIComponent(id)}/translations/${encodeURIComponent(translationId)}/readiness`,
+    {
+      cache: "no-store"
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch pull request draft translation readiness");
+  }
+
+  const payload = (await response.json()) as ApiResponse<PullRequestDraftTranslationReadiness>;
+
+  if (!payload.success || !payload.data) {
+    throw new Error(payload.message ?? "Pull request draft translation readiness response was not successful");
   }
 
   return payload.data;
