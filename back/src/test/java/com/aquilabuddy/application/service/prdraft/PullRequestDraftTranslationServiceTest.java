@@ -9,6 +9,7 @@ import com.aquilabuddy.application.port.out.prdraft.TranslatePullRequestDraftPor
 import com.aquilabuddy.domain.prdraft.PullRequestDraft;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftReadinessItem;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftSubmissionItem;
+import com.aquilabuddy.domain.prdraft.PullRequestDraftTranslateResult;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftTranslationReadiness;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftTranslationSubmission;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftTimelineItem;
@@ -60,6 +61,47 @@ class PullRequestDraftTranslationServiceTest {
         Optional<PullRequestDraftTranslation> translation = service.createTranslation("missing", "en");
 
         assertThat(translation).isEmpty();
+    }
+
+    @Test
+    void translatesStoredDraftForCompatibilityAction() {
+        FakeLoadDraftPort loadDraftPort = new FakeLoadDraftPort(storedDraft());
+        FakeTranslatePullRequestDraftPort translatePort = new FakeTranslatePullRequestDraftPort();
+        FakeSaveTranslationPort savePort = new FakeSaveTranslationPort();
+        PullRequestDraftTranslationService service = new PullRequestDraftTranslationService(
+            loadDraftPort,
+            translatePort,
+            savePort,
+            new FakeLoadTranslationPort()
+        );
+
+        Optional<PullRequestDraftTranslateResult> result = service.translate("draft-1");
+
+        assertThat(result).isPresent();
+        assertThat(translatePort.receivedDraft).isEqualTo(storedDraft());
+        assertThat(translatePort.receivedTargetLanguage).isEqualTo("en");
+        assertThat(savePort.savedDraftId).isEqualTo("draft-1");
+        assertThat(savePort.savedTargetLanguage).isEqualTo("en");
+        assertThat(result.get().titleEn()).isEqualTo("translated title");
+        assertThat(result.get().bodyEn()).isEqualTo("translated body");
+        assertThat(result.get().githubUrl())
+            .contains("https://github.com/spring-projects/spring-boot/compare/main...feat/readme-fix")
+            .contains("title=translated%20title")
+            .contains("body=translated%20body");
+    }
+
+    @Test
+    void returnsEmptyWhenCompatibilityTranslationDraftDoesNotExist() {
+        PullRequestDraftTranslationService service = new PullRequestDraftTranslationService(
+            new FakeLoadDraftPort(null),
+            new FakeTranslatePullRequestDraftPort(),
+            new FakeSaveTranslationPort(),
+            new FakeLoadTranslationPort()
+        );
+
+        Optional<PullRequestDraftTranslateResult> result = service.translate("missing");
+
+        assertThat(result).isEmpty();
     }
 
     @Test
