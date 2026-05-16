@@ -1,6 +1,7 @@
 package com.aquilabuddy.adapter.out.persistence.issue;
 
 import com.aquilabuddy.application.port.out.issue.FindRecommendedIssuePort;
+import com.aquilabuddy.application.port.out.issue.LoadCollectedIssuesPort;
 import com.aquilabuddy.application.port.out.issue.LoadRecommendedIssuesPort;
 import com.aquilabuddy.application.port.out.issue.SaveRecommendedIssuesPort;
 import com.aquilabuddy.domain.issue.RecommendedIssue;
@@ -17,6 +18,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class RecommendedIssuePersistenceAdapter implements
     LoadRecommendedIssuesPort,
+    LoadCollectedIssuesPort,
     FindRecommendedIssuePort,
     SaveRecommendedIssuesPort {
 
@@ -31,6 +33,17 @@ public class RecommendedIssuePersistenceAdapter implements
      */
     @Override
     public List<RecommendedIssue> loadRecommendedIssues() {
+        return repository.findAllByOrderByScoreDescIssueNumberAsc()
+            .stream()
+            .map(RecommendedIssuePersistenceMapper::toDomain)
+            .toList();
+    }
+
+    /**
+     * 저장된 전체 수집 이슈 catalog를 조회합니다.
+     */
+    @Override
+    public List<RecommendedIssue> loadCollectedIssues() {
         return repository.findAllByOrderByScoreDescIssueNumberAsc()
             .stream()
             .map(RecommendedIssuePersistenceMapper::toDomain)

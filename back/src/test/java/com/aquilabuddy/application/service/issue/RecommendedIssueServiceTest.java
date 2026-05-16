@@ -3,6 +3,7 @@ package com.aquilabuddy.application.service.issue;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.aquilabuddy.application.port.out.issue.LoadRecommendedIssuesPort;
+import com.aquilabuddy.application.port.out.issue.LoadCollectedIssuesPort;
 import com.aquilabuddy.application.port.out.issue.SaveRecommendedIssuesPort;
 import com.aquilabuddy.application.port.out.issue.SearchRecommendedIssuesPort;
 import com.aquilabuddy.application.port.out.issue.FindRecommendedIssuePort;
@@ -22,6 +23,7 @@ class RecommendedIssueServiceTest {
         );
         RecommendedIssueService service = new RecommendedIssueService(
             fallbackPort,
+            fallbackPort,
             new InMemoryFindRecommendedIssuePort(List.of()),
             new RecordingSaveRecommendedIssuesPort(),
             () -> List.of(searched)
@@ -38,6 +40,7 @@ class RecommendedIssueServiceTest {
         RecommendedIssue searched = issue("github-search", "spring-projects/spring-boot", 101);
         RecordingSaveRecommendedIssuesPort savePort = new RecordingSaveRecommendedIssuesPort();
         RecommendedIssueService service = new RecommendedIssueService(
+            new CountingLoadRecommendedIssuesPort(List.of()),
             new CountingLoadRecommendedIssuesPort(List.of()),
             new InMemoryFindRecommendedIssuePort(List.of()),
             savePort,
@@ -57,6 +60,7 @@ class RecommendedIssueServiceTest {
         RecordingSaveRecommendedIssuesPort savePort = new RecordingSaveRecommendedIssuesPort();
         RecommendedIssueService service = new RecommendedIssueService(
             new CountingLoadRecommendedIssuesPort(List.of()),
+            new CountingLoadRecommendedIssuesPort(List.of()),
             new InMemoryFindRecommendedIssuePort(List.of()),
             savePort,
             searchPort
@@ -74,6 +78,7 @@ class RecommendedIssueServiceTest {
         RecommendedIssue stored = issue("stored", "vercel/next.js", 1);
         RecommendedIssueService service = new RecommendedIssueService(
             new CountingLoadRecommendedIssuesPort(List.of(stored)),
+            new CountingLoadRecommendedIssuesPort(List.of(stored)),
             new InMemoryFindRecommendedIssuePort(List.of(stored)),
             new RecordingSaveRecommendedIssuesPort(),
             List::of
@@ -89,6 +94,7 @@ class RecommendedIssueServiceTest {
         RecommendedIssue stored = issue("stored", "vercel/next.js", 1);
         RecommendedIssueService service = new RecommendedIssueService(
             new CountingLoadRecommendedIssuesPort(List.of(stored)),
+            new CountingLoadRecommendedIssuesPort(List.of(stored)),
             new InMemoryFindRecommendedIssuePort(List.of(stored)),
             new RecordingSaveRecommendedIssuesPort(),
             failingSearchPort()
@@ -103,6 +109,7 @@ class RecommendedIssueServiceTest {
     void returnsStoredIssuesAsRecommendationHistory() {
         RecommendedIssue stored = issue("stored", "vercel/next.js", 1);
         RecommendedIssueService service = new RecommendedIssueService(
+            new CountingLoadRecommendedIssuesPort(List.of(stored)),
             new CountingLoadRecommendedIssuesPort(List.of(stored)),
             new InMemoryFindRecommendedIssuePort(List.of(stored)),
             new RecordingSaveRecommendedIssuesPort(),
@@ -125,6 +132,7 @@ class RecommendedIssueServiceTest {
         RecommendedIssue stored = issue("stored", "vercel/next.js", 1);
         CountingLoadRecommendedIssuesPort loadPort = new CountingLoadRecommendedIssuesPort(List.of(stored));
         RecommendedIssueService service = new RecommendedIssueService(
+            new CountingLoadRecommendedIssuesPort(List.of()),
             loadPort,
             new InMemoryFindRecommendedIssuePort(List.of(stored)),
             new RecordingSaveRecommendedIssuesPort(),
@@ -141,6 +149,7 @@ class RecommendedIssueServiceTest {
     void looksUpStoredIssueByRepositoryAndIssueNumber() {
         RecommendedIssue stored = issue("stored", "vercel/next.js", 1);
         RecommendedIssueService service = new RecommendedIssueService(
+            new CountingLoadRecommendedIssuesPort(List.of(stored)),
             new CountingLoadRecommendedIssuesPort(List.of(stored)),
             new InMemoryFindRecommendedIssuePort(List.of(stored)),
             new RecordingSaveRecommendedIssuesPort(),
@@ -197,7 +206,9 @@ class RecommendedIssueServiceTest {
         );
     }
 
-    private static final class CountingLoadRecommendedIssuesPort implements LoadRecommendedIssuesPort {
+    private static final class CountingLoadRecommendedIssuesPort implements
+        LoadRecommendedIssuesPort,
+        LoadCollectedIssuesPort {
 
         private final List<RecommendedIssue> issues;
         private int callCount;
@@ -208,6 +219,12 @@ class RecommendedIssueServiceTest {
 
         @Override
         public List<RecommendedIssue> loadRecommendedIssues() {
+            callCount++;
+            return issues;
+        }
+
+        @Override
+        public List<RecommendedIssue> loadCollectedIssues() {
             callCount++;
             return issues;
         }

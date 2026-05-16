@@ -6,6 +6,7 @@ import com.aquilabuddy.application.port.in.issue.RecommendIssuesUseCase;
 import com.aquilabuddy.application.port.in.issue.CrawlSearchIssuesUseCase;
 import com.aquilabuddy.application.port.in.issue.ListCollectedIssuesUseCase;
 import com.aquilabuddy.application.port.out.issue.FindRecommendedIssuePort;
+import com.aquilabuddy.application.port.out.issue.LoadCollectedIssuesPort;
 import com.aquilabuddy.application.port.out.issue.LoadRecommendedIssuesPort;
 import com.aquilabuddy.application.port.out.issue.SaveRecommendedIssuesPort;
 import com.aquilabuddy.application.port.out.issue.SearchRecommendedIssuesPort;
@@ -29,17 +30,20 @@ public class RecommendedIssueService implements
     ListCollectedIssuesUseCase {
 
     private final LoadRecommendedIssuesPort loadRecommendedIssuesPort;
+    private final LoadCollectedIssuesPort loadCollectedIssuesPort;
     private final FindRecommendedIssuePort findRecommendedIssuePort;
     private final SaveRecommendedIssuesPort saveRecommendedIssuesPort;
     private final SearchRecommendedIssuesPort searchRecommendedIssuesPort;
 
     public RecommendedIssueService(
         LoadRecommendedIssuesPort loadRecommendedIssuesPort,
+        LoadCollectedIssuesPort loadCollectedIssuesPort,
         FindRecommendedIssuePort findRecommendedIssuePort,
         SaveRecommendedIssuesPort saveRecommendedIssuesPort,
         SearchRecommendedIssuesPort searchRecommendedIssuesPort
     ) {
         this.loadRecommendedIssuesPort = loadRecommendedIssuesPort;
+        this.loadCollectedIssuesPort = loadCollectedIssuesPort;
         this.findRecommendedIssuePort = findRecommendedIssuePort;
         this.saveRecommendedIssuesPort = saveRecommendedIssuesPort;
         this.searchRecommendedIssuesPort = searchRecommendedIssuesPort;
@@ -77,7 +81,7 @@ public class RecommendedIssueService implements
      */
     @Override
     public List<RecommendedIssue> listCollectedIssues() {
-        return loadRecommendedIssuesPort.loadRecommendedIssues();
+        return loadCollectedIssuesPort.loadCollectedIssues();
     }
 
     /**
