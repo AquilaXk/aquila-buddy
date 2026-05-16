@@ -222,6 +222,25 @@ class PullRequestDraftControllerTest {
     }
 
     @Test
+    void returnsPullRequestDraftTranslationTimeline() throws Exception {
+        String id = createDraft();
+        String translationId = createTranslation(id);
+
+        mockMvc.perform(get("/api/v1/pr/{id}/translations/{translationId}/timeline", id, translationId))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.draftId").value(id))
+            .andExpect(jsonPath("$.data.translationId").value(translationId))
+            .andExpect(jsonPath("$.data.targetLanguage").value("en"))
+            .andExpect(jsonPath("$.data.items[0].key").value("translation-created"))
+            .andExpect(jsonPath("$.data.items[0].status").value("DONE"))
+            .andExpect(jsonPath("$.data.items[2].key").value("readiness-reviewed"))
+            .andExpect(jsonPath("$.data.items[2].detail").value("5/5 translation readiness items ready"))
+            .andExpect(jsonPath("$.data.items[3].key").value("submission-prepared"))
+            .andExpect(jsonPath("$.data.items[3].status").value("READY"));
+    }
+
+    @Test
     void returnsNotFoundForTranslationSubmissionWhenTranslationBelongsToAnotherDraft() throws Exception {
         String sourceDraftId = createDraft();
         String translationId = createTranslation(sourceDraftId);
@@ -238,6 +257,16 @@ class PullRequestDraftControllerTest {
         String otherDraftId = createDraft();
 
         mockMvc.perform(get("/api/v1/pr/{id}/translations/{translationId}/readiness", otherDraftId, translationId))
+            .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void returnsNotFoundForTranslationTimelineWhenTranslationBelongsToAnotherDraft() throws Exception {
+        String sourceDraftId = createDraft();
+        String translationId = createTranslation(sourceDraftId);
+        String otherDraftId = createDraft();
+
+        mockMvc.perform(get("/api/v1/pr/{id}/translations/{translationId}/timeline", otherDraftId, translationId))
             .andExpect(status().isNotFound());
     }
 

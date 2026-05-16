@@ -3,6 +3,7 @@ package com.aquilabuddy.application.service.prdraft;
 import com.aquilabuddy.application.port.in.prdraft.CreatePullRequestDraftTranslationUseCase;
 import com.aquilabuddy.application.port.in.prdraft.GetPullRequestDraftTranslationReadinessUseCase;
 import com.aquilabuddy.application.port.in.prdraft.GetPullRequestDraftTranslationSubmissionUseCase;
+import com.aquilabuddy.application.port.in.prdraft.GetPullRequestDraftTranslationTimelineUseCase;
 import com.aquilabuddy.application.port.in.prdraft.ListPullRequestDraftTranslationsUseCase;
 import com.aquilabuddy.application.port.out.prdraft.LoadPullRequestDraftPort;
 import com.aquilabuddy.application.port.out.prdraft.LoadPullRequestDraftTranslationPort;
@@ -12,6 +13,7 @@ import com.aquilabuddy.domain.prdraft.PullRequestDraft;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftTranslation;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftTranslationReadiness;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftTranslationSubmission;
+import com.aquilabuddy.domain.prdraft.PullRequestDraftTranslationTimeline;
 import com.aquilabuddy.domain.prdraft.StoredPullRequestDraft;
 import java.util.List;
 import java.util.Locale;
@@ -26,7 +28,8 @@ public class PullRequestDraftTranslationService implements
     CreatePullRequestDraftTranslationUseCase,
     ListPullRequestDraftTranslationsUseCase,
     GetPullRequestDraftTranslationReadinessUseCase,
-    GetPullRequestDraftTranslationSubmissionUseCase {
+    GetPullRequestDraftTranslationSubmissionUseCase,
+    GetPullRequestDraftTranslationTimelineUseCase {
 
     private final LoadPullRequestDraftPort loadPullRequestDraftPort;
     private final TranslatePullRequestDraftPort translatePullRequestDraftPort;
@@ -90,6 +93,17 @@ public class PullRequestDraftTranslationService implements
             .flatMap(draft -> loadPullRequestDraftTranslationPort.loadPullRequestDraftTranslation(translationId)
                 .filter(translation -> draft.id().equals(translation.draftId()))
                 .map(translation -> PullRequestDraftTranslationReadiness.from(draft, translation)));
+    }
+
+    @Override
+    public Optional<PullRequestDraftTranslationTimeline> getTranslationTimeline(
+        String draftId,
+        String translationId
+    ) {
+        return loadPullRequestDraftPort.loadPullRequestDraft(draftId)
+            .flatMap(draft -> loadPullRequestDraftTranslationPort.loadPullRequestDraftTranslation(translationId)
+                .filter(translation -> draft.id().equals(translation.draftId()))
+                .map(translation -> PullRequestDraftTranslationTimeline.from(draft, translation)));
     }
 
     private String normalizeTargetLanguage(String targetLanguage) {

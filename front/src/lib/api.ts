@@ -147,6 +147,22 @@ export type PullRequestDraftTranslationReadiness = {
   readyCount: number;
 };
 
+export type PullRequestDraftTranslationTimelineItem = {
+  key: "translation-created" | "translation-ready" | "readiness-reviewed" | "submission-prepared";
+  label: string;
+  description: string;
+  detail: string;
+  status: PullRequestDraftTimelineStatus;
+  occurredAt: string;
+};
+
+export type PullRequestDraftTranslationTimeline = {
+  draftId: string;
+  translationId: string;
+  targetLanguage: "en";
+  items: PullRequestDraftTranslationTimelineItem[];
+};
+
 export type PullRequestDraftTranslationSubmission = {
   draftId: string;
   translationId: string;
@@ -364,6 +380,30 @@ export async function getPullRequestDraftTranslationReadiness(
 
   if (!payload.success || !payload.data) {
     throw new Error(payload.message ?? "Pull request draft translation readiness response was not successful");
+  }
+
+  return payload.data;
+}
+
+export async function getPullRequestDraftTranslationTimeline(
+  id: string,
+  translationId: string
+): Promise<PullRequestDraftTranslationTimeline> {
+  const response = await fetch(
+    `${API_URL}/api/v1/pr/${encodeURIComponent(id)}/translations/${encodeURIComponent(translationId)}/timeline`,
+    {
+      cache: "no-store"
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch pull request draft translation timeline");
+  }
+
+  const payload = (await response.json()) as ApiResponse<PullRequestDraftTranslationTimeline>;
+
+  if (!payload.success || !payload.data) {
+    throw new Error(payload.message ?? "Pull request draft translation timeline response was not successful");
   }
 
   return payload.data;
