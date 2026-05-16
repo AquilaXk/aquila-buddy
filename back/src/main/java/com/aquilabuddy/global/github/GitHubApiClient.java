@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
@@ -114,6 +115,81 @@ public class GitHubApiClient {
                 (left, right) -> left,
                 LinkedHashMap::new
             ));
+    }
+
+    /**
+     * profile vector 입력에 사용할 사용자 기여 context 텍스트를 생성합니다.
+     */
+    public String buildContributionContextText(
+        GitHubUserProfile profile,
+        List<GitHubRepository> repositories,
+        Map<String, Integer> languages
+    ) {
+        StringBuilder builder = new StringBuilder("Developer GitHub Profile\n\n");
+
+        if (!languages.isEmpty()) {
+            builder.append("Primary Programming Languages: ")
+                .append(String.join(", ", languages.keySet()))
+                .append("\n");
+        }
+
+        if (profile != null && profile.bio() != null && !profile.bio().isBlank()) {
+            builder.append("Bio: ")
+                .append(profile.bio())
+                .append("\n");
+        }
+
+        List<GitHubRepository> repositoriesWithContent = repositories.stream()
+            .filter(repository -> hasText(repository.description()) || !repository.topics().isEmpty())
+            .limit(10)
+            .toList();
+
+        if (!repositoriesWithContent.isEmpty()) {
+            builder.append("\nRecent Projects:\n");
+            repositoriesWithContent.forEach(repository -> builder
+                .append("- ")
+                .append(repository.name())
+                .append(" (")
+                .append(repositoryDetail(repository))
+                .append(")")
+                .append(topicText(repository))
+                .append("\n"));
+        }
+
+        List<String> topics = repositories.stream()
+            .flatMap(repository -> repository.topics().stream())
+            .distinct()
+            .limit(20)
+            .toList();
+
+        if (!topics.isEmpty()) {
+            builder.append("\nTechnical Interests: ")
+                .append(String.join(", ", topics))
+                .append("\n");
+        }
+
+        return builder.toString().trim();
+    }
+
+    private String repositoryDetail(GitHubRepository repository) {
+        return Stream.of(repository.language(), repository.description())
+            .filter(this::hasText)
+            .toList()
+            .stream()
+            .reduce((left, right) -> left + ", " + right)
+            .orElse("");
+    }
+
+    private String topicText(GitHubRepository repository) {
+        if (repository.topics().isEmpty()) {
+            return "";
+        }
+
+        return " [" + String.join(", ", repository.topics()) + "]";
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.isBlank();
     }
 
     public record GitHubUserProfile(String login, String bio, int publicRepos) {

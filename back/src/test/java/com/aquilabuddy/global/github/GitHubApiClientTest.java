@@ -8,6 +8,7 @@ import com.sun.net.httpserver.HttpServer;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -126,6 +127,33 @@ class GitHubApiClientTest {
             entry("Java", 2),
             entry("TypeScript", 1)
         );
+    }
+
+    @Test
+    void buildsContributionContextText() {
+        GitHubApiClient client = client();
+        GitHubApiClient.GitHubUserProfile profile = new GitHubApiClient.GitHubUserProfile(
+            "aquila-dev",
+            "Open source contributor",
+            12
+        );
+        List<GitHubApiClient.GitHubRepository> repositories = List.of(
+            new GitHubApiClient.GitHubRepository("api", "Spring API", "Java", List.of("spring"), 7),
+            new GitHubApiClient.GitHubRepository("web", "Next app", "TypeScript", List.of("nextjs", "oss"), 5),
+            new GitHubApiClient.GitHubRepository("docs", null, null, List.of("docs"), 1)
+        );
+        Map<String, Integer> languages = new LinkedHashMap<>();
+        languages.put("Java", 1);
+        languages.put("TypeScript", 1);
+
+        String text = client.buildContributionContextText(profile, repositories, languages);
+
+        assertThat(text).contains("Developer GitHub Profile");
+        assertThat(text).contains("Primary Programming Languages: Java, TypeScript");
+        assertThat(text).contains("Bio: Open source contributor");
+        assertThat(text).contains("- api (Java, Spring API) [spring]");
+        assertThat(text).contains("- web (TypeScript, Next app) [nextjs, oss]");
+        assertThat(text).contains("Technical Interests: spring, nextjs, oss, docs");
     }
 
     private GitHubApiClient client() {
