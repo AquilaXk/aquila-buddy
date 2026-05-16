@@ -1,6 +1,7 @@
 package com.aquilabuddy.domain.issue;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -45,6 +46,24 @@ class IssueRecommendationControllerTest {
             .andExpect(jsonPath("$.data[0].labels[0]").value("good first issue"))
             .andExpect(jsonPath("$.data[0].isAnalyzed").value(false))
             .andExpect(jsonPath("$.data[0].analysisResultId").doesNotExist());
+    }
+
+    @Test
+    void crawlsIssuesBySearchQuery() throws Exception {
+        mockMvc.perform(post("/api/v1/issues/crawl/search")
+                .param("q", "language:java label:\"good first issue\""))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data").isArray());
+    }
+
+    @Test
+    void rejectsBlankIssueSearchQuery() throws Exception {
+        mockMvc.perform(post("/api/v1/issues/crawl/search")
+                .param("q", ""))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.success").value(false))
+            .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("q")));
     }
 
     @Test

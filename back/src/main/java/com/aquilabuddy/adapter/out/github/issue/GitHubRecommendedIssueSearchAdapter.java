@@ -41,6 +41,11 @@ public class GitHubRecommendedIssueSearchAdapter implements SearchRecommendedIss
      */
     @Override
     public List<RecommendedIssue> searchRecommendedIssues() {
+        return searchRecommendedIssues(query);
+    }
+
+    @Override
+    public List<RecommendedIssue> searchRecommendedIssues(String query) {
         if (!enabled) {
             return List.of();
         }
@@ -48,7 +53,7 @@ public class GitHubRecommendedIssueSearchAdapter implements SearchRecommendedIss
         GitHubIssueSearchResponse response = restClient.get()
             .uri(uriBuilder -> uriBuilder
                 .path("/search/issues")
-                .queryParam("q", normalizedQuery())
+                .queryParam("q", normalizedQuery(query))
                 .queryParam("per_page", limit)
                 .build())
             .headers(headers -> {
@@ -69,8 +74,9 @@ public class GitHubRecommendedIssueSearchAdapter implements SearchRecommendedIss
             .toList();
     }
 
-    private String normalizedQuery() {
-        return query + " is:issue is:open";
+    private String normalizedQuery(String requestedQuery) {
+        String baseQuery = nonBlankOrDefault(requestedQuery, query);
+        return baseQuery + " is:issue is:open";
     }
 
     private RecommendedIssue toRecommendedIssue(GitHubIssueSearchItem item) {

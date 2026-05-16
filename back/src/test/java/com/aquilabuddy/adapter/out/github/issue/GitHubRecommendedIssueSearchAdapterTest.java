@@ -78,4 +78,51 @@ class GitHubRecommendedIssueSearchAdapterTest {
         assertThat(issues.getFirst().labels()).containsExactly("good first issue", "documentation");
         assertThat(issues.getFirst().status()).isEqualTo("OPEN");
     }
+
+    @Test
+    void searchesWithRequestedQuery() throws IOException {
+        AtomicReference<String> rawQuery = new AtomicReference<>();
+        server = HttpServer.create(new InetSocketAddress(0), 0);
+        server.createContext("/search/issues", exchange -> {
+            rawQuery.set(exchange.getRequestURI().getRawQuery());
+            byte[] body = """
+                {
+                  "items": [
+                    {
+                      "id": 123,
+                      "number": 7,
+                      "title": "Fix Java docs",
+                      "body": "Good first issue for Java contributors.",
+                      "repository_url": "https://api.github.com/repos/example/java-lib",
+                      "labels": [
+                        {"name": "good first issue"}
+                      ]
+                    }
+                  ]
+                }
+                """.getBytes(StandardCharsets.UTF_8);
+            exchange.getResponseHeaders().add("Content-Type", "application/json");
+            exchange.sendResponseHeaders(200, body.length);
+            exchange.getResponseBody().write(body);
+            exchange.close();
+        });
+        server.start();
+        GitHubRecommendedIssueSearchAdapter adapter = new GitHubRecommendedIssueSearchAdapter(
+            RestClient.builder(),
+            "http://localhost:" + server.getAddress().getPort(),
+            "",
+            true,
+            "label:\"good first issue\"",
+            5
+        );
+
+        List<RecommendedIssue> issues = adapter.searchRecommendedIssues("language:java label:\"good first issue\"");
+
+        assertThat(URLDecoder.decode(rawQuery.get(), StandardCharsets.UTF_8))
+            .contains("q=language:java label:\"good first issue\" is:issue is:open")
+            .contains("per_page=5");
+        assertThat(issues)
+            .extracting(RecommendedIssue::repoFullName)
+            .containsExactly("example/java-lib");
+    }
 }
