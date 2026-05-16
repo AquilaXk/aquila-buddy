@@ -32,9 +32,10 @@ export default function Navbar() {
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
         <Link
           href="/dashboard"
-          className="text-lg font-bold tracking-tight text-github-purple-light transition-opacity hover:opacity-80"
+          className="flex items-center gap-2 text-lg font-bold tracking-tight text-github-purple-light transition-opacity hover:opacity-80"
         >
-          OMOS
+          <img alt="" className="h-7 w-7 rounded-md" height="28" src="/brand-mascot.png" width="28" />
+          aquila buddy
         </Link>
 
         <div className="flex items-center gap-1">

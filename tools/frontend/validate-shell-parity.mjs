@@ -4,6 +4,7 @@ import { join, relative, resolve } from "node:path";
 const repoRoot = resolve(import.meta.dirname, "../..");
 const protectedLayoutPath = join(repoRoot, "front/src/components/ProtectedLayout.tsx");
 const navbarPath = join(repoRoot, "front/src/components/Navbar.tsx");
+const layoutPath = join(repoRoot, "front/src/app/layout.tsx");
 const appRoot = join(repoRoot, "front/src/app");
 
 const failures = [];
@@ -51,10 +52,28 @@ const navbar = readText(navbarPath);
 assertIncludes(navbar, "const navLinks = [", "Navbar must keep the target navLinks contract.");
 assertIncludes(navbar, "export default function Navbar()", "Navbar must be the default export.");
 assertIncludes(navbar, "<nav className=\"sticky top-0 z-50 border-b border-github-border bg-github-surface\">", "Navbar root shell class changed.");
+assertIncludes(navbar, "/brand-mascot.png", "Navbar must render the brand image.");
+assertIncludes(navbar, "aquila buddy", "Navbar must show the service name.");
 assertNotIncludes(navbar, "<header", "Navbar must not add an extra header wrapper.");
+assertNotIncludes(navbar, "OMOS", "Navbar must not use the old service name.");
 
 for (const label of ["대시보드", "추천 이슈", "PR 초안", "내 프로필"]) {
   assertIncludes(navbar, `label: "${label}"`, `Navbar is missing ${label}.`);
+}
+
+const layout = readText(layoutPath);
+assertIncludes(layout, "title: \"aquila buddy\"", "Root metadata must use the service name.");
+assertIncludes(layout, "icon: \"/favicon.ico\"", "Root metadata must declare the favicon.");
+assertIncludes(layout, "apple: \"/apple-touch-icon.png\"", "Root metadata must declare the apple touch icon.");
+
+for (const assetPath of [
+  "front/public/favicon.ico",
+  "front/public/apple-touch-icon.png",
+  "front/public/brand-mascot.png"
+]) {
+  if (!existsSync(join(repoRoot, assetPath))) {
+    fail(`${assetPath} must exist.`);
+  }
 }
 
 for (const path of collectTsxFiles(appRoot)) {
