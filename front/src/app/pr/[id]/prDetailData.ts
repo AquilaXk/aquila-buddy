@@ -1,16 +1,20 @@
 import {
   getPullRequestDraft,
   getPullRequestDraftReadiness,
+  getPullRequestDraftSubmission,
   type PullRequestDraftReadiness,
+  type PullRequestDraftSubmission,
   type StoredPullRequestDraft
 } from "@/lib/api";
 
 export type PrDetailOverview = {
   draft: StoredPullRequestDraft | null;
   readiness: PullRequestDraftReadiness | null;
+  submission: PullRequestDraftSubmission | null;
   errors: {
     draft: boolean;
     readiness: boolean;
+    submission: boolean;
   };
 };
 
@@ -20,17 +24,20 @@ type LoadResult<T> = {
 };
 
 export async function loadPrDetailOverview(id: string): Promise<PrDetailOverview> {
-  const [draftResult, readinessResult] = await Promise.all([
+  const [draftResult, readinessResult, submissionResult] = await Promise.all([
     loadSafely(getPullRequestDraft(id), null),
-    loadSafely(getPullRequestDraftReadiness(id), null)
+    loadSafely(getPullRequestDraftReadiness(id), null),
+    loadSafely(getPullRequestDraftSubmission(id), null)
   ]);
 
   return {
     draft: draftResult.data,
     readiness: readinessResult.data,
+    submission: submissionResult.data,
     errors: {
       draft: draftResult.error,
-      readiness: readinessResult.error
+      readiness: readinessResult.error,
+      submission: submissionResult.error
     }
   };
 }
