@@ -12,4 +12,11 @@ public interface SearchRecommendedIssuesPort {
      * 현재 추천 정책에 맞는 최신 이슈 후보를 반환합니다.
      */
     List<RecommendedIssue> searchRecommendedIssues();
+
+    /**
+     * 요청 검색어에 맞는 최신 이슈 후보를 반환합니다.
+     */
+    default List<RecommendedIssue> searchRecommendedIssues(String query) {
+        return searchRecommendedIssues();
+    }
 }

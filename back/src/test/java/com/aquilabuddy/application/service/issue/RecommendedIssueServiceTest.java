@@ -51,6 +51,25 @@ class RecommendedIssueServiceTest {
     }
 
     @Test
+    void crawlsIssuesBySearchQueryAndSavesResult() {
+        RecommendedIssue searched = issue("github-search", "spring-projects/spring-boot", 101);
+        RecordingSearchRecommendedIssuesPort searchPort = new RecordingSearchRecommendedIssuesPort(List.of(searched));
+        RecordingSaveRecommendedIssuesPort savePort = new RecordingSaveRecommendedIssuesPort();
+        RecommendedIssueService service = new RecommendedIssueService(
+            new CountingLoadRecommendedIssuesPort(List.of()),
+            new InMemoryFindRecommendedIssuePort(List.of()),
+            savePort,
+            searchPort
+        );
+
+        List<RecommendedIssue> result = service.crawlSearchIssues("language:java label:\"good first issue\"");
+
+        assertThat(result).containsExactly(searched);
+        assertThat(searchPort.receivedQuery()).isEqualTo("language:java label:\"good first issue\"");
+        assertThat(savePort.savedIssues()).containsExactly(searched);
+    }
+
+    @Test
     void fallsBackToStoredIssuesWhenSearchReturnsEmpty() {
         RecommendedIssue stored = issue("stored", "vercel/next.js", 1);
         RecommendedIssueService service = new RecommendedIssueService(
@@ -120,6 +139,31 @@ class RecommendedIssueServiceTest {
         return () -> {
             throw new IllegalStateException("GitHub unavailable");
         };
+    }
+
+    private static final class RecordingSearchRecommendedIssuesPort implements SearchRecommendedIssuesPort {
+
+        private final List<RecommendedIssue> issues;
+        private String receivedQuery;
+
+        private RecordingSearchRecommendedIssuesPort(List<RecommendedIssue> issues) {
+            this.issues = issues;
+        }
+
+        @Override
+        public List<RecommendedIssue> searchRecommendedIssues() {
+            return issues;
+        }
+
+        @Override
+        public List<RecommendedIssue> searchRecommendedIssues(String query) {
+            receivedQuery = query;
+            return issues;
+        }
+
+        String receivedQuery() {
+            return receivedQuery;
+        }
     }
 
     private static RecommendedIssue issue(String id, String repoFullName, long issueNumber) {

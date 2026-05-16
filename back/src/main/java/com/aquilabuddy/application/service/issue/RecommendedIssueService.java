@@ -3,6 +3,7 @@ package com.aquilabuddy.application.service.issue;
 import com.aquilabuddy.application.port.in.issue.GetRecommendedIssueHistoryUseCase;
 import com.aquilabuddy.application.port.in.issue.LookupRecommendedIssueUseCase;
 import com.aquilabuddy.application.port.in.issue.RecommendIssuesUseCase;
+import com.aquilabuddy.application.port.in.issue.CrawlSearchIssuesUseCase;
 import com.aquilabuddy.application.port.out.issue.FindRecommendedIssuePort;
 import com.aquilabuddy.application.port.out.issue.LoadRecommendedIssuesPort;
 import com.aquilabuddy.application.port.out.issue.SaveRecommendedIssuesPort;
@@ -21,6 +22,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class RecommendedIssueService implements
     RecommendIssuesUseCase,
+    CrawlSearchIssuesUseCase,
     GetRecommendedIssueHistoryUseCase,
     LookupRecommendedIssueUseCase {
 
@@ -56,6 +58,16 @@ public class RecommendedIssueService implements
             // 외부 검색 장애가 추천 API 전체 실패로 번지지 않도록 저장 데이터 fallback을 유지합니다.
         }
         return loadRecommendedIssuesPort.loadRecommendedIssues();
+    }
+
+    /**
+     * 요청 검색어로 수집한 후보를 저장해 이후 추천/이력 조회에서도 재사용할 수 있게 합니다.
+     */
+    @Override
+    public List<RecommendedIssue> crawlSearchIssues(String query) {
+        List<RecommendedIssue> searchedIssues = searchRecommendedIssuesPort.searchRecommendedIssues(query);
+        saveRecommendedIssuesPort.saveRecommendedIssues(searchedIssues);
+        return searchedIssues;
     }
 
     /**
