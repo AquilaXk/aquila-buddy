@@ -42,6 +42,8 @@ app:
   github:
     api-base-url: https://api.github.com
     token: ${GITHUB_TOKEN:}
+    user-context:
+      enabled: ${GITHUB_USER_CONTEXT_ENABLED:false}
     issue-search:
       enabled: ${GITHUB_ISSUE_SEARCH_ENABLED:false}
       query: 'label:"good first issue"'

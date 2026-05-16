@@ -156,6 +156,53 @@ class GitHubApiClientTest {
         assertThat(text).contains("Technical Interests: spring, nextjs, oss, docs");
     }
 
+    @Test
+    void loadsContributionContextFromProfileAndRepositories() {
+        route("/users/aquila-dev", 200, """
+            {
+              "login": "aquila-dev",
+              "bio": "Open source contributor",
+              "public_repos": 12
+            }
+            """);
+        route("/users/aquila-dev/repos", 200, """
+            [
+              {
+                "name": "api",
+                "description": "Spring API",
+                "language": "Java",
+                "topics": ["spring", "oss"],
+                "stargazers_count": 7,
+                "fork": false
+              },
+              {
+                "name": "worker",
+                "description": "Batch worker",
+                "language": "Java",
+                "topics": ["batch"],
+                "stargazers_count": 5,
+                "fork": false
+              },
+              {
+                "name": "web",
+                "description": "Next app",
+                "language": "TypeScript",
+                "topics": ["nextjs", "oss"],
+                "stargazers_count": 3,
+                "fork": false
+              }
+            ]
+            """);
+        GitHubApiClient client = client();
+
+        GitHubApiClient.GitHubContributionContext context = client.loadContributionContext("aquila-dev");
+
+        assertThat(context.primaryLanguages()).containsExactly("Java", "TypeScript");
+        assertThat(context.topics()).containsExactly("spring", "oss", "batch", "nextjs");
+        assertThat(context.text()).contains("Primary Programming Languages: Java, TypeScript");
+        assertThat(context.text()).contains("Technical Interests: spring, oss, batch, nextjs");
+    }
+
     private GitHubApiClient client() {
         return new GitHubApiClient(RestClient.builder(), baseUrl(), "");
     }

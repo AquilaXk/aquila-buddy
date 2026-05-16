@@ -171,6 +171,38 @@ public class GitHubApiClient {
         return builder.toString().trim();
     }
 
+    /**
+     * 사용자 vector 갱신에 필요한 GitHub 공개 contribution context를 한 번에 구성합니다.
+     */
+    public GitHubContributionContext loadContributionContext(String username) {
+        GitHubUserProfile profile = getUserProfile(username).orElse(null);
+        List<GitHubRepository> repositories = getUserRepos(username);
+        Map<String, Integer> languages = aggregateLanguages(repositories);
+        List<String> primaryLanguages = languages.keySet()
+            .stream()
+            .limit(5)
+            .toList();
+        List<String> topics = aggregateTopics(repositories);
+        String text = buildContributionContextText(profile, repositories, languages);
+
+        return new GitHubContributionContext(
+            profile,
+            repositories,
+            primaryLanguages,
+            topics,
+            text
+        );
+    }
+
+    private List<String> aggregateTopics(List<GitHubRepository> repositories) {
+        return repositories.stream()
+            .flatMap(repository -> repository.topics().stream())
+            .filter(topic -> topic != null && !topic.isBlank())
+            .distinct()
+            .limit(20)
+            .toList();
+    }
+
     private String repositoryDetail(GitHubRepository repository) {
         return Stream.of(repository.language(), repository.description())
             .filter(this::hasText)
@@ -193,6 +225,15 @@ public class GitHubApiClient {
     }
 
     public record GitHubUserProfile(String login, String bio, int publicRepos) {
+    }
+
+    public record GitHubContributionContext(
+        GitHubUserProfile profile,
+        List<GitHubRepository> repositories,
+        List<String> primaryLanguages,
+        List<String> topics,
+        String text
+    ) {
     }
 
     public record GitHubRepository(
