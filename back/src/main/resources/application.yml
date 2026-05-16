@@ -25,6 +25,8 @@ app:
   jwt:
     secret: ${JWT_SECRET:local-development-jwt-secret-32bytes-minimum-value}
     expiration: ${JWT_EXPIRATION:1h}
+  oauth2:
+    redirect-uri: ${OAUTH2_REDIRECT_URI:http://localhost:3000/oauth/callback}
   github:
     api-base-url: https://api.github.com
     token: ${GITHUB_TOKEN:}
