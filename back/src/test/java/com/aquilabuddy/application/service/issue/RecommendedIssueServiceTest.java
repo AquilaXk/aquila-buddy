@@ -121,6 +121,23 @@ class RecommendedIssueServiceTest {
     }
 
     @Test
+    void listsCollectedIssuesWithoutCallingSearch() {
+        RecommendedIssue stored = issue("stored", "vercel/next.js", 1);
+        CountingLoadRecommendedIssuesPort loadPort = new CountingLoadRecommendedIssuesPort(List.of(stored));
+        RecommendedIssueService service = new RecommendedIssueService(
+            loadPort,
+            new InMemoryFindRecommendedIssuePort(List.of(stored)),
+            new RecordingSaveRecommendedIssuesPort(),
+            failingSearchPort()
+        );
+
+        List<RecommendedIssue> result = service.listCollectedIssues();
+
+        assertThat(result).containsExactly(stored);
+        assertThat(loadPort.callCount()).isEqualTo(1);
+    }
+
+    @Test
     void looksUpStoredIssueByRepositoryAndIssueNumber() {
         RecommendedIssue stored = issue("stored", "vercel/next.js", 1);
         RecommendedIssueService service = new RecommendedIssueService(

@@ -4,6 +4,7 @@ import com.aquilabuddy.application.port.in.issue.GetRecommendedIssueHistoryUseCa
 import com.aquilabuddy.application.port.in.issue.LookupRecommendedIssueUseCase;
 import com.aquilabuddy.application.port.in.issue.RecommendIssuesUseCase;
 import com.aquilabuddy.application.port.in.issue.CrawlSearchIssuesUseCase;
+import com.aquilabuddy.application.port.in.issue.ListCollectedIssuesUseCase;
 import com.aquilabuddy.application.port.out.issue.FindRecommendedIssuePort;
 import com.aquilabuddy.application.port.out.issue.LoadRecommendedIssuesPort;
 import com.aquilabuddy.application.port.out.issue.SaveRecommendedIssuesPort;
@@ -24,7 +25,8 @@ public class RecommendedIssueService implements
     RecommendIssuesUseCase,
     CrawlSearchIssuesUseCase,
     GetRecommendedIssueHistoryUseCase,
-    LookupRecommendedIssueUseCase {
+    LookupRecommendedIssueUseCase,
+    ListCollectedIssuesUseCase {
 
     private final LoadRecommendedIssuesPort loadRecommendedIssuesPort;
     private final FindRecommendedIssuePort findRecommendedIssuePort;
@@ -68,6 +70,14 @@ public class RecommendedIssueService implements
         List<RecommendedIssue> searchedIssues = searchRecommendedIssuesPort.searchRecommendedIssues(query);
         saveRecommendedIssuesPort.saveRecommendedIssues(searchedIssues);
         return searchedIssues;
+    }
+
+    /**
+     * 저장된 수집 이슈 catalog를 외부 검색 호출 없이 반환합니다.
+     */
+    @Override
+    public List<RecommendedIssue> listCollectedIssues() {
+        return loadRecommendedIssuesPort.loadRecommendedIssues();
     }
 
     /**
