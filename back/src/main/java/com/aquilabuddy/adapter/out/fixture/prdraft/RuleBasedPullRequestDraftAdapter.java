@@ -36,6 +36,13 @@ public class RuleBasedPullRequestDraftAdapter implements GeneratePullRequestDraf
                 .forEach(line -> bodyLines.add("- " + line));
         }
 
+        if (request.issueContext().hasIssue()) {
+            bodyLines.add("");
+            bodyLines.add("## 연결 이슈");
+            request.issueContext().contextSummaryLines()
+                .forEach(line -> bodyLines.add("- " + line));
+        }
+
         bodyLines.addAll(List.of(
             "",
             "## 테스트",

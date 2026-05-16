@@ -2,6 +2,7 @@ package com.aquilabuddy.application.service.prdraft;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.aquilabuddy.application.port.out.issue.FindRecommendedIssuePort;
 import com.aquilabuddy.application.port.out.prdraft.DeletePullRequestDraftPort;
 import com.aquilabuddy.application.port.out.prdraft.GeneratePullRequestDraftPort;
 import com.aquilabuddy.application.port.out.prdraft.LoadPullRequestDraftDiffPort;
@@ -11,6 +12,7 @@ import com.aquilabuddy.application.port.out.prdraft.LoadPullRequestDraftReposito
 import com.aquilabuddy.application.port.out.prdraft.LoadPullRequestDraftTranslationPort;
 import com.aquilabuddy.application.port.out.prdraft.SavePullRequestDraftPort;
 import com.aquilabuddy.application.port.out.prdraft.UpdatePullRequestDraftPort;
+import com.aquilabuddy.domain.issue.RecommendedIssue;
 import com.aquilabuddy.domain.prdraft.PullRequestDraft;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftContributionReport;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftHistoryPage;
@@ -37,6 +39,7 @@ class PullRequestDraftServiceTest {
             new FakeGeneratePullRequestDraftPort(),
             new FakeLoadPullRequestDraftDiffPort(),
             new FakeLoadPullRequestDraftRepositoryGuideContextPort(),
+            new FakeFindRecommendedIssuePort(),
             savePort,
             new FakeLoadPullRequestDraftPort(),
             new FakeLoadPullRequestDraftHistoryPort(),
@@ -73,6 +76,7 @@ class PullRequestDraftServiceTest {
             generatePort,
             diffPort,
             new FakeLoadPullRequestDraftRepositoryGuideContextPort(),
+            new FakeFindRecommendedIssuePort(),
             savePort,
             new FakeLoadPullRequestDraftPort(),
             new FakeLoadPullRequestDraftHistoryPort(),
@@ -106,6 +110,7 @@ class PullRequestDraftServiceTest {
             generatePort,
             diffPort,
             new FakeLoadPullRequestDraftRepositoryGuideContextPort(),
+            new FakeFindRecommendedIssuePort(),
             new FakeSavePullRequestDraftPort(),
             new FakeLoadPullRequestDraftPort(),
             new FakeLoadPullRequestDraftHistoryPort(),
@@ -139,6 +144,7 @@ class PullRequestDraftServiceTest {
             generatePort,
             new FakeLoadPullRequestDraftDiffPort(),
             guideContextPort,
+            new FakeFindRecommendedIssuePort(),
             savePort,
             new FakeLoadPullRequestDraftPort(),
             new FakeLoadPullRequestDraftHistoryPort(),
@@ -164,12 +170,50 @@ class PullRequestDraftServiceTest {
     }
 
     @Test
+    void resolvesStoredIssueContextBeforeGeneratingAndSaving() {
+        FakeFindRecommendedIssuePort issuePort = new FakeFindRecommendedIssuePort();
+        FakeGeneratePullRequestDraftPort generatePort = new FakeGeneratePullRequestDraftPort();
+        FakeSavePullRequestDraftPort savePort = new FakeSavePullRequestDraftPort();
+        PullRequestDraftService service = new PullRequestDraftService(
+            generatePort,
+            new FakeLoadPullRequestDraftDiffPort(),
+            new FakeLoadPullRequestDraftRepositoryGuideContextPort(),
+            issuePort,
+            savePort,
+            new FakeLoadPullRequestDraftPort(),
+            new FakeLoadPullRequestDraftHistoryPort(),
+            new FakeUpdatePullRequestDraftPort(),
+            new FakeDeletePullRequestDraftPort(),
+            new FakeLoadPullRequestDraftTranslationPort()
+        );
+
+        PullRequestDraftRequest request = new PullRequestDraftRequest(
+            "spring-projects/spring-boot",
+            2,
+            "main",
+            "feat/validation-docs",
+            "diff --git a/docs.adoc b/docs.adoc\n+Provided by client"
+        );
+
+        service.create(request);
+
+        assertThat(issuePort.receivedRepoFullName).isEqualTo("spring-projects/spring-boot");
+        assertThat(issuePort.receivedIssueNumber).isEqualTo(2);
+        assertThat(generatePort.generatedRequest.issueContext().title()).isEqualTo("Fix validation message");
+        assertThat(generatePort.generatedRequest.issueContext().summary())
+            .isEqualTo("Error message should explain invalid input.");
+        assertThat(generatePort.generatedRequest.issueContext().reason()).isEqualTo("Matches Java validation topic");
+        assertThat(savePort.savedRequest).isEqualTo(generatePort.generatedRequest);
+    }
+
+    @Test
     void listsRecentStoredDrafts() {
         FakeLoadPullRequestDraftPort loadPort = new FakeLoadPullRequestDraftPort();
         PullRequestDraftService service = new PullRequestDraftService(
             new FakeGeneratePullRequestDraftPort(),
             new FakeLoadPullRequestDraftDiffPort(),
             new FakeLoadPullRequestDraftRepositoryGuideContextPort(),
+            new FakeFindRecommendedIssuePort(),
             new FakeSavePullRequestDraftPort(),
             loadPort,
             new FakeLoadPullRequestDraftHistoryPort(),
@@ -192,6 +236,7 @@ class PullRequestDraftServiceTest {
             new FakeGeneratePullRequestDraftPort(),
             new FakeLoadPullRequestDraftDiffPort(),
             new FakeLoadPullRequestDraftRepositoryGuideContextPort(),
+            new FakeFindRecommendedIssuePort(),
             new FakeSavePullRequestDraftPort(),
             loadPort,
             new FakeLoadPullRequestDraftHistoryPort(),
@@ -212,6 +257,7 @@ class PullRequestDraftServiceTest {
             new FakeGeneratePullRequestDraftPort(),
             new FakeLoadPullRequestDraftDiffPort(),
             new FakeLoadPullRequestDraftRepositoryGuideContextPort(),
+            new FakeFindRecommendedIssuePort(),
             new FakeSavePullRequestDraftPort(),
             new FakeLoadPullRequestDraftPort(),
             new FakeLoadPullRequestDraftHistoryPort(),
@@ -237,6 +283,7 @@ class PullRequestDraftServiceTest {
             new FakeGeneratePullRequestDraftPort(),
             new FakeLoadPullRequestDraftDiffPort(),
             new FakeLoadPullRequestDraftRepositoryGuideContextPort(),
+            new FakeFindRecommendedIssuePort(),
             new FakeSavePullRequestDraftPort(),
             new FakeLoadPullRequestDraftPort(),
             new FakeLoadPullRequestDraftHistoryPort(),
@@ -266,6 +313,7 @@ class PullRequestDraftServiceTest {
             new FakeGeneratePullRequestDraftPort(),
             new FakeLoadPullRequestDraftDiffPort(),
             new FakeLoadPullRequestDraftRepositoryGuideContextPort(),
+            new FakeFindRecommendedIssuePort(),
             new FakeSavePullRequestDraftPort(),
             new FakeLoadPullRequestDraftPort(),
             new FakeLoadPullRequestDraftHistoryPort(),
@@ -287,6 +335,7 @@ class PullRequestDraftServiceTest {
             new FakeGeneratePullRequestDraftPort(),
             new FakeLoadPullRequestDraftDiffPort(),
             new FakeLoadPullRequestDraftRepositoryGuideContextPort(),
+            new FakeFindRecommendedIssuePort(),
             new FakeSavePullRequestDraftPort(),
             new FakeLoadPullRequestDraftPort(),
             historyPort,
@@ -335,6 +384,28 @@ class PullRequestDraftServiceTest {
                 "## Summary\n- Describe changes",
                 List.of()
             );
+        }
+    }
+
+    private static class FakeFindRecommendedIssuePort implements FindRecommendedIssuePort {
+
+        private final RecommendedIssue issue;
+        private String receivedRepoFullName;
+        private long receivedIssueNumber;
+
+        private FakeFindRecommendedIssuePort() {
+            this(recommendedIssue());
+        }
+
+        private FakeFindRecommendedIssuePort(RecommendedIssue issue) {
+            this.issue = issue;
+        }
+
+        @Override
+        public Optional<RecommendedIssue> findByRepoFullNameAndIssueNumber(String repoFullName, long issueNumber) {
+            receivedRepoFullName = repoFullName;
+            receivedIssueNumber = issueNumber;
+            return Optional.ofNullable(issue);
         }
     }
 
@@ -474,6 +545,20 @@ class PullRequestDraftServiceTest {
             draft.title(),
             draft.body(),
             Instant.parse("2026-05-15T00:00:00Z")
+        );
+    }
+
+    private static RecommendedIssue recommendedIssue() {
+        return new RecommendedIssue(
+            "issue-2",
+            "spring-projects/spring-boot",
+            2,
+            "Fix validation message",
+            "Error message should explain invalid input.",
+            0.91,
+            List.of("good first issue"),
+            "OPEN",
+            "Matches Java validation topic"
         );
     }
 }
