@@ -6,6 +6,7 @@ import com.aquilabuddy.application.port.out.issue.FindRecommendedIssuePort;
 import com.aquilabuddy.application.port.out.prdraft.DeletePullRequestDraftPort;
 import com.aquilabuddy.application.port.out.prdraft.GeneratePullRequestDraftPort;
 import com.aquilabuddy.application.port.out.prdraft.LoadPullRequestDraftDiffPort;
+import com.aquilabuddy.application.port.out.prdraft.LoadPullRequestDraftAnalysisContextPort;
 import com.aquilabuddy.application.port.out.prdraft.LoadPullRequestDraftHistoryPort;
 import com.aquilabuddy.application.port.out.prdraft.LoadPullRequestDraftPort;
 import com.aquilabuddy.application.port.out.prdraft.LoadPullRequestDraftRepositoryGuideContextPort;
@@ -14,6 +15,7 @@ import com.aquilabuddy.application.port.out.prdraft.SavePullRequestDraftPort;
 import com.aquilabuddy.application.port.out.prdraft.UpdatePullRequestDraftPort;
 import com.aquilabuddy.domain.issue.RecommendedIssue;
 import com.aquilabuddy.domain.prdraft.PullRequestDraft;
+import com.aquilabuddy.domain.prdraft.PullRequestDraftAnalysisContext;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftContributionReport;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftHistoryPage;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftHistoryQuery;
@@ -40,6 +42,7 @@ class PullRequestDraftServiceTest {
             new FakeLoadPullRequestDraftDiffPort(),
             new FakeLoadPullRequestDraftRepositoryGuideContextPort(),
             new FakeFindRecommendedIssuePort(),
+            new FakeLoadPullRequestDraftAnalysisContextPort(),
             savePort,
             new FakeLoadPullRequestDraftPort(),
             new FakeLoadPullRequestDraftHistoryPort(),
@@ -77,6 +80,7 @@ class PullRequestDraftServiceTest {
             diffPort,
             new FakeLoadPullRequestDraftRepositoryGuideContextPort(),
             new FakeFindRecommendedIssuePort(),
+            new FakeLoadPullRequestDraftAnalysisContextPort(),
             savePort,
             new FakeLoadPullRequestDraftPort(),
             new FakeLoadPullRequestDraftHistoryPort(),
@@ -111,6 +115,7 @@ class PullRequestDraftServiceTest {
             diffPort,
             new FakeLoadPullRequestDraftRepositoryGuideContextPort(),
             new FakeFindRecommendedIssuePort(),
+            new FakeLoadPullRequestDraftAnalysisContextPort(),
             new FakeSavePullRequestDraftPort(),
             new FakeLoadPullRequestDraftPort(),
             new FakeLoadPullRequestDraftHistoryPort(),
@@ -145,6 +150,7 @@ class PullRequestDraftServiceTest {
             new FakeLoadPullRequestDraftDiffPort(),
             guideContextPort,
             new FakeFindRecommendedIssuePort(),
+            new FakeLoadPullRequestDraftAnalysisContextPort(),
             savePort,
             new FakeLoadPullRequestDraftPort(),
             new FakeLoadPullRequestDraftHistoryPort(),
@@ -179,6 +185,7 @@ class PullRequestDraftServiceTest {
             new FakeLoadPullRequestDraftDiffPort(),
             new FakeLoadPullRequestDraftRepositoryGuideContextPort(),
             issuePort,
+            new FakeLoadPullRequestDraftAnalysisContextPort(),
             savePort,
             new FakeLoadPullRequestDraftPort(),
             new FakeLoadPullRequestDraftHistoryPort(),
@@ -207,6 +214,44 @@ class PullRequestDraftServiceTest {
     }
 
     @Test
+    void resolvesAnalysisContextBeforeGeneratingAndSaving() {
+        FakeLoadPullRequestDraftAnalysisContextPort analysisContextPort =
+            new FakeLoadPullRequestDraftAnalysisContextPort();
+        FakeGeneratePullRequestDraftPort generatePort = new FakeGeneratePullRequestDraftPort();
+        FakeSavePullRequestDraftPort savePort = new FakeSavePullRequestDraftPort();
+        PullRequestDraftService service = new PullRequestDraftService(
+            generatePort,
+            new FakeLoadPullRequestDraftDiffPort(),
+            new FakeLoadPullRequestDraftRepositoryGuideContextPort(),
+            new FakeFindRecommendedIssuePort(),
+            analysisContextPort,
+            savePort,
+            new FakeLoadPullRequestDraftPort(),
+            new FakeLoadPullRequestDraftHistoryPort(),
+            new FakeUpdatePullRequestDraftPort(),
+            new FakeDeletePullRequestDraftPort(),
+            new FakeLoadPullRequestDraftTranslationPort()
+        );
+
+        PullRequestDraftRequest request = new PullRequestDraftRequest(
+            "spring-projects/spring-boot",
+            2,
+            "main",
+            "feat/validation-docs",
+            "diff --git a/docs.adoc b/docs.adoc\n+Provided by client"
+        );
+
+        service.create(request);
+
+        assertThat(analysisContextPort.receivedRequest.issueContext().title()).isEqualTo("Fix validation message");
+        assertThat(generatePort.generatedRequest.analysisContext().guideline())
+            .isEqualTo("Follow the validation guide.");
+        assertThat(generatePort.generatedRequest.analysisContext().pseudoCode())
+            .isEqualTo("if invalid then return a helpful message");
+        assertThat(savePort.savedRequest).isEqualTo(generatePort.generatedRequest);
+    }
+
+    @Test
     void listsRecentStoredDrafts() {
         FakeLoadPullRequestDraftPort loadPort = new FakeLoadPullRequestDraftPort();
         PullRequestDraftService service = new PullRequestDraftService(
@@ -214,6 +259,7 @@ class PullRequestDraftServiceTest {
             new FakeLoadPullRequestDraftDiffPort(),
             new FakeLoadPullRequestDraftRepositoryGuideContextPort(),
             new FakeFindRecommendedIssuePort(),
+            new FakeLoadPullRequestDraftAnalysisContextPort(),
             new FakeSavePullRequestDraftPort(),
             loadPort,
             new FakeLoadPullRequestDraftHistoryPort(),
@@ -237,6 +283,7 @@ class PullRequestDraftServiceTest {
             new FakeLoadPullRequestDraftDiffPort(),
             new FakeLoadPullRequestDraftRepositoryGuideContextPort(),
             new FakeFindRecommendedIssuePort(),
+            new FakeLoadPullRequestDraftAnalysisContextPort(),
             new FakeSavePullRequestDraftPort(),
             loadPort,
             new FakeLoadPullRequestDraftHistoryPort(),
@@ -258,6 +305,7 @@ class PullRequestDraftServiceTest {
             new FakeLoadPullRequestDraftDiffPort(),
             new FakeLoadPullRequestDraftRepositoryGuideContextPort(),
             new FakeFindRecommendedIssuePort(),
+            new FakeLoadPullRequestDraftAnalysisContextPort(),
             new FakeSavePullRequestDraftPort(),
             new FakeLoadPullRequestDraftPort(),
             new FakeLoadPullRequestDraftHistoryPort(),
@@ -284,6 +332,7 @@ class PullRequestDraftServiceTest {
             new FakeLoadPullRequestDraftDiffPort(),
             new FakeLoadPullRequestDraftRepositoryGuideContextPort(),
             new FakeFindRecommendedIssuePort(),
+            new FakeLoadPullRequestDraftAnalysisContextPort(),
             new FakeSavePullRequestDraftPort(),
             new FakeLoadPullRequestDraftPort(),
             new FakeLoadPullRequestDraftHistoryPort(),
@@ -314,6 +363,7 @@ class PullRequestDraftServiceTest {
             new FakeLoadPullRequestDraftDiffPort(),
             new FakeLoadPullRequestDraftRepositoryGuideContextPort(),
             new FakeFindRecommendedIssuePort(),
+            new FakeLoadPullRequestDraftAnalysisContextPort(),
             new FakeSavePullRequestDraftPort(),
             new FakeLoadPullRequestDraftPort(),
             new FakeLoadPullRequestDraftHistoryPort(),
@@ -336,6 +386,7 @@ class PullRequestDraftServiceTest {
             new FakeLoadPullRequestDraftDiffPort(),
             new FakeLoadPullRequestDraftRepositoryGuideContextPort(),
             new FakeFindRecommendedIssuePort(),
+            new FakeLoadPullRequestDraftAnalysisContextPort(),
             new FakeSavePullRequestDraftPort(),
             new FakeLoadPullRequestDraftPort(),
             historyPort,
@@ -406,6 +457,21 @@ class PullRequestDraftServiceTest {
             receivedRepoFullName = repoFullName;
             receivedIssueNumber = issueNumber;
             return Optional.ofNullable(issue);
+        }
+    }
+
+    private static class FakeLoadPullRequestDraftAnalysisContextPort implements LoadPullRequestDraftAnalysisContextPort {
+
+        private PullRequestDraftRequest receivedRequest;
+
+        @Override
+        public PullRequestDraftAnalysisContext loadAnalysisContext(PullRequestDraftRequest request) {
+            receivedRequest = request;
+            return new PullRequestDraftAnalysisContext(
+                "Follow the validation guide.",
+                "if invalid then return a helpful message",
+                List.of("Update documentation examples.")
+            );
         }
     }
 
