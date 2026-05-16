@@ -12,7 +12,7 @@ export function PrDraftSubmissionPanel({ hasError, submission }: PrDraftSubmissi
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
   async function copyItem(item: PullRequestDraftSubmissionItem) {
-    await navigator.clipboard.writeText(item.value);
+    await copyText(item.value);
     setCopiedKey(item.key);
     window.setTimeout(() => setCopiedKey(null), 1600);
   }
@@ -71,4 +71,25 @@ export function PrDraftSubmissionPanel({ hasError, submission }: PrDraftSubmissi
       </div>
     </section>
   );
+}
+
+async function copyText(value: string) {
+  if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(value);
+      return;
+    } catch {
+      // 권한 제한 환경에서는 아래 DOM 기반 fallback으로 한 번 더 시도합니다.
+    }
+  }
+
+  const textArea = document.createElement("textarea");
+  textArea.value = value;
+  textArea.setAttribute("readonly", "true");
+  textArea.style.position = "fixed";
+  textArea.style.left = "-9999px";
+  document.body.appendChild(textArea);
+  textArea.select();
+  document.execCommand("copy");
+  document.body.removeChild(textArea);
 }
