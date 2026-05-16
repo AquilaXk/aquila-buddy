@@ -5,8 +5,10 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { ProtectedLayout } from "@/components/ProtectedLayout";
 import {
+  getIssueGuide,
   getRecommendedIssueHistory,
   getRecommendedIssues,
+  type IssueGuide,
   type RecommendedIssue,
   type RecommendedIssueHistory
 } from "@/lib/api";
@@ -19,6 +21,9 @@ export default function IssueDetailPage() {
   const [issue, setIssue] = useState<IssueDetailIssue | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [guide, setGuide] = useState<IssueGuide | null>(null);
+  const [guideLoading, setGuideLoading] = useState(false);
+  const [guideError, setGuideError] = useState<string | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -41,6 +46,8 @@ export default function IssueDetailPage() {
 
       setIssue(foundIssue);
       setNotFound(!foundIssue);
+      setGuide(null);
+      setGuideError(null);
       setLoading(false);
     }
 
@@ -58,6 +65,19 @@ export default function IssueDetailPage() {
       isMounted = false;
     };
   }, [issueId]);
+
+  async function handleGetGuide() {
+    setGuideLoading(true);
+    setGuideError(null);
+
+    try {
+      setGuide(await getIssueGuide(issueId));
+    } catch (caught) {
+      setGuideError(caught instanceof Error ? caught.message : "가이드를 불러오지 못했습니다.");
+    } finally {
+      setGuideLoading(false);
+    }
+  }
 
   if (loading) {
     return (
@@ -146,6 +166,52 @@ export default function IssueDetailPage() {
           <div className="mt-5 rounded-md bg-github-bg p-4">
             <p className="text-xs font-semibold text-github-muted">추천 이유</p>
             <p className="mt-2 text-sm leading-6 text-github-text">{issue.summary}</p>
+          </div>
+        ) : null}
+      </section>
+
+      <section className="surface mb-4 p-6">
+        <div className="mb-3 flex items-start justify-between gap-4">
+          <div>
+            <h2 className="font-semibold text-github-text">1차 힌트 — 수정 가이드</h2>
+            <p className="mt-1 text-xs leading-5 text-github-muted">
+              이슈 해결을 시작하기 전에 수정 방향과 주의 사항을 확인합니다.
+            </p>
+          </div>
+          {!guide ? (
+            <button
+              className="focus-ring shrink-0 rounded-md bg-github-purple/20 px-4 py-2 text-sm font-semibold text-github-purple-light hover:bg-github-purple/30 disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={guideLoading}
+              onClick={handleGetGuide}
+              type="button"
+            >
+              {guideLoading ? "분석 중..." : "힌트 보기"}
+            </button>
+          ) : null}
+        </div>
+
+        {guideError ? (
+          <p className="text-sm font-semibold text-red-400">{guideError}</p>
+        ) : null}
+
+        {guide ? (
+          <div className="space-y-4">
+            <div>
+              <p className="mb-2 text-xs font-semibold text-github-muted">가이드라인</p>
+              <p className="whitespace-pre-wrap text-sm leading-6 text-github-text">
+                {guide.guideline}
+              </p>
+            </div>
+            {guide.sideEffects.length > 0 ? (
+              <div>
+                <p className="mb-2 text-xs font-semibold text-github-muted">주의 사항</p>
+                <ul className="list-disc space-y-2 pl-4 text-sm leading-6 text-github-text">
+                  {guide.sideEffects.map((sideEffect) => (
+                    <li key={sideEffect}>{sideEffect}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
           </div>
         ) : null}
       </section>
