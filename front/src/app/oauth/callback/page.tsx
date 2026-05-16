@@ -51,6 +51,10 @@ function OAuthCallbackContent() {
 
   const content = getCallbackContent(status, callbackParams.error);
 
+  if (status === "checking") {
+    return <OAuthCallbackLoading />;
+  }
+
   return (
     <main className="flex min-h-screen items-center justify-center bg-github-bg px-4 py-10 text-github-text">
       <section className="w-full max-w-lg rounded-xl border border-github-border bg-github-surface p-8 shadow-2xl shadow-black/30">
@@ -86,13 +90,17 @@ function OAuthCallbackContent() {
 }
 
 function OAuthCallbackFallback() {
+  return <OAuthCallbackLoading />;
+}
+
+function OAuthCallbackLoading() {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-github-bg px-4 py-10 text-github-text">
-      <section className="w-full max-w-lg rounded-xl border border-github-border bg-github-surface p-8">
-        <h1 className="text-2xl font-bold text-github-text">OAuth Callback</h1>
-        <p className="mt-3 text-sm leading-6 text-github-muted">로그인 결과를 확인하는 중입니다.</p>
-      </section>
-    </main>
+    <div className="flex min-h-screen items-center justify-center bg-github-bg">
+      <div className="text-center">
+        <div className="mx-auto mb-4 h-10 w-10 border-2 border-github-purple-light border-t-transparent rounded-full animate-spin" />
+        <p className="text-sm text-github-muted">로그인 처리 중...</p>
+      </div>
+    </div>
   );
 }
 
