@@ -1,10 +1,19 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 
 type ApiResponse<T> = {
-  success: boolean;
+  success?: boolean;
+  status?: "success" | "fail" | string;
   data: T | null;
   message: string | null;
 };
+
+function isApiSuccess<T>(payload: ApiResponse<T>) {
+  return payload.success === true || payload.status === "success";
+}
+
+function hasApiData<T>(payload: ApiResponse<T>): payload is ApiResponse<T> & { data: T } {
+  return isApiSuccess(payload) && payload.data !== null && payload.data !== undefined;
+}
 
 export type UserProfile = {
   githubId: number;
@@ -244,7 +253,7 @@ export async function getUserProfile(): Promise<UserProfile> {
 
   const payload = (await response.json()) as ApiResponse<UserProfile>;
 
-  if (!payload.success || !payload.data) {
+  if (!hasApiData(payload)) {
     throw new Error(payload.message ?? "User profile response was not successful");
   }
 
@@ -262,7 +271,7 @@ export async function getUserProfileByLogin(githubId: string): Promise<UserProfi
 
   const payload = (await response.json()) as ApiResponse<UserProfile>;
 
-  if (!payload.success || !payload.data) {
+  if (!hasApiData(payload)) {
     throw new Error(payload.message ?? "Public user profile response was not successful");
   }
 
@@ -284,7 +293,7 @@ export async function updateUserProfile(request: UpdateUserProfileRequest): Prom
 
   const payload = (await response.json()) as ApiResponse<UserProfile>;
 
-  if (!payload.success || !payload.data) {
+  if (!hasApiData(payload)) {
     throw new Error(payload.message ?? "User profile update response was not successful");
   }
 
@@ -302,7 +311,7 @@ export async function refreshUserProfileVector(): Promise<UserProfile> {
 
   const payload = (await response.json()) as ApiResponse<UserProfile>;
 
-  if (!payload.success || !payload.data) {
+  if (!hasApiData(payload)) {
     throw new Error(payload.message ?? "User profile vector refresh response was not successful");
   }
 
@@ -326,7 +335,7 @@ export async function createPullRequestDraft(
 
   const payload = (await response.json()) as ApiResponse<StoredPullRequestDraft>;
 
-  if (!payload.success || !payload.data) {
+  if (!hasApiData(payload)) {
     throw new Error(payload.message ?? "Pull request draft response was not successful");
   }
 
@@ -344,7 +353,7 @@ export async function getPullRequestDrafts(): Promise<StoredPullRequestDraft[]> 
 
   const payload = (await response.json()) as ApiResponse<StoredPullRequestDraft[]>;
 
-  if (!payload.success || !payload.data) {
+  if (!hasApiData(payload)) {
     throw new Error(payload.message ?? "Pull request drafts response was not successful");
   }
 
@@ -367,7 +376,7 @@ export async function getPullRequestDraftHistory(page = 0, size = 5): Promise<Pu
 
   const payload = (await response.json()) as ApiResponse<PullRequestDraftHistoryPage>;
 
-  if (!payload.success || !payload.data) {
+  if (!hasApiData(payload)) {
     throw new Error(payload.message ?? "Pull request draft history response was not successful");
   }
 
@@ -385,7 +394,7 @@ export async function getPullRequestDraft(id: string): Promise<StoredPullRequest
 
   const payload = (await response.json()) as ApiResponse<StoredPullRequestDraft>;
 
-  if (!payload.success || !payload.data) {
+  if (!hasApiData(payload)) {
     throw new Error(payload.message ?? "Pull request draft detail response was not successful");
   }
 
@@ -410,7 +419,7 @@ export async function updatePullRequestDraft(
 
   const payload = (await response.json()) as ApiResponse<StoredPullRequestDraft>;
 
-  if (!payload.success || !payload.data) {
+  if (!hasApiData(payload)) {
     throw new Error(payload.message ?? "Pull request draft update response was not successful");
   }
 
@@ -428,7 +437,7 @@ export async function deletePullRequestDraft(id: string): Promise<void> {
 
   const payload = (await response.json()) as ApiResponse<null>;
 
-  if (!payload.success) {
+  if (!isApiSuccess(payload)) {
     throw new Error(payload.message ?? "Pull request draft delete response was not successful");
   }
 }
@@ -444,7 +453,7 @@ export async function getPullRequestDraftReadiness(id: string): Promise<PullRequ
 
   const payload = (await response.json()) as ApiResponse<PullRequestDraftReadiness>;
 
-  if (!payload.success || !payload.data) {
+  if (!hasApiData(payload)) {
     throw new Error(payload.message ?? "Pull request draft readiness response was not successful");
   }
 
@@ -462,7 +471,7 @@ export async function getPullRequestDraftSubmission(id: string): Promise<PullReq
 
   const payload = (await response.json()) as ApiResponse<PullRequestDraftSubmission>;
 
-  if (!payload.success || !payload.data) {
+  if (!hasApiData(payload)) {
     throw new Error(payload.message ?? "Pull request draft submission response was not successful");
   }
 
@@ -480,7 +489,7 @@ export async function getPullRequestDraftTimeline(id: string): Promise<PullReque
 
   const payload = (await response.json()) as ApiResponse<PullRequestDraftTimeline>;
 
-  if (!payload.success || !payload.data) {
+  if (!hasApiData(payload)) {
     throw new Error(payload.message ?? "Pull request draft timeline response was not successful");
   }
 
@@ -500,7 +509,7 @@ export async function getPullRequestDraftContributionReport(
 
   const payload = (await response.json()) as ApiResponse<PullRequestDraftContributionReport>;
 
-  if (!payload.success || !payload.data) {
+  if (!hasApiData(payload)) {
     throw new Error(payload.message ?? "Pull request draft contribution report response was not successful");
   }
 
@@ -525,7 +534,7 @@ export async function createPullRequestDraftTranslation(
 
   const payload = (await response.json()) as ApiResponse<PullRequestDraftTranslation>;
 
-  if (!payload.success || !payload.data) {
+  if (!hasApiData(payload)) {
     throw new Error(payload.message ?? "Pull request draft translation response was not successful");
   }
 
@@ -543,7 +552,7 @@ export async function translatePullRequestDraft(id: string): Promise<PullRequest
 
   const payload = (await response.json()) as ApiResponse<PullRequestDraftTranslateResult>;
 
-  if (!payload.success || !payload.data) {
+  if (!hasApiData(payload)) {
     throw new Error(payload.message ?? "Pull request draft translate response was not successful");
   }
 
@@ -561,7 +570,7 @@ export async function getPullRequestDraftTranslations(id: string): Promise<PullR
 
   const payload = (await response.json()) as ApiResponse<PullRequestDraftTranslation[]>;
 
-  if (!payload.success || !payload.data) {
+  if (!hasApiData(payload)) {
     throw new Error(payload.message ?? "Pull request draft translations response was not successful");
   }
 
@@ -585,7 +594,7 @@ export async function getPullRequestDraftTranslationActivities(
 
   const payload = (await response.json()) as ApiResponse<PullRequestDraftTranslationActivity[]>;
 
-  if (!payload.success || !payload.data) {
+  if (!hasApiData(payload)) {
     throw new Error(payload.message ?? "Pull request draft translation activities response was not successful");
   }
 
@@ -609,7 +618,7 @@ export async function getPullRequestDraftTranslationReadiness(
 
   const payload = (await response.json()) as ApiResponse<PullRequestDraftTranslationReadiness>;
 
-  if (!payload.success || !payload.data) {
+  if (!hasApiData(payload)) {
     throw new Error(payload.message ?? "Pull request draft translation readiness response was not successful");
   }
 
@@ -633,7 +642,7 @@ export async function getPullRequestDraftTranslationTimeline(
 
   const payload = (await response.json()) as ApiResponse<PullRequestDraftTranslationTimeline>;
 
-  if (!payload.success || !payload.data) {
+  if (!hasApiData(payload)) {
     throw new Error(payload.message ?? "Pull request draft translation timeline response was not successful");
   }
 
@@ -657,7 +666,7 @@ export async function getPullRequestDraftTranslationSubmission(
 
   const payload = (await response.json()) as ApiResponse<PullRequestDraftTranslationSubmission>;
 
-  if (!payload.success || !payload.data) {
+  if (!hasApiData(payload)) {
     throw new Error(payload.message ?? "Pull request draft translation submission response was not successful");
   }
 
@@ -675,7 +684,7 @@ export async function getRecommendedIssues(): Promise<RecommendedIssue[]> {
 
   const payload = (await response.json()) as ApiResponse<RecommendedIssue[]>;
 
-  if (!payload.success || !payload.data) {
+  if (!hasApiData(payload)) {
     throw new Error(payload.message ?? "Recommended issues response was not successful");
   }
 
@@ -693,7 +702,7 @@ export async function getCollectedIssues(): Promise<RecommendedIssue[]> {
 
   const payload = (await response.json()) as ApiResponse<RecommendedIssue[]>;
 
-  if (!payload.success || !payload.data) {
+  if (!hasApiData(payload)) {
     throw new Error(payload.message ?? "Collected issues response was not successful");
   }
 
@@ -715,7 +724,7 @@ export async function crawlSearchIssues(query: string): Promise<RecommendedIssue
 
   const payload = (await response.json()) as ApiResponse<RecommendedIssue[]>;
 
-  if (!payload.success || !payload.data) {
+  if (!hasApiData(payload)) {
     throw new Error(payload.message ?? "Issue crawl search response was not successful");
   }
 
@@ -733,7 +742,7 @@ export async function getRecommendedIssueHistory(): Promise<RecommendedIssueHist
 
   const payload = (await response.json()) as ApiResponse<RecommendedIssueHistory[]>;
 
-  if (!payload.success || !payload.data) {
+  if (!hasApiData(payload)) {
     throw new Error(payload.message ?? "Recommended issue history response was not successful");
   }
 
@@ -751,7 +760,7 @@ export async function getIssueGuide(issueId: string): Promise<IssueGuide> {
 
   const payload = (await response.json()) as ApiResponse<IssueGuide>;
 
-  if (!payload.success || !payload.data) {
+  if (!hasApiData(payload)) {
     throw new Error(payload.message ?? "Issue guide response was not successful");
   }
 
@@ -769,7 +778,7 @@ export async function getIssuePseudoCode(issueId: string): Promise<IssuePseudoCo
 
   const payload = (await response.json()) as ApiResponse<IssuePseudoCode>;
 
-  if (!payload.success || !payload.data) {
+  if (!hasApiData(payload)) {
     throw new Error(payload.message ?? "Issue pseudo code response was not successful");
   }
 
@@ -787,7 +796,7 @@ export async function getIssueGuideWorkflow(issueId: string): Promise<IssueGuide
 
   const payload = (await response.json()) as ApiResponse<IssueGuideWorkflow>;
 
-  if (!payload.success || !payload.data) {
+  if (!hasApiData(payload)) {
     throw new Error(payload.message ?? "Issue guide workflow response was not successful");
   }
 
