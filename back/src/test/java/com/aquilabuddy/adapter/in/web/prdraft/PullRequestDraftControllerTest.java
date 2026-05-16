@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.aquilabuddy.application.port.out.prdraft.LoadPullRequestDraftDiffPort;
 import com.jayway.jsonpath.JsonPath;
 import com.aquilabuddy.adapter.out.persistence.prdraft.PullRequestDraftJpaRepository;
 import com.aquilabuddy.adapter.out.persistence.prdraft.PullRequestDraftTranslationJpaRepository;
@@ -15,6 +16,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Primary;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -63,6 +67,26 @@ class PullRequestDraftControllerTest {
             .andExpect(jsonPath("$.data.body").value(org.hamcrest.Matchers.containsString("spring-projects/spring-boot #2")))
             .andExpect(jsonPath("$.data.body").value(org.hamcrest.Matchers.containsString("main -> feat/validation-docs")))
             .andExpect(jsonPath("$.data.body").value(org.hamcrest.Matchers.containsString("Add validation example")));
+    }
+
+    @Test
+    void createsPullRequestDraftWithoutClientProvidedDiffContent() throws Exception {
+        mockMvc.perform(post("/api/v1/pr")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                      "upstreamRepo": "spring-projects/spring-boot",
+                      "githubIssueNumber": 2,
+                      "baseBranch": "main",
+                      "headBranch": "feat/validation-docs"
+                    }
+                    """))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.id").isNotEmpty())
+            .andExpect(jsonPath("$.data.upstreamRepo").value("spring-projects/spring-boot"))
+            .andExpect(jsonPath("$.data.title").value("docs: spring-projects/spring-boot#2 변경 초안"))
+            .andExpect(jsonPath("$.data.body").value(org.hamcrest.Matchers.containsString("Loaded from GitHub compare")));
     }
 
     @Test
@@ -520,5 +544,15 @@ class PullRequestDraftControllerTest {
             .andReturn();
 
         return JsonPath.read(result.getResponse().getContentAsString(), "$.data.id");
+    }
+
+    @TestConfiguration
+    static class PullRequestDraftDiffTestConfiguration {
+
+        @Bean
+        @Primary
+        LoadPullRequestDraftDiffPort loadPullRequestDraftDiffPort() {
+            return request -> "diff --git a/docs.adoc b/docs.adoc\n+Loaded from GitHub compare";
+        }
     }
 }

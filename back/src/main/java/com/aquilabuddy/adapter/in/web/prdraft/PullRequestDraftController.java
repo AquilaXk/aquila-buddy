@@ -320,7 +320,7 @@ public class PullRequestDraftController {
     }
 
     /**
-     * web 요청 body를 domain 요청 모델로 변환하기 전 검증하는 DTO입니다.
+     * web 요청 body를 domain 요청 모델로 변환하기 전 필수 식별자만 검증하는 DTO입니다.
      */
     record CreatePullRequestDraftRequest(
         @NotBlank(message = "upstreamRepo는 비어 있을 수 없습니다.")
@@ -331,7 +331,6 @@ public class PullRequestDraftController {
         String baseBranch,
         @NotBlank(message = "headBranch는 비어 있을 수 없습니다.")
         String headBranch,
-        @NotBlank(message = "diffContent는 비어 있을 수 없습니다.")
         String diffContent
     ) {
 
