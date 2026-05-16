@@ -46,7 +46,7 @@ class UserProfileControllerTest {
 
     @Test
     void returnsUserProfileByGithubId() throws Exception {
-        mockMvc.perform(get("/api/v1/users/{githubId}", "aquila-dev"))
+        mockMvc.perform(get("/api/v1/users/{githubId}", "10001"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.success").value(true))
             .andExpect(jsonPath("$.data.githubId").value(10001))
@@ -57,7 +57,7 @@ class UserProfileControllerTest {
 
     @Test
     void returnsNotFoundWhenUserProfileByGithubIdDoesNotExist() throws Exception {
-        mockMvc.perform(get("/api/v1/users/{githubId}", "missing-user"))
+        mockMvc.perform(get("/api/v1/users/{githubId}", "99999"))
             .andExpect(status().isNotFound());
     }
 
@@ -89,6 +89,19 @@ class UserProfileControllerTest {
         );
 
         assertThat(storedName).isEqualTo("Aquila Maintainer");
+    }
+
+    @Test
+    void updatesCurrentUserProfileWithQueryParameters() throws Exception {
+        mockMvc.perform(patch("/api/v1/users/me")
+                .param("name", "Aquila Query Maintainer")
+                .param("email", "query@example.com"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.name").value("Aquila Query Maintainer"))
+            .andExpect(jsonPath("$.data.email").value("query@example.com"))
+            .andExpect(jsonPath("$.data.primaryLanguages[0]").value("Java"))
+            .andExpect(jsonPath("$.data.topics[0]").value("spring"));
     }
 
     @Test

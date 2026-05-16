@@ -54,6 +54,18 @@ public class FixtureUserProfileAdapter implements
     }
 
     /**
+     * 현재 fixture에 등록된 GitHub id와 일치할 때 공개 프로필을 반환합니다.
+     */
+    @Override
+    public Optional<UserProfile> loadUserProfileByGithubId(long githubId) {
+        if (currentProfile.githubId() == githubId) {
+            return Optional.of(currentProfile);
+        }
+
+        return Optional.empty();
+    }
+
+    /**
      * 실제 사용자 저장소 연결 전까지 profile 화면의 수정 흐름을 검증할 수 있도록 메모리 상태를 갱신합니다.
      */
     @Override

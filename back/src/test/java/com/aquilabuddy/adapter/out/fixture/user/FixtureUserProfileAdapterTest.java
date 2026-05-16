@@ -20,10 +20,29 @@ class FixtureUserProfileAdapterTest {
     }
 
     @Test
+    void loadsUserProfileByGithubId() {
+        FixtureUserProfileAdapter adapter = new FixtureUserProfileAdapter();
+
+        Optional<UserProfile> profile = adapter.loadUserProfileByGithubId(10001L);
+
+        assertThat(profile).isPresent();
+        assertThat(profile.get().login()).isEqualTo("aquila-dev");
+    }
+
+    @Test
     void returnsEmptyWhenLoginDoesNotMatchFixture() {
         FixtureUserProfileAdapter adapter = new FixtureUserProfileAdapter();
 
         Optional<UserProfile> profile = adapter.loadUserProfileByLogin("missing-user");
+
+        assertThat(profile).isEmpty();
+    }
+
+    @Test
+    void returnsEmptyWhenGithubIdDoesNotMatchFixture() {
+        FixtureUserProfileAdapter adapter = new FixtureUserProfileAdapter();
+
+        Optional<UserProfile> profile = adapter.loadUserProfileByGithubId(99999L);
 
         assertThat(profile).isEmpty();
     }

@@ -19,4 +19,11 @@ public interface LoadUserProfilePort {
     default Optional<UserProfile> loadUserProfileByLogin(String login) {
         return Optional.empty();
     }
+
+    /**
+     * GitHub 숫자 id로 공개 프로필을 조회합니다.
+     */
+    default Optional<UserProfile> loadUserProfileByGithubId(long githubId) {
+        return Optional.empty();
+    }
 }

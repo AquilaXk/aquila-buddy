@@ -1,6 +1,7 @@
 package com.aquilabuddy.adapter.in.web.user;
 
 import com.aquilabuddy.application.port.in.user.GetCurrentUserProfileUseCase;
+import com.aquilabuddy.application.port.in.user.GetUserProfileByGithubIdUseCase;
 import com.aquilabuddy.application.port.in.user.GetUserProfileByLoginUseCase;
 import com.aquilabuddy.application.port.in.user.RefreshCurrentUserProfileVectorUseCase;
 import com.aquilabuddy.application.port.in.user.UpdateCurrentUserProfileUseCase;
@@ -12,6 +13,7 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -19,6 +21,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -31,17 +34,20 @@ public class UserProfileController {
 
     private final GetCurrentUserProfileUseCase getCurrentUserProfileUseCase;
     private final GetUserProfileByLoginUseCase getUserProfileByLoginUseCase;
+    private final GetUserProfileByGithubIdUseCase getUserProfileByGithubIdUseCase;
     private final UpdateCurrentUserProfileUseCase updateCurrentUserProfileUseCase;
     private final RefreshCurrentUserProfileVectorUseCase refreshCurrentUserProfileVectorUseCase;
 
     public UserProfileController(
         GetCurrentUserProfileUseCase getCurrentUserProfileUseCase,
         GetUserProfileByLoginUseCase getUserProfileByLoginUseCase,
+        GetUserProfileByGithubIdUseCase getUserProfileByGithubIdUseCase,
         UpdateCurrentUserProfileUseCase updateCurrentUserProfileUseCase,
         RefreshCurrentUserProfileVectorUseCase refreshCurrentUserProfileVectorUseCase
     ) {
         this.getCurrentUserProfileUseCase = getCurrentUserProfileUseCase;
         this.getUserProfileByLoginUseCase = getUserProfileByLoginUseCase;
+        this.getUserProfileByGithubIdUseCase = getUserProfileByGithubIdUseCase;
         this.updateCurrentUserProfileUseCase = updateCurrentUserProfileUseCase;
         this.refreshCurrentUserProfileVectorUseCase = refreshCurrentUserProfileVectorUseCase;
     }
@@ -59,18 +65,42 @@ public class UserProfileController {
      */
     @GetMapping("/{githubId}")
     ApiResponse<UserProfile> userByGithubId(@PathVariable String githubId) {
-        UserProfile profile = getUserProfileByLoginUseCase.getUserProfileByLogin(githubId)
+        UserProfile profile = findUserProfile(githubId)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다."));
 
         return ApiResponse.success(profile);
+    }
+
+    private Optional<UserProfile> findUserProfile(String githubId) {
+        try {
+            return getUserProfileByGithubIdUseCase.getUserProfileByGithubId(Long.parseLong(githubId));
+        } catch (NumberFormatException exception) {
+            return getUserProfileByLoginUseCase.getUserProfileByLogin(githubId);
+        }
     }
 
     /**
      * 현재 사용자 프로필의 추천 컨텍스트를 수정하고 최신 프로필을 반환합니다.
      */
     @PatchMapping("/me")
-    ApiResponse<UserProfile> updateMe(@Valid @RequestBody UpdateCurrentUserProfileRequest request) {
-        return ApiResponse.success(updateCurrentUserProfileUseCase.updateCurrentUser(request.toDomain()));
+    ApiResponse<UserProfile> updateMe(
+        @Valid @RequestBody(required = false) UpdateCurrentUserProfileRequest request,
+        @RequestParam(required = false) String name,
+        @RequestParam(required = false) String email
+    ) {
+        if (request != null) {
+            return ApiResponse.success(updateCurrentUserProfileUseCase.updateCurrentUser(request.toDomain()));
+        }
+
+        UserProfile currentProfile = getCurrentUserProfileUseCase.currentUser();
+        UserProfileUpdateRequest queryRequest = new UserProfileUpdateRequest(
+            name == null ? currentProfile.name() : name,
+            email == null ? currentProfile.email() : email,
+            currentProfile.primaryLanguages(),
+            currentProfile.topics()
+        );
+
+        return ApiResponse.success(updateCurrentUserProfileUseCase.updateCurrentUser(queryRequest));
     }
 
     /**
