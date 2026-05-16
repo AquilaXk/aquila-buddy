@@ -95,4 +95,30 @@ class PullRequestDraftTranslationPersistenceAdapterTest {
             .extracting(PullRequestDraftTranslation::id)
             .containsExactly("newer", "older");
     }
+
+    @Test
+    void loadsRecentTranslationsNewestFirstWithLimit() {
+        translationRepository.save(new PullRequestDraftTranslationJpaEntity(
+            "older",
+            "draft-1",
+            "en",
+            "older title",
+            "older body",
+            Instant.parse("2026-05-15T02:00:00Z")
+        ));
+        translationRepository.save(new PullRequestDraftTranslationJpaEntity(
+            "newer",
+            "draft-1",
+            "en",
+            "newer title",
+            "newer body",
+            Instant.parse("2026-05-15T03:00:00Z")
+        ));
+
+        List<PullRequestDraftTranslation> translations = adapter.loadRecentPullRequestDraftTranslations(1);
+
+        assertThat(translations)
+            .extracting(PullRequestDraftTranslation::id)
+            .containsExactly("newer");
+    }
 }
