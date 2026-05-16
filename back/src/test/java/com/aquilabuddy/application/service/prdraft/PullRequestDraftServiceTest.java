@@ -4,12 +4,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.aquilabuddy.application.port.out.prdraft.DeletePullRequestDraftPort;
 import com.aquilabuddy.application.port.out.prdraft.GeneratePullRequestDraftPort;
+import com.aquilabuddy.application.port.out.prdraft.LoadPullRequestDraftHistoryPort;
 import com.aquilabuddy.application.port.out.prdraft.LoadPullRequestDraftPort;
 import com.aquilabuddy.application.port.out.prdraft.LoadPullRequestDraftTranslationPort;
 import com.aquilabuddy.application.port.out.prdraft.SavePullRequestDraftPort;
 import com.aquilabuddy.application.port.out.prdraft.UpdatePullRequestDraftPort;
 import com.aquilabuddy.domain.prdraft.PullRequestDraft;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftContributionReport;
+import com.aquilabuddy.domain.prdraft.PullRequestDraftHistoryPage;
+import com.aquilabuddy.domain.prdraft.PullRequestDraftHistoryQuery;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftRequest;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftTranslation;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftUpdateRequest;
@@ -31,6 +34,7 @@ class PullRequestDraftServiceTest {
             new FakeGeneratePullRequestDraftPort(),
             savePort,
             new FakeLoadPullRequestDraftPort(),
+            new FakeLoadPullRequestDraftHistoryPort(),
             new FakeUpdatePullRequestDraftPort(),
             new FakeDeletePullRequestDraftPort(),
             new FakeLoadPullRequestDraftTranslationPort()
@@ -61,6 +65,7 @@ class PullRequestDraftServiceTest {
             new FakeGeneratePullRequestDraftPort(),
             new FakeSavePullRequestDraftPort(),
             loadPort,
+            new FakeLoadPullRequestDraftHistoryPort(),
             new FakeUpdatePullRequestDraftPort(),
             new FakeDeletePullRequestDraftPort(),
             new FakeLoadPullRequestDraftTranslationPort()
@@ -80,6 +85,7 @@ class PullRequestDraftServiceTest {
             new FakeGeneratePullRequestDraftPort(),
             new FakeSavePullRequestDraftPort(),
             loadPort,
+            new FakeLoadPullRequestDraftHistoryPort(),
             new FakeUpdatePullRequestDraftPort(),
             new FakeDeletePullRequestDraftPort(),
             new FakeLoadPullRequestDraftTranslationPort()
@@ -97,6 +103,7 @@ class PullRequestDraftServiceTest {
             new FakeGeneratePullRequestDraftPort(),
             new FakeSavePullRequestDraftPort(),
             new FakeLoadPullRequestDraftPort(),
+            new FakeLoadPullRequestDraftHistoryPort(),
             new FakeUpdatePullRequestDraftPort(),
             new FakeDeletePullRequestDraftPort(),
             new FakeLoadPullRequestDraftTranslationPort()
@@ -119,6 +126,7 @@ class PullRequestDraftServiceTest {
             new FakeGeneratePullRequestDraftPort(),
             new FakeSavePullRequestDraftPort(),
             new FakeLoadPullRequestDraftPort(),
+            new FakeLoadPullRequestDraftHistoryPort(),
             updatePort,
             new FakeDeletePullRequestDraftPort(),
             new FakeLoadPullRequestDraftTranslationPort()
@@ -145,6 +153,7 @@ class PullRequestDraftServiceTest {
             new FakeGeneratePullRequestDraftPort(),
             new FakeSavePullRequestDraftPort(),
             new FakeLoadPullRequestDraftPort(),
+            new FakeLoadPullRequestDraftHistoryPort(),
             new FakeUpdatePullRequestDraftPort(),
             deletePort,
             new FakeLoadPullRequestDraftTranslationPort()
@@ -154,6 +163,35 @@ class PullRequestDraftServiceTest {
 
         assertThat(deleted).isTrue();
         assertThat(deletePort.deletedId).isEqualTo("stored-1");
+    }
+
+    @Test
+    void listsDraftHistoryPage() {
+        FakeLoadPullRequestDraftHistoryPort historyPort = new FakeLoadPullRequestDraftHistoryPort();
+        PullRequestDraftService service = new PullRequestDraftService(
+            new FakeGeneratePullRequestDraftPort(),
+            new FakeSavePullRequestDraftPort(),
+            new FakeLoadPullRequestDraftPort(),
+            historyPort,
+            new FakeUpdatePullRequestDraftPort(),
+            new FakeDeletePullRequestDraftPort(),
+            new FakeLoadPullRequestDraftTranslationPort()
+        );
+
+        PullRequestDraftHistoryPage page = service.listPullRequestDraftHistory(
+            new PullRequestDraftHistoryQuery(1, 2)
+        );
+
+        assertThat(historyPort.receivedQuery).isEqualTo(new PullRequestDraftHistoryQuery(1, 2));
+        assertThat(page.content())
+            .extracting(StoredPullRequestDraft::id)
+            .containsExactly("stored-1");
+        assertThat(page.page()).isEqualTo(1);
+        assertThat(page.size()).isEqualTo(2);
+        assertThat(page.totalElements()).isEqualTo(3);
+        assertThat(page.totalPages()).isEqualTo(2);
+        assertThat(page.first()).isFalse();
+        assertThat(page.last()).isTrue();
     }
 
     private static class FakeGeneratePullRequestDraftPort implements GeneratePullRequestDraftPort {
@@ -193,6 +231,28 @@ class PullRequestDraftServiceTest {
                 .stream()
                 .filter(draft -> draft.id().equals(id))
                 .findFirst();
+        }
+    }
+
+    private static class FakeLoadPullRequestDraftHistoryPort implements LoadPullRequestDraftHistoryPort {
+
+        private PullRequestDraftHistoryQuery receivedQuery;
+
+        @Override
+        public PullRequestDraftHistoryPage loadPullRequestDraftHistory(PullRequestDraftHistoryQuery query) {
+            receivedQuery = query;
+            return new PullRequestDraftHistoryPage(
+                List.of(storedDraft(
+                    new PullRequestDraftRequest("spring-projects/spring-boot", 2, "main", "feat/validation-docs", "diff"),
+                    new PullRequestDraft("generated title", "body for spring-projects/spring-boot")
+                )),
+                query.page(),
+                query.size(),
+                3,
+                2,
+                false,
+                true
+            );
         }
     }
 
