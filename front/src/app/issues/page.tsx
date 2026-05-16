@@ -99,22 +99,73 @@ export default function IssuesPage() {
       ) : (
         <div className="space-y-3">
           {history.map((issue) => (
-            <Link
-              className="block rounded-xl border border-github-border bg-github-surface p-5 transition-colors hover:border-github-purple/50"
-              href={`/issues/${issue.id}`}
-              key={issue.id}
-            >
-              <p className="mb-2 text-xs text-github-muted">
-                {issue.repoFullName} #{issue.issueNumber}
-              </p>
-              <h3 className="line-clamp-1 font-medium text-github-text">{issue.title}</h3>
-              {issue.summary ? (
-                <p className="mt-2 line-clamp-2 text-xs text-github-muted">{issue.summary}</p>
-              ) : null}
-            </Link>
+            <IssueHistoryCard issue={issue} key={issue.id} />
           ))}
         </div>
       )}
     </ProtectedLayout>
+  );
+}
+
+function IssueHistoryCard({ issue }: { issue: RecommendedIssueHistory }) {
+  const scorePercent = Math.round(issue.score * 100);
+
+  return (
+    <Link
+      className="block rounded-xl border border-github-border bg-github-surface p-5 transition-colors hover:border-github-purple/50"
+      href={`/issues/${issue.id}`}
+    >
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0 flex-1">
+          <div className="mb-2 flex flex-wrap items-center gap-2">
+            <StatusBadge status={issue.status} />
+            <span className="text-xs text-github-muted">
+              {issue.repoFullName} #{issue.issueNumber}
+            </span>
+            {scorePercent > 0 ? (
+              <span className="rounded-full border border-green-500/20 bg-green-500/10 px-2 py-0.5 text-xs text-green-400">
+                매칭 {scorePercent}%
+              </span>
+            ) : null}
+            {issue.isAnalyzed ? (
+              <span className="rounded-full border border-github-accent/20 bg-github-accent/10 px-2 py-0.5 text-xs text-github-accent">
+                분석 완료
+              </span>
+            ) : null}
+          </div>
+          <h3 className="mb-2 line-clamp-1 font-medium text-github-text">{issue.title}</h3>
+          {issue.summary ? (
+            <p className="line-clamp-2 text-xs text-github-muted">{issue.summary}</p>
+          ) : null}
+          {issue.labels.length > 0 ? (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {issue.labels.map((label) => (
+                <span
+                  className="rounded-full border border-github-accent/20 bg-github-accent/10 px-2 py-0.5 text-xs text-github-accent"
+                  key={label}
+                >
+                  {label}
+                </span>
+              ))}
+            </div>
+          ) : null}
+        </div>
+        <span className="mt-1 shrink-0 text-xs text-github-muted">자세히 →</span>
+      </div>
+    </Link>
+  );
+}
+
+function StatusBadge({ status }: { status: RecommendedIssueHistory["status"] }) {
+  return (
+    <span
+      className={`rounded-full px-1.5 py-0.5 text-xs ${
+        status === "OPEN"
+          ? "bg-green-500/20 text-green-400"
+          : "bg-github-muted/20 text-github-muted"
+      }`}
+    >
+      {status === "OPEN" ? "● OPEN" : "○ CLOSED"}
+    </span>
   );
 }
