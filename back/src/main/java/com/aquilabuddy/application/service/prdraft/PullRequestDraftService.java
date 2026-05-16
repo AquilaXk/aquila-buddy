@@ -13,6 +13,7 @@ import com.aquilabuddy.application.port.in.prdraft.UpdatePullRequestDraftUseCase
 import com.aquilabuddy.application.port.out.issue.FindRecommendedIssuePort;
 import com.aquilabuddy.application.port.out.prdraft.DeletePullRequestDraftPort;
 import com.aquilabuddy.application.port.out.prdraft.GeneratePullRequestDraftPort;
+import com.aquilabuddy.application.port.out.prdraft.LoadPullRequestDraftAnalysisContextPort;
 import com.aquilabuddy.application.port.out.prdraft.LoadPullRequestDraftDiffPort;
 import com.aquilabuddy.application.port.out.prdraft.LoadPullRequestDraftHistoryPort;
 import com.aquilabuddy.application.port.out.prdraft.LoadPullRequestDraftPort;
@@ -57,6 +58,7 @@ public class PullRequestDraftService implements
     private final LoadPullRequestDraftDiffPort loadPullRequestDraftDiffPort;
     private final LoadPullRequestDraftRepositoryGuideContextPort loadPullRequestDraftRepositoryGuideContextPort;
     private final FindRecommendedIssuePort findRecommendedIssuePort;
+    private final LoadPullRequestDraftAnalysisContextPort loadPullRequestDraftAnalysisContextPort;
     private final SavePullRequestDraftPort savePullRequestDraftPort;
     private final LoadPullRequestDraftPort loadPullRequestDraftPort;
     private final LoadPullRequestDraftHistoryPort loadPullRequestDraftHistoryPort;
@@ -69,6 +71,7 @@ public class PullRequestDraftService implements
         LoadPullRequestDraftDiffPort loadPullRequestDraftDiffPort,
         LoadPullRequestDraftRepositoryGuideContextPort loadPullRequestDraftRepositoryGuideContextPort,
         FindRecommendedIssuePort findRecommendedIssuePort,
+        LoadPullRequestDraftAnalysisContextPort loadPullRequestDraftAnalysisContextPort,
         SavePullRequestDraftPort savePullRequestDraftPort,
         LoadPullRequestDraftPort loadPullRequestDraftPort,
         LoadPullRequestDraftHistoryPort loadPullRequestDraftHistoryPort,
@@ -80,6 +83,7 @@ public class PullRequestDraftService implements
         this.loadPullRequestDraftDiffPort = loadPullRequestDraftDiffPort;
         this.loadPullRequestDraftRepositoryGuideContextPort = loadPullRequestDraftRepositoryGuideContextPort;
         this.findRecommendedIssuePort = findRecommendedIssuePort;
+        this.loadPullRequestDraftAnalysisContextPort = loadPullRequestDraftAnalysisContextPort;
         this.savePullRequestDraftPort = savePullRequestDraftPort;
         this.loadPullRequestDraftPort = loadPullRequestDraftPort;
         this.loadPullRequestDraftHistoryPort = loadPullRequestDraftHistoryPort;
@@ -93,8 +97,8 @@ public class PullRequestDraftService implements
      */
     @Override
     public StoredPullRequestDraft create(PullRequestDraftRequest request) {
-        PullRequestDraftRequest resolvedRequest = resolveIssueContext(
-            resolveRepositoryGuideContext(resolveDiffContent(request))
+        PullRequestDraftRequest resolvedRequest = resolveAnalysisContext(
+            resolveIssueContext(resolveRepositoryGuideContext(resolveDiffContent(request)))
         );
         PullRequestDraft generated = generatePullRequestDraftPort.generate(resolvedRequest);
         return savePullRequestDraftPort.savePullRequestDraft(resolvedRequest, generated);
@@ -124,6 +128,10 @@ public class PullRequestDraftService implements
                 issue.reason()
             )))
             .orElse(request);
+    }
+
+    private PullRequestDraftRequest resolveAnalysisContext(PullRequestDraftRequest request) {
+        return request.withAnalysisContext(loadPullRequestDraftAnalysisContextPort.loadAnalysisContext(request));
     }
 
     @Override

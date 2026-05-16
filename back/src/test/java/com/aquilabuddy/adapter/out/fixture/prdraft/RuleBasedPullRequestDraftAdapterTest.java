@@ -3,6 +3,7 @@ package com.aquilabuddy.adapter.out.fixture.prdraft;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.aquilabuddy.domain.prdraft.PullRequestDraft;
+import com.aquilabuddy.domain.prdraft.PullRequestDraftAnalysisContext;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftIssueContext;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftRequest;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftRepositoryGuideContext;
@@ -77,5 +78,30 @@ class RuleBasedPullRequestDraftAdapterTest {
         assertThat(draft.body()).contains("Issue title: Fix validation message");
         assertThat(draft.body()).contains("Issue summary: Error message should explain invalid input.");
         assertThat(draft.body()).contains("Recommendation reason: Matches Java validation topic");
+    }
+
+    @Test
+    void includesAnalysisContextWhenAvailable() {
+        RuleBasedPullRequestDraftAdapter adapter = new RuleBasedPullRequestDraftAdapter();
+
+        PullRequestDraft draft = adapter.generate(new PullRequestDraftRequest(
+            "spring-projects/spring-boot",
+            2,
+            "main",
+            "feat/validation-docs",
+            "diff --git a/docs.adoc b/docs.adoc\n+Add validation example",
+            PullRequestDraftRepositoryGuideContext.empty(),
+            PullRequestDraftIssueContext.empty(),
+            new PullRequestDraftAnalysisContext(
+                "Follow the validation guide.",
+                "if invalid then return a helpful message",
+                List.of("Update documentation examples.")
+            )
+        ));
+
+        assertThat(draft.body()).contains("## 분석 가이드");
+        assertThat(draft.body()).contains("Guideline: Follow the validation guide.");
+        assertThat(draft.body()).contains("Pseudo code: if invalid then return a helpful message");
+        assertThat(draft.body()).contains("Side effect: Update documentation examples.");
     }
 }

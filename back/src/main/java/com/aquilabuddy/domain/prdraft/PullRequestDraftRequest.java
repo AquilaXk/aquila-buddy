@@ -12,7 +12,8 @@ public record PullRequestDraftRequest(
     String headBranch,
     String diffContent,
     PullRequestDraftRepositoryGuideContext repositoryGuideContext,
-    PullRequestDraftIssueContext issueContext
+    PullRequestDraftIssueContext issueContext,
+    PullRequestDraftAnalysisContext analysisContext
 ) {
 
     public PullRequestDraftRequest(
@@ -24,7 +25,8 @@ public record PullRequestDraftRequest(
     ) {
         this(upstreamRepo, githubIssueNumber, baseBranch, headBranch, diffContent,
             PullRequestDraftRepositoryGuideContext.empty(),
-            PullRequestDraftIssueContext.empty());
+            PullRequestDraftIssueContext.empty(),
+            PullRequestDraftAnalysisContext.empty());
     }
 
     public PullRequestDraftRequest(
@@ -36,7 +38,22 @@ public record PullRequestDraftRequest(
         PullRequestDraftRepositoryGuideContext repositoryGuideContext
     ) {
         this(upstreamRepo, githubIssueNumber, baseBranch, headBranch, diffContent, repositoryGuideContext,
-            PullRequestDraftIssueContext.empty());
+            PullRequestDraftIssueContext.empty(),
+            PullRequestDraftAnalysisContext.empty());
+    }
+
+    public PullRequestDraftRequest(
+        String upstreamRepo,
+        long githubIssueNumber,
+        String baseBranch,
+        String headBranch,
+        String diffContent,
+        PullRequestDraftRepositoryGuideContext repositoryGuideContext,
+        PullRequestDraftIssueContext issueContext
+    ) {
+        this(upstreamRepo, githubIssueNumber, baseBranch, headBranch, diffContent, repositoryGuideContext,
+            issueContext,
+            PullRequestDraftAnalysisContext.empty());
     }
 
     /**
@@ -51,6 +68,7 @@ public record PullRequestDraftRequest(
             ? PullRequestDraftRepositoryGuideContext.empty()
             : repositoryGuideContext;
         issueContext = issueContext == null ? PullRequestDraftIssueContext.empty() : issueContext;
+        analysisContext = analysisContext == null ? PullRequestDraftAnalysisContext.empty() : analysisContext;
 
         if (githubIssueNumber < 1) {
             throw new IllegalArgumentException("githubIssueNumber must be positive.");
@@ -69,7 +87,8 @@ public record PullRequestDraftRequest(
             headBranch,
             requireText(resolvedDiffContent, "diffContent"),
             repositoryGuideContext,
-            issueContext
+            issueContext,
+            analysisContext
         );
     }
 
@@ -83,7 +102,8 @@ public record PullRequestDraftRequest(
             headBranch,
             diffContent,
             resolvedRepositoryGuideContext,
-            issueContext
+            issueContext,
+            analysisContext
         );
     }
 
@@ -95,7 +115,21 @@ public record PullRequestDraftRequest(
             headBranch,
             diffContent,
             repositoryGuideContext,
-            resolvedIssueContext
+            resolvedIssueContext,
+            analysisContext
+        );
+    }
+
+    public PullRequestDraftRequest withAnalysisContext(PullRequestDraftAnalysisContext resolvedAnalysisContext) {
+        return new PullRequestDraftRequest(
+            upstreamRepo,
+            githubIssueNumber,
+            baseBranch,
+            headBranch,
+            diffContent,
+            repositoryGuideContext,
+            issueContext,
+            resolvedAnalysisContext
         );
     }
 
