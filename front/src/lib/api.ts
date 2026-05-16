@@ -77,6 +77,11 @@ export type CreatePullRequestDraftRequest = {
   diffContent: string;
 };
 
+export type UpdatePullRequestDraftRequest = {
+  title: string;
+  body: string;
+};
+
 export type PullRequestDraft = {
   title: string;
   body: string;
@@ -340,6 +345,47 @@ export async function getPullRequestDraft(id: string): Promise<StoredPullRequest
   }
 
   return payload.data;
+}
+
+export async function updatePullRequestDraft(
+  id: string,
+  request: UpdatePullRequestDraftRequest
+): Promise<StoredPullRequestDraft> {
+  const response = await fetch(`${API_URL}/api/v1/pr/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(request)
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to update pull request draft");
+  }
+
+  const payload = (await response.json()) as ApiResponse<StoredPullRequestDraft>;
+
+  if (!payload.success || !payload.data) {
+    throw new Error(payload.message ?? "Pull request draft update response was not successful");
+  }
+
+  return payload.data;
+}
+
+export async function deletePullRequestDraft(id: string): Promise<void> {
+  const response = await fetch(`${API_URL}/api/v1/pr/${encodeURIComponent(id)}`, {
+    method: "DELETE"
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to delete pull request draft");
+  }
+
+  const payload = (await response.json()) as ApiResponse<null>;
+
+  if (!payload.success) {
+    throw new Error(payload.message ?? "Pull request draft delete response was not successful");
+  }
 }
 
 export async function getPullRequestDraftReadiness(id: string): Promise<PullRequestDraftReadiness> {
