@@ -6,8 +6,10 @@ const tailwindConfig = readFileSync(join(repoRoot, "front/tailwind.config.ts"), 
 const globalsCss = readFileSync(join(repoRoot, "front/src/app/globals.css"), "utf8");
 const layoutPath = join(repoRoot, "front/src/app/layout.tsx");
 const manifestPath = join(repoRoot, "front/src/app/manifest.ts");
+const navbarPath = join(repoRoot, "front/src/components/Navbar.tsx");
 const layoutSource = readFileSync(layoutPath, "utf8");
 const manifestSource = existsSync(manifestPath) ? readFileSync(manifestPath, "utf8") : "";
+const navbarSource = readFileSync(navbarPath, "utf8");
 const failures = [];
 
 function fail(message) {
@@ -52,6 +54,15 @@ assertIncludes(layoutSource, 'url: "/brand-mascot.png"', "OpenGraph metadata mus
 assertIncludes(manifestSource, 'name: "aquila buddy"', "Manifest must expose the full aquila buddy name.");
 assertIncludes(manifestSource, 'short_name: "aquila buddy"', "Manifest must expose the short aquila buddy name.");
 assertIncludes(manifestSource, 'src: "/brand-mascot.png"', "Manifest must include the representative brand image.");
+
+assertIncludes(navbarSource, 'aria-label="Primary"', "Navbar must expose a primary navigation label.");
+assertIncludes(navbarSource, 'src="/brand-mascot-bank.png"', "Navbar must use the framed brand mascot asset.");
+assertIncludes(navbarSource, "border-github-accent", "Navbar must use the brass accent border treatment.");
+assertIncludes(navbarSource, "bg-github-accent text-github-bg", "Active nav item must use brass-on-page colors.");
+assertIncludes(navbarSource, "h-16", "Navbar must use the taller gothic header rhythm.");
+if (navbarSource.includes("tracking-tight")) {
+  fail("Navbar must avoid negative letter spacing.");
+}
 
 if (failures.length > 0) {
   console.error("Brand gothic parity validation failed:");
