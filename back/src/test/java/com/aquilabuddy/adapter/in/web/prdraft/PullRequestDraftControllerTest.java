@@ -23,7 +23,7 @@ import org.springframework.test.web.servlet.MvcResult;
  * PR 초안 API가 저장된 초안을 생성하고 목록/상세로 재조회하는지 검증합니다.
  */
 @SpringBootTest
-@AutoConfigureMockMvc
+@AutoConfigureMockMvc(addFilters = false)
 class PullRequestDraftControllerTest {
 
     @Autowired

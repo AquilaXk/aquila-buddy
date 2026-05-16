@@ -17,7 +17,7 @@ public class OAuth2FailureHandler implements AuthenticationFailureHandler {
 
     private final String redirectUri;
 
-    public OAuth2FailureHandler(@Value("${app.oauth2.redirect-uri}") String redirectUri) {
+    public OAuth2FailureHandler(@Value("${app.oauth2.redirect-uri:http://localhost:3000/oauth/callback}") String redirectUri) {
         this.redirectUri = redirectUri;
     }
 

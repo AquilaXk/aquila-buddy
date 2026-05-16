@@ -22,7 +22,7 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
 
     public OAuth2SuccessHandler(
         JwtProvider jwtProvider,
-        @Value("${app.oauth2.redirect-uri}") String redirectUri
+        @Value("${app.oauth2.redirect-uri:http://localhost:3000/oauth/callback}") String redirectUri
     ) {
         this.jwtProvider = jwtProvider;
         this.redirectUri = redirectUri;

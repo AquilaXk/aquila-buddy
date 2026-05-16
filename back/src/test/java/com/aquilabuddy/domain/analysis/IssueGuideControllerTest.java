@@ -14,7 +14,7 @@ import org.springframework.test.web.servlet.MockMvc;
  * 이슈 가이드 API가 기존 JSON 계약을 유지하는지 검증하는 통합 테스트입니다.
  */
 @SpringBootTest
-@AutoConfigureMockMvc
+@AutoConfigureMockMvc(addFilters = false)
 class IssueGuideControllerTest {
 
     @Autowired
