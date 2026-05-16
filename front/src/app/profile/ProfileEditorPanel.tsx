@@ -22,8 +22,6 @@ export function ProfileEditorPanel({ initialProfile }: ProfileEditorPanelProps) 
   const [profile, setProfile] = useState(initialProfile);
   const [name, setName] = useState(initialProfile.name);
   const [email, setEmail] = useState(initialProfile.email);
-  const [languagesInput, setLanguagesInput] = useState(initialProfile.primaryLanguages.join(", "));
-  const [topicsInput, setTopicsInput] = useState(initialProfile.topics.join(", "));
   const [requestState, setRequestState] = useState<RequestState>({
     status: "idle",
     message: null,
@@ -42,8 +40,8 @@ export function ProfileEditorPanel({ initialProfile }: ProfileEditorPanelProps) 
       const request: UpdateUserProfileRequest = {
         name,
         email,
-        primaryLanguages: splitList(languagesInput),
-        topics: splitList(topicsInput)
+        primaryLanguages: profile.primaryLanguages,
+        topics: profile.topics
       };
       const updated = await updateUserProfile(request);
       setProfile(updated);
@@ -79,6 +77,51 @@ export function ProfileEditorPanel({ initialProfile }: ProfileEditorPanelProps) 
             <p className="text-xs text-github-muted">GitHub ID</p>
           </div>
         </div>
+
+        <form className="space-y-4" onSubmit={handleSubmit}>
+          <div>
+            <label className="mb-1.5 block text-xs text-github-muted">이름</label>
+            <input
+              className="w-full rounded-lg border border-github-border bg-github-bg px-3 py-2 text-sm text-github-text transition-colors focus:border-github-purple focus:outline-none"
+              onChange={(event) => setName(event.target.value)}
+              placeholder="이름을 입력하세요"
+              required
+              type="text"
+              value={name}
+            />
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-xs text-github-muted">이메일</label>
+            <input
+              className="w-full rounded-lg border border-github-border bg-github-bg px-3 py-2 text-sm text-github-text transition-colors focus:border-github-purple focus:outline-none"
+              onChange={(event) => setEmail(event.target.value)}
+              placeholder="이메일을 입력하세요"
+              required
+              type="email"
+              value={email}
+            />
+          </div>
+
+          {requestState.message ? (
+            <p className="rounded-lg border border-green-500/30 bg-green-500/10 p-4 text-sm text-green-400">
+              {requestState.message}
+            </p>
+          ) : null}
+          {requestState.error ? (
+            <p className="rounded-lg border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-400">
+              {requestState.error}
+            </p>
+          ) : null}
+
+          <button
+            className="rounded-lg bg-github-purple px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-github-purple/90 disabled:opacity-50"
+            disabled={requestState.status !== "idle"}
+            type="submit"
+          >
+            {requestState.status === "saving" ? "저장 중..." : "프로필 저장"}
+          </button>
+        </form>
       </section>
 
       <div className="grid gap-4 md:grid-cols-3">
@@ -93,80 +136,6 @@ export function ProfileEditorPanel({ initialProfile }: ProfileEditorPanelProps) 
         <TokenList title="Languages" items={profile.primaryLanguages} />
         <TokenList title="Topics" items={profile.topics} />
       </div>
-
-      <form className="surface space-y-4 p-5" onSubmit={handleSubmit}>
-        <div className="grid gap-4 md:grid-cols-2">
-          <label className="block text-sm font-semibold text-github-text">
-            Name
-            <input
-              className="focus-ring mt-2 w-full rounded-md border border-github-border px-3 py-2 text-sm font-medium"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              required
-            />
-          </label>
-
-          <label className="block text-sm font-semibold text-github-text">
-            Email
-            <input
-              className="focus-ring mt-2 w-full rounded-md border border-github-border px-3 py-2 text-sm font-medium"
-              type="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              required
-            />
-          </label>
-        </div>
-
-        <label className="block text-sm font-semibold text-github-text">
-          Primary Languages
-          <input
-            className="focus-ring mt-2 w-full rounded-md border border-github-border px-3 py-2 text-sm font-medium"
-            value={languagesInput}
-            onChange={(event) => setLanguagesInput(event.target.value)}
-            required
-          />
-        </label>
-
-        <label className="block text-sm font-semibold text-github-text">
-          Topics
-          <input
-            className="focus-ring mt-2 w-full rounded-md border border-github-border px-3 py-2 text-sm font-medium"
-            value={topicsInput}
-            onChange={(event) => setTopicsInput(event.target.value)}
-            required
-          />
-        </label>
-
-        {requestState.message ? (
-          <p className="rounded-md border border-github-accent/30 bg-github-accent/10 px-3 py-2 text-sm font-semibold text-github-accent">
-            {requestState.message}
-          </p>
-        ) : null}
-        {requestState.error ? (
-          <p className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm font-semibold text-red-400">
-            {requestState.error}
-          </p>
-        ) : null}
-
-        <div className="flex flex-wrap gap-3">
-          <button
-            className="focus-ring rounded-md bg-github-accent px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-neutral-400"
-            type="submit"
-            disabled={requestState.status !== "idle"}
-          >
-            {requestState.status === "saving" ? "Saving..." : "Save profile"}
-          </button>
-          <button
-            className="focus-ring rounded-md border border-github-border px-4 py-2 text-sm font-semibold text-github-text disabled:cursor-not-allowed disabled:text-neutral-400"
-            type="button"
-            onClick={handleRefreshVector}
-            disabled={requestState.status !== "idle"}
-          >
-            {requestState.status === "refreshing" ? "Refreshing..." : "Refresh vector"}
-          </button>
-        </div>
-      </form>
     </div>
   );
 }
@@ -188,13 +157,6 @@ function TokenList({ title, items }: { title: string; items: string[] }) {
       </div>
     </div>
   );
-}
-
-function splitList(value: string) {
-  return value
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean);
 }
 
 function formatDateTime(value: string) {
