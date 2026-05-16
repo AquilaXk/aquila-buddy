@@ -3,6 +3,8 @@ package com.aquilabuddy.adapter.out.persistence.prdraft;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.aquilabuddy.domain.prdraft.PullRequestDraft;
+import com.aquilabuddy.domain.prdraft.PullRequestDraftHistoryPage;
+import com.aquilabuddy.domain.prdraft.PullRequestDraftHistoryQuery;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftRequest;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftUpdateRequest;
 import com.aquilabuddy.domain.prdraft.StoredPullRequestDraft;
@@ -100,6 +102,62 @@ class PullRequestDraftPersistenceAdapterTest {
             .extracting(StoredPullRequestDraft::id)
             .containsExactly("newer", "older");
         assertThat(drafts.getFirst().title()).isEqualTo("[Fix] 최신 초안");
+    }
+
+    @Test
+    void loadsDraftHistoryPageNewestFirst() {
+        repository.save(new PullRequestDraftJpaEntity(
+            "oldest",
+            "spring-projects/spring-boot",
+            10,
+            "main",
+            "feat/oldest",
+            "[Docs] 가장 오래된 초안",
+            "close #10",
+            Instant.parse("2026-05-15T01:00:00Z")
+        ));
+        repository.save(new PullRequestDraftJpaEntity(
+            "middle",
+            "vercel/next.js",
+            11,
+            "main",
+            "feat/middle",
+            "[Fix] 중간 초안",
+            "close #11",
+            Instant.parse("2026-05-15T02:00:00Z")
+        ));
+        repository.save(new PullRequestDraftJpaEntity(
+            "newest",
+            "spring-projects/spring-framework",
+            12,
+            "main",
+            "feat/newest",
+            "[Feat] 최신 초안",
+            "close #12",
+            Instant.parse("2026-05-15T03:00:00Z")
+        ));
+
+        PullRequestDraftHistoryPage firstPage = adapter.loadPullRequestDraftHistory(
+            new PullRequestDraftHistoryQuery(0, 2)
+        );
+        PullRequestDraftHistoryPage secondPage = adapter.loadPullRequestDraftHistory(
+            new PullRequestDraftHistoryQuery(1, 2)
+        );
+
+        assertThat(firstPage.content())
+            .extracting(StoredPullRequestDraft::id)
+            .containsExactly("newest", "middle");
+        assertThat(firstPage.page()).isEqualTo(0);
+        assertThat(firstPage.size()).isEqualTo(2);
+        assertThat(firstPage.totalElements()).isEqualTo(3);
+        assertThat(firstPage.totalPages()).isEqualTo(2);
+        assertThat(firstPage.first()).isTrue();
+        assertThat(firstPage.last()).isFalse();
+        assertThat(secondPage.content())
+            .extracting(StoredPullRequestDraft::id)
+            .containsExactly("oldest");
+        assertThat(secondPage.first()).isFalse();
+        assertThat(secondPage.last()).isTrue();
     }
 
     @Test
