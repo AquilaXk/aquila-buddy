@@ -14,7 +14,7 @@ export default async function DashboardPage() {
   const activities = buildDashboardActivities(overview);
 
   return (
-    <ProtectedLayout title="Dashboard">
+    <ProtectedLayout>
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {lanes.map((lane) => (
           <section key={lane.label} className="surface p-4">

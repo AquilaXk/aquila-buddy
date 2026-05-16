@@ -123,7 +123,7 @@ function PrDraftContent() {
   const totalHistoryPages = Math.max(historyPage?.totalPages ?? 1, 1);
 
   return (
-    <ProtectedLayout title="PR Draft">
+    <ProtectedLayout>
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(360px,0.8fr)]">
         <form className="surface space-y-4 p-5" onSubmit={handleSubmit}>
           {hasDraftPrefill ? (
@@ -347,7 +347,7 @@ function PrDraftContent() {
 
 function PrDraftFallback() {
   return (
-    <ProtectedLayout title="PR Draft">
+    <ProtectedLayout>
       <div className="surface p-5 text-sm font-semibold text-github-muted">불러오는 중...</div>
     </ProtectedLayout>
   );

@@ -27,7 +27,7 @@ export default async function PrDetailPage({ params }: PrDetailPageProps) {
   const result = await loadPrDetailOverview(id);
 
   return (
-    <ProtectedLayout title="PR Detail">
+    <ProtectedLayout>
       {result.errors.draft ? (
         <div className="surface mb-4 border-red-500/30 bg-red-500/10 p-4 text-sm font-semibold text-red-400">
           PR 초안을 불러오지 못했습니다. backend API 상태를 확인해 주세요.

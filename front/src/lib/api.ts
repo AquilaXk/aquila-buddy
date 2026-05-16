@@ -6,11 +6,6 @@ type ApiResponse<T> = {
   message: string | null;
 };
 
-export type HealthResponse = {
-  status: string;
-  service: string;
-};
-
 export type UserProfile = {
   githubId: number;
   login: string;
@@ -237,18 +232,6 @@ export type PullRequestDraftTranslationSubmission = {
   headBranch: string;
   items: PullRequestDraftSubmissionItem[];
 };
-
-export async function getHealth(): Promise<HealthResponse> {
-  const response = await fetch(`${API_URL}/api/v1/health`, {
-    cache: "no-store"
-  });
-
-  if (!response.ok) {
-    throw new Error("Failed to fetch backend health");
-  }
-
-  return response.json() as Promise<HealthResponse>;
-}
 
 export async function getUserProfile(): Promise<UserProfile> {
   const response = await fetch(`${API_URL}/api/v1/users/me`, {

@@ -8,7 +8,7 @@ export default async function ProfilePage() {
   const result = await loadUserProfile();
 
   return (
-    <ProtectedLayout title="Profile">
+    <ProtectedLayout>
       {result.error ? (
         <div className="surface mb-4 border-red-500/30 bg-red-500/10 p-4 text-sm font-semibold text-red-400">
           프로필을 불러오지 못했습니다. backend API 상태를 확인해 주세요.
