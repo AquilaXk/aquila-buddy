@@ -268,6 +268,24 @@ export async function getUserProfile(): Promise<UserProfile> {
   return payload.data;
 }
 
+export async function getUserProfileByLogin(githubId: string): Promise<UserProfile> {
+  const response = await fetch(`${API_URL}/api/v1/users/${encodeURIComponent(githubId)}`, {
+    cache: "no-store"
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch public user profile");
+  }
+
+  const payload = (await response.json()) as ApiResponse<UserProfile>;
+
+  if (!payload.success || !payload.data) {
+    throw new Error(payload.message ?? "Public user profile response was not successful");
+  }
+
+  return payload.data;
+}
+
 export async function updateUserProfile(request: UpdateUserProfileRequest): Promise<UserProfile> {
   const response = await fetch(`${API_URL}/api/v1/users/me`, {
     method: "PATCH",

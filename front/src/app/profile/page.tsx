@@ -1,5 +1,5 @@
 import { ProtectedLayout } from "@/components/ProtectedLayout";
-import { getUserProfile } from "@/lib/api";
+import { getUserProfile, getUserProfileByLogin } from "@/lib/api";
 import { ProfileEditorPanel } from "./ProfileEditorPanel";
 
 export const dynamic = "force-dynamic";
@@ -15,7 +15,7 @@ export default async function ProfilePage() {
         </div>
       ) : null}
       {result.profile ? (
-        <ProfileEditorPanel initialProfile={result.profile} />
+        <ProfileEditorPanel initialProfile={result.profile} publicProfile={result.publicProfile} />
       ) : (
         <section className="surface p-5">
           <h2 className="text-lg font-bold">Profile</h2>
@@ -28,13 +28,24 @@ export default async function ProfilePage() {
 
 async function loadUserProfile() {
   try {
+    const profile = await getUserProfile();
+    let publicProfile = null;
+
+    try {
+      publicProfile = await getUserProfileByLogin(profile.login);
+    } catch {
+      publicProfile = null;
+    }
+
     return {
-      profile: await getUserProfile(),
+      profile,
+      publicProfile,
       error: null
     };
   } catch (error) {
     return {
       profile: null,
+      publicProfile: null,
       error
     };
   }
