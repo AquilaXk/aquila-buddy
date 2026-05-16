@@ -6,9 +6,11 @@ import { useParams } from "next/navigation";
 import { ProtectedLayout } from "@/components/ProtectedLayout";
 import {
   getIssueGuide,
+  getIssuePseudoCode,
   getRecommendedIssueHistory,
   getRecommendedIssues,
   type IssueGuide,
+  type IssuePseudoCode,
   type RecommendedIssue,
   type RecommendedIssueHistory
 } from "@/lib/api";
@@ -24,6 +26,9 @@ export default function IssueDetailPage() {
   const [guide, setGuide] = useState<IssueGuide | null>(null);
   const [guideLoading, setGuideLoading] = useState(false);
   const [guideError, setGuideError] = useState<string | null>(null);
+  const [pseudo, setPseudo] = useState<IssuePseudoCode | null>(null);
+  const [pseudoLoading, setPseudoLoading] = useState(false);
+  const [pseudoError, setPseudoError] = useState<string | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -48,6 +53,8 @@ export default function IssueDetailPage() {
       setNotFound(!foundIssue);
       setGuide(null);
       setGuideError(null);
+      setPseudo(null);
+      setPseudoError(null);
       setLoading(false);
     }
 
@@ -76,6 +83,19 @@ export default function IssueDetailPage() {
       setGuideError(caught instanceof Error ? caught.message : "가이드를 불러오지 못했습니다.");
     } finally {
       setGuideLoading(false);
+    }
+  }
+
+  async function handleGetPseudo() {
+    setPseudoLoading(true);
+    setPseudoError(null);
+
+    try {
+      setPseudo(await getIssuePseudoCode(issueId));
+    } catch (caught) {
+      setPseudoError(caught instanceof Error ? caught.message : "의사 코드를 불러오지 못했습니다.");
+    } finally {
+      setPseudoLoading(false);
     }
   }
 
@@ -112,6 +132,7 @@ export default function IssueDetailPage() {
 
   const githubUrl = `https://github.com/${issue.repoFullName}/issues/${issue.issueNumber}`;
   const scorePercent = Math.round(issue.score * 100);
+  const prDraftHref = buildPullRequestDraftHref(issue, guide);
 
   return (
     <ProtectedLayout>
@@ -215,6 +236,50 @@ export default function IssueDetailPage() {
           </div>
         ) : null}
       </section>
+
+      <section className="surface mb-5 p-6">
+        <div className="mb-3 flex items-start justify-between gap-4">
+          <div>
+            <h2 className="font-semibold text-github-text">2차 힌트 — 의사 코드</h2>
+            <p className="mt-1 text-xs leading-5 text-github-muted">
+              구현에 들어가기 전에 구체적인 코드 수정 제안을 확인합니다.
+            </p>
+          </div>
+          {!pseudo ? (
+            <button
+              className="focus-ring shrink-0 rounded-md border border-github-accent/30 bg-github-accent/10 px-4 py-2 text-sm font-semibold text-github-accent hover:bg-github-accent/20 disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={pseudoLoading}
+              onClick={handleGetPseudo}
+              type="button"
+            >
+              {pseudoLoading ? "분석 중..." : "코드 힌트 보기"}
+            </button>
+          ) : null}
+        </div>
+
+        {pseudoError ? (
+          <p className="text-sm font-semibold text-red-400">{pseudoError}</p>
+        ) : null}
+
+        {pseudo ? (
+          <pre className="max-h-96 overflow-auto whitespace-pre-wrap rounded-md bg-github-bg p-4 text-xs leading-6 text-github-text">
+            {pseudo.pseudoCode}
+          </pre>
+        ) : null}
+      </section>
+
+      <section className="surface border-github-purple/30 p-6">
+        <h2 className="font-semibold text-github-text">PR 초안 생성</h2>
+        <p className="mt-2 text-sm leading-6 text-github-muted">
+          코드 작업이 완료되었다면 선택한 이슈의 맥락으로 PR 초안을 작성하세요.
+        </p>
+        <Link
+          className="focus-ring mt-5 inline-flex rounded-md bg-github-purple px-5 py-2.5 text-sm font-semibold text-white hover:bg-github-purple/90"
+          href={prDraftHref}
+        >
+          PR 초안 만들기 →
+        </Link>
+      </section>
     </ProtectedLayout>
   );
 }
@@ -235,4 +300,41 @@ function StatusBadge({ status }: { status: RecommendedIssue["status"] }) {
 
 function getIssueAnalysisLabel(issue: RecommendedIssueHistory) {
   return issue.isAnalyzed ? "분석 완료" : "분석 전";
+}
+
+function buildPullRequestDraftHref(issue: IssueDetailIssue, guide: IssueGuide | null) {
+  const params = new URLSearchParams({
+    repo: issue.repoFullName,
+    issue: String(issue.issueNumber),
+    issueNumber: String(issue.issueNumber),
+    issueId: issue.id,
+    issueTitle: issue.title,
+    sourceIssueId: issue.id,
+    base: "main",
+    head: buildHeadBranch(issue),
+    diff: buildDiffSeed(issue, guide)
+  });
+
+  return `/pr-draft?${params.toString()}`;
+}
+
+function buildHeadBranch(issue: IssueDetailIssue) {
+  const slug = issue.title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40)
+    .replace(/-+$/g, "");
+
+  return `feat/${slug || `issue-${issue.issueNumber}`}`;
+}
+
+function buildDiffSeed(issue: IssueDetailIssue, guide: IssueGuide | null) {
+  const guideSummary = guide?.guideline ?? issue.summary;
+
+  return [
+    `diff --git a/ISSUE-${issue.issueNumber}.md b/ISSUE-${issue.issueNumber}.md`,
+    `+${issue.title}`,
+    `+${guideSummary}`
+  ].join("\n");
 }
