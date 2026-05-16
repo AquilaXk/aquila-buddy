@@ -7,6 +7,7 @@ import type {
   StoredPullRequestDraft
 } from "@/lib/api";
 import { PrDraftContributionReportPanel } from "./PrDraftContributionReportPanel";
+import { PrDraftEditPanel } from "./PrDraftEditPanel";
 import { PrDraftReadinessPanel } from "./PrDraftReadinessPanel";
 import { PrDraftSubmissionPanel } from "./PrDraftSubmissionPanel";
 import { PrDraftTimelinePanel } from "./PrDraftTimelinePanel";
@@ -104,20 +105,7 @@ function DraftDetail({
       <PrDraftReadinessPanel hasError={hasReadinessError} readiness={readiness} />
       <PrDraftTimelinePanel hasError={hasTimelineError} timeline={timeline} />
       <PrDraftSubmissionPanel hasError={hasSubmissionError} submission={submission} />
-
-      <div>
-        <h3 className="text-sm font-semibold">Title</h3>
-        <p className="mt-2 rounded-md bg-neutral-100 p-3 text-sm font-semibold leading-6 text-ink">
-          {draft.title}
-        </p>
-      </div>
-
-      <div>
-        <h3 className="text-sm font-semibold">Body</h3>
-        <pre className="mt-2 overflow-auto whitespace-pre-wrap rounded-md bg-neutral-100 p-3 text-sm leading-6 text-neutral-800">
-          {draft.body}
-        </pre>
-      </div>
+      <PrDraftEditPanel draft={draft} />
 
       <TranslationPanel draftId={draft.id} />
     </div>

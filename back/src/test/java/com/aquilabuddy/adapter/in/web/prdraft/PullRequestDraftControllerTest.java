@@ -1,6 +1,8 @@
 package com.aquilabuddy.adapter.in.web.prdraft;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -86,6 +88,41 @@ class PullRequestDraftControllerTest {
     }
 
     @Test
+    void updatesPullRequestDraft() throws Exception {
+        String id = createDraft();
+
+        mockMvc.perform(patch("/api/v1/pr/{id}", id)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                      "title": "docs: update contributor guide",
+                      "body": "## Summary\\n- Update contributor guide"
+                    }
+                    """))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.id").value(id))
+            .andExpect(jsonPath("$.data.title").value("docs: update contributor guide"))
+            .andExpect(jsonPath("$.data.body").value(org.hamcrest.Matchers.containsString("Update contributor guide")));
+
+        mockMvc.perform(get("/api/v1/pr/{id}", id))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.title").value("docs: update contributor guide"));
+    }
+
+    @Test
+    void deletesPullRequestDraft() throws Exception {
+        String id = createDraft();
+
+        mockMvc.perform(delete("/api/v1/pr/{id}", id))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true));
+
+        mockMvc.perform(get("/api/v1/pr/{id}", id))
+            .andExpect(status().isNotFound());
+    }
+
+    @Test
     void returnsPullRequestDraftReadiness() throws Exception {
         String id = createDraft();
 
@@ -152,6 +189,25 @@ class PullRequestDraftControllerTest {
     @Test
     void returnsNotFoundForMissingDraft() throws Exception {
         mockMvc.perform(get("/api/v1/pr/{id}", "missing"))
+            .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void returnsNotFoundWhenUpdatingMissingDraft() throws Exception {
+        mockMvc.perform(patch("/api/v1/pr/{id}", "missing")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                      "title": "docs: update contributor guide",
+                      "body": "## Summary\\n- Update contributor guide"
+                    }
+                    """))
+            .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void returnsNotFoundWhenDeletingMissingDraft() throws Exception {
+        mockMvc.perform(delete("/api/v1/pr/{id}", "missing"))
             .andExpect(status().isNotFound());
     }
 
@@ -356,6 +412,23 @@ class PullRequestDraftControllerTest {
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.success").value(false))
             .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("upstreamRepo")));
+    }
+
+    @Test
+    void rejectsBlankDraftUpdateTitle() throws Exception {
+        String id = createDraft();
+
+        mockMvc.perform(patch("/api/v1/pr/{id}", id)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                      "title": "",
+                      "body": "## Summary\\n- Update contributor guide"
+                    }
+                    """))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.success").value(false))
+            .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("title")));
     }
 
     private String createDraft() throws Exception {
