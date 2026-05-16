@@ -10,6 +10,7 @@ type LoginPageProps = {
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const resolvedSearchParams = await searchParams;
   const nextPath = normalizeInternalRedirect(resolvedSearchParams?.next ?? null);
+  const oauthUrl = getOAuthUrl(nextPath);
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-github-bg px-4">
@@ -26,13 +27,21 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           </p>
 
           <a
-            href={getOAuthUrl(nextPath)}
+            href={oauthUrl}
             className="flex w-full items-center justify-center gap-3 rounded-lg bg-github-purple px-4 py-3 font-medium text-white transition-colors hover:bg-github-purple/90"
           >
             <GitHubIcon />
             GitHub으로 로그인
           </a>
+
+          <p className="mt-6 text-center text-xs text-github-muted">
+            로그인하면 GitHub 프로필 정보를 사용에 동의하는 것으로 간주합니다.
+          </p>
         </section>
+
+        <p className="mt-4 text-center text-xs text-github-muted">
+          백엔드 서버: <span className="text-github-accent">localhost:8080</span>
+        </p>
       </div>
     </main>
   );
