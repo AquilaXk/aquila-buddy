@@ -55,6 +55,12 @@ function OAuthCallbackContent() {
     return <OAuthCallbackLoading />;
   }
 
+  const errorMessage = getCallbackError(status, callbackParams.error);
+
+  if (errorMessage) {
+    return <OAuthCallbackError message={errorMessage} />;
+  }
+
   return (
     <main className="flex min-h-screen items-center justify-center bg-github-bg px-4 py-10 text-github-text">
       <section className="w-full max-w-lg rounded-xl border border-github-border bg-github-surface p-8 shadow-2xl shadow-black/30">
@@ -102,6 +108,36 @@ function OAuthCallbackLoading() {
       </div>
     </div>
   );
+}
+
+function OAuthCallbackError({ message }: { message: string }) {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-github-bg px-4">
+      <div className="w-full max-w-md rounded-xl border border-red-500/40 bg-github-surface p-8 text-center">
+        <div className="mb-4 text-4xl text-red-400">!</div>
+        <h2 className="mb-2 text-lg font-semibold text-github-text">로그인 실패</h2>
+        <p className="mb-6 text-sm text-github-muted">{message}</p>
+        <a
+          className="inline-block rounded-lg bg-github-purple px-4 py-2 text-sm text-white transition-colors hover:bg-github-purple/90"
+          href="/login"
+        >
+          다시 로그인
+        </a>
+      </div>
+    </div>
+  );
+}
+
+function getCallbackError(status: CallbackStatus, error: string | null) {
+  if (status === "failed") {
+    return error ?? "GitHub OAuth 오류가 발생했습니다.";
+  }
+
+  if (status === "missing-token") {
+    return "토큰을 받지 못했습니다. 백엔드 로그를 확인하거나 다시 로그인해 주세요.";
+  }
+
+  return null;
 }
 
 function getCallbackContent(status: CallbackStatus, error: string | null) {
