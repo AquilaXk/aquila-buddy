@@ -116,6 +116,22 @@ export type PullRequestDraftSubmission = {
   items: PullRequestDraftSubmissionItem[];
 };
 
+export type PullRequestDraftTimelineStatus = "DONE" | "READY" | "NEEDS_ATTENTION";
+
+export type PullRequestDraftTimelineItem = {
+  key: "context-captured" | "draft-created" | "readiness-reviewed" | "submission-prepared";
+  label: string;
+  description: string;
+  detail: string;
+  status: PullRequestDraftTimelineStatus;
+  occurredAt: string;
+};
+
+export type PullRequestDraftTimeline = {
+  draftId: string;
+  items: PullRequestDraftTimelineItem[];
+};
+
 export type PullRequestDraftTranslation = PullRequestDraft & {
   id: string;
   draftId: string;
@@ -244,6 +260,24 @@ export async function getPullRequestDraftSubmission(id: string): Promise<PullReq
 
   if (!payload.success || !payload.data) {
     throw new Error(payload.message ?? "Pull request draft submission response was not successful");
+  }
+
+  return payload.data;
+}
+
+export async function getPullRequestDraftTimeline(id: string): Promise<PullRequestDraftTimeline> {
+  const response = await fetch(`${API_URL}/api/v1/pr/${encodeURIComponent(id)}/timeline`, {
+    cache: "no-store"
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch pull request draft timeline");
+  }
+
+  const payload = (await response.json()) as ApiResponse<PullRequestDraftTimeline>;
+
+  if (!payload.success || !payload.data) {
+    throw new Error(payload.message ?? "Pull request draft timeline response was not successful");
   }
 
   return payload.data;

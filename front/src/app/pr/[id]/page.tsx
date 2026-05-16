@@ -2,10 +2,12 @@ import { ProtectedLayout } from "@/components/ProtectedLayout";
 import type {
   PullRequestDraftReadiness,
   PullRequestDraftSubmission,
+  PullRequestDraftTimeline,
   StoredPullRequestDraft
 } from "@/lib/api";
 import { PrDraftReadinessPanel } from "./PrDraftReadinessPanel";
 import { PrDraftSubmissionPanel } from "./PrDraftSubmissionPanel";
+import { PrDraftTimelinePanel } from "./PrDraftTimelinePanel";
 import { loadPrDetailOverview } from "./prDetailData";
 import { TranslationPanel } from "./TranslationPanel";
 
@@ -36,8 +38,10 @@ export default async function PrDetailPage({ params }: PrDetailPageProps) {
             draft={result.draft}
             hasReadinessError={result.errors.readiness}
             hasSubmissionError={result.errors.submission}
+            hasTimelineError={result.errors.timeline}
             readiness={result.readiness}
             submission={result.submission}
+            timeline={result.timeline}
           />
         ) : (
           <p className="mt-4 text-sm leading-6 text-neutral-700">
@@ -53,14 +57,18 @@ function DraftDetail({
   draft,
   hasReadinessError,
   hasSubmissionError,
+  hasTimelineError,
   readiness,
-  submission
+  submission,
+  timeline
 }: {
   draft: StoredPullRequestDraft;
   hasReadinessError: boolean;
   hasSubmissionError: boolean;
+  hasTimelineError: boolean;
   readiness: PullRequestDraftReadiness | null;
   submission: PullRequestDraftSubmission | null;
+  timeline: PullRequestDraftTimeline | null;
 }) {
   return (
     <div className="mt-5 space-y-5">
@@ -85,6 +93,7 @@ function DraftDetail({
       </div>
 
       <PrDraftReadinessPanel hasError={hasReadinessError} readiness={readiness} />
+      <PrDraftTimelinePanel hasError={hasTimelineError} timeline={timeline} />
       <PrDraftSubmissionPanel hasError={hasSubmissionError} submission={submission} />
 
       <div>

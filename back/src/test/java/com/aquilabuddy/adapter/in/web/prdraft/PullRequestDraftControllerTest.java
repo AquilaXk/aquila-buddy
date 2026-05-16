@@ -100,6 +100,22 @@ class PullRequestDraftControllerTest {
     }
 
     @Test
+    void returnsPullRequestDraftTimeline() throws Exception {
+        String id = createDraft();
+
+        mockMvc.perform(get("/api/v1/pr/{id}/timeline", id))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.draftId").value(id))
+            .andExpect(jsonPath("$.data.items[0].key").value("context-captured"))
+            .andExpect(jsonPath("$.data.items[0].status").value("DONE"))
+            .andExpect(jsonPath("$.data.items[2].key").value("readiness-reviewed"))
+            .andExpect(jsonPath("$.data.items[2].detail").value("4/4 readiness items ready"))
+            .andExpect(jsonPath("$.data.items[3].key").value("submission-prepared"))
+            .andExpect(jsonPath("$.data.items[3].status").value("READY"));
+    }
+
+    @Test
     void returnsPullRequestDraftSubmissionBundle() throws Exception {
         String id = createDraft();
 
@@ -124,6 +140,12 @@ class PullRequestDraftControllerTest {
     @Test
     void returnsNotFoundForMissingDraftReadiness() throws Exception {
         mockMvc.perform(get("/api/v1/pr/{id}/readiness", "missing"))
+            .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void returnsNotFoundForMissingDraftTimeline() throws Exception {
+        mockMvc.perform(get("/api/v1/pr/{id}/timeline", "missing"))
             .andExpect(status().isNotFound());
     }
 
