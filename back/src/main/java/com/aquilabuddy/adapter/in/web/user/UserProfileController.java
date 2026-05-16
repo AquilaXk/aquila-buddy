@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -82,8 +83,24 @@ public class UserProfileController {
      * 현재 사용자 프로필의 추천 컨텍스트를 수정하고 최신 프로필을 반환합니다.
      */
     @PatchMapping("/me")
-    ApiResponse<UserProfile> updateMe(@Valid @RequestBody UpdateCurrentUserProfileRequest request) {
-        return ApiResponse.success(updateCurrentUserProfileUseCase.updateCurrentUser(request.toDomain()));
+    ApiResponse<UserProfile> updateMe(
+        @Valid @RequestBody(required = false) UpdateCurrentUserProfileRequest request,
+        @RequestParam(required = false) String name,
+        @RequestParam(required = false) String email
+    ) {
+        if (request != null) {
+            return ApiResponse.success(updateCurrentUserProfileUseCase.updateCurrentUser(request.toDomain()));
+        }
+
+        UserProfile currentProfile = getCurrentUserProfileUseCase.currentUser();
+        UserProfileUpdateRequest queryRequest = new UserProfileUpdateRequest(
+            name == null ? currentProfile.name() : name,
+            email == null ? currentProfile.email() : email,
+            currentProfile.primaryLanguages(),
+            currentProfile.topics()
+        );
+
+        return ApiResponse.success(updateCurrentUserProfileUseCase.updateCurrentUser(queryRequest));
     }
 
     /**

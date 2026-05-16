@@ -92,6 +92,19 @@ class UserProfileControllerTest {
     }
 
     @Test
+    void updatesCurrentUserProfileWithQueryParameters() throws Exception {
+        mockMvc.perform(patch("/api/v1/users/me")
+                .param("name", "Aquila Query Maintainer")
+                .param("email", "query@example.com"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.name").value("Aquila Query Maintainer"))
+            .andExpect(jsonPath("$.data.email").value("query@example.com"))
+            .andExpect(jsonPath("$.data.primaryLanguages[0]").value("Java"))
+            .andExpect(jsonPath("$.data.topics[0]").value("spring"));
+    }
+
+    @Test
     void refreshesCurrentUserProfileVector() throws Exception {
         mockMvc.perform(post("/api/v1/users/me/vector"))
             .andExpect(status().isOk())
