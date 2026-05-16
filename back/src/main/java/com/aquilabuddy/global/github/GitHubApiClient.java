@@ -1,7 +1,9 @@
 package com.aquilabuddy.global.github;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -20,6 +22,22 @@ import org.springframework.web.client.RestClientException;
  */
 @Component
 public class GitHubApiClient {
+
+    private static final List<String> CONTRIBUTING_PATHS = List.of(
+        "CONTRIBUTING.md",
+        ".github/CONTRIBUTING.md",
+        "CONTRIBUTING.adoc",
+        ".github/CONTRIBUTING.adoc"
+    );
+    private static final List<String> PULL_REQUEST_TEMPLATE_PATHS = List.of(
+        ".github/pull_request_template.md",
+        ".github/PULL_REQUEST_TEMPLATE.md",
+        "pull_request_template.md",
+        "docs/pull_request_template.md",
+        ".github/PULL_REQUEST_TEMPLATE/pull_request_template.md",
+        "PULL_REQUEST_TEMPLATE/pull_request_template.md",
+        "docs/PULL_REQUEST_TEMPLATE/pull_request_template.md"
+    );
 
     private final RestClient restClient;
     private final String token;
@@ -214,6 +232,72 @@ public class GitHubApiClient {
         }
     }
 
+    /**
+     * PR 초안 생성에 참고할 저장소별 기여 가이드 context를 수집합니다.
+     */
+    public GitHubRepositoryGuideContext loadRepositoryGuideContext(String upstreamRepo) {
+        String contributing = firstExistingContent(upstreamRepo, CONTRIBUTING_PATHS).orElse(null);
+        String pullRequestTemplate = firstExistingContent(upstreamRepo, PULL_REQUEST_TEMPLATE_PATHS).orElse(null);
+        List<String> mergedPullRequestSamples = contributing == null && pullRequestTemplate == null
+            ? getMergedPullRequestSamples(upstreamRepo)
+            : List.of();
+
+        return new GitHubRepositoryGuideContext(
+            contributing,
+            pullRequestTemplate,
+            mergedPullRequestSamples
+        );
+    }
+
+    private Optional<String> firstExistingContent(String upstreamRepo, List<String> paths) {
+        return paths.stream()
+            .map(path -> getContentFile(upstreamRepo, path))
+            .flatMap(Optional::stream)
+            .findFirst();
+    }
+
+    private Optional<String> getContentFile(String upstreamRepo, String path) {
+        try {
+            GitHubContentResponse response = restClient.get()
+                .uri("/repos/" + upstreamRepo + "/contents/" + path)
+                .headers(this::applyAuthorization)
+                .retrieve()
+                .body(GitHubContentResponse.class);
+
+            return Optional.ofNullable(response)
+                .map(GitHubContentResponse::decodedContent)
+                .filter(this::hasText);
+        } catch (RestClientException exception) {
+            return Optional.empty();
+        }
+    }
+
+    private List<String> getMergedPullRequestSamples(String upstreamRepo) {
+        try {
+            GitHubPullRequestResponse[] response = restClient.get()
+                .uri(uriBuilder -> uriBuilder
+                    .path("/repos/" + upstreamRepo + "/pulls")
+                    .queryParam("state", "closed")
+                    .queryParam("per_page", 20)
+                    .build())
+                .headers(this::applyAuthorization)
+                .retrieve()
+                .body(GitHubPullRequestResponse[].class);
+
+            if (response == null) {
+                return List.of();
+            }
+
+            return Arrays.stream(response)
+                .filter(item -> hasText(item.mergedAt()) && hasText(item.body()))
+                .map(GitHubPullRequestResponse::body)
+                .limit(3)
+                .toList();
+        } catch (RestClientException exception) {
+            return List.of();
+        }
+    }
+
     private String formatCompareDiff(List<GitHubCompareFileResponse> files) {
         if (files == null) {
             return "";
@@ -276,6 +360,19 @@ public class GitHubApiClient {
     ) {
     }
 
+    public record GitHubRepositoryGuideContext(
+        String contributing,
+        String pullRequestTemplate,
+        List<String> mergedPullRequestSamples
+    ) {
+
+        public GitHubRepositoryGuideContext {
+            mergedPullRequestSamples = mergedPullRequestSamples == null
+                ? List.of()
+                : List.copyOf(mergedPullRequestSamples);
+        }
+    }
+
     private record GitHubUserProfileResponse(
         String login,
         String bio,
@@ -311,5 +408,23 @@ public class GitHubApiClient {
     }
 
     private record GitHubCompareFileResponse(String filename, String patch) {
+    }
+
+    private record GitHubContentResponse(String content) {
+
+        String decodedContent() {
+            if (content == null || content.isBlank()) {
+                return null;
+            }
+
+            String normalized = content.replace("\n", "");
+            return new String(Base64.getDecoder().decode(normalized), StandardCharsets.UTF_8);
+        }
+    }
+
+    private record GitHubPullRequestResponse(
+        String body,
+        @JsonProperty("merged_at") String mergedAt
+    ) {
     }
 }
