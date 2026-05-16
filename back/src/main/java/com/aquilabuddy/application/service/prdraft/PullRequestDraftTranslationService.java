@@ -1,6 +1,7 @@
 package com.aquilabuddy.application.service.prdraft;
 
 import com.aquilabuddy.application.port.in.prdraft.CreatePullRequestDraftTranslationUseCase;
+import com.aquilabuddy.application.port.in.prdraft.GetPullRequestDraftTranslationSubmissionUseCase;
 import com.aquilabuddy.application.port.in.prdraft.ListPullRequestDraftTranslationsUseCase;
 import com.aquilabuddy.application.port.out.prdraft.LoadPullRequestDraftPort;
 import com.aquilabuddy.application.port.out.prdraft.LoadPullRequestDraftTranslationPort;
@@ -8,6 +9,7 @@ import com.aquilabuddy.application.port.out.prdraft.SavePullRequestDraftTranslat
 import com.aquilabuddy.application.port.out.prdraft.TranslatePullRequestDraftPort;
 import com.aquilabuddy.domain.prdraft.PullRequestDraft;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftTranslation;
+import com.aquilabuddy.domain.prdraft.PullRequestDraftTranslationSubmission;
 import com.aquilabuddy.domain.prdraft.StoredPullRequestDraft;
 import java.util.List;
 import java.util.Locale;
@@ -20,7 +22,8 @@ import org.springframework.stereotype.Service;
 @Service
 public class PullRequestDraftTranslationService implements
     CreatePullRequestDraftTranslationUseCase,
-    ListPullRequestDraftTranslationsUseCase {
+    ListPullRequestDraftTranslationsUseCase,
+    GetPullRequestDraftTranslationSubmissionUseCase {
 
     private final LoadPullRequestDraftPort loadPullRequestDraftPort;
     private final TranslatePullRequestDraftPort translatePullRequestDraftPort;
@@ -62,6 +65,17 @@ public class PullRequestDraftTranslationService implements
     @Override
     public List<PullRequestDraftTranslation> listTranslations(String draftId) {
         return loadPullRequestDraftTranslationPort.loadPullRequestDraftTranslations(draftId);
+    }
+
+    @Override
+    public Optional<PullRequestDraftTranslationSubmission> getTranslationSubmission(
+        String draftId,
+        String translationId
+    ) {
+        return loadPullRequestDraftPort.loadPullRequestDraft(draftId)
+            .flatMap(draft -> loadPullRequestDraftTranslationPort.loadPullRequestDraftTranslation(translationId)
+                .filter(translation -> draft.id().equals(translation.draftId()))
+                .map(translation -> PullRequestDraftTranslationSubmission.from(draft, translation)));
     }
 
     private String normalizeTargetLanguage(String targetLanguage) {
