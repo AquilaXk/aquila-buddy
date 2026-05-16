@@ -7,6 +7,7 @@ import com.sun.net.httpserver.HttpServer;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -57,6 +58,54 @@ class GitHubApiClientTest {
         Optional<GitHubApiClient.GitHubUserProfile> profile = client.getUserProfile("missing-user");
 
         assertThat(profile).isEmpty();
+    }
+
+    @Test
+    void loadsUserRepositoriesWithoutForksOrderedByStarsAndLimited() {
+        route("/users/aquila-dev/repos", 200, """
+            [
+              {
+                "name": "small-tool",
+                "description": "Small helper",
+                "language": "Java",
+                "topics": ["spring"],
+                "stargazers_count": 3,
+                "fork": false
+              },
+              {
+                "name": "forked-tool",
+                "description": "Forked helper",
+                "language": "Kotlin",
+                "topics": ["fork"],
+                "stargazers_count": 99,
+                "fork": true
+              },
+              {
+                "name": "popular-tool",
+                "description": "Popular helper",
+                "language": "TypeScript",
+                "topics": ["nextjs", "oss"],
+                "stargazers_count": 12,
+                "fork": false
+              },
+              {
+                "name": "extra-tool",
+                "description": "Extra helper",
+                "language": "SQL",
+                "topics": [],
+                "stargazers_count": 1,
+                "fork": false
+              }
+            ]
+            """);
+        GitHubApiClient client = client();
+
+        List<GitHubApiClient.GitHubRepository> repositories = client.getUserRepos("aquila-dev", 2);
+
+        assertThat(repositories)
+            .extracting(GitHubApiClient.GitHubRepository::name)
+            .containsExactly("popular-tool", "small-tool");
+        assertThat(repositories.getFirst().topics()).containsExactly("nextjs", "oss");
     }
 
     private GitHubApiClient client() {

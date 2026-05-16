@@ -1,8 +1,12 @@
 package com.aquilabuddy.global.github;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
@@ -36,11 +40,7 @@ public class GitHubApiClient {
         try {
             GitHubUserProfileResponse response = restClient.get()
                 .uri("/users/{username}", username)
-                .headers(headers -> {
-                    if (!token.isBlank()) {
-                        headers.setBearerAuth(token);
-                    }
-                })
+                .headers(this::applyAuthorization)
                 .retrieve()
                 .body(GitHubUserProfileResponse.class);
 
@@ -51,7 +51,59 @@ public class GitHubApiClient {
         }
     }
 
+    /**
+     * GitHub 사용자의 공개 repository 목록을 조회합니다.
+     */
+    public List<GitHubRepository> getUserRepos(String username) {
+        return getUserRepos(username, 20);
+    }
+
+    /**
+     * fork를 제외한 공개 repository를 star 내림차순으로 제한해 반환합니다.
+     */
+    public List<GitHubRepository> getUserRepos(String username, int limit) {
+        try {
+            GitHubRepositoryResponse[] response = restClient.get()
+                .uri(uriBuilder -> uriBuilder
+                    .path("/users/{username}/repos")
+                    .queryParam("per_page", 100)
+                    .queryParam("sort", "updated")
+                    .build(username))
+                .headers(this::applyAuthorization)
+                .retrieve()
+                .body(GitHubRepositoryResponse[].class);
+
+            if (response == null) {
+                return List.of();
+            }
+
+            return Arrays.stream(response)
+                .filter(item -> !item.fork())
+                .sorted(Comparator.comparingInt(GitHubRepositoryResponse::stargazersCount).reversed())
+                .limit(limit)
+                .map(GitHubRepositoryResponse::toDomain)
+                .toList();
+        } catch (RestClientException exception) {
+            return List.of();
+        }
+    }
+
+    private void applyAuthorization(HttpHeaders headers) {
+        if (!token.isBlank()) {
+            headers.setBearerAuth(token);
+        }
+    }
+
     public record GitHubUserProfile(String login, String bio, int publicRepos) {
+    }
+
+    public record GitHubRepository(
+        String name,
+        String description,
+        String language,
+        List<String> topics,
+        int stars
+    ) {
     }
 
     private record GitHubUserProfileResponse(
@@ -62,6 +114,26 @@ public class GitHubApiClient {
 
         GitHubUserProfile toDomain() {
             return new GitHubUserProfile(login, bio, publicRepos);
+        }
+    }
+
+    private record GitHubRepositoryResponse(
+        String name,
+        String description,
+        String language,
+        List<String> topics,
+        @JsonProperty("stargazers_count") int stargazersCount,
+        boolean fork
+    ) {
+
+        GitHubRepository toDomain() {
+            return new GitHubRepository(
+                name,
+                description,
+                language,
+                topics == null ? List.of() : List.copyOf(topics),
+                stargazersCount
+            );
         }
     }
 }
