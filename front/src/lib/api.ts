@@ -139,6 +139,17 @@ export type PullRequestDraftTranslation = PullRequestDraft & {
   createdAt: string;
 };
 
+export type PullRequestDraftTranslationSubmission = {
+  draftId: string;
+  translationId: string;
+  targetLanguage: "en";
+  upstreamRepo: string;
+  githubIssueNumber: number;
+  baseBranch: string;
+  headBranch: string;
+  items: PullRequestDraftSubmissionItem[];
+};
+
 export async function getHealth(): Promise<HealthResponse> {
   const response = await fetch(`${API_URL}/api/v1/health`, {
     cache: "no-store"
@@ -321,6 +332,30 @@ export async function getPullRequestDraftTranslations(id: string): Promise<PullR
 
   if (!payload.success || !payload.data) {
     throw new Error(payload.message ?? "Pull request draft translations response was not successful");
+  }
+
+  return payload.data;
+}
+
+export async function getPullRequestDraftTranslationSubmission(
+  id: string,
+  translationId: string
+): Promise<PullRequestDraftTranslationSubmission> {
+  const response = await fetch(
+    `${API_URL}/api/v1/pr/${encodeURIComponent(id)}/translations/${encodeURIComponent(translationId)}/submission`,
+    {
+      cache: "no-store"
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch pull request draft translation submission bundle");
+  }
+
+  const payload = (await response.json()) as ApiResponse<PullRequestDraftTranslationSubmission>;
+
+  if (!payload.success || !payload.data) {
+    throw new Error(payload.message ?? "Pull request draft translation submission response was not successful");
   }
 
   return payload.data;
