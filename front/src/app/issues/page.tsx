@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ProtectedLayout } from "@/components/ProtectedLayout";
 import {
+  getCollectedIssues,
   getRecommendedIssueHistory,
   getRecommendedIssues,
   type RecommendedIssue,
@@ -11,8 +12,9 @@ import { IssueCrawlSearchPanel } from "./IssueCrawlSearchPanel";
 export const dynamic = "force-dynamic";
 
 export default async function IssuesPage() {
-  const [recommendResult, historyResult] = await Promise.all([
+  const [recommendResult, catalogResult, historyResult] = await Promise.all([
     loadRecommendedIssues(),
+    loadCollectedIssues(),
     loadRecommendedIssueHistory()
   ]);
 
@@ -28,8 +30,31 @@ export default async function IssuesPage() {
           추천 이력을 불러오지 못했습니다. backend API 상태를 확인해 주세요.
         </div>
       ) : null}
+      {catalogResult.error ? (
+        <div className="surface mb-4 border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
+          수집 이슈 catalog를 불러오지 못했습니다. backend API 상태를 확인해 주세요.
+        </div>
+      ) : null}
 
       <IssueCrawlSearchPanel />
+
+      <section className="mb-8 space-y-3">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <h2 className="text-base font-bold text-neutral-900">Collected catalog</h2>
+          <span className="text-xs font-semibold text-neutral-500">
+            {catalogResult.issues.length} issues
+          </span>
+        </div>
+        {catalogResult.issues.length > 0 ? (
+          catalogResult.issues.map((issue) => (
+            <IssueCard key={issue.id} issue={issue} reason={issue.reason} />
+          ))
+        ) : (
+          <div className="surface p-4 text-sm font-semibold text-neutral-600">
+            수집된 이슈 catalog가 없습니다.
+          </div>
+        )}
+      </section>
 
       <section className="space-y-3">
         <h2 className="text-base font-bold text-neutral-900">Current recommendations</h2>
@@ -115,6 +140,20 @@ async function loadRecommendedIssues() {
   try {
     return {
       issues: await getRecommendedIssues(),
+      error: null
+    };
+  } catch (error) {
+    return {
+      issues: [],
+      error
+    };
+  }
+}
+
+async function loadCollectedIssues() {
+  try {
+    return {
+      issues: await getCollectedIssues(),
       error: null
     };
   } catch (error) {

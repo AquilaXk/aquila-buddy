@@ -1,6 +1,7 @@
 package com.aquilabuddy.adapter.in.web.issue;
 
 import com.aquilabuddy.application.port.in.issue.GetRecommendedIssueHistoryUseCase;
+import com.aquilabuddy.application.port.in.issue.ListCollectedIssuesUseCase;
 import com.aquilabuddy.application.port.in.issue.LookupRecommendedIssueUseCase;
 import com.aquilabuddy.application.port.in.issue.RecommendIssuesUseCase;
 import com.aquilabuddy.application.port.in.issue.CrawlSearchIssuesUseCase;
@@ -28,19 +29,30 @@ public class IssueRecommendationController {
 
     private final RecommendIssuesUseCase recommendIssuesUseCase;
     private final CrawlSearchIssuesUseCase crawlSearchIssuesUseCase;
+    private final ListCollectedIssuesUseCase listCollectedIssuesUseCase;
     private final GetRecommendedIssueHistoryUseCase getRecommendedIssueHistoryUseCase;
     private final LookupRecommendedIssueUseCase lookupRecommendedIssueUseCase;
 
     public IssueRecommendationController(
         RecommendIssuesUseCase recommendIssuesUseCase,
         CrawlSearchIssuesUseCase crawlSearchIssuesUseCase,
+        ListCollectedIssuesUseCase listCollectedIssuesUseCase,
         GetRecommendedIssueHistoryUseCase getRecommendedIssueHistoryUseCase,
         LookupRecommendedIssueUseCase lookupRecommendedIssueUseCase
     ) {
         this.recommendIssuesUseCase = recommendIssuesUseCase;
         this.crawlSearchIssuesUseCase = crawlSearchIssuesUseCase;
+        this.listCollectedIssuesUseCase = listCollectedIssuesUseCase;
         this.getRecommendedIssueHistoryUseCase = getRecommendedIssueHistoryUseCase;
         this.lookupRecommendedIssueUseCase = lookupRecommendedIssueUseCase;
+    }
+
+    /**
+     * 저장된 수집 이슈 catalog를 반환합니다.
+     */
+    @GetMapping
+    ApiResponse<List<RecommendedIssue>> listCollectedIssues() {
+        return ApiResponse.success(listCollectedIssuesUseCase.listCollectedIssues());
     }
 
     /**

@@ -4,7 +4,9 @@ import com.aquilabuddy.application.port.in.issue.GetRecommendedIssueHistoryUseCa
 import com.aquilabuddy.application.port.in.issue.LookupRecommendedIssueUseCase;
 import com.aquilabuddy.application.port.in.issue.RecommendIssuesUseCase;
 import com.aquilabuddy.application.port.in.issue.CrawlSearchIssuesUseCase;
+import com.aquilabuddy.application.port.in.issue.ListCollectedIssuesUseCase;
 import com.aquilabuddy.application.port.out.issue.FindRecommendedIssuePort;
+import com.aquilabuddy.application.port.out.issue.LoadCollectedIssuesPort;
 import com.aquilabuddy.application.port.out.issue.LoadRecommendedIssuesPort;
 import com.aquilabuddy.application.port.out.issue.SaveRecommendedIssuesPort;
 import com.aquilabuddy.application.port.out.issue.SearchRecommendedIssuesPort;
@@ -24,20 +26,24 @@ public class RecommendedIssueService implements
     RecommendIssuesUseCase,
     CrawlSearchIssuesUseCase,
     GetRecommendedIssueHistoryUseCase,
-    LookupRecommendedIssueUseCase {
+    LookupRecommendedIssueUseCase,
+    ListCollectedIssuesUseCase {
 
     private final LoadRecommendedIssuesPort loadRecommendedIssuesPort;
+    private final LoadCollectedIssuesPort loadCollectedIssuesPort;
     private final FindRecommendedIssuePort findRecommendedIssuePort;
     private final SaveRecommendedIssuesPort saveRecommendedIssuesPort;
     private final SearchRecommendedIssuesPort searchRecommendedIssuesPort;
 
     public RecommendedIssueService(
         LoadRecommendedIssuesPort loadRecommendedIssuesPort,
+        LoadCollectedIssuesPort loadCollectedIssuesPort,
         FindRecommendedIssuePort findRecommendedIssuePort,
         SaveRecommendedIssuesPort saveRecommendedIssuesPort,
         SearchRecommendedIssuesPort searchRecommendedIssuesPort
     ) {
         this.loadRecommendedIssuesPort = loadRecommendedIssuesPort;
+        this.loadCollectedIssuesPort = loadCollectedIssuesPort;
         this.findRecommendedIssuePort = findRecommendedIssuePort;
         this.saveRecommendedIssuesPort = saveRecommendedIssuesPort;
         this.searchRecommendedIssuesPort = searchRecommendedIssuesPort;
@@ -68,6 +74,14 @@ public class RecommendedIssueService implements
         List<RecommendedIssue> searchedIssues = searchRecommendedIssuesPort.searchRecommendedIssues(query);
         saveRecommendedIssuesPort.saveRecommendedIssues(searchedIssues);
         return searchedIssues;
+    }
+
+    /**
+     * 저장된 수집 이슈 catalog를 외부 검색 호출 없이 반환합니다.
+     */
+    @Override
+    public List<RecommendedIssue> listCollectedIssues() {
+        return loadCollectedIssuesPort.loadCollectedIssues();
     }
 
     /**

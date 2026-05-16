@@ -681,6 +681,24 @@ export async function getRecommendedIssues(): Promise<RecommendedIssue[]> {
   return payload.data;
 }
 
+export async function getCollectedIssues(): Promise<RecommendedIssue[]> {
+  const response = await fetch(`${API_URL}/api/v1/issues`, {
+    cache: "no-store"
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch collected issues");
+  }
+
+  const payload = (await response.json()) as ApiResponse<RecommendedIssue[]>;
+
+  if (!payload.success || !payload.data) {
+    throw new Error(payload.message ?? "Collected issues response was not successful");
+  }
+
+  return payload.data;
+}
+
 export async function crawlSearchIssues(query: string): Promise<RecommendedIssue[]> {
   const searchParams = new URLSearchParams({
     q: query
