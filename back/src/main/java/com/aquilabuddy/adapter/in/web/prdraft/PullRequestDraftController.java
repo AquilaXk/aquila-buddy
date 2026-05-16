@@ -5,11 +5,13 @@ import com.aquilabuddy.application.port.in.prdraft.CreatePullRequestDraftTransla
 import com.aquilabuddy.application.port.in.prdraft.GetPullRequestDraftUseCase;
 import com.aquilabuddy.application.port.in.prdraft.GetPullRequestDraftReadinessUseCase;
 import com.aquilabuddy.application.port.in.prdraft.GetPullRequestDraftSubmissionUseCase;
+import com.aquilabuddy.application.port.in.prdraft.GetPullRequestDraftTimelineUseCase;
 import com.aquilabuddy.application.port.in.prdraft.ListPullRequestDraftsUseCase;
 import com.aquilabuddy.application.port.in.prdraft.ListPullRequestDraftTranslationsUseCase;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftReadiness;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftRequest;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftSubmission;
+import com.aquilabuddy.domain.prdraft.PullRequestDraftTimeline;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftTranslation;
 import com.aquilabuddy.domain.prdraft.StoredPullRequestDraft;
 import com.aquilabuddy.global.response.ApiResponse;
@@ -38,6 +40,7 @@ public class PullRequestDraftController {
     private final ListPullRequestDraftsUseCase listPullRequestDraftsUseCase;
     private final GetPullRequestDraftUseCase getPullRequestDraftUseCase;
     private final GetPullRequestDraftReadinessUseCase getPullRequestDraftReadinessUseCase;
+    private final GetPullRequestDraftTimelineUseCase getPullRequestDraftTimelineUseCase;
     private final GetPullRequestDraftSubmissionUseCase getPullRequestDraftSubmissionUseCase;
     private final CreatePullRequestDraftTranslationUseCase createPullRequestDraftTranslationUseCase;
     private final ListPullRequestDraftTranslationsUseCase listPullRequestDraftTranslationsUseCase;
@@ -47,6 +50,7 @@ public class PullRequestDraftController {
         ListPullRequestDraftsUseCase listPullRequestDraftsUseCase,
         GetPullRequestDraftUseCase getPullRequestDraftUseCase,
         GetPullRequestDraftReadinessUseCase getPullRequestDraftReadinessUseCase,
+        GetPullRequestDraftTimelineUseCase getPullRequestDraftTimelineUseCase,
         GetPullRequestDraftSubmissionUseCase getPullRequestDraftSubmissionUseCase,
         CreatePullRequestDraftTranslationUseCase createPullRequestDraftTranslationUseCase,
         ListPullRequestDraftTranslationsUseCase listPullRequestDraftTranslationsUseCase
@@ -55,6 +59,7 @@ public class PullRequestDraftController {
         this.listPullRequestDraftsUseCase = listPullRequestDraftsUseCase;
         this.getPullRequestDraftUseCase = getPullRequestDraftUseCase;
         this.getPullRequestDraftReadinessUseCase = getPullRequestDraftReadinessUseCase;
+        this.getPullRequestDraftTimelineUseCase = getPullRequestDraftTimelineUseCase;
         this.getPullRequestDraftSubmissionUseCase = getPullRequestDraftSubmissionUseCase;
         this.createPullRequestDraftTranslationUseCase = createPullRequestDraftTranslationUseCase;
         this.listPullRequestDraftTranslationsUseCase = listPullRequestDraftTranslationsUseCase;
@@ -96,6 +101,17 @@ public class PullRequestDraftController {
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "PR 초안을 찾을 수 없습니다."));
 
         return ApiResponse.success(readiness);
+    }
+
+    /**
+     * 저장된 PR 초안의 제출 준비 흐름을 timeline으로 반환합니다.
+     */
+    @GetMapping("/{id}/timeline")
+    ApiResponse<PullRequestDraftTimeline> timeline(@PathVariable String id) {
+        PullRequestDraftTimeline timeline = getPullRequestDraftTimelineUseCase.getTimeline(id)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "PR 초안을 찾을 수 없습니다."));
+
+        return ApiResponse.success(timeline);
     }
 
     /**
