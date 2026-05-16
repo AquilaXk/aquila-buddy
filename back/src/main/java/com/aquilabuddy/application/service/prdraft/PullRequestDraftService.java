@@ -3,6 +3,7 @@ package com.aquilabuddy.application.service.prdraft;
 import com.aquilabuddy.application.port.in.prdraft.CreatePullRequestDraftUseCase;
 import com.aquilabuddy.application.port.in.prdraft.GetPullRequestDraftUseCase;
 import com.aquilabuddy.application.port.in.prdraft.GetPullRequestDraftReadinessUseCase;
+import com.aquilabuddy.application.port.in.prdraft.GetPullRequestDraftSubmissionUseCase;
 import com.aquilabuddy.application.port.in.prdraft.ListPullRequestDraftsUseCase;
 import com.aquilabuddy.application.port.out.prdraft.GeneratePullRequestDraftPort;
 import com.aquilabuddy.application.port.out.prdraft.LoadPullRequestDraftPort;
@@ -10,6 +11,7 @@ import com.aquilabuddy.application.port.out.prdraft.SavePullRequestDraftPort;
 import com.aquilabuddy.domain.prdraft.PullRequestDraft;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftReadiness;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftRequest;
+import com.aquilabuddy.domain.prdraft.PullRequestDraftSubmission;
 import com.aquilabuddy.domain.prdraft.StoredPullRequestDraft;
 import java.util.List;
 import java.util.Optional;
@@ -25,7 +27,8 @@ public class PullRequestDraftService implements
     CreatePullRequestDraftUseCase,
     ListPullRequestDraftsUseCase,
     GetPullRequestDraftUseCase,
-    GetPullRequestDraftReadinessUseCase {
+    GetPullRequestDraftReadinessUseCase,
+    GetPullRequestDraftSubmissionUseCase {
 
     private final GeneratePullRequestDraftPort generatePullRequestDraftPort;
     private final SavePullRequestDraftPort savePullRequestDraftPort;
@@ -63,5 +66,10 @@ public class PullRequestDraftService implements
     @Override
     public Optional<PullRequestDraftReadiness> getReadiness(String id) {
         return getPullRequestDraft(id).map(PullRequestDraftReadiness::from);
+    }
+
+    @Override
+    public Optional<PullRequestDraftSubmission> getSubmission(String id) {
+        return getPullRequestDraft(id).map(PullRequestDraftSubmission::from);
     }
 }
