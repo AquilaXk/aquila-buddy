@@ -49,7 +49,8 @@ class PullRequestDraftPersistenceAdapterTest {
             123,
             "main",
             "feat/readme-fix",
-            "diff --git a/README.md b/README.md"
+            "diff --git a/README.md b/README.md",
+            "issue-demo-1"
         );
         PullRequestDraft generated = new PullRequestDraft(
             "[Docs] README 기여 안내 보완",
@@ -61,6 +62,7 @@ class PullRequestDraftPersistenceAdapterTest {
         assertThat(stored.id()).isNotBlank();
         assertThat(stored.upstreamRepo()).isEqualTo("spring-projects/spring-boot");
         assertThat(stored.githubIssueNumber()).isEqualTo(123);
+        assertThat(stored.sourceIssueId()).isEqualTo("issue-demo-1");
         assertThat(stored.baseBranch()).isEqualTo("main");
         assertThat(stored.headBranch()).isEqualTo("feat/readme-fix");
         assertThat(stored.title()).isEqualTo("[Docs] README 기여 안내 보완");

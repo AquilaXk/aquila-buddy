@@ -42,6 +42,20 @@ class PullRequestDraftRequestTest {
     }
 
     @Test
+    void normalizesOptionalSourceIssueId() {
+        PullRequestDraftRequest request = new PullRequestDraftRequest(
+            "spring-projects/spring-boot",
+            2,
+            "main",
+            "feat/validation-docs",
+            "diff",
+            " issue-demo-1 "
+        );
+
+        assertThat(request.sourceIssueId()).isEqualTo("issue-demo-1");
+    }
+
+    @Test
     void createsCopyWithResolvedDiffContent() {
         PullRequestDraftRequest request = new PullRequestDraftRequest(
             "spring-projects/spring-boot",
