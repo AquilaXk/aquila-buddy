@@ -27,6 +27,7 @@ class PullRequestDraftSubmissionTest {
                 - ./back/gradlew -p back check
                 - npm --prefix front run build
                 """,
+            "issue-2",
             Instant.parse("2026-05-15T00:00:00Z")
         );
 
@@ -35,6 +36,7 @@ class PullRequestDraftSubmissionTest {
         assertThat(submission.draftId()).isEqualTo("draft-1");
         assertThat(submission.upstreamRepo()).isEqualTo("spring-projects/spring-boot");
         assertThat(submission.githubIssueNumber()).isEqualTo(2);
+        assertThat(submission.sourceIssueId()).isEqualTo("issue-2");
         assertThat(submission.items())
             .extracting(PullRequestDraftSubmissionItem::key)
             .containsExactly("title", "body", "branch", "test-plan");

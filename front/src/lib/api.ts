@@ -144,6 +144,7 @@ export type PullRequestDraftSubmission = {
   draftId: string;
   upstreamRepo: string;
   githubIssueNumber: number;
+  sourceIssueId: string | null;
   baseBranch: string;
   headBranch: string;
   items: PullRequestDraftSubmissionItem[];
