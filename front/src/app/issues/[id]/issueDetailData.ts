@@ -1,4 +1,5 @@
 import {
+  getIssueDetail,
   getIssueGuide,
   getIssuePseudoCode,
   getIssueGuideWorkflow,
@@ -74,6 +75,21 @@ export function buildPullRequestDraftHref(issue: IssueDetailIssue, guide: IssueG
 }
 
 async function loadIssueById(issueId: string): Promise<LoadResult<IssueDetailIssue | null>> {
+  try {
+    return {
+      data: await loadDirectIssue(issueId),
+      error: false
+    };
+  } catch {
+    return fallbackIssueLookup(issueId);
+  }
+}
+
+async function loadDirectIssue(issueId: string): Promise<RecommendedIssue> {
+  return await getIssueDetail(issueId);
+}
+
+async function fallbackIssueLookup(issueId: string): Promise<LoadResult<IssueDetailIssue | null>> {
   const collectionResult = await loadIssueCollections();
   const issue = collectionResult.issues.find((candidate) => candidate.id === issueId) ?? null;
 
