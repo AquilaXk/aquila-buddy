@@ -8,6 +8,7 @@ import java.util.Locale;
  */
 public record PullRequestDraftReadiness(
     String draftId,
+    String sourceIssueId,
     List<PullRequestDraftReadinessItem> items,
     int readyCount
 ) {
@@ -58,6 +59,7 @@ public record PullRequestDraftReadiness(
 
         return new PullRequestDraftReadiness(
             draft.id(),
+            draft.sourceIssueId(),
             items,
             (int) items.stream()
                 .filter(item -> item.status() == PullRequestDraftReadinessStatus.READY)
