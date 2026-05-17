@@ -331,7 +331,8 @@ public class PullRequestDraftController {
         String baseBranch,
         @NotBlank(message = "headBranch는 비어 있을 수 없습니다.")
         String headBranch,
-        String diffContent
+        String diffContent,
+        String sourceIssueId
     ) {
 
         PullRequestDraftRequest toDomain() {
@@ -340,7 +341,8 @@ public class PullRequestDraftController {
                 githubIssueNumber,
                 baseBranch,
                 headBranch,
-                diffContent
+                diffContent,
+                sourceIssueId
             );
         }
     }

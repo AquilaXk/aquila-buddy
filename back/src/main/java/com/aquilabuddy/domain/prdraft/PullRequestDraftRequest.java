@@ -11,6 +11,7 @@ public record PullRequestDraftRequest(
     String baseBranch,
     String headBranch,
     String diffContent,
+    String sourceIssueId,
     PullRequestDraftRepositoryGuideContext repositoryGuideContext,
     PullRequestDraftIssueContext issueContext,
     PullRequestDraftAnalysisContext analysisContext
@@ -24,6 +25,18 @@ public record PullRequestDraftRequest(
         String diffContent
     ) {
         this(upstreamRepo, githubIssueNumber, baseBranch, headBranch, diffContent,
+            (String) null);
+    }
+
+    public PullRequestDraftRequest(
+        String upstreamRepo,
+        long githubIssueNumber,
+        String baseBranch,
+        String headBranch,
+        String diffContent,
+        String sourceIssueId
+    ) {
+        this(upstreamRepo, githubIssueNumber, baseBranch, headBranch, diffContent, sourceIssueId,
             PullRequestDraftRepositoryGuideContext.empty(),
             PullRequestDraftIssueContext.empty(),
             PullRequestDraftAnalysisContext.empty());
@@ -37,7 +50,7 @@ public record PullRequestDraftRequest(
         String diffContent,
         PullRequestDraftRepositoryGuideContext repositoryGuideContext
     ) {
-        this(upstreamRepo, githubIssueNumber, baseBranch, headBranch, diffContent, repositoryGuideContext,
+        this(upstreamRepo, githubIssueNumber, baseBranch, headBranch, diffContent, null, repositoryGuideContext,
             PullRequestDraftIssueContext.empty(),
             PullRequestDraftAnalysisContext.empty());
     }
@@ -51,9 +64,24 @@ public record PullRequestDraftRequest(
         PullRequestDraftRepositoryGuideContext repositoryGuideContext,
         PullRequestDraftIssueContext issueContext
     ) {
-        this(upstreamRepo, githubIssueNumber, baseBranch, headBranch, diffContent, repositoryGuideContext,
+        this(upstreamRepo, githubIssueNumber, baseBranch, headBranch, diffContent, null, repositoryGuideContext,
             issueContext,
             PullRequestDraftAnalysisContext.empty());
+    }
+
+    public PullRequestDraftRequest(
+        String upstreamRepo,
+        long githubIssueNumber,
+        String baseBranch,
+        String headBranch,
+        String diffContent,
+        PullRequestDraftRepositoryGuideContext repositoryGuideContext,
+        PullRequestDraftIssueContext issueContext,
+        PullRequestDraftAnalysisContext analysisContext
+    ) {
+        this(upstreamRepo, githubIssueNumber, baseBranch, headBranch, diffContent, null, repositoryGuideContext,
+            issueContext,
+            analysisContext);
     }
 
     /**
@@ -64,6 +92,7 @@ public record PullRequestDraftRequest(
         baseBranch = requireText(baseBranch, "baseBranch");
         headBranch = requireText(headBranch, "headBranch");
         diffContent = optionalText(diffContent);
+        sourceIssueId = optionalText(sourceIssueId);
         repositoryGuideContext = repositoryGuideContext == null
             ? PullRequestDraftRepositoryGuideContext.empty()
             : repositoryGuideContext;
@@ -86,6 +115,7 @@ public record PullRequestDraftRequest(
             baseBranch,
             headBranch,
             requireText(resolvedDiffContent, "diffContent"),
+            sourceIssueId,
             repositoryGuideContext,
             issueContext,
             analysisContext
@@ -101,6 +131,7 @@ public record PullRequestDraftRequest(
             baseBranch,
             headBranch,
             diffContent,
+            sourceIssueId,
             resolvedRepositoryGuideContext,
             issueContext,
             analysisContext
@@ -114,6 +145,7 @@ public record PullRequestDraftRequest(
             baseBranch,
             headBranch,
             diffContent,
+            sourceIssueId,
             repositoryGuideContext,
             resolvedIssueContext,
             analysisContext
@@ -127,6 +159,7 @@ public record PullRequestDraftRequest(
             baseBranch,
             headBranch,
             diffContent,
+            sourceIssueId,
             repositoryGuideContext,
             issueContext,
             resolvedAnalysisContext

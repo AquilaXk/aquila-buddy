@@ -14,8 +14,22 @@ public record StoredPullRequestDraft(
     String headBranch,
     String title,
     String body,
+    String sourceIssueId,
     Instant createdAt
 ) {
+
+    public StoredPullRequestDraft(
+        String id,
+        String upstreamRepo,
+        long githubIssueNumber,
+        String baseBranch,
+        String headBranch,
+        String title,
+        String body,
+        Instant createdAt
+    ) {
+        this(id, upstreamRepo, githubIssueNumber, baseBranch, headBranch, title, body, null, createdAt);
+    }
 
     public StoredPullRequestDraft {
         id = requireText(id, "id");
@@ -24,6 +38,7 @@ public record StoredPullRequestDraft(
         headBranch = requireText(headBranch, "headBranch");
         title = requireText(title, "title");
         body = requireText(body, "body");
+        sourceIssueId = optionalText(sourceIssueId);
         createdAt = Objects.requireNonNull(createdAt, "createdAt must not be null.");
 
         if (githubIssueNumber < 1) {
@@ -37,5 +52,14 @@ public record StoredPullRequestDraft(
             throw new IllegalArgumentException(fieldName + " must not be blank.");
         }
         return normalized;
+    }
+
+    private static String optionalText(String value) {
+        if (value == null) {
+            return null;
+        }
+
+        String normalized = value.trim();
+        return normalized.isBlank() ? null : normalized;
     }
 }

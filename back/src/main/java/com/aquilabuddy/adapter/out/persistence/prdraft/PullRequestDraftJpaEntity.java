@@ -23,6 +23,9 @@ public class PullRequestDraftJpaEntity {
     @Column(name = "github_issue_number", nullable = false)
     private long githubIssueNumber;
 
+    @Column(name = "source_issue_id", length = 100)
+    private String sourceIssueId;
+
     @Column(name = "base_branch", nullable = false, length = 255)
     private String baseBranch;
 
@@ -51,9 +54,24 @@ public class PullRequestDraftJpaEntity {
         String body,
         Instant createdAt
     ) {
+        this(id, upstreamRepo, githubIssueNumber, null, baseBranch, headBranch, title, body, createdAt);
+    }
+
+    PullRequestDraftJpaEntity(
+        String id,
+        String upstreamRepo,
+        long githubIssueNumber,
+        String sourceIssueId,
+        String baseBranch,
+        String headBranch,
+        String title,
+        String body,
+        Instant createdAt
+    ) {
         this.id = id;
         this.upstreamRepo = upstreamRepo;
         this.githubIssueNumber = githubIssueNumber;
+        this.sourceIssueId = sourceIssueId;
         this.baseBranch = baseBranch;
         this.headBranch = headBranch;
         this.title = title;
@@ -71,6 +89,10 @@ public class PullRequestDraftJpaEntity {
 
     long getGithubIssueNumber() {
         return githubIssueNumber;
+    }
+
+    String getSourceIssueId() {
+        return sourceIssueId;
     }
 
     String getBaseBranch() {
