@@ -233,6 +233,7 @@ export type PullRequestDraftTranslationTimeline = {
   draftId: string;
   translationId: string;
   targetLanguage: "en";
+  sourceIssueId: string | null;
   items: PullRequestDraftTranslationTimelineItem[];
 };
 

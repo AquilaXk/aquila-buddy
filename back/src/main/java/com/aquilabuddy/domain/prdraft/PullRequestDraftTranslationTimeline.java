@@ -9,6 +9,7 @@ public record PullRequestDraftTranslationTimeline(
     String draftId,
     String translationId,
     String targetLanguage,
+    String sourceIssueId,
     List<PullRequestDraftTimelineItem> items
 ) {
 
@@ -70,6 +71,7 @@ public record PullRequestDraftTranslationTimeline(
             draft.id(),
             translation.id(),
             translation.targetLanguage(),
+            draft.sourceIssueId(),
             items
         );
     }
