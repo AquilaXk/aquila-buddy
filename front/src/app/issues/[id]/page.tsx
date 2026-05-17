@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { ProtectedLayout } from "@/components/ProtectedLayout";
 import {
+  getIssueDetail,
   getIssueGuide,
   getIssuePseudoCode,
   getRecommendedIssueHistory,
@@ -37,13 +38,7 @@ export default function IssueDetailPage() {
       setLoading(true);
       setNotFound(false);
 
-      const [historyResult, recommendationsResult] = await Promise.allSettled([
-        getRecommendedIssueHistory(),
-        getRecommendedIssues()
-      ]);
-      const history = historyResult.status === "fulfilled" ? historyResult.value : [];
-      const recommendations = recommendationsResult.status === "fulfilled" ? recommendationsResult.value : [];
-      const foundIssue = [...history, ...recommendations].find((item) => item.id === issueId) ?? null;
+      const foundIssue = await loadIssueById(issueId);
 
       if (!isMounted) {
         return;
@@ -282,6 +277,25 @@ export default function IssueDetailPage() {
       </section>
     </ProtectedLayout>
   );
+}
+
+async function loadIssueById(issueId: string): Promise<IssueDetailIssue | null> {
+  try {
+    return await getIssueDetail(issueId);
+  } catch {
+    return fallbackIssueLookup(issueId);
+  }
+}
+
+async function fallbackIssueLookup(issueId: string): Promise<IssueDetailIssue | null> {
+  const [historyResult, recommendationsResult] = await Promise.allSettled([
+    getRecommendedIssueHistory(),
+    getRecommendedIssues()
+  ]);
+  const history = historyResult.status === "fulfilled" ? historyResult.value : [];
+  const recommendations = recommendationsResult.status === "fulfilled" ? recommendationsResult.value : [];
+
+  return [...history, ...recommendations].find((item) => item.id === issueId) ?? null;
 }
 
 function StatusBadge({ status }: { status: RecommendedIssue["status"] }) {

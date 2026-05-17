@@ -1,6 +1,7 @@
 package com.aquilabuddy.application.service.issue;
 
 import com.aquilabuddy.application.port.in.issue.GetRecommendedIssueHistoryUseCase;
+import com.aquilabuddy.application.port.in.issue.GetRecommendedIssueUseCase;
 import com.aquilabuddy.application.port.in.issue.LookupRecommendedIssueUseCase;
 import com.aquilabuddy.application.port.in.issue.RecommendIssuesUseCase;
 import com.aquilabuddy.application.port.in.issue.CrawlSearchIssuesUseCase;
@@ -26,6 +27,7 @@ public class RecommendedIssueService implements
     RecommendIssuesUseCase,
     CrawlSearchIssuesUseCase,
     GetRecommendedIssueHistoryUseCase,
+    GetRecommendedIssueUseCase,
     LookupRecommendedIssueUseCase,
     ListCollectedIssuesUseCase {
 
@@ -82,6 +84,14 @@ public class RecommendedIssueService implements
     @Override
     public List<RecommendedIssue> listCollectedIssues() {
         return loadCollectedIssuesPort.loadCollectedIssues();
+    }
+
+    /**
+     * 내부 이슈 ID로 저장된 추천 후보를 조회합니다.
+     */
+    @Override
+    public Optional<RecommendedIssue> getRecommendedIssue(String id) {
+        return findRecommendedIssuePort.findById(id);
     }
 
     /**

@@ -48,6 +48,27 @@ class IssueRecommendationControllerTest {
     }
 
     @Test
+    void returnsIssueDetailByInternalId() throws Exception {
+        mockMvc.perform(get("/api/v1/issues/{id}", "demo-1"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.id").value("demo-1"))
+            .andExpect(jsonPath("$.data.repoFullName").value("vercel/next.js"))
+            .andExpect(jsonPath("$.data.issueNumber").value(1))
+            .andExpect(jsonPath("$.data.labels[0]").value("good first issue"));
+    }
+
+    @Test
+    void returnsNotFoundWhenIssueDetailDoesNotExist() throws Exception {
+        mockMvc.perform(get("/api/v1/issues/{id}", "missing"))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.success").value(false))
+            .andExpect(jsonPath("$.status").value("fail"))
+            .andExpect(jsonPath("$.data").value(org.hamcrest.Matchers.nullValue()))
+            .andExpect(jsonPath("$.message").value("추천 이슈를 찾을 수 없습니다."));
+    }
+
+    @Test
     void returnsRecommendationHistory() throws Exception {
         mockMvc.perform(get("/api/v1/issues/recommend/history"))
             .andExpect(status().isOk())

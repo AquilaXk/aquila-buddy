@@ -1,6 +1,7 @@
 package com.aquilabuddy.adapter.in.web.issue;
 
 import com.aquilabuddy.application.port.in.issue.GetRecommendedIssueHistoryUseCase;
+import com.aquilabuddy.application.port.in.issue.GetRecommendedIssueUseCase;
 import com.aquilabuddy.application.port.in.issue.ListCollectedIssuesUseCase;
 import com.aquilabuddy.application.port.in.issue.LookupRecommendedIssueUseCase;
 import com.aquilabuddy.application.port.in.issue.RecommendIssuesUseCase;
@@ -12,6 +13,7 @@ import jakarta.validation.constraints.NotBlank;
 import java.util.List;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -31,6 +33,7 @@ public class IssueRecommendationController {
     private final CrawlSearchIssuesUseCase crawlSearchIssuesUseCase;
     private final ListCollectedIssuesUseCase listCollectedIssuesUseCase;
     private final GetRecommendedIssueHistoryUseCase getRecommendedIssueHistoryUseCase;
+    private final GetRecommendedIssueUseCase getRecommendedIssueUseCase;
     private final LookupRecommendedIssueUseCase lookupRecommendedIssueUseCase;
 
     public IssueRecommendationController(
@@ -38,12 +41,14 @@ public class IssueRecommendationController {
         CrawlSearchIssuesUseCase crawlSearchIssuesUseCase,
         ListCollectedIssuesUseCase listCollectedIssuesUseCase,
         GetRecommendedIssueHistoryUseCase getRecommendedIssueHistoryUseCase,
+        GetRecommendedIssueUseCase getRecommendedIssueUseCase,
         LookupRecommendedIssueUseCase lookupRecommendedIssueUseCase
     ) {
         this.recommendIssuesUseCase = recommendIssuesUseCase;
         this.crawlSearchIssuesUseCase = crawlSearchIssuesUseCase;
         this.listCollectedIssuesUseCase = listCollectedIssuesUseCase;
         this.getRecommendedIssueHistoryUseCase = getRecommendedIssueHistoryUseCase;
+        this.getRecommendedIssueUseCase = getRecommendedIssueUseCase;
         this.lookupRecommendedIssueUseCase = lookupRecommendedIssueUseCase;
     }
 
@@ -53,6 +58,17 @@ public class IssueRecommendationController {
     @GetMapping
     ApiResponse<List<RecommendedIssue>> listCollectedIssues() {
         return ApiResponse.success(listCollectedIssuesUseCase.listCollectedIssues());
+    }
+
+    /**
+     * 내부 이슈 ID로 저장된 추천 이슈 상세를 반환합니다.
+     */
+    @GetMapping("/{id}")
+    ApiResponse<RecommendedIssue> detail(@PathVariable String id) {
+        RecommendedIssue issue = getRecommendedIssueUseCase.getRecommendedIssue(id)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "추천 이슈를 찾을 수 없습니다."));
+
+        return ApiResponse.success(issue);
     }
 
     /**

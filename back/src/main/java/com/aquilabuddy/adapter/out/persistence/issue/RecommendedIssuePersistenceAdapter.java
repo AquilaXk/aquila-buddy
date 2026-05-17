@@ -51,6 +51,15 @@ public class RecommendedIssuePersistenceAdapter implements
     }
 
     /**
+     * 내부 이슈 ID로 저장된 추천 이슈를 조회합니다.
+     */
+    @Override
+    public Optional<RecommendedIssue> findById(String id) {
+        return repository.findById(id)
+            .map(RecommendedIssuePersistenceMapper::toDomain);
+    }
+
+    /**
      * GitHub 이슈 식별자로 저장된 추천 이슈를 조회합니다.
      */
     @Override

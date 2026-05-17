@@ -101,6 +101,12 @@ class PullRequestDraftAnalysisContextPersistenceAdapterTest {
         }
 
         @Override
+        public Optional<RecommendedIssue> findById(String id) {
+            return Optional.ofNullable(issue)
+                .filter(candidate -> candidate.id().equals(id));
+        }
+
+        @Override
         public Optional<RecommendedIssue> findByRepoFullNameAndIssueNumber(String repoFullName, long issueNumber) {
             receivedRepoFullName = repoFullName;
             receivedIssueNumber = issueNumber;

@@ -4,6 +4,7 @@ import { join, resolve } from "node:path";
 const repoRoot = resolve(import.meta.dirname, "../..");
 const issueDetailPagePath = join(repoRoot, "front/src/app/issues/[id]/page.tsx");
 const issueDetailPage = readFileSync(issueDetailPagePath, "utf8");
+const apiSource = readFileSync(join(repoRoot, "front/src/lib/api.ts"), "utf8");
 const failures = [];
 
 function fail(message) {
@@ -22,8 +23,15 @@ function assertNotIncludes(needle, message) {
   }
 }
 
+function assertApiIncludes(needle, message) {
+  if (!apiSource.includes(needle)) {
+    fail(message);
+  }
+}
+
 assertIncludes("\"use client\";", "Issue detail page must be a client screen.");
 assertIncludes("useParams", "Issue detail page must read the route id on the client.");
+assertIncludes("getIssueDetail", "Issue detail page must use the issue detail API first.");
 assertIncludes("getRecommendedIssueHistory", "Issue detail page must load saved recommendation history.");
 assertIncludes("getRecommendedIssues", "Issue detail page must fall back to current recommendations.");
 assertIncludes("getIssueGuide", "Issue detail page must request the guide on demand.");
@@ -41,6 +49,10 @@ assertIncludes("2차 힌트 — 의사 코드", "Issue detail page must show the
 assertIncludes("코드 힌트 보기", "Issue detail page must expose the pseudo-code CTA.");
 assertIncludes("PR 초안 생성", "Issue detail page must show the PR draft CTA section.");
 assertIncludes("PR 초안 만들기 →", "Issue detail page must expose the PR draft link.");
+
+assertApiIncludes("export async function getIssueDetail", "Frontend API client must expose issue detail lookup.");
+assertApiIncludes("/api/v1/issues/${encodeURIComponent(id)}", "Issue detail lookup must call the id detail API.");
+assertApiIncludes("Issue detail response was not successful", "Issue detail lookup must validate the response envelope.");
 
 for (const text of [
   "IssueGuideWorkflowPanel",
