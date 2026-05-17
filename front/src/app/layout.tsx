@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { serviceBrandAssets } from "@/lib/serviceBrandAssets";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -17,18 +18,28 @@ export const metadata: Metadata = {
         width: 96,
         height: 96,
         alt: "aquila buddy"
-      }
+      },
+      ...serviceBrandAssets.map((asset) => ({
+        url: asset.representativeImage,
+        width: 96,
+        height: 96,
+        alt: asset.name
+      }))
     ]
   },
   icons: {
     icon: "/favicon.ico",
     apple: "/apple-touch-icon.png",
-    other: [
+    other: serviceBrandAssets.flatMap((asset) => [
       {
         rel: "alternate icon",
-        url: "/blog-favicon.ico"
+        url: asset.favicon
+      },
+      {
+        rel: "apple-touch-icon",
+        url: asset.appleTouchIcon
       }
-    ]
+    ])
   }
 };
 
