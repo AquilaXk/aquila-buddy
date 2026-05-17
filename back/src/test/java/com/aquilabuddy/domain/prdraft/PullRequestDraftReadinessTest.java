@@ -26,12 +26,14 @@ class PullRequestDraftReadinessTest {
                 ## 테스트
                 - 관련 테스트를 실행해 주세요.
                 """,
+            "issue-2",
             Instant.parse("2026-05-15T00:00:00Z")
         );
 
         PullRequestDraftReadiness readiness = PullRequestDraftReadiness.from(draft);
 
         assertThat(readiness.draftId()).isEqualTo("draft-1");
+        assertThat(readiness.sourceIssueId()).isEqualTo("issue-2");
         assertThat(readiness.readyCount()).isEqualTo(4);
         assertThat(readiness.items())
             .extracting(PullRequestDraftReadinessItem::key)
