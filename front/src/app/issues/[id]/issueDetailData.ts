@@ -65,6 +65,9 @@ export function buildPullRequestDraftHref(issue: IssueDetailIssue, guide: IssueG
   const params = new URLSearchParams({
     repo: issue.repoFullName,
     issue: String(issue.issueNumber),
+    issueNumber: String(issue.issueNumber),
+    issueId: issue.id,
+    issueTitle: issue.title,
     base: "main",
     head: buildHeadBranch(issue),
     diff: buildDiffSeed(issue, guide),
