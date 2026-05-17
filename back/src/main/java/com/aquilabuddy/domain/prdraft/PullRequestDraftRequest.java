@@ -152,6 +152,20 @@ public record PullRequestDraftRequest(
         );
     }
 
+    public PullRequestDraftRequest withSourceIssueId(String resolvedSourceIssueId) {
+        return new PullRequestDraftRequest(
+            upstreamRepo,
+            githubIssueNumber,
+            baseBranch,
+            headBranch,
+            diffContent,
+            requireText(resolvedSourceIssueId, "sourceIssueId"),
+            repositoryGuideContext,
+            issueContext,
+            analysisContext
+        );
+    }
+
     public PullRequestDraftRequest withAnalysisContext(PullRequestDraftAnalysisContext resolvedAnalysisContext) {
         return new PullRequestDraftRequest(
             upstreamRepo,

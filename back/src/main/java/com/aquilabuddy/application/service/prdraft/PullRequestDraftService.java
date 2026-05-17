@@ -122,11 +122,13 @@ public class PullRequestDraftService implements
     private PullRequestDraftRequest resolveIssueContext(PullRequestDraftRequest request) {
         return findRecommendedIssuePort
             .findByRepoFullNameAndIssueNumber(request.upstreamRepo(), request.githubIssueNumber())
-            .map(issue -> request.withIssueContext(new PullRequestDraftIssueContext(
-                issue.title(),
-                issue.summary(),
-                issue.reason()
-            )))
+            .map(issue -> request
+                .withSourceIssueId(issue.id())
+                .withIssueContext(new PullRequestDraftIssueContext(
+                    issue.title(),
+                    issue.summary(),
+                    issue.reason()
+                )))
             .orElse(request);
     }
 
