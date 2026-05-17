@@ -22,6 +22,7 @@ class PullRequestDraftContributionReportTest {
         assertThat(report.draftId()).isEqualTo("draft-1");
         assertThat(report.upstreamRepo()).isEqualTo("spring-projects/spring-boot");
         assertThat(report.githubIssueNumber()).isEqualTo(123);
+        assertThat(report.sourceIssueId()).isEqualTo("issue-123");
         assertThat(report.baseBranch()).isEqualTo("main");
         assertThat(report.headBranch()).isEqualTo("feat/readme-fix");
         assertThat(report.readinessReadyCount()).isEqualTo(4);
@@ -49,6 +50,7 @@ class PullRequestDraftContributionReportTest {
             "feat/readme-fix",
             "[Docs] README 기여 안내 보완",
             "## 변경 사항\n- README 안내를 보완합니다.\n\n## 테스트\n- 관련 테스트를 실행합니다.",
+            "issue-123",
             Instant.parse("2026-05-15T01:00:00Z")
         );
     }

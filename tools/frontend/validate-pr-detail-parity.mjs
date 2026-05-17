@@ -50,6 +50,7 @@ assertFileIncludes(apiClient, "sourceIssueId?: string;", "PR draft create API re
 assertFileIncludes(apiClient, "sourceIssueId: string | null;", "Stored PR draft API type must expose sourceIssueId.");
 assertFileIncludes(apiClient, "type PullRequestDraftSubmission = {\n  draftId: string;\n  upstreamRepo: string;\n  githubIssueNumber: number;\n  sourceIssueId: string | null;", "PR draft submission API type must expose sourceIssueId.");
 assertFileIncludes(apiClient, "type PullRequestDraftTranslationSubmission = {\n  draftId: string;\n  translationId: string;\n  targetLanguage: \"en\";\n  upstreamRepo: string;\n  githubIssueNumber: number;\n  sourceIssueId: string | null;", "PR draft translation submission API type must expose sourceIssueId.");
+assertFileIncludes(apiClient, "type PullRequestDraftContributionReport = {\n  draftId: string;\n  upstreamRepo: string;\n  githubIssueNumber: number;\n  sourceIssueId: string | null;", "PR draft contribution report API type must expose sourceIssueId.");
 assertFileIncludes(prDraftCreatePage, "sourceIssueId: draftInput.issueId || undefined", "PR draft create payload must send sourceIssueId when present.");
 assertFileIncludes(prDraftRequest, "hasSourceIssueId", "PR draft request must expose sourceIssueId presence check.");
 assertFileIncludes(prDraftService, "resolveSourceIssueIdFallback", "PR draft service must isolate sourceIssueId fallback logic.");
