@@ -144,4 +144,26 @@ class RecommendedIssuePersistenceAdapterTest {
         assertThat(issue.get().repoFullName()).isEqualTo("vercel/next.js");
         assertThat(issue.get().issueNumber()).isEqualTo(1);
     }
+
+    @Test
+    void findsRecommendedIssueByInternalId() {
+        repository.save(new RecommendedIssueJpaEntity(
+            "detail-target",
+            "vercel/next.js",
+            1,
+            "Improve contributor-facing documentation",
+            "문서 중심 첫 기여 흐름을 확인하기 좋은 이슈입니다.",
+            0.91,
+            List.of("good first issue", "documentation"),
+            "OPEN",
+            "프론트엔드와 문서 작업으로 첫 PR 흐름을 작게 검증할 수 있습니다."
+        ));
+
+        Optional<RecommendedIssue> issue = adapter.findById("detail-target");
+
+        assertThat(issue).isPresent();
+        assertThat(issue.get().id()).isEqualTo("detail-target");
+        assertThat(issue.get().repoFullName()).isEqualTo("vercel/next.js");
+        assertThat(issue.get().issueNumber()).isEqualTo(1);
+    }
 }

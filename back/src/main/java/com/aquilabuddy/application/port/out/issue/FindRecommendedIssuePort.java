@@ -9,6 +9,11 @@ import java.util.Optional;
 public interface FindRecommendedIssuePort {
 
     /**
+     * 내부 이슈 ID에 해당하는 추천 이슈를 반환합니다.
+     */
+    Optional<RecommendedIssue> findById(String id);
+
+    /**
      * repo full name과 issue number가 일치하는 추천 이슈를 반환합니다.
      */
     Optional<RecommendedIssue> findByRepoFullNameAndIssueNumber(String repoFullName, long issueNumber);

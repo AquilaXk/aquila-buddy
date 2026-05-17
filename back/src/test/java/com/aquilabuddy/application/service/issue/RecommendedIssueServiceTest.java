@@ -161,6 +161,22 @@ class RecommendedIssueServiceTest {
         assertThat(result).contains(stored);
     }
 
+    @Test
+    void getsStoredIssueByInternalId() {
+        RecommendedIssue stored = issue("stored", "vercel/next.js", 1);
+        RecommendedIssueService service = new RecommendedIssueService(
+            new CountingLoadRecommendedIssuesPort(List.of(stored)),
+            new CountingLoadRecommendedIssuesPort(List.of(stored)),
+            new InMemoryFindRecommendedIssuePort(List.of(stored)),
+            new RecordingSaveRecommendedIssuesPort(),
+            List::of
+        );
+
+        Optional<RecommendedIssue> result = service.getRecommendedIssue("stored");
+
+        assertThat(result).contains(stored);
+    }
+
     private static SearchRecommendedIssuesPort failingSearchPort() {
         return () -> {
             throw new IllegalStateException("GitHub unavailable");
@@ -240,6 +256,13 @@ class RecommendedIssueServiceTest {
 
         private InMemoryFindRecommendedIssuePort(List<RecommendedIssue> issues) {
             this.issues = issues;
+        }
+
+        @Override
+        public Optional<RecommendedIssue> findById(String id) {
+            return issues.stream()
+                .filter(issue -> issue.id().equals(id))
+                .findFirst();
         }
 
         @Override
