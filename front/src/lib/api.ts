@@ -185,6 +185,7 @@ export type PullRequestDraftTimelineItem = {
 
 export type PullRequestDraftTimeline = {
   draftId: string;
+  sourceIssueId: string | null;
   items: PullRequestDraftTimelineItem[];
 };
 

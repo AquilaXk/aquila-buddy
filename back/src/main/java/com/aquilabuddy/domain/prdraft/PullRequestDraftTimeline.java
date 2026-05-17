@@ -7,6 +7,7 @@ import java.util.List;
  */
 public record PullRequestDraftTimeline(
     String draftId,
+    String sourceIssueId,
     List<PullRequestDraftTimelineItem> items
 ) {
 
@@ -61,6 +62,6 @@ public record PullRequestDraftTimeline(
             )
         );
 
-        return new PullRequestDraftTimeline(draft.id(), items);
+        return new PullRequestDraftTimeline(draft.id(), draft.sourceIssueId(), items);
     }
 }

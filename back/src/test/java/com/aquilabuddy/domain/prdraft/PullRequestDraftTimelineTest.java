@@ -26,12 +26,14 @@ class PullRequestDraftTimelineTest {
                 ## 테스트
                 - ./back/gradlew -p back check
                 """,
+            "issue-2",
             Instant.parse("2026-05-15T00:00:00Z")
         );
 
         PullRequestDraftTimeline timeline = PullRequestDraftTimeline.from(draft);
 
         assertThat(timeline.draftId()).isEqualTo("draft-1");
+        assertThat(timeline.sourceIssueId()).isEqualTo("issue-2");
         assertThat(timeline.items())
             .extracting(PullRequestDraftTimelineItem::key)
             .containsExactly("context-captured", "draft-created", "readiness-reviewed", "submission-prepared");
