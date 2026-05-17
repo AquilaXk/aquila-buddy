@@ -140,6 +140,7 @@ function PrDraftContent() {
       const createdDraft = await createPullRequestDraft({
         upstreamRepo: draftInput.upstreamRepo,
         githubIssueNumber: Number(draftInput.githubIssueNumber),
+        sourceIssueId: draftInput.issueId || undefined,
         baseBranch: baseBranch.trim(),
         headBranch: headBranch.trim(),
         diffContent: draftInput.diffSeed

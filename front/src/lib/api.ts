@@ -81,6 +81,7 @@ export type IssueGuideWorkflow = {
 export type CreatePullRequestDraftRequest = {
   upstreamRepo: string;
   githubIssueNumber: number;
+  sourceIssueId?: string;
   baseBranch: string;
   headBranch: string;
   diffContent: string;
@@ -100,6 +101,7 @@ export type StoredPullRequestDraft = PullRequestDraft & {
   id: string;
   upstreamRepo: string;
   githubIssueNumber: number;
+  sourceIssueId: string | null;
   baseBranch: string;
   headBranch: string;
   createdAt: string;

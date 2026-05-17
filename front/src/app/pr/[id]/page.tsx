@@ -222,7 +222,17 @@ export default function PrDetailPage() {
             {draft.baseBranch} -&gt; {draft.headBranch}
           </p>
         </div>
-        <p className="text-xs font-semibold text-github-muted">{formatDate(draft.createdAt)}</p>
+        <div className="flex flex-col items-start gap-2 sm:items-end">
+          <p className="text-xs font-semibold text-github-muted">{formatDate(draft.createdAt)}</p>
+          {draft.sourceIssueId ? (
+            <Link
+              className="focus-ring text-xs font-semibold text-github-accent hover:text-github-accent/80"
+              href={`/issues/${encodeURIComponent(draft.sourceIssueId)}`}
+            >
+              원본 이슈 보기
+            </Link>
+          ) : null}
+        </div>
       </section>
 
       <section className="surface mb-4 p-5">
