@@ -10,6 +10,7 @@ public record PullRequestDraftSubmission(
     String draftId,
     String upstreamRepo,
     long githubIssueNumber,
+    String sourceIssueId,
     String baseBranch,
     String headBranch,
     List<PullRequestDraftSubmissionItem> items
@@ -53,6 +54,7 @@ public record PullRequestDraftSubmission(
             draft.id(),
             draft.upstreamRepo(),
             draft.githubIssueNumber(),
+            draft.sourceIssueId(),
             draft.baseBranch(),
             draft.headBranch(),
             items
