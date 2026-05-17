@@ -206,6 +206,7 @@ class PullRequestDraftServiceTest {
 
         assertThat(issuePort.receivedRepoFullName).isEqualTo("spring-projects/spring-boot");
         assertThat(issuePort.receivedIssueNumber).isEqualTo(2);
+        assertThat(generatePort.generatedRequest.sourceIssueId()).isEqualTo("issue-2");
         assertThat(generatePort.generatedRequest.issueContext().title()).isEqualTo("Fix validation message");
         assertThat(generatePort.generatedRequest.issueContext().summary())
             .isEqualTo("Error message should explain invalid input.");
