@@ -23,6 +23,7 @@ type DraftInput = {
   baseBranch: string;
   headBranch: string;
   diffSeed: string;
+  hasExplicitDiffSeed: boolean;
 };
 
 type SearchParamsLike = {
@@ -101,19 +102,7 @@ function PrDraftContent() {
           return;
         }
 
-        setDraftInput((currentInput) => {
-          const upstreamRepo = currentInput.upstreamRepo || issue.repoFullName;
-          const githubIssueNumber = currentInput.githubIssueNumber || String(issue.issueNumber);
-          const issueTitle = currentInput.issueTitle || issue.title;
-
-          return {
-            ...currentInput,
-            upstreamRepo,
-            githubIssueNumber,
-            issueTitle,
-            diffSeed: currentInput.diffSeed || buildDiffSeed(upstreamRepo, githubIssueNumber, issueTitle)
-          };
-        });
+        setDraftInput((currentInput) => mergeDraftInputWithIssue(currentInput, issue));
       })
       .catch((caught) => {
         if (ignored) {
@@ -446,6 +435,7 @@ function readDraftInputFromSearchParams(searchParams: SearchParamsLike): DraftIn
   const upstreamRepo = readTextParam(searchParams, "repo", "");
   const githubIssueNumber = readIssueNumberParam(searchParams);
   const issueTitle = readTextParam(searchParams, "issueTitle", "");
+  const explicitDiffSeed = readTextParam(searchParams, "diff", "");
 
   return {
     upstreamRepo,
@@ -454,7 +444,24 @@ function readDraftInputFromSearchParams(searchParams: SearchParamsLike): DraftIn
     issueTitle,
     baseBranch: readTextParam(searchParams, "base", "main"),
     headBranch: readTextParam(searchParams, "head", ""),
-    diffSeed: readTextParam(searchParams, "diff", buildDiffSeed(upstreamRepo, githubIssueNumber, issueTitle))
+    diffSeed: explicitDiffSeed || buildDiffSeed(upstreamRepo, githubIssueNumber, issueTitle),
+    hasExplicitDiffSeed: Boolean(explicitDiffSeed)
+  };
+}
+
+function mergeDraftInputWithIssue(currentInput: DraftInput, issue: RecommendedIssue): DraftInput {
+  const upstreamRepo = currentInput.upstreamRepo || issue.repoFullName;
+  const githubIssueNumber = currentInput.githubIssueNumber || String(issue.issueNumber);
+  const issueTitle = currentInput.issueTitle || issue.title;
+
+  return {
+    ...currentInput,
+    upstreamRepo,
+    githubIssueNumber,
+    issueTitle,
+    diffSeed: currentInput.hasExplicitDiffSeed
+      ? currentInput.diffSeed
+      : buildDiffSeed(upstreamRepo, githubIssueNumber, issueTitle)
   };
 }
 
