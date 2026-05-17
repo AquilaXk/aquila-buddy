@@ -242,7 +242,11 @@ class PullRequestDraftControllerTest {
     @Test
     void returnsNotFoundForMissingDraft() throws Exception {
         mockMvc.perform(get("/api/v1/pr/{id}", "missing"))
-            .andExpect(status().isNotFound());
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.success").value(false))
+            .andExpect(jsonPath("$.status").value("fail"))
+            .andExpect(jsonPath("$.data").value(org.hamcrest.Matchers.nullValue()))
+            .andExpect(jsonPath("$.message").value("PR 초안을 찾을 수 없습니다."));
     }
 
     @Test
