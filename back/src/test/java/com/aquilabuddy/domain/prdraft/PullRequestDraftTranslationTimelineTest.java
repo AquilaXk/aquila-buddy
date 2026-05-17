@@ -17,6 +17,7 @@ class PullRequestDraftTranslationTimelineTest {
 
         assertThat(timeline.draftId()).isEqualTo("draft-1");
         assertThat(timeline.translationId()).isEqualTo("translation-1");
+        assertThat(timeline.sourceIssueId()).isEqualTo("issue-123");
         assertThat(timeline.items())
             .extracting(PullRequestDraftTimelineItem::key)
             .containsExactly("translation-created", "translation-ready", "readiness-reviewed", "submission-prepared");
@@ -71,6 +72,7 @@ class PullRequestDraftTranslationTimelineTest {
             "feat/readme-fix",
             "[Docs] README 기여 안내 보완",
             "## 변경 사항\n- README 안내를 보완합니다.",
+            "issue-123",
             Instant.parse("2026-05-15T01:00:00Z")
         );
     }
