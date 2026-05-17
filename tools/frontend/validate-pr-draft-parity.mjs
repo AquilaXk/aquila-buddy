@@ -31,6 +31,11 @@ assertIncludes("sourceIssueLoading", "PR draft page must expose source issue loo
 assertIncludes("sourceIssueError", "PR draft page must expose source issue lookup fallback error state.");
 assertIncludes("setDraftInput", "PR draft page must keep mutable draft input after source issue lookup.");
 assertIncludes("initialDraftInput.issueId", "PR draft page must trigger lookup from issueId/sourceIssueId.");
+assertIncludes("mergeDraftInputWithIssue", "PR draft page must isolate query-first source issue merging.");
+assertIncludes("hasExplicitDiffSeed", "PR draft page must preserve explicit diff query input.");
+assertIncludes("currentInput.upstreamRepo || issue.repoFullName", "PR draft page must keep query repo before detail API repo.");
+assertIncludes("currentInput.hasExplicitDiffSeed", "PR draft page must only rebuild generated diff seed.");
+assertIncludes("readTextParam(searchParams, \"diff\", \"\")", "PR draft page must distinguish explicit diff from generated fallback.");
 assertIncludes("PR 초안 생성", "PR draft page must show the target title.");
 assertIncludes("← 이슈로 돌아가기", "PR draft page must link back to the source issue.");
 assertIncludes("← 추천 이슈", "PR draft page must link back to issue recommendations.");
