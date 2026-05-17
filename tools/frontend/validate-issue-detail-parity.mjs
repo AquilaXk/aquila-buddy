@@ -4,6 +4,7 @@ import { join, resolve } from "node:path";
 const repoRoot = resolve(import.meta.dirname, "../..");
 const issueDetailPagePath = join(repoRoot, "front/src/app/issues/[id]/page.tsx");
 const issueDetailPage = readFileSync(issueDetailPagePath, "utf8");
+const issueDetailDataSource = readFileSync(join(repoRoot, "front/src/app/issues/[id]/issueDetailData.ts"), "utf8");
 const apiSource = readFileSync(join(repoRoot, "front/src/lib/api.ts"), "utf8");
 const failures = [];
 
@@ -25,6 +26,12 @@ function assertNotIncludes(needle, message) {
 
 function assertApiIncludes(needle, message) {
   if (!apiSource.includes(needle)) {
+    fail(message);
+  }
+}
+
+function assertHelperIncludes(needle, message) {
+  if (!issueDetailDataSource.includes(needle)) {
     fail(message);
   }
 }
@@ -53,6 +60,21 @@ assertIncludes("PR 초안 만들기 →", "Issue detail page must expose the PR 
 assertApiIncludes("export async function getIssueDetail", "Frontend API client must expose issue detail lookup.");
 assertApiIncludes("/api/v1/issues/${encodeURIComponent(id)}", "Issue detail lookup must call the id detail API.");
 assertApiIncludes("Issue detail response was not successful", "Issue detail lookup must validate the response envelope.");
+
+assertHelperIncludes("getIssueDetail", "Issue detail helper must use the direct detail API first.");
+assertHelperIncludes("return await getIssueDetail(issueId)", "Issue detail helper must return direct lookup before fallback.");
+assertHelperIncludes("fallbackIssueLookup", "Issue detail helper must preserve history/recommend fallback lookup.");
+assertHelperIncludes("loadIssueCollections", "Issue detail helper must keep the collection fallback helper.");
+
+for (const queryContract of [
+  "issueNumber: String(issue.issueNumber)",
+  "issueId: issue.id",
+  "issueTitle: issue.title",
+  "sourceIssueId: issue.id"
+]) {
+  assertIncludes(queryContract, `Issue detail page must keep PR draft query contract: ${queryContract}.`);
+  assertHelperIncludes(queryContract, `Issue detail helper must keep PR draft query contract: ${queryContract}.`);
+}
 
 for (const text of [
   "IssueGuideWorkflowPanel",
