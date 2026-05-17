@@ -66,6 +66,16 @@ assertHelperIncludes("return await getIssueDetail(issueId)", "Issue detail helpe
 assertHelperIncludes("fallbackIssueLookup", "Issue detail helper must preserve history/recommend fallback lookup.");
 assertHelperIncludes("loadIssueCollections", "Issue detail helper must keep the collection fallback helper.");
 
+for (const queryContract of [
+  "issueNumber: String(issue.issueNumber)",
+  "issueId: issue.id",
+  "issueTitle: issue.title",
+  "sourceIssueId: issue.id"
+]) {
+  assertIncludes(queryContract, `Issue detail page must keep PR draft query contract: ${queryContract}.`);
+  assertHelperIncludes(queryContract, `Issue detail helper must keep PR draft query contract: ${queryContract}.`);
+}
+
 for (const text of [
   "IssueGuideWorkflowPanel",
   "IssuePseudoCodePanel",
