@@ -215,6 +215,39 @@ class PullRequestDraftServiceTest {
     }
 
     @Test
+    void keepsExplicitSourceIssueIdWhenStoredIssueIsFound() {
+        FakeGeneratePullRequestDraftPort generatePort = new FakeGeneratePullRequestDraftPort();
+        FakeSavePullRequestDraftPort savePort = new FakeSavePullRequestDraftPort();
+        PullRequestDraftService service = new PullRequestDraftService(
+            generatePort,
+            new FakeLoadPullRequestDraftDiffPort(),
+            new FakeLoadPullRequestDraftRepositoryGuideContextPort(),
+            new FakeFindRecommendedIssuePort(),
+            new FakeLoadPullRequestDraftAnalysisContextPort(),
+            savePort,
+            new FakeLoadPullRequestDraftPort(),
+            new FakeLoadPullRequestDraftHistoryPort(),
+            new FakeUpdatePullRequestDraftPort(),
+            new FakeDeletePullRequestDraftPort(),
+            new FakeLoadPullRequestDraftTranslationPort()
+        );
+
+        PullRequestDraftRequest request = new PullRequestDraftRequest(
+            "spring-projects/spring-boot",
+            2,
+            "main",
+            "feat/validation-docs",
+            "diff --git a/docs.adoc b/docs.adoc\n+Provided by client",
+            "explicit-issue-id"
+        );
+
+        service.create(request);
+
+        assertThat(generatePort.generatedRequest.sourceIssueId()).isEqualTo("explicit-issue-id");
+        assertThat(savePort.savedRequest).isEqualTo(generatePort.generatedRequest);
+    }
+
+    @Test
     void resolvesAnalysisContextBeforeGeneratingAndSaving() {
         FakeLoadPullRequestDraftAnalysisContextPort analysisContextPort =
             new FakeLoadPullRequestDraftAnalysisContextPort();
