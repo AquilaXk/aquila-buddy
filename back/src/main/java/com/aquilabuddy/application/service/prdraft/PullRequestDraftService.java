@@ -21,6 +21,7 @@ import com.aquilabuddy.application.port.out.prdraft.LoadPullRequestDraftReposito
 import com.aquilabuddy.application.port.out.prdraft.LoadPullRequestDraftTranslationPort;
 import com.aquilabuddy.application.port.out.prdraft.SavePullRequestDraftPort;
 import com.aquilabuddy.application.port.out.prdraft.UpdatePullRequestDraftPort;
+import com.aquilabuddy.domain.issue.RecommendedIssue;
 import com.aquilabuddy.domain.prdraft.PullRequestDraft;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftContributionReport;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftHistoryPage;
@@ -122,14 +123,24 @@ public class PullRequestDraftService implements
     private PullRequestDraftRequest resolveIssueContext(PullRequestDraftRequest request) {
         return findRecommendedIssuePort
             .findByRepoFullNameAndIssueNumber(request.upstreamRepo(), request.githubIssueNumber())
-            .map(issue -> request
-                .withSourceIssueId(issue.id())
+            .map(issue -> resolveSourceIssueIdFallback(request, issue)
                 .withIssueContext(new PullRequestDraftIssueContext(
                     issue.title(),
                     issue.summary(),
                     issue.reason()
                 )))
             .orElse(request);
+    }
+
+    private PullRequestDraftRequest resolveSourceIssueIdFallback(
+        PullRequestDraftRequest request,
+        RecommendedIssue issue
+    ) {
+        if (request.hasSourceIssueId()) {
+            return request;
+        }
+
+        return request.withSourceIssueId(issue.id());
     }
 
     private PullRequestDraftRequest resolveAnalysisContext(PullRequestDraftRequest request) {

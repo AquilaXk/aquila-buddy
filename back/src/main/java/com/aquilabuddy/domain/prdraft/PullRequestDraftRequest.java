@@ -108,6 +108,10 @@ public record PullRequestDraftRequest(
         return diffContent != null;
     }
 
+    public boolean hasSourceIssueId() {
+        return sourceIssueId != null;
+    }
+
     public PullRequestDraftRequest withDiffContent(String resolvedDiffContent) {
         return new PullRequestDraftRequest(
             upstreamRepo,
