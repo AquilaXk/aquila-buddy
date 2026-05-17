@@ -23,6 +23,7 @@ class PullRequestDraftTranslationSubmissionTest {
         assertThat(submission.targetLanguage()).isEqualTo("en");
         assertThat(submission.upstreamRepo()).isEqualTo("spring-projects/spring-boot");
         assertThat(submission.githubIssueNumber()).isEqualTo(123);
+        assertThat(submission.sourceIssueId()).isEqualTo("issue-123");
         assertThat(submission.baseBranch()).isEqualTo("main");
         assertThat(submission.headBranch()).isEqualTo("feat/readme-fix");
         assertThat(submission.items())
@@ -58,6 +59,7 @@ class PullRequestDraftTranslationSubmissionTest {
             "feat/readme-fix",
             "[Docs] README 기여 안내 보완",
             "## 변경 사항\n- README 안내를 보완합니다.",
+            "issue-123",
             Instant.parse("2026-05-15T01:00:00Z")
         );
     }
