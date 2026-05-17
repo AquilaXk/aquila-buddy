@@ -24,8 +24,18 @@ function assertNotIncludes(needle, message) {
 
 assertIncludes("useSearchParams", "PR draft page must read issue context from query params.");
 assertIncludes("createPullRequestDraft", "PR draft page must create a draft through the API.");
+assertIncludes("getIssueDetail", "PR draft page must prefill missing source issue fields from the detail API.");
 assertIncludes("translatePullRequestDraft", "PR draft page must expose translation through the API.");
 assertIncludes("getPullRequestDraftHistory", "PR draft page must load draft history.");
+assertIncludes("sourceIssueLoading", "PR draft page must expose source issue lookup loading state.");
+assertIncludes("sourceIssueError", "PR draft page must expose source issue lookup fallback error state.");
+assertIncludes("setDraftInput", "PR draft page must keep mutable draft input after source issue lookup.");
+assertIncludes("initialDraftInput.issueId", "PR draft page must trigger lookup from issueId/sourceIssueId.");
+assertIncludes("mergeDraftInputWithIssue", "PR draft page must isolate query-first source issue merging.");
+assertIncludes("hasExplicitDiffSeed", "PR draft page must preserve explicit diff query input.");
+assertIncludes("currentInput.upstreamRepo || issue.repoFullName", "PR draft page must keep query repo before detail API repo.");
+assertIncludes("currentInput.hasExplicitDiffSeed", "PR draft page must only rebuild generated diff seed.");
+assertIncludes("readTextParam(searchParams, \"diff\", \"\")", "PR draft page must distinguish explicit diff from generated fallback.");
 assertIncludes("PR 초안 생성", "PR draft page must show the target title.");
 assertIncludes("← 이슈로 돌아가기", "PR draft page must link back to the source issue.");
 assertIncludes("← 추천 이슈", "PR draft page must link back to issue recommendations.");

@@ -6,10 +6,12 @@ import { FormEvent, Suspense, useCallback, useEffect, useMemo, useState } from "
 import { ProtectedLayout } from "@/components/ProtectedLayout";
 import {
   createPullRequestDraft,
+  getIssueDetail,
   getPullRequestDraftHistory,
   translatePullRequestDraft,
   type PullRequestDraftHistoryPage,
   type PullRequestDraftTranslateResult,
+  type RecommendedIssue,
   type StoredPullRequestDraft
 } from "@/lib/api";
 
@@ -21,6 +23,7 @@ type DraftInput = {
   baseBranch: string;
   headBranch: string;
   diffSeed: string;
+  hasExplicitDiffSeed: boolean;
 };
 
 type SearchParamsLike = {
@@ -40,19 +43,22 @@ export default function PrDraftPage() {
 function PrDraftContent() {
   const searchParams = useSearchParams();
   const initialDraftInput = useMemo(() => readDraftInputFromSearchParams(searchParams), [searchParams]);
-  const hasIssueParam = Boolean(initialDraftInput.upstreamRepo && Number(initialDraftInput.githubIssueNumber) > 0);
+  const [draftInput, setDraftInput] = useState(initialDraftInput);
   const [baseBranch, setBaseBranch] = useState(initialDraftInput.baseBranch);
   const [headBranch, setHeadBranch] = useState(initialDraftInput.headBranch);
   const [draft, setDraft] = useState<StoredPullRequestDraft | null>(null);
   const [translated, setTranslated] = useState<PullRequestDraftTranslateResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [historyError, setHistoryError] = useState<string | null>(null);
+  const [sourceIssueLoading, setSourceIssueLoading] = useState(false);
+  const [sourceIssueError, setSourceIssueError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [translating, setTranslating] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(true);
   const [historyPageIndex, setHistoryPageIndex] = useState(0);
   const [historyPage, setHistoryPage] = useState<PullRequestDraftHistoryPage | null>(null);
   const [copied, setCopied] = useState<"title" | "body" | null>(null);
+  const hasIssueParam = Boolean(draftInput.upstreamRepo && Number(draftInput.githubIssueNumber) > 0);
 
   const loadDraftHistory = useCallback(async (page: number) => {
     setHistoryLoading(true);
@@ -73,6 +79,51 @@ function PrDraftContent() {
     loadDraftHistory(historyPageIndex);
   }, [historyPageIndex, loadDraftHistory]);
 
+  useEffect(() => {
+    let ignored = false;
+
+    setDraftInput(initialDraftInput);
+    setBaseBranch(initialDraftInput.baseBranch);
+    setHeadBranch(initialDraftInput.headBranch);
+    setSourceIssueError(null);
+
+    if (!initialDraftInput.issueId) {
+      setSourceIssueLoading(false);
+      return () => {
+        ignored = true;
+      };
+    }
+
+    setSourceIssueLoading(true);
+
+    getIssueDetail(initialDraftInput.issueId)
+      .then((issue: RecommendedIssue) => {
+        if (ignored) {
+          return;
+        }
+
+        setDraftInput((currentInput) => mergeDraftInputWithIssue(currentInput, issue));
+      })
+      .catch((caught) => {
+        if (ignored) {
+          return;
+        }
+
+        setSourceIssueError(
+          caught instanceof Error ? caught.message : "이슈 정보를 불러오지 못해 전달된 값으로 계속합니다."
+        );
+      })
+      .finally(() => {
+        if (!ignored) {
+          setSourceIssueLoading(false);
+        }
+      });
+
+    return () => {
+      ignored = true;
+    };
+  }, [initialDraftInput]);
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -87,11 +138,11 @@ function PrDraftContent() {
 
     try {
       const createdDraft = await createPullRequestDraft({
-        upstreamRepo: initialDraftInput.upstreamRepo,
-        githubIssueNumber: Number(initialDraftInput.githubIssueNumber),
+        upstreamRepo: draftInput.upstreamRepo,
+        githubIssueNumber: Number(draftInput.githubIssueNumber),
         baseBranch: baseBranch.trim(),
         headBranch: headBranch.trim(),
-        diffContent: initialDraftInput.diffSeed
+        diffContent: draftInput.diffSeed
       });
 
       setDraft(createdDraft);
@@ -139,10 +190,10 @@ function PrDraftContent() {
   return (
     <ProtectedLayout>
       <div className="mb-6 flex items-center gap-3">
-        {hasIssueParam && initialDraftInput.issueId ? (
+        {draftInput.issueId ? (
           <Link
             className="focus-ring text-sm font-semibold text-github-muted hover:text-github-text"
-            href={`/issues/${encodeURIComponent(initialDraftInput.issueId)}`}
+            href={`/issues/${encodeURIComponent(draftInput.issueId)}`}
           >
             ← 이슈로 돌아가기
           </Link>
@@ -159,15 +210,21 @@ function PrDraftContent() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div className="space-y-4">
-          {hasIssueParam ? (
+          {hasIssueParam || draftInput.issueId ? (
             <section className="surface p-5">
               <p className="text-xs font-semibold text-github-muted">선택된 이슈</p>
               <p className="mt-2 break-all text-xs font-semibold text-github-muted">
-                {initialDraftInput.upstreamRepo} #{initialDraftInput.githubIssueNumber}
+                {hasIssueParam ? `${draftInput.upstreamRepo} #${draftInput.githubIssueNumber}` : "이슈 정보를 불러오는 중..."}
               </p>
               <h2 className="mt-2 text-base font-semibold leading-6 text-github-text">
-                {initialDraftInput.issueTitle || `Issue #${initialDraftInput.githubIssueNumber}`}
+                {draftInput.issueTitle || (hasIssueParam ? `Issue #${draftInput.githubIssueNumber}` : draftInput.issueId)}
               </h2>
+              {sourceIssueLoading ? (
+                <p className="mt-3 text-xs font-semibold text-github-muted">이슈 정보를 불러오는 중...</p>
+              ) : null}
+              {sourceIssueError ? (
+                <p className="mt-3 text-xs font-semibold text-yellow-300">{sourceIssueError}</p>
+              ) : null}
             </section>
           ) : (
             <section className="surface border-yellow-500/30 bg-yellow-500/10 p-5">
@@ -378,6 +435,7 @@ function readDraftInputFromSearchParams(searchParams: SearchParamsLike): DraftIn
   const upstreamRepo = readTextParam(searchParams, "repo", "");
   const githubIssueNumber = readIssueNumberParam(searchParams);
   const issueTitle = readTextParam(searchParams, "issueTitle", "");
+  const explicitDiffSeed = readTextParam(searchParams, "diff", "");
 
   return {
     upstreamRepo,
@@ -386,7 +444,24 @@ function readDraftInputFromSearchParams(searchParams: SearchParamsLike): DraftIn
     issueTitle,
     baseBranch: readTextParam(searchParams, "base", "main"),
     headBranch: readTextParam(searchParams, "head", ""),
-    diffSeed: readTextParam(searchParams, "diff", buildDiffSeed(upstreamRepo, githubIssueNumber, issueTitle))
+    diffSeed: explicitDiffSeed || buildDiffSeed(upstreamRepo, githubIssueNumber, issueTitle),
+    hasExplicitDiffSeed: Boolean(explicitDiffSeed)
+  };
+}
+
+function mergeDraftInputWithIssue(currentInput: DraftInput, issue: RecommendedIssue): DraftInput {
+  const upstreamRepo = currentInput.upstreamRepo || issue.repoFullName;
+  const githubIssueNumber = currentInput.githubIssueNumber || String(issue.issueNumber);
+  const issueTitle = currentInput.issueTitle || issue.title;
+
+  return {
+    ...currentInput,
+    upstreamRepo,
+    githubIssueNumber,
+    issueTitle,
+    diffSeed: currentInput.hasExplicitDiffSeed
+      ? currentInput.diffSeed
+      : buildDiffSeed(upstreamRepo, githubIssueNumber, issueTitle)
   };
 }
 
