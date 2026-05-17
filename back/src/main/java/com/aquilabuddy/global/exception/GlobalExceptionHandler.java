@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.server.ResponseStatusException;
 
 /**
  * web adapter에서 발생한 검증 예외를 공통 API 응답 포맷으로 변환합니다.
@@ -39,5 +40,15 @@ public class GlobalExceptionHandler {
         return ResponseEntity
             .status(HttpStatus.BAD_REQUEST)
             .body(ApiResponse.error(exception.getMessage()));
+    }
+
+    /**
+     * controller/use case가 지정한 HTTP status를 유지하면서 실패 응답 envelope로 변환합니다.
+     */
+    @ExceptionHandler(ResponseStatusException.class)
+    ResponseEntity<ApiResponse<Void>> handleResponseStatus(ResponseStatusException exception) {
+        return ResponseEntity
+            .status(exception.getStatusCode())
+            .body(ApiResponse.error(exception.getReason()));
     }
 }
