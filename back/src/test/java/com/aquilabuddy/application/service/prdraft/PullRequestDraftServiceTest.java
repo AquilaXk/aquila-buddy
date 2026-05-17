@@ -206,10 +206,44 @@ class PullRequestDraftServiceTest {
 
         assertThat(issuePort.receivedRepoFullName).isEqualTo("spring-projects/spring-boot");
         assertThat(issuePort.receivedIssueNumber).isEqualTo(2);
+        assertThat(generatePort.generatedRequest.sourceIssueId()).isEqualTo("issue-2");
         assertThat(generatePort.generatedRequest.issueContext().title()).isEqualTo("Fix validation message");
         assertThat(generatePort.generatedRequest.issueContext().summary())
             .isEqualTo("Error message should explain invalid input.");
         assertThat(generatePort.generatedRequest.issueContext().reason()).isEqualTo("Matches Java validation topic");
+        assertThat(savePort.savedRequest).isEqualTo(generatePort.generatedRequest);
+    }
+
+    @Test
+    void keepsExplicitSourceIssueIdWhenStoredIssueIsFound() {
+        FakeGeneratePullRequestDraftPort generatePort = new FakeGeneratePullRequestDraftPort();
+        FakeSavePullRequestDraftPort savePort = new FakeSavePullRequestDraftPort();
+        PullRequestDraftService service = new PullRequestDraftService(
+            generatePort,
+            new FakeLoadPullRequestDraftDiffPort(),
+            new FakeLoadPullRequestDraftRepositoryGuideContextPort(),
+            new FakeFindRecommendedIssuePort(),
+            new FakeLoadPullRequestDraftAnalysisContextPort(),
+            savePort,
+            new FakeLoadPullRequestDraftPort(),
+            new FakeLoadPullRequestDraftHistoryPort(),
+            new FakeUpdatePullRequestDraftPort(),
+            new FakeDeletePullRequestDraftPort(),
+            new FakeLoadPullRequestDraftTranslationPort()
+        );
+
+        PullRequestDraftRequest request = new PullRequestDraftRequest(
+            "spring-projects/spring-boot",
+            2,
+            "main",
+            "feat/validation-docs",
+            "diff --git a/docs.adoc b/docs.adoc\n+Provided by client",
+            "explicit-issue-id"
+        );
+
+        service.create(request);
+
+        assertThat(generatePort.generatedRequest.sourceIssueId()).isEqualTo("explicit-issue-id");
         assertThat(savePort.savedRequest).isEqualTo(generatePort.generatedRequest);
     }
 

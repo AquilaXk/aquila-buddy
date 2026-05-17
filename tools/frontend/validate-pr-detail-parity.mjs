@@ -3,9 +3,13 @@ import { join, resolve } from "node:path";
 
 const repoRoot = resolve(import.meta.dirname, "../..");
 const apiClientPath = join(repoRoot, "front/src/lib/api.ts");
+const prDraftRequestPath = join(repoRoot, "back/src/main/java/com/aquilabuddy/domain/prdraft/PullRequestDraftRequest.java");
+const prDraftServicePath = join(repoRoot, "back/src/main/java/com/aquilabuddy/application/service/prdraft/PullRequestDraftService.java");
 const prDraftCreatePagePath = join(repoRoot, "front/src/app/pr-draft/page.tsx");
 const prDetailPagePath = join(repoRoot, "front/src/app/pr/[id]/page.tsx");
 const apiClient = readFileSync(apiClientPath, "utf8");
+const prDraftRequest = readFileSync(prDraftRequestPath, "utf8");
+const prDraftService = readFileSync(prDraftServicePath, "utf8");
 const prDraftCreatePage = readFileSync(prDraftCreatePagePath, "utf8");
 const prDetailPage = readFileSync(prDetailPagePath, "utf8");
 const failures = [];
@@ -45,6 +49,8 @@ assertIncludes("연결된 이슈", "PR detail page must show connected issue con
 assertFileIncludes(apiClient, "sourceIssueId?: string;", "PR draft create API request must accept sourceIssueId.");
 assertFileIncludes(apiClient, "sourceIssueId: string | null;", "Stored PR draft API type must expose sourceIssueId.");
 assertFileIncludes(prDraftCreatePage, "sourceIssueId: draftInput.issueId || undefined", "PR draft create payload must send sourceIssueId when present.");
+assertFileIncludes(prDraftRequest, "hasSourceIssueId", "PR draft request must expose sourceIssueId presence check.");
+assertFileIncludes(prDraftService, "resolveSourceIssueIdFallback", "PR draft service must isolate sourceIssueId fallback logic.");
 assertIncludes("draft.sourceIssueId", "PR detail page must branch on stored sourceIssueId.");
 assertIncludes("원본 이슈 보기", "PR detail page must link to the source issue detail.");
 assertIncludes("PR 제목", "PR detail page must show the title card.");

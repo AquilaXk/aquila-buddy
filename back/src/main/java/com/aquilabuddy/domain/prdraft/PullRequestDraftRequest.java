@@ -108,6 +108,10 @@ public record PullRequestDraftRequest(
         return diffContent != null;
     }
 
+    public boolean hasSourceIssueId() {
+        return sourceIssueId != null;
+    }
+
     public PullRequestDraftRequest withDiffContent(String resolvedDiffContent) {
         return new PullRequestDraftRequest(
             upstreamRepo,
@@ -148,6 +152,20 @@ public record PullRequestDraftRequest(
             sourceIssueId,
             repositoryGuideContext,
             resolvedIssueContext,
+            analysisContext
+        );
+    }
+
+    public PullRequestDraftRequest withSourceIssueId(String resolvedSourceIssueId) {
+        return new PullRequestDraftRequest(
+            upstreamRepo,
+            githubIssueNumber,
+            baseBranch,
+            headBranch,
+            diffContent,
+            requireText(resolvedSourceIssueId, "sourceIssueId"),
+            repositoryGuideContext,
+            issueContext,
             analysisContext
         );
     }
