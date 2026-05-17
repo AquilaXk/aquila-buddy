@@ -161,6 +161,7 @@ export type PullRequestDraftContributionReport = {
   draftId: string;
   upstreamRepo: string;
   githubIssueNumber: number;
+  sourceIssueId: string | null;
   baseBranch: string;
   headBranch: string;
   title: string;
