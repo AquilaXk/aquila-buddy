@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { serviceBrandAssets } from "@/lib/serviceBrandAssets";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
@@ -25,7 +26,24 @@ export default function manifest(): MetadataRoute.Manifest {
         src: "/brand-mascot.png",
         sizes: "96x96",
         type: "image/png"
-      }
+      },
+      ...serviceBrandAssets.flatMap((asset) => [
+        {
+          src: asset.favicon,
+          sizes: "48x48",
+          type: "image/x-icon"
+        },
+        {
+          src: asset.appleTouchIcon,
+          sizes: "180x180",
+          type: "image/png"
+        },
+        {
+          src: asset.representativeImage,
+          sizes: "96x96",
+          type: "image/png"
+        }
+      ])
     ]
   };
 }

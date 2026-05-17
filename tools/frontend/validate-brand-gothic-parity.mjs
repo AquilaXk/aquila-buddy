@@ -8,10 +8,14 @@ const layoutPath = join(repoRoot, "front/src/app/layout.tsx");
 const manifestPath = join(repoRoot, "front/src/app/manifest.ts");
 const navbarPath = join(repoRoot, "front/src/components/Navbar.tsx");
 const protectedLayoutPath = join(repoRoot, "front/src/components/ProtectedLayout.tsx");
+const serviceBrandAssetsPath = join(repoRoot, "front/src/lib/serviceBrandAssets.ts");
 const layoutSource = readFileSync(layoutPath, "utf8");
 const manifestSource = existsSync(manifestPath) ? readFileSync(manifestPath, "utf8") : "";
 const navbarSource = readFileSync(navbarPath, "utf8");
 const protectedLayoutSource = readFileSync(protectedLayoutPath, "utf8");
+const serviceBrandAssetsSource = existsSync(serviceBrandAssetsPath)
+  ? readFileSync(serviceBrandAssetsPath, "utf8")
+  : "";
 const failures = [];
 
 function fail(message) {
@@ -37,6 +41,8 @@ assertIncludes(globalsCss, "repeating-linear-gradient", "Global CSS must include
 for (const asset of [
   "front/public/favicon.ico",
   "front/public/apple-touch-icon.png",
+  "front/public/bank-favicon.ico",
+  "front/public/bank-apple-touch-icon.png",
   "front/public/brand-mascot.png",
   "front/public/brand-mascot-bank.png",
   "front/public/brand-mascot-blog.png",
@@ -53,10 +59,26 @@ assertIncludes(layoutSource, 'applicationName: "aquila buddy"', "Metadata must e
 assertIncludes(layoutSource, 'metadataBase: new URL("https://aquila-buddy.aquilaxk.site")', "Metadata must set the aquila buddy metadata base.");
 assertIncludes(layoutSource, 'siteName: "aquila buddy"', "OpenGraph metadata must expose the aquila buddy site name.");
 assertIncludes(layoutSource, 'url: "/brand-mascot.png"', "OpenGraph metadata must use the representative brand image.");
+assertIncludes(layoutSource, "serviceBrandAssets.map", "OpenGraph metadata must include service brand representative images.");
+assertIncludes(layoutSource, "flatMap", "Icon metadata must include service brand favicon aliases.");
+
+assertIncludes(serviceBrandAssetsSource, "export const serviceBrandAssets", "Service brand assets must be centralized.");
+assertIncludes(serviceBrandAssetsSource, 'id: "bank"', "Service brand assets must include the bank service.");
+assertIncludes(serviceBrandAssetsSource, 'id: "blog"', "Service brand assets must include the blog service.");
+assertIncludes(serviceBrandAssetsSource, 'favicon: "/bank-favicon.ico"', "Bank service must expose its favicon alias.");
+assertIncludes(serviceBrandAssetsSource, 'appleTouchIcon: "/bank-apple-touch-icon.png"', "Bank service must expose its apple touch icon alias.");
+assertIncludes(serviceBrandAssetsSource, 'representativeImage: "/brand-mascot-bank.png"', "Bank service must expose its representative image.");
+assertIncludes(serviceBrandAssetsSource, 'favicon: "/blog-favicon.ico"', "Blog service must expose its favicon alias.");
+assertIncludes(serviceBrandAssetsSource, 'appleTouchIcon: "/blog-apple-touch-icon.png"', "Blog service must expose its apple touch icon alias.");
+assertIncludes(serviceBrandAssetsSource, 'representativeImage: "/brand-mascot-blog.png"', "Blog service must expose its representative image.");
 
 assertIncludes(manifestSource, 'name: "aquila buddy"', "Manifest must expose the full aquila buddy name.");
 assertIncludes(manifestSource, 'short_name: "aquila buddy"', "Manifest must expose the short aquila buddy name.");
 assertIncludes(manifestSource, 'src: "/brand-mascot.png"', "Manifest must include the representative brand image.");
+assertIncludes(manifestSource, "...serviceBrandAssets.flatMap", "Manifest must include service brand icon assets.");
+assertIncludes(manifestSource, "asset.favicon", "Manifest must include service brand favicons.");
+assertIncludes(manifestSource, "asset.appleTouchIcon", "Manifest must include service brand apple touch icons.");
+assertIncludes(manifestSource, "asset.representativeImage", "Manifest must include service brand representative images.");
 
 assertIncludes(navbarSource, 'aria-label="Primary"', "Navbar must expose a primary navigation label.");
 assertIncludes(navbarSource, 'src="/brand-mascot-bank.png"', "Navbar must use the framed brand mascot asset.");
