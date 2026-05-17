@@ -12,6 +12,7 @@ public record PullRequestDraftTranslationSubmission(
     String targetLanguage,
     String upstreamRepo,
     long githubIssueNumber,
+    String sourceIssueId,
     String baseBranch,
     String headBranch,
     List<PullRequestDraftSubmissionItem> items
@@ -64,6 +65,7 @@ public record PullRequestDraftTranslationSubmission(
             translation.targetLanguage(),
             draft.upstreamRepo(),
             draft.githubIssueNumber(),
+            draft.sourceIssueId(),
             draft.baseBranch(),
             draft.headBranch(),
             items

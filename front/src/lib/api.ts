@@ -240,6 +240,7 @@ export type PullRequestDraftTranslationSubmission = {
   targetLanguage: "en";
   upstreamRepo: string;
   githubIssueNumber: number;
+  sourceIssueId: string | null;
   baseBranch: string;
   headBranch: string;
   items: PullRequestDraftSubmissionItem[];
