@@ -2,7 +2,11 @@ import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 
 const repoRoot = resolve(import.meta.dirname, "../..");
+const apiClientPath = join(repoRoot, "front/src/lib/api.ts");
+const prDraftCreatePagePath = join(repoRoot, "front/src/app/pr-draft/page.tsx");
 const prDetailPagePath = join(repoRoot, "front/src/app/pr/[id]/page.tsx");
+const apiClient = readFileSync(apiClientPath, "utf8");
+const prDraftCreatePage = readFileSync(prDraftCreatePagePath, "utf8");
 const prDetailPage = readFileSync(prDetailPagePath, "utf8");
 const failures = [];
 
@@ -12,6 +16,12 @@ function fail(message) {
 
 function assertIncludes(needle, message) {
   if (!prDetailPage.includes(needle)) {
+    fail(message);
+  }
+}
+
+function assertFileIncludes(content, needle, message) {
+  if (!content.includes(needle)) {
     fail(message);
   }
 }
@@ -32,6 +42,11 @@ assertIncludes("translatePullRequestDraft", "PR detail page must translate the d
 assertIncludes("PR 초안을 찾을 수 없습니다.", "PR detail page must keep the not-found state.");
 assertIncludes("← PR 초안 목록", "PR detail page must link back to draft list.");
 assertIncludes("연결된 이슈", "PR detail page must show connected issue context.");
+assertFileIncludes(apiClient, "sourceIssueId?: string;", "PR draft create API request must accept sourceIssueId.");
+assertFileIncludes(apiClient, "sourceIssueId: string | null;", "Stored PR draft API type must expose sourceIssueId.");
+assertFileIncludes(prDraftCreatePage, "sourceIssueId: draftInput.issueId || undefined", "PR draft create payload must send sourceIssueId when present.");
+assertIncludes("draft.sourceIssueId", "PR detail page must branch on stored sourceIssueId.");
+assertIncludes("원본 이슈 보기", "PR detail page must link to the source issue detail.");
 assertIncludes("PR 제목", "PR detail page must show the title card.");
 assertIncludes("PR 본문", "PR detail page must show the body card.");
 assertIncludes("편집", "PR detail page must expose edit action.");
