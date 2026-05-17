@@ -71,6 +71,7 @@ CREATE TABLE pr_drafts (
     draft_id VARCHAR(100) PRIMARY KEY,
     upstream_repo VARCHAR(255) NOT NULL,
     github_issue_number BIGINT NOT NULL,
+    source_issue_id VARCHAR(100),
     base_branch VARCHAR(255) NOT NULL,
     head_branch VARCHAR(255) NOT NULL,
     title VARCHAR(500) NOT NULL,

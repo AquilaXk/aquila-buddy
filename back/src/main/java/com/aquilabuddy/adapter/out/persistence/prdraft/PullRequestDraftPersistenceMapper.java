@@ -22,6 +22,7 @@ final class PullRequestDraftPersistenceMapper {
             entity.getHeadBranch(),
             entity.getTitle(),
             entity.getBody(),
+            entity.getSourceIssueId(),
             entity.getCreatedAt()
         );
     }
@@ -36,6 +37,7 @@ final class PullRequestDraftPersistenceMapper {
             id,
             request.upstreamRepo(),
             request.githubIssueNumber(),
+            request.sourceIssueId(),
             request.baseBranch(),
             request.headBranch(),
             draft.title(),
