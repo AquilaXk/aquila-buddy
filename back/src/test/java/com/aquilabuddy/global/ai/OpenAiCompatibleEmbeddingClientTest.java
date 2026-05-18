@@ -179,7 +179,8 @@ class OpenAiCompatibleEmbeddingClientTest {
                 "gpt-4o-mini",
                 0.2,
                 "text-embedding-3-small",
-                3
+                3,
+                30_000
             ),
             observer
         );

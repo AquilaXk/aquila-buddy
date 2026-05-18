@@ -57,6 +57,7 @@ app:
       temperature: ${AI_TEMPERATURE:0.2}
       embedding-model: ${AI_EMBEDDING_MODEL:text-embedding-3-small}
       embedding-dimensions: ${AI_EMBEDDING_DIMENSIONS:1536}
+      request-timeout-millis: ${AI_REQUEST_TIMEOUT_MILLIS:30000}
     vertex:
       project-id: ${GOOGLE_CLOUD_PROJECT_ID:}
       location: ${VERTEX_AI_LOCATION:us-central1}

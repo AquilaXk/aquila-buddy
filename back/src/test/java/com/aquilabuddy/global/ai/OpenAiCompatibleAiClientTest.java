@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.aquilabuddy.domain.ai.AiCallOperation;
+import java.util.concurrent.TimeUnit;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
@@ -95,6 +96,34 @@ class OpenAiCompatibleAiClientTest {
     }
 
     @Test
+    void recordsTimeoutFailureWhenChatProviderDoesNotRespondInTime() {
+        server.enqueue(new MockResponse()
+            .setResponseCode(200)
+            .addHeader("Content-Type", "application/json")
+            .setHeadersDelay(2, TimeUnit.SECONDS)
+            .setBody("""
+                {
+                  "choices": [
+                    {
+                      "message": {
+                        "content": "slow response"
+                      }
+                    }
+                  ]
+                }
+                """));
+        RecordingAiCallObserver observer = new RecordingAiCallObserver();
+        OpenAiCompatibleAiClient client = client("test-key", observer, 100);
+
+        assertThatThrownBy(() -> client.complete("system", "user"))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("AI completion request failed");
+        assertThat(observer.firstObservation().success()).isFalse();
+        assertThat(observer.firstObservation().operation()).isEqualTo(AiCallOperation.COMPLETION);
+        assertThat(observer.firstObservation().failureReason()).contains("timeout");
+    }
+
+    @Test
     void rejectsChatCompletionResponseWithoutChoices() {
         enqueueJson(200, """
             {
@@ -142,6 +171,10 @@ class OpenAiCompatibleAiClientTest {
     }
 
     private OpenAiCompatibleAiClient client(String apiKey, RecordingAiCallObserver observer) {
+        return client(apiKey, observer, 30_000);
+    }
+
+    private OpenAiCompatibleAiClient client(String apiKey, RecordingAiCallObserver observer, int requestTimeoutMillis) {
         return new OpenAiCompatibleAiClient(
             RestClient.builder(),
             new OpenAiCompatibleProperties(
@@ -150,7 +183,8 @@ class OpenAiCompatibleAiClientTest {
                 "gpt-4o-mini",
                 0.2,
                 "text-embedding-3-small",
-                1536
+                1536,
+                requestTimeoutMillis
             ),
             observer
         );

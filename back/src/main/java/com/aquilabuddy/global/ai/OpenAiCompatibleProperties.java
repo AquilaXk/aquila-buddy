@@ -9,13 +9,15 @@ public record OpenAiCompatibleProperties(
     String chatModel,
     Double temperature,
     String embeddingModel,
-    Integer embeddingDimensions
+    Integer embeddingDimensions,
+    Integer requestTimeoutMillis
 ) {
 
     private static final String DEFAULT_API_BASE_URL = "https://api.openai.com/v1";
     private static final String DEFAULT_CHAT_MODEL = "gpt-4o-mini";
     private static final String DEFAULT_EMBEDDING_MODEL = "text-embedding-3-small";
     private static final int DEFAULT_EMBEDDING_DIMENSIONS = 1536;
+    private static final int DEFAULT_REQUEST_TIMEOUT_MILLIS = 30_000;
     private static final double DEFAULT_TEMPERATURE = 0.2;
 
     public String apiBaseUrlOrDefault() {
@@ -40,6 +42,12 @@ public record OpenAiCompatibleProperties(
 
     public int embeddingDimensionsOrDefault() {
         return embeddingDimensions == null ? DEFAULT_EMBEDDING_DIMENSIONS : embeddingDimensions;
+    }
+
+    public int requestTimeoutMillisOrDefault() {
+        return requestTimeoutMillis == null || requestTimeoutMillis < 1
+            ? DEFAULT_REQUEST_TIMEOUT_MILLIS
+            : requestTimeoutMillis;
     }
 
     private static boolean hasText(String value) {
