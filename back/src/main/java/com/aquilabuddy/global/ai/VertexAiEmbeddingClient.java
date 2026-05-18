@@ -4,10 +4,14 @@ import com.aquilabuddy.application.port.out.ai.EmbeddingClient;
 import com.aquilabuddy.domain.embedding.EmbeddingVector;
 import java.util.List;
 import java.util.Objects;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.stereotype.Component;
 
 /**
  * Vertex AI embedding 응답을 애플리케이션의 embedding port로 연결합니다.
  */
+@Component
+@ConditionalOnProperty(prefix = "app.ai", name = "provider", havingValue = "vertex-ai")
 public class VertexAiEmbeddingClient implements EmbeddingClient {
 
     private final VertexAiEmbeddingGenerator generator;
