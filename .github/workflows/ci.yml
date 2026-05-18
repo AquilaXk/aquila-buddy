@@ -38,6 +38,43 @@ jobs:
       - name: Run backend checks
         run: ./gradlew check --no-daemon
 
+  pgvector-integration:
+    name: Pgvector Integration
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_DB: aquila_buddy
+          POSTGRES_USER: aquila
+          POSTGRES_PASSWORD: aquila
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U aquila -d aquila_buddy"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: gradle
+
+      - name: Run pgvector integration test
+        env:
+          PGVECTOR_TEST_DB_URL: jdbc:postgresql://localhost:5432/aquila_buddy
+          PGVECTOR_TEST_DB_USER: aquila
+          PGVECTOR_TEST_DB_PASSWORD: aquila
+        run: bash tools/test/run-pgvector-integration.sh
+
   frontend:
     name: Frontend
     runs-on: ubuntu-latest
