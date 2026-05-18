@@ -286,6 +286,55 @@ class PullRequestDraftServiceTest {
     }
 
     @Test
+    void passesResolvedDiffGuideIssueAndAnalysisContextTogether() {
+        FakeLoadPullRequestDraftDiffPort diffPort = new FakeLoadPullRequestDraftDiffPort();
+        FakeLoadPullRequestDraftRepositoryGuideContextPort guideContextPort =
+            new FakeLoadPullRequestDraftRepositoryGuideContextPort();
+        FakeFindRecommendedIssuePort issuePort = new FakeFindRecommendedIssuePort();
+        FakeLoadPullRequestDraftAnalysisContextPort analysisContextPort =
+            new FakeLoadPullRequestDraftAnalysisContextPort();
+        FakeGeneratePullRequestDraftPort generatePort = new FakeGeneratePullRequestDraftPort();
+        FakeSavePullRequestDraftPort savePort = new FakeSavePullRequestDraftPort();
+        PullRequestDraftService service = new PullRequestDraftService(
+            generatePort,
+            diffPort,
+            guideContextPort,
+            issuePort,
+            analysisContextPort,
+            savePort,
+            new FakeLoadPullRequestDraftPort(),
+            new FakeLoadPullRequestDraftHistoryPort(),
+            new FakeUpdatePullRequestDraftPort(),
+            new FakeDeletePullRequestDraftPort(),
+            new FakeLoadPullRequestDraftTranslationPort()
+        );
+
+        PullRequestDraftRequest request = new PullRequestDraftRequest(
+            "spring-projects/spring-boot",
+            2,
+            "main",
+            "feat/validation-docs",
+            null
+        );
+
+        service.create(request);
+
+        assertThat(diffPort.receivedRequest).isEqualTo(request);
+        assertThat(guideContextPort.receivedRequest.diffContent())
+            .isEqualTo("diff --git a/docs.adoc b/docs.adoc\n+Loaded from GitHub compare");
+        assertThat(issuePort.receivedRepoFullName).isEqualTo("spring-projects/spring-boot");
+        assertThat(analysisContextPort.receivedRequest.issueContext().title()).isEqualTo("Fix validation message");
+        assertThat(generatePort.generatedRequest.diffContent())
+            .isEqualTo("diff --git a/docs.adoc b/docs.adoc\n+Loaded from GitHub compare");
+        assertThat(generatePort.generatedRequest.repositoryGuideContext().pullRequestTemplate())
+            .contains("## Summary");
+        assertThat(generatePort.generatedRequest.issueContext().reason()).isEqualTo("Matches Java validation topic");
+        assertThat(generatePort.generatedRequest.analysisContext().sideEffects())
+            .containsExactly("Update documentation examples.");
+        assertThat(savePort.savedRequest).isEqualTo(generatePort.generatedRequest);
+    }
+
+    @Test
     void listsRecentStoredDrafts() {
         FakeLoadPullRequestDraftPort loadPort = new FakeLoadPullRequestDraftPort();
         PullRequestDraftService service = new PullRequestDraftService(

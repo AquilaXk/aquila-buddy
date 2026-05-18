@@ -25,6 +25,7 @@ public class AiPullRequestDraftAdapter implements GeneratePullRequestDraftPort, 
     private static final String DRAFT_SYSTEM_PROMPT = """
         너는 오픈소스 기여자를 돕는 PR 초안 작성자다.
         입력된 저장소, 이슈, 브랜치, diff, 가이드 맥락만 사용해 PR 초안을 작성한다.
+        CONTRIBUTING, PR template, merged PR sample이 있으면 저장소별 작성 관례로 우선 반영한다.
         응답은 반드시 다음 형식만 사용한다.
         TITLE: <한 줄 PR 제목>
         BODY: <마크다운 PR 본문>
@@ -75,6 +76,8 @@ public class AiPullRequestDraftAdapter implements GeneratePullRequestDraftPort, 
 
         appendSection(lines, "Repository guide summary", request.repositoryGuideContext().guideSummaryLines());
         appendSection(lines, "Repository guide context", request.repositoryGuideContext().guidePromptLines());
+        appendRepositoryGuideQualityRules(lines, request);
+        appendDraftQualityRequirements(lines);
         appendSection(lines, "Issue context", request.issueContext().contextSummaryLines());
         appendSection(lines, "Analysis context", request.analysisContext().contextSummaryLines());
         return String.join("\n", lines);
@@ -102,6 +105,27 @@ public class AiPullRequestDraftAdapter implements GeneratePullRequestDraftPort, 
         lines.add("");
         lines.add(title + ":");
         lines.addAll(values);
+    }
+
+    private static void appendRepositoryGuideQualityRules(List<String> lines, PullRequestDraftRequest request) {
+        if (!request.repositoryGuideContext().hasAnyGuide()) {
+            return;
+        }
+
+        lines.add("");
+        lines.add("Repository guide quality rules:");
+        lines.add("- Preserve PR template headings when a PR template is present.");
+        lines.add("- Follow CONTRIBUTING instructions without inventing repository rules.");
+        lines.add("- Use merged PR samples only as tone and structure references.");
+    }
+
+    private static void appendDraftQualityRequirements(List<String> lines) {
+        lines.add("");
+        lines.add("Draft quality requirements:");
+        lines.add("- Base Changes and Tests on the diff content.");
+        lines.add("- Explain why the change matters using Issue context.");
+        lines.add("- Convert Analysis context into implementation notes without copying it verbatim.");
+        lines.add("- Do not mention files, tests, or side effects that are not present in the provided context.");
     }
 
     private static PullRequestDraft parseDraft(String response) {
@@ -146,7 +170,7 @@ public class AiPullRequestDraftAdapter implements GeneratePullRequestDraftPort, 
 
     private static PullRequestDraft fallbackDraft(PullRequestDraftRequest request) {
         String title = "docs: " + request.upstreamRepo() + "#" + request.githubIssueNumber() + " 변경 초안";
-        String body = String.join("\n",
+        List<String> lines = new ArrayList<>(List.of(
             "close #" + request.githubIssueNumber(),
             "",
             "## Summary",
@@ -157,8 +181,10 @@ public class AiPullRequestDraftAdapter implements GeneratePullRequestDraftPort, 
             "",
             "## Tests",
             "- 변경 후 관련 검증을 실행합니다."
-        );
-        return new PullRequestDraft(title, body);
+        ));
+        appendFallbackIssueContext(lines, request);
+        appendFallbackAnalysisContext(lines, request);
+        return new PullRequestDraft(title, String.join("\n", lines));
     }
 
     private static PullRequestDraft fallbackTranslation(StoredPullRequestDraft draft) {
@@ -187,6 +213,38 @@ public class AiPullRequestDraftAdapter implements GeneratePullRequestDraftPort, 
             .filter(line -> !line.startsWith("diff --git"))
             .findFirst()
             .orElse(fallback);
+    }
+
+    private static void appendFallbackIssueContext(List<String> lines, PullRequestDraftRequest request) {
+        if (!request.issueContext().hasIssue()) {
+            return;
+        }
+
+        lines.add("");
+        lines.add("## Issue Context");
+        appendFallbackBullet(lines, request.issueContext().title());
+        appendFallbackBullet(lines, request.issueContext().summary());
+        appendFallbackBullet(lines, request.issueContext().reason());
+    }
+
+    private static void appendFallbackAnalysisContext(List<String> lines, PullRequestDraftRequest request) {
+        if (!request.analysisContext().hasAnalysis()) {
+            return;
+        }
+
+        lines.add("");
+        lines.add("## Implementation Notes");
+        appendFallbackBullet(lines, request.analysisContext().guideline());
+        appendFallbackBullet(lines, request.analysisContext().pseudoCode());
+        request.analysisContext().sideEffects().forEach(sideEffect -> appendFallbackBullet(lines, sideEffect));
+    }
+
+    private static void appendFallbackBullet(List<String> lines, String value) {
+        if (value == null || value.isBlank()) {
+            return;
+        }
+
+        lines.add("- " + value.strip());
     }
 
     private static String normalizeTargetLanguage(String targetLanguage) {

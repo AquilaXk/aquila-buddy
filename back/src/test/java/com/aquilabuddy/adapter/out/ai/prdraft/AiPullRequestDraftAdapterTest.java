@@ -47,6 +47,45 @@ class AiPullRequestDraftAdapterTest {
     }
 
     @Test
+    void draftPromptIncludesRepositoryGuideQualityRules() {
+        CapturingAiClient aiClient = new CapturingAiClient("""
+            TITLE: docs: improve validation guide
+            BODY: ## Summary
+            - Improve the validation guide.
+            """);
+        AiPullRequestDraftAdapter adapter = new AiPullRequestDraftAdapter(aiClient);
+
+        adapter.generate(request());
+
+        assertThat(aiClient.systemPrompt)
+            .contains("CONTRIBUTING, PR template, merged PR sample");
+        assertThat(aiClient.userPrompt)
+            .contains("Repository guide quality rules:")
+            .contains("- Preserve PR template headings when a PR template is present.")
+            .contains("- Follow CONTRIBUTING instructions without inventing repository rules.")
+            .contains("- Use merged PR samples only as tone and structure references.");
+    }
+
+    @Test
+    void draftPromptIncludesDiffIssueAndAnalysisQualityRules() {
+        CapturingAiClient aiClient = new CapturingAiClient("""
+            TITLE: docs: improve validation guide
+            BODY: ## Summary
+            - Improve the validation guide.
+            """);
+        AiPullRequestDraftAdapter adapter = new AiPullRequestDraftAdapter(aiClient);
+
+        adapter.generate(request());
+
+        assertThat(aiClient.userPrompt)
+            .contains("Draft quality requirements:")
+            .contains("- Base Changes and Tests on the diff content.")
+            .contains("- Explain why the change matters using Issue context.")
+            .contains("- Convert Analysis context into implementation notes without copying it verbatim.")
+            .contains("- Do not mention files, tests, or side effects that are not present in the provided context.");
+    }
+
+    @Test
     void addsClosingIssueLineWhenGeneratedDraftBodyOmitsIt() {
         CapturingAiClient aiClient = new CapturingAiClient("""
             TITLE: docs: improve validation guide
@@ -125,6 +164,25 @@ class AiPullRequestDraftAdapterTest {
             .contains("## Changes")
             .contains("## Tests")
             .contains("Add validation example");
+    }
+
+    @Test
+    void fallbackDraftPreservesTemplateAndContextWhenAiResponseIsMalformed() {
+        CapturingAiClient aiClient = new CapturingAiClient("plain response without markers");
+        AiPullRequestDraftAdapter adapter = new AiPullRequestDraftAdapter(aiClient);
+
+        PullRequestDraft draft = adapter.generate(request());
+
+        assertThat(draft.body())
+            .contains("## Summary")
+            .contains("## Changes")
+            .contains("## Tests")
+            .contains("## Issue Context")
+            .contains("Fix validation message")
+            .contains("## Implementation Notes")
+            .contains("Follow validation guide.")
+            .contains("if invalid then return helpful message")
+            .contains("Update documentation examples.");
     }
 
     @Test
