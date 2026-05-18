@@ -342,6 +342,23 @@ class AiEnvironmentExamplesTest {
             .contains("bash tools/smoke/validate-ai-runtime-env.sh");
     }
 
+    @Test
+    void providerE2eSmokeWorkflowIsManualAndOptIn() throws IOException {
+        String workflow = Files.readString(Path.of("../.github/workflows/provider-e2e-smoke.yml"));
+
+        assertThat(workflow)
+            .contains("workflow_dispatch:")
+            .doesNotContain("\n  pull_request:")
+            .doesNotContain("\n  push:")
+            .contains("PROVIDER_E2E_SMOKE_ENABLED: ${{ inputs.enabled }}")
+            .contains("PROVIDER_E2E_DRY_RUN: ${{ inputs.dry_run }}")
+            .contains("PROVIDER_E2E_AUTH_HEADER: ${{ secrets.PROVIDER_E2E_AUTH_HEADER }}")
+            .contains("GITHUB_TOKEN: ${{ secrets.PROVIDER_E2E_GITHUB_TOKEN || github.token }}")
+            .contains("EMBEDDING_BACKFILL_OPERATION_TOKEN: ${{ secrets.EMBEDDING_BACKFILL_OPERATION_TOKEN }}")
+            .contains("bash tools/smoke/validate-provider-e2e-env.sh")
+            .contains("bash tools/smoke/run-provider-e2e-smoke.sh");
+    }
+
     private static String legacyGlmApiKeyName() {
         return "G" + "LM_API_KEY";
     }
