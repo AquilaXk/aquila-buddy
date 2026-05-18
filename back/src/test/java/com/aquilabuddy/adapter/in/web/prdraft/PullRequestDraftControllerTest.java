@@ -93,6 +93,25 @@ class PullRequestDraftControllerTest {
     }
 
     @Test
+    void returnsBadGatewayWhenServerDiffLookupFails() throws Exception {
+        mockMvc.perform(post("/api/v1/pr")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                      "upstreamRepo": "spring-projects/spring-boot",
+                      "githubIssueNumber": 2,
+                      "baseBranch": "main",
+                      "headBranch": "missing-branch"
+                    }
+                    """))
+            .andExpect(status().isBadGateway())
+            .andExpect(jsonPath("$.success").value(false))
+            .andExpect(jsonPath("$.status").value("fail"))
+            .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("GitHub compare diff를 불러오지 못했습니다")))
+            .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("base/head 브랜치")));
+    }
+
+    @Test
     void listsPullRequestDrafts() throws Exception {
         String id = createDraft();
 
@@ -570,7 +589,13 @@ class PullRequestDraftControllerTest {
         @Bean
         @Primary
         LoadPullRequestDraftDiffPort loadPullRequestDraftDiffPort() {
-            return request -> "diff --git a/docs.adoc b/docs.adoc\n+Loaded from GitHub compare";
+            return request -> {
+                if ("missing-branch".equals(request.headBranch())) {
+                    throw new IllegalStateException("GitHub compare diff를 찾을 수 없습니다.");
+                }
+
+                return "diff --git a/docs.adoc b/docs.adoc\n+Loaded from GitHub compare";
+            };
         }
     }
 }

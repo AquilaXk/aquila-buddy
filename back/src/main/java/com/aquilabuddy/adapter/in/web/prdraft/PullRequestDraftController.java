@@ -118,7 +118,15 @@ public class PullRequestDraftController {
      */
     @PostMapping
     ApiResponse<StoredPullRequestDraft> create(@Valid @RequestBody CreatePullRequestDraftRequest request) {
-        return ApiResponse.success(createPullRequestDraftUseCase.create(request.toDomain()));
+        try {
+            return ApiResponse.success(createPullRequestDraftUseCase.create(request.toDomain()));
+        } catch (IllegalStateException exception) {
+            throw new ResponseStatusException(
+                HttpStatus.BAD_GATEWAY,
+                "GitHub compare diff를 불러오지 못했습니다. base/head 브랜치와 저장소 접근 권한을 확인해 주세요.",
+                exception
+            );
+        }
     }
 
     /**
