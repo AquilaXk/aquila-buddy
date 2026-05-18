@@ -27,6 +27,7 @@ public class VertexAiEmbeddingClient implements EmbeddingClient {
     private final VertexAiEmbeddingGenerator generator;
     private final AiCallObserver observer;
     private final String model;
+    private final int expectedDimensions;
 
     public VertexAiEmbeddingClient(VertexAiEmbeddingGenerator generator) {
         this(generator, new NoopAiCallObserver(), "gemini-embedding-001");
@@ -38,13 +39,28 @@ public class VertexAiEmbeddingClient implements EmbeddingClient {
         ObjectProvider<AiCallObserver> observerProvider,
         VertexAiProperties properties
     ) {
-        this(generator, observerProvider.getIfAvailable(NoopAiCallObserver::new), properties.embeddingModelOrDefault());
+        this(
+            generator,
+            observerProvider.getIfAvailable(NoopAiCallObserver::new),
+            properties.embeddingModelOrDefault(),
+            properties.embeddingDimensionsOrDefault()
+        );
     }
 
     public VertexAiEmbeddingClient(VertexAiEmbeddingGenerator generator, AiCallObserver observer, String model) {
+        this(generator, observer, model, 0);
+    }
+
+    public VertexAiEmbeddingClient(
+        VertexAiEmbeddingGenerator generator,
+        AiCallObserver observer,
+        String model,
+        int expectedDimensions
+    ) {
         this.generator = Objects.requireNonNull(generator, "generator must not be null.");
         this.observer = Objects.requireNonNull(observer, "observer must not be null.");
         this.model = requireInput(model);
+        this.expectedDimensions = expectedDimensions;
     }
 
     @Override
@@ -55,6 +71,10 @@ public class VertexAiEmbeddingClient implements EmbeddingClient {
             List<Double> values = generator.embed(normalizedInput);
             if (values == null || values.isEmpty()) {
                 throw new IllegalStateException("Vertex AI embedding vector must not be empty.");
+            }
+            if (expectedDimensions > 0 && values.size() != expectedDimensions) {
+                throw new IllegalStateException("Vertex AI embedding vector dimension must be "
+                    + expectedDimensions + " but was " + values.size() + ".");
             }
             observer.record(AiCallObservation.success(
                 PROVIDER,

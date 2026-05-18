@@ -127,7 +127,7 @@ public class OpenAiCompatibleAiClient implements AiClient, EmbeddingClient {
                 .body(request)
                 .retrieve()
                 .body(EmbeddingResponse.class);
-            EmbeddingVector vector = firstEmbedding(response);
+            EmbeddingVector vector = firstEmbedding(response, properties.embeddingDimensionsOrDefault());
             observer.record(AiCallObservation.success(
                 PROVIDER,
                 AiCallOperation.EMBEDDING,
@@ -170,7 +170,7 @@ public class OpenAiCompatibleAiClient implements AiClient, EmbeddingClient {
         return requireText(content, "AI completion content");
     }
 
-    private static EmbeddingVector firstEmbedding(EmbeddingResponse response) {
+    private static EmbeddingVector firstEmbedding(EmbeddingResponse response, int expectedDimensions) {
         if (response == null || response.data() == null || response.data().isEmpty()) {
             throw new IllegalStateException("AI embedding response did not include data.");
         }
@@ -179,7 +179,12 @@ public class OpenAiCompatibleAiClient implements AiClient, EmbeddingClient {
         if (item == null || item.embedding() == null) {
             throw new IllegalStateException("AI embedding response did not include an embedding vector.");
         }
-        return new EmbeddingVector(item.embedding());
+        EmbeddingVector vector = new EmbeddingVector(item.embedding());
+        if (vector.dimension() != expectedDimensions) {
+            throw new IllegalStateException("AI embedding response dimension must be "
+                + expectedDimensions + " but was " + vector.dimension() + ".");
+        }
+        return vector;
     }
 
     private static String requireInput(String value) {
