@@ -79,8 +79,11 @@ async function visitAndAssert(page, url, expectedText) {
   } catch (error) {
     const currentUrl = await page.currentUrl();
     const bodyText = await page.evaluate("document.body ? document.body.innerText : ''");
+    const htmlPreview = await page.evaluate(
+      "document.documentElement ? document.documentElement.outerHTML.slice(0, 1200) : ''"
+    );
     throw new Error(
-      `Expected text not found after navigating to ${url}. currentUrl=${currentUrl} expected=${expectedText} body=${bodyText}`,
+      `Expected text not found after navigating to ${url}. currentUrl=${currentUrl} expected=${expectedText} serverMode=${serverMode} routeTimeoutMs=${routeTimeoutMs} body=${bodyText} html=${htmlPreview}`,
       { cause: error }
     );
   }

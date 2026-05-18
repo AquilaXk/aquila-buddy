@@ -63,6 +63,18 @@ test("integration smoke runner applies route wait timeout", async () => {
   assert.match(browserSession, /waitForFunction\([^)]*timeoutMs/s);
 });
 
+test("integration smoke runner reports route diagnostics", async () => {
+  const runner = await readFile(
+    resolve(repoRoot, "tools/frontend/integration-smoke/run-integration-smoke.mjs"),
+    "utf8"
+  );
+
+  assert.match(runner, /serverMode=\$\{serverMode\}/);
+  assert.match(runner, /routeTimeoutMs=\$\{routeTimeoutMs\}/);
+  assert.match(runner, /document\.documentElement[\s\S]*outerHTML[\s\S]*slice\(0, 1200\)/);
+  assert.match(runner, /html=\$\{htmlPreview\}/);
+});
+
 test("ci workflow runs frontend integration smoke", async () => {
   const workflow = await readFile(resolve(repoRoot, ".github/workflows/ci.yml"), "utf8");
 
