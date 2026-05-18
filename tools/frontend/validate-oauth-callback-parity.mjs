@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
 import { join, resolve } from "node:path";
 
 const repoRoot = resolve(import.meta.dirname, "../..");
@@ -26,6 +27,8 @@ assertIncludes("\"use client\";", "OAuth callback page must stay client-rendered
 assertIncludes("readOAuthCallbackParams", "OAuth callback page must keep normalized callback parsing.");
 assertIncludes("setToken(callbackParams.token)", "OAuth callback page must store the callback token.");
 assertIncludes("router.replace(callbackParams.redirectTo)", "OAuth callback page must redirect to the parsed target.");
+assertIncludes("callbackParams.error", "OAuth callback page must handle provider error query fixtures.");
+assertIncludes("!callbackParams.token", "OAuth callback page must handle missing-token fixtures.");
 assertIncludes("const [error, setError] = useState<string | null>(null)", "OAuth callback page must keep a compact error state.");
 assertIncludes("로그인 처리 중...", "OAuth callback page must show the processing label.");
 assertIncludes("border-2 border-github-purple-light border-t-transparent rounded-full animate-spin", "OAuth callback page must use the compact spinner.");
@@ -53,6 +56,22 @@ if (failures.length > 0) {
   for (const failure of failures) {
     console.error(`- ${failure}`);
   }
+  process.exit(1);
+}
+
+const fixtureResult = spawnSync(process.execPath, ["--test", "tools/frontend/oauth-callback-fixtures.test.mjs"], {
+  cwd: repoRoot,
+  encoding: "utf8",
+});
+
+if (fixtureResult.stdout) {
+  process.stdout.write(fixtureResult.stdout);
+}
+if (fixtureResult.stderr) {
+  process.stderr.write(fixtureResult.stderr);
+}
+if (fixtureResult.status !== 0) {
+  console.error("OAuth callback fixture validation failed.");
   process.exit(1);
 }
 

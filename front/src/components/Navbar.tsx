@@ -17,7 +17,7 @@ export default function Navbar() {
 
   function handleLogout() {
     clearToken();
-    router.push("/login");
+    router.replace("/login");
   }
 
   function isActive(link: (typeof navLinks)[number]) {

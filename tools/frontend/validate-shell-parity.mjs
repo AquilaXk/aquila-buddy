@@ -56,8 +56,12 @@ assertIncludes(navbar, "sticky top-0 z-50 border-b border-github-border", "Navba
 assertIncludes(navbar, "bg-github-surface/95", "Navbar must keep the gothic surface treatment.");
 assertIncludes(navbar, "/brand-mascot-bank.png", "Navbar must render the brand image.");
 assertIncludes(navbar, "aquila buddy", "Navbar must show the service name.");
+assertIncludes(navbar, "clearToken();", "Navbar logout must clear the stored token first.");
+assertIncludes(navbar, "router.replace(\"/login\")", "Navbar logout must replace history with the login screen.");
+assertIncludes(navbar, "matchPrefixes: [\"/pr-draft\", \"/pr/\"]", "Navbar must keep PR draft/detail active-state grouping.");
 assertNotIncludes(navbar, "<header", "Navbar must not add an extra header wrapper.");
 assertNotIncludes(navbar, "OMOS", "Navbar must not use the old service name.");
+assertNotIncludes(navbar, "router.push(\"/login\")", "Navbar logout must not leave a protected page in browser history.");
 
 for (const label of ["대시보드", "추천 이슈", "PR 초안", "내 프로필"]) {
   assertIncludes(navbar, `label: "${label}"`, `Navbar is missing ${label}.`);
