@@ -8,8 +8,11 @@ import com.aquilabuddy.domain.issue.RecommendedIssue;
 import com.aquilabuddy.domain.user.UserProfile;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -58,7 +61,26 @@ public class PgvectorRecommendedIssueSimilarityAdapter implements RankRecommende
             .query(this::mapIssue)
             .list();
 
-        return rankedIssues.isEmpty() ? List.copyOf(issues) : rankedIssues;
+        return mergeRankedWithScoreFallback(issues, rankedIssues);
+    }
+
+    static List<RecommendedIssue> mergeRankedWithScoreFallback(
+        List<RecommendedIssue> candidates,
+        List<RecommendedIssue> rankedIssues
+    ) {
+        if (rankedIssues.isEmpty()) {
+            return List.copyOf(candidates);
+        }
+
+        List<RecommendedIssue> result = new ArrayList<>(rankedIssues);
+        Set<String> rankedIds = new HashSet<>();
+        rankedIssues.stream()
+            .map(RecommendedIssue::id)
+            .forEach(rankedIds::add);
+        candidates.stream()
+            .filter(issue -> !rankedIds.contains(issue.id()))
+            .forEach(result::add);
+        return List.copyOf(result);
     }
 
     private static String buildUserProfileEmbeddingInput(UserProfile profile) {
