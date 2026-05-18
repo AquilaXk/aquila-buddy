@@ -55,9 +55,13 @@ class AiEnvironmentExamplesTest {
             .doesNotContain(legacyGlmApiKeyName());
         assertThat(readme)
             .contains("기본 운영 AI provider는 `vertex-ai`입니다.")
+            .contains("`AI_PROVIDER=openai-compatible`: OpenAI-compatible chat completion/embedding provider를 사용합니다.")
+            .contains("AI_API_BASE_URL=https://api.openai.com/v1")
+            .contains("AI_CHAT_MODEL=gpt-4o-mini")
+            .contains("AI_EMBEDDING_MODEL=text-embedding-3-small")
+            .contains("AI_PROVIDER=openai-compatible \\")
             .contains("LANGFUSE_ENABLED=true")
             .contains("Langfuse tracing은 선택 기능")
-            .doesNotContain("AI_PROVIDER=openai-compatible")
             .doesNotContain(legacyGlmApiKeyName());
         assertThat(smokeScript)
             .contains("provider=\"${AI_PROVIDER:-vertex-ai}\"")
