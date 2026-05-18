@@ -49,7 +49,7 @@ app:
       query: 'label:"good first issue"'
       limit: 3
   ai:
-    provider: ${AI_PROVIDER:fixture}
+    provider: ${AI_PROVIDER:vertex-ai}
     openai-compatible:
       api-base-url: ${AI_API_BASE_URL:https://api.openai.com/v1}
       api-key: ${AI_API_KEY:${OPENAI_API_KEY:}}
@@ -63,7 +63,7 @@ app:
       model: ${VERTEX_AI_MODEL:gemini-2.5-flash}
       embedding-model: ${VERTEX_AI_EMBEDDING_MODEL:gemini-embedding-001}
       embedding-dimensions: ${VERTEX_AI_EMBEDDING_DIMENSIONS:1536}
-      credentials-path: ${GOOGLE_APPLICATION_CREDENTIALS:}
+      credentials-path: ${VERTEX_AI_CREDENTIALS_PATH:${GOOGLE_APPLICATION_CREDENTIALS:./vertex-key.json}}
   recommendation:
     similarity:
       provider: ${RECOMMENDATION_SIMILARITY_PROVIDER:score}
