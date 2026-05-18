@@ -161,6 +161,8 @@ bash tools/test/run-pgvector-integration.sh --compose --dry-run
 PGVECTOR_TEST_DB_PORT=54329 bash tools/test/run-pgvector-integration.sh --compose
 ```
 
+운영 backfill API는 `APP_EMBEDDING_BACKFILL_OPERATION_TOKEN`이 설정된 경우에만 열립니다. 요청에는 `X-Aquila-Operation-Token`과 선택적 `X-Aquila-Operator` header를 함께 넘기며, 성공/거부/실패/rate-limit 결과는 secret 없이 audit log로 남습니다. `EMBEDDING_BACKFILL_MAX_LIMIT`은 요청 limit 상한, `EMBEDDING_BACKFILL_MIN_INTERVAL_SECONDS`는 연속 실행 최소 간격입니다.
+
 실제 provider E2E smoke는 opt-in입니다. OAuth 또는 JWT에서 얻은 API 인증 header를 준비한 뒤 다음 값을 채우고 실행합니다.
 
 ```bash
