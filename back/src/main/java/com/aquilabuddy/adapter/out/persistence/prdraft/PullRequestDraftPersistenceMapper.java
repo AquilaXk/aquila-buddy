@@ -23,6 +23,8 @@ final class PullRequestDraftPersistenceMapper {
             entity.getTitle(),
             entity.getBody(),
             entity.getSourceIssueId(),
+            entity.getIssueTitle(),
+            entity.getDiffContent(),
             entity.getCreatedAt()
         );
     }
@@ -38,11 +40,21 @@ final class PullRequestDraftPersistenceMapper {
             request.upstreamRepo(),
             request.githubIssueNumber(),
             request.sourceIssueId(),
+            issueTitle(request),
             request.baseBranch(),
             request.headBranch(),
             draft.title(),
             draft.body(),
+            request.diffContent(),
             createdAt
         );
+    }
+
+    private static String issueTitle(PullRequestDraftRequest request) {
+        if (request.issueContext().title() != null) {
+            return request.issueContext().title();
+        }
+
+        return "Issue #" + request.githubIssueNumber();
     }
 }

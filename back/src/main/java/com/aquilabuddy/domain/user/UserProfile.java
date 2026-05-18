@@ -1,5 +1,6 @@
 package com.aquilabuddy.domain.user;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 
 /**
@@ -15,4 +16,9 @@ public record UserProfile(
     boolean profileReady,
     String vectorUpdatedAt
 ) {
+
+    @JsonProperty("id")
+    public String id() {
+        return String.valueOf(githubId);
+    }
 }

@@ -79,7 +79,7 @@ class IssueRecommendationControllerTest {
             .andExpect(jsonPath("$.data[0].status").value("OPEN"))
             .andExpect(jsonPath("$.data[0].labels[0]").value("good first issue"))
             .andExpect(jsonPath("$.data[0].isAnalyzed").value(false))
-            .andExpect(jsonPath("$.data[0].analysisResultId").doesNotExist());
+            .andExpect(jsonPath("$.data[0].analysisResultId").value(org.hamcrest.Matchers.nullValue()));
     }
 
     @Test

@@ -62,7 +62,10 @@ class PullRequestDraftControllerTest {
             .andExpect(jsonPath("$.success").value(true))
             .andExpect(jsonPath("$.data.id").isNotEmpty())
             .andExpect(jsonPath("$.data.upstreamRepo").value("spring-projects/spring-boot"))
+            .andExpect(jsonPath("$.data.repoFullName").value("spring-projects/spring-boot"))
             .andExpect(jsonPath("$.data.githubIssueNumber").value(2))
+            .andExpect(jsonPath("$.data.issueTitle").value("Refine validation error example"))
+            .andExpect(jsonPath("$.data.diffContent").value(org.hamcrest.Matchers.containsString("Add validation example")))
             .andExpect(jsonPath("$.data.title").value("docs: spring-projects/spring-boot#2 변경 초안"))
             .andExpect(jsonPath("$.data.body").value(org.hamcrest.Matchers.containsString("spring-projects/spring-boot #2")))
             .andExpect(jsonPath("$.data.body").value(org.hamcrest.Matchers.containsString("main -> feat/validation-docs")))
@@ -97,6 +100,8 @@ class PullRequestDraftControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.success").value(true))
             .andExpect(jsonPath("$.data[0].id").value(id))
+            .andExpect(jsonPath("$.data[0].repoFullName").value("spring-projects/spring-boot"))
+            .andExpect(jsonPath("$.data[0].issueTitle").value("Refine validation error example"))
             .andExpect(jsonPath("$.data[0].title").value("docs: spring-projects/spring-boot#2 변경 초안"));
     }
 
@@ -137,6 +142,9 @@ class PullRequestDraftControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.success").value(true))
             .andExpect(jsonPath("$.data.id").value(id))
+            .andExpect(jsonPath("$.data.repoFullName").value("spring-projects/spring-boot"))
+            .andExpect(jsonPath("$.data.issueTitle").value("Refine validation error example"))
+            .andExpect(jsonPath("$.data.diffContent").value(org.hamcrest.Matchers.containsString("Add validation example")))
             .andExpect(jsonPath("$.data.body").value(org.hamcrest.Matchers.containsString("main -> feat/validation-docs")));
     }
 
