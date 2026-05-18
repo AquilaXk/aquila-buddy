@@ -5,6 +5,7 @@ import com.aquilabuddy.application.port.in.embedding.RecordEmbeddingBackfillAudi
 import com.aquilabuddy.domain.embedding.EmbeddingBackfillAuditEvent;
 import com.aquilabuddy.domain.embedding.EmbeddingBackfillSummary;
 import com.aquilabuddy.global.response.ApiResponse;
+import java.time.Duration;
 import java.time.Instant;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -26,17 +27,21 @@ public class EmbeddingBackfillController {
     private final RecordEmbeddingBackfillAuditUseCase recordEmbeddingBackfillAuditUseCase;
     private final String operationToken;
     private final int maxLimit;
+    private final Duration minInterval;
+    private Instant lastAcceptedAt;
 
     public EmbeddingBackfillController(
         BackfillEmbeddingsUseCase backfillEmbeddingsUseCase,
         RecordEmbeddingBackfillAuditUseCase recordEmbeddingBackfillAuditUseCase,
         @Value("${app.embedding.backfill.operation-token:}") String operationToken,
-        @Value("${app.embedding.backfill.max-limit:200}") int maxLimit
+        @Value("${app.embedding.backfill.max-limit:200}") int maxLimit,
+        @Value("${app.embedding.backfill.min-interval-seconds:0}") long minIntervalSeconds
     ) {
         this.backfillEmbeddingsUseCase = backfillEmbeddingsUseCase;
         this.recordEmbeddingBackfillAuditUseCase = recordEmbeddingBackfillAuditUseCase;
         this.operationToken = operationToken == null ? "" : operationToken.trim();
         this.maxLimit = maxLimit > 0 ? maxLimit : 200;
+        this.minInterval = Duration.ofSeconds(Math.max(0L, minIntervalSeconds));
     }
 
     /**
@@ -50,6 +55,7 @@ public class EmbeddingBackfillController {
     ) {
         requireOperationToken(requestedOperationToken, operator, limit);
         int effectiveLimit = normalizeLimit(limit);
+        requireRateLimit(operator, limit, effectiveLimit);
         EmbeddingBackfillSummary summary;
         try {
             summary = backfillEmbeddingsUseCase.backfillEmbeddings(effectiveLimit);
@@ -71,6 +77,23 @@ public class EmbeddingBackfillController {
             Instant.now()
         ));
         return ApiResponse.success(summary);
+    }
+
+    private synchronized void requireRateLimit(String operator, int requestedLimit, int effectiveLimit) {
+        if (minInterval.isZero() || minInterval.isNegative()) {
+            return;
+        }
+        Instant now = Instant.now();
+        if (lastAcceptedAt != null && now.isBefore(lastAcceptedAt.plus(minInterval))) {
+            recordEmbeddingBackfillAuditUseCase.record(EmbeddingBackfillAuditEvent.rateLimited(
+                operator,
+                requestedLimit,
+                effectiveLimit,
+                now
+            ));
+            throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS, "embedding backfill rate limit exceeded.");
+        }
+        lastAcceptedAt = now;
     }
 
     private void requireOperationToken(String requestedOperationToken, String operator, int requestedLimit) {

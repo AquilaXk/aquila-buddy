@@ -89,6 +89,25 @@ public record EmbeddingBackfillAuditEvent(
         );
     }
 
+    public static EmbeddingBackfillAuditEvent rateLimited(
+        String operator,
+        int requestedLimit,
+        int effectiveLimit,
+        Instant occurredAt
+    ) {
+        return new EmbeddingBackfillAuditEvent(
+            EmbeddingBackfillAuditOutcome.RATE_LIMITED,
+            operator,
+            requestedLimit,
+            effectiveLimit,
+            0,
+            0,
+            0,
+            "rate-limit",
+            occurredAt
+        );
+    }
+
     private static void requireNonNegative(int value, String fieldName) {
         if (value < 0) {
             throw new IllegalArgumentException(fieldName + " must not be negative.");
