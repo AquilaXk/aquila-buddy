@@ -86,6 +86,7 @@ PostgreSQL/pgvector와 실제 AI provider를 함께 확인하는 최소 순서:
 
 ```bash
 docker compose up -d
+bash tools/test/run-pgvector-integration.sh --validate-only
 bash tools/smoke/validate-ai-runtime-env.sh
 SPRING_PROFILES_ACTIVE=dev ./back/gradlew -p back bootRun
 ```
@@ -146,6 +147,8 @@ bash tools/smoke/validate-ai-runtime-env.sh
 4. `RECOMMENDATION_SIMILARITY_PROVIDER=pgvector`로 추천 순위가 embedding similarity를 반영하는지 확인합니다.
 5. issue guide, PR draft, translation을 실행해 AI 호출과 `ai_call_observations` 저장을 확인합니다.
 6. `LANGFUSE_ENABLED=true` 환경에서는 같은 호출이 Langfuse generation event로 적재되는지 확인합니다.
+
+pgvector 운영 검증은 `schema.sql` 이후 `schema-postgres-pgvector.sql` 적용 순서, `profile_embedding`/`issue_embedding`의 `vector(1536)` 변환, `idx_user_profiles_profile_embedding`/`idx_recommended_issues_issue_embedding` HNSW index, backfill 후 추천 순위 변경을 확인합니다.
 
 실제 provider E2E smoke는 opt-in입니다. OAuth 또는 JWT에서 얻은 API 인증 header를 준비한 뒤 다음 값을 채우고 실행합니다.
 

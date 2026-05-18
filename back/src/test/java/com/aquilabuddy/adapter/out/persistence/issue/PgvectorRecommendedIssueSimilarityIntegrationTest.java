@@ -48,6 +48,54 @@ class PgvectorRecommendedIssueSimilarityIntegrationTest {
             .containsExactly("near-issue", "far-issue");
     }
 
+    @Test
+    void initializesVectorColumnsAndHnswIndexesForOperationalSchema() {
+        DataSource dataSource = dataSource();
+        initializeSchema(dataSource);
+        JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
+
+        assertThat(columnType(jdbcTemplate, "user_profiles", "profile_embedding")).isEqualTo("vector");
+        assertThat(columnType(jdbcTemplate, "recommended_issues", "issue_embedding")).isEqualTo("vector");
+        assertThat(indexDefinition(jdbcTemplate, "user_profiles", "idx_user_profiles_profile_embedding"))
+            .contains("USING hnsw")
+            .contains("profile_embedding vector_cosine_ops");
+        assertThat(indexDefinition(jdbcTemplate, "recommended_issues", "idx_recommended_issues_issue_embedding"))
+            .contains("USING hnsw")
+            .contains("issue_embedding vector_cosine_ops");
+    }
+
+    @Test
+    void changesRankingAfterBackfillWritesIssueVectors() {
+        DataSource dataSource = dataSource();
+        initializeSchema(dataSource);
+        JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
+        deleteDemoIssues(jdbcTemplate);
+        insertIssueWithoutEmbedding(jdbcTemplate, "far-before-backfill", 11L, 0.99);
+        insertIssueWithoutEmbedding(jdbcTemplate, "near-after-backfill", 12L, 0.10);
+
+        PgvectorRecommendedIssueSimilarityAdapter adapter = new PgvectorRecommendedIssueSimilarityAdapter(
+            JdbcClient.create(dataSource),
+            input -> new EmbeddingVector(vectorValues(1.0, 0.0)),
+            currentUserProfilePort(),
+            10
+        );
+        List<RecommendedIssue> scoreOrderedCandidates = List.of(
+            candidate("far-before-backfill", 0.99),
+            candidate("near-after-backfill", 0.10)
+        );
+
+        assertThat(adapter.rankRecommendedIssues(scoreOrderedCandidates))
+            .extracting(RecommendedIssue::id)
+            .containsExactly("far-before-backfill", "near-after-backfill");
+
+        updateIssueEmbedding(jdbcTemplate, "far-before-backfill", vectorLiteral(0.0, 1.0));
+        updateIssueEmbedding(jdbcTemplate, "near-after-backfill", vectorLiteral(1.0, 0.0));
+
+        assertThat(adapter.rankRecommendedIssues(scoreOrderedCandidates))
+            .extracting(RecommendedIssue::id)
+            .containsExactly("near-after-backfill", "far-before-backfill");
+    }
+
     private static DataSource dataSource() {
         DriverManagerDataSource dataSource = new DriverManagerDataSource();
         dataSource.setUrl(env("PGVECTOR_TEST_DB_URL", "jdbc:postgresql://localhost:5432/aquila_buddy"));
@@ -92,6 +140,46 @@ class PgvectorRecommendedIssueSimilarityIntegrationTest {
         );
     }
 
+    private static void insertIssueWithoutEmbedding(
+        JdbcTemplate jdbcTemplate,
+        String issueId,
+        long issueNumber,
+        double score
+    ) {
+        jdbcTemplate.update("""
+            INSERT INTO recommended_issues (
+                issue_id,
+                repo_full_name,
+                issue_number,
+                title,
+                summary,
+                score,
+                status,
+                reason,
+                issue_embedding
+            )
+            VALUES (?, 'aquila-buddy/backfill-demo', ?, 'Backfill demo issue', 'Backfill demo summary', ?, 'OPEN',
+                'Backfill demo reason', NULL)
+            """,
+            issueId,
+            issueNumber,
+            score
+        );
+    }
+
+    private static void updateIssueEmbedding(JdbcTemplate jdbcTemplate, String issueId, String embedding) {
+        jdbcTemplate.update(
+            "UPDATE recommended_issues SET issue_embedding = CAST(? AS vector) WHERE issue_id = ?",
+            embedding,
+            issueId
+        );
+    }
+
+    private static void deleteDemoIssues(JdbcTemplate jdbcTemplate) {
+        jdbcTemplate.update("DELETE FROM recommended_issue_labels WHERE recommended_issue_id LIKE '%backfill%'");
+        jdbcTemplate.update("DELETE FROM recommended_issues WHERE repo_full_name = 'aquila-buddy/backfill-demo'");
+    }
+
     private static LoadUserProfilePort currentUserProfilePort() {
         return new LoadUserProfilePort() {
             @Override
@@ -128,6 +216,30 @@ class PgvectorRecommendedIssueSimilarityIntegrationTest {
         return "[" + String.join(",", vectorValues(firstValue, secondValue).stream()
             .map(String::valueOf)
             .toList()) + "]";
+    }
+
+    private static String columnType(JdbcTemplate jdbcTemplate, String tableName, String columnName) {
+        return jdbcTemplate.queryForObject("""
+            SELECT udt_name
+            FROM information_schema.columns
+            WHERE table_name = ? AND column_name = ?
+            """,
+            String.class,
+            tableName,
+            columnName
+        );
+    }
+
+    private static String indexDefinition(JdbcTemplate jdbcTemplate, String tableName, String indexName) {
+        return jdbcTemplate.queryForObject("""
+            SELECT indexdef
+            FROM pg_indexes
+            WHERE tablename = ? AND indexname = ?
+            """,
+            String.class,
+            tableName,
+            indexName
+        );
     }
 
     private static List<Double> vectorValues(double firstValue, double secondValue) {

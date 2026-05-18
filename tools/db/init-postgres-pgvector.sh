@@ -27,8 +27,10 @@ SCHEMA_FILES=(
 
 if [[ "$DRY_RUN" == "true" ]]; then
   echo "pgvector init plan:"
+  step=1
   for schema_file in "${SCHEMA_FILES[@]}"; do
-    echo "- ${schema_file#"$REPO_ROOT/"}"
+    echo "${step}. ${schema_file#"$REPO_ROOT/"}"
+    step=$((step + 1))
   done
   exit 0
 fi
