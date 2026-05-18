@@ -6,6 +6,7 @@ import { launchChromeSession } from "../../extension/live-e2e/browser-session.mj
 
 const repoRoot = resolve(import.meta.dirname, "..", "..", "..");
 const timeoutMs = positiveInteger(process.env.FRONTEND_INTEGRATION_SMOKE_TIMEOUT_MS, 90_000);
+const routeTimeoutMs = positiveInteger(process.env.FRONTEND_INTEGRATION_ROUTE_TIMEOUT_MS, 20_000);
 const serverMode = resolveServerMode();
 const useLiveBackend = process.env.FRONTEND_INTEGRATION_USE_LIVE_BACKEND === "true";
 
@@ -74,7 +75,7 @@ async function login(page) {
 async function visitAndAssert(page, url, expectedText) {
   await page.navigate(url);
   try {
-    await page.waitForText(expectedText);
+    await page.waitForText(expectedText, routeTimeoutMs);
   } catch (error) {
     const currentUrl = await page.currentUrl();
     const bodyText = await page.evaluate("document.body ? document.body.innerText : ''");

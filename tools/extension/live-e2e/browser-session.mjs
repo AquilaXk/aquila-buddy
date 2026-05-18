@@ -289,10 +289,11 @@ function createPage(client) {
         new Promise((resolve) => setTimeout(resolve, 1_000)),
       ]);
     },
-    async waitForText(text) {
+    async waitForText(text, timeoutMs) {
       await waitForFunction(
         client,
-        `Boolean(document.body && document.body.innerText.includes(${JSON.stringify(text)}))`
+        `Boolean(document.body && document.body.innerText.includes(${JSON.stringify(text)}))`,
+        timeoutMs
       );
     },
     async currentUrl() {
@@ -316,8 +317,8 @@ async function evaluate(client, expression) {
   return result.result?.value;
 }
 
-async function waitForFunction(client, expression) {
-  await waitFor(async () => evaluate(client, expression), `Timed out waiting for ${expression}`);
+async function waitForFunction(client, expression, timeoutMs) {
+  await waitFor(async () => evaluate(client, expression), `Timed out waiting for ${expression}`, timeoutMs);
 }
 
 async function waitForLoad(client) {

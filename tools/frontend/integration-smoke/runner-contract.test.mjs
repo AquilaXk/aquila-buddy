@@ -47,6 +47,22 @@ test("integration smoke runner supports release start mode", async () => {
   assert.match(runner, /"dev"/);
 });
 
+test("integration smoke runner applies route wait timeout", async () => {
+  const runner = await readFile(
+    resolve(repoRoot, "tools/frontend/integration-smoke/run-integration-smoke.mjs"),
+    "utf8"
+  );
+  const browserSession = await readFile(
+    resolve(repoRoot, "tools/extension/live-e2e/browser-session.mjs"),
+    "utf8"
+  );
+
+  assert.match(runner, /FRONTEND_INTEGRATION_ROUTE_TIMEOUT_MS/);
+  assert.match(runner, /page\.waitForText\(expectedText, routeTimeoutMs\)/);
+  assert.match(browserSession, /async waitForText\(text, timeoutMs\)/);
+  assert.match(browserSession, /waitForFunction\([^)]*timeoutMs/s);
+});
+
 test("ci workflow runs frontend integration smoke", async () => {
   const workflow = await readFile(resolve(repoRoot, ".github/workflows/ci.yml"), "utf8");
 
@@ -54,6 +70,7 @@ test("ci workflow runs frontend integration smoke", async () => {
   assert.match(workflow, /node --test \.\.\/tools\/frontend\/integration-smoke\/\*\.test\.mjs/);
   assert.match(workflow, /Run frontend integration smoke/);
   assert.match(workflow, /FRONTEND_INTEGRATION_SERVER_MODE: start/);
+  assert.match(workflow, /FRONTEND_INTEGRATION_ROUTE_TIMEOUT_MS: "20000"/);
   assert.match(workflow, /npm run smoke:integration/);
 });
 
