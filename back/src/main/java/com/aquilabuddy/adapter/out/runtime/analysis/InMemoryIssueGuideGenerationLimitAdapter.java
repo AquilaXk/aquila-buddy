@@ -6,12 +6,14 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 /**
  * 단일 애플리케이션 인스턴스에서 같은 이슈 guide 생성 요청을 짧은 시간 동안 제한합니다.
  */
 @Component
+@ConditionalOnProperty(prefix = "app.analysis.issue-guide", name = "limit-store", havingValue = "memory")
 public class InMemoryIssueGuideGenerationLimitAdapter implements IssueGuideGenerationLimitPort {
 
     private final Map<String, Instant> lastGeneratedAtByIssueId = new ConcurrentHashMap<>();

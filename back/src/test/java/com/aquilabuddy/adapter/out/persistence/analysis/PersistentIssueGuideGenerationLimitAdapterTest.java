@@ -42,7 +42,7 @@ class PersistentIssueGuideGenerationLimitAdapterTest {
             .isInstanceOf(IllegalStateException.class)
             .hasMessageContaining("daily limit");
 
-        assertThat(repository.findAll())
+        assertThat(repository.findAllByOrderByRequestIdAsc())
             .extracting(
                 IssueGuideGenerationRequestJpaEntity::getUserGithubId,
                 IssueGuideGenerationRequestJpaEntity::getIssueId,
@@ -74,7 +74,7 @@ class PersistentIssueGuideGenerationLimitAdapterTest {
 
         nextDayAdapter.acquireGenerationSlot("issue-4");
 
-        assertThat(repository.findAll()).hasSize(4);
+        assertThat(repository.findAllByOrderByRequestIdAsc()).hasSize(4);
     }
 
     private static class MutableCurrentUserGithubIdPort implements CurrentUserGithubIdPort {
