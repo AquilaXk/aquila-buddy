@@ -62,11 +62,14 @@ DB_PASSWORD=aquila
 로컬 또는 운영 초기화 전에는 pgvector init script를 dry-run으로 먼저 확인합니다.
 
 ```bash
+bash tools/test/run-pgvector-integration.sh --validate-only
 bash tools/db/init-postgres-pgvector.sh --dry-run
 bash tools/test/run-pgvector-integration.sh
 ```
 
 운영 DB에는 `schema.sql` 적용 후 `schema-postgres-pgvector.sql`을 적용해 `profile_embedding`과 `embedding`이 `vector(1536)`으로 변환되어야 합니다.
+`schema-postgres-pgvector.sql`은 `idx_user_profiles_profile_embedding`, `idx_recommended_issues_issue_embedding` HNSW index를 생성해야 하며, 실제 Postgres 통합 테스트는 column type과 index definition을 함께 확인합니다.
+embedding backfill 후 추천 순위가 score fallback 순서에서 pgvector similarity 순서로 바뀌는지도 `PgvectorRecommendedIssueSimilarityIntegrationTest`에서 검증합니다.
 
 ## smoke 순서
 
@@ -140,6 +143,7 @@ backend에는 같은 token 값을 `APP_EMBEDDING_BACKFILL_OPERATION_TOKEN`으로
 - embedding 차원 오류: provider 설정의 embedding dimension과 pgvector schema의 `1536` 차원을 맞춥니다.
 - GitHub 403: `GITHUB_TOKEN_PERMISSIONS`와 실제 token 권한을 비교하고 `X-Accepted-GitHub-Permissions` header를 확인합니다.
 - pgvector query 오류: `schema-postgres-pgvector.sql` 적용 여부와 extension 생성 권한을 확인합니다.
+- backfill 후 추천 순위가 바뀌지 않음: `issue_embedding IS NOT NULL` 대상 수, `idx_recommended_issues_issue_embedding` index definition, `RECOMMENDATION_SIMILARITY_PROVIDER=pgvector` 적용 여부를 확인합니다.
 - Langfuse 누락: `LANGFUSE_ENABLED`, base URL, public/secret key, outbound network를 확인합니다.
 
 ## rollback
