@@ -53,9 +53,9 @@ export function ProfileEditorPanel({ initialProfile }: ProfileEditorPanelProps) 
     try {
       const refreshed = await refreshUserProfileVector();
       setProfile(refreshed);
-      setRequestState({ status: "idle", message: "Profile vector를 갱신했습니다.", error: null });
+      setRequestState({ status: "idle", message: "프로필 벡터를 업데이트했습니다.", error: null });
     } catch {
-      setRequestState({ status: "idle", message: null, error: "Profile vector 갱신에 실패했습니다." });
+      setRequestState({ status: "idle", message: null, error: "프로필 벡터 업데이트에 실패했습니다." });
     }
   }
 
@@ -121,7 +121,7 @@ export function ProfileEditorPanel({ initialProfile }: ProfileEditorPanelProps) 
       </section>
 
       <section className="rounded-xl border border-github-border bg-github-surface p-6">
-        <h2 className="mb-1 font-semibold text-github-text">AI 프로필 벡터</h2>
+        <h2 className="mb-1 font-semibold text-github-text">프로필 벡터</h2>
         <p className="mb-4 text-sm text-github-muted">
           GitHub 활동을 분석하여 나에게 맞는 이슈를 추천받기 위한 임베딩 벡터를 생성합니다.
         </p>
@@ -132,9 +132,9 @@ export function ProfileEditorPanel({ initialProfile }: ProfileEditorPanelProps) 
           </p>
         ) : null}
 
-        {profile.primaryLanguages.length > 0 ? (
-          <div className="mb-4">
-            <p className="mb-2 text-xs text-github-muted">감지된 주요 언어</p>
+        <div className="mb-4">
+          <p className="mb-2 text-xs text-github-muted">감지된 주요 언어</p>
+          {profile.primaryLanguages.length > 0 ? (
             <div className="flex flex-wrap gap-2">
               {profile.primaryLanguages.map((language) => (
                 <span
@@ -145,8 +145,10 @@ export function ProfileEditorPanel({ initialProfile }: ProfileEditorPanelProps) 
                 </span>
               ))}
             </div>
-          </div>
-        ) : null}
+          ) : (
+            <p className="text-sm text-github-muted">아직 분석된 주요 언어가 없습니다.</p>
+          )}
+        </div>
 
         <button
           className="flex items-center gap-2 rounded-lg border border-github-accent/30 bg-github-accent/10 px-4 py-2 text-sm font-medium text-github-accent transition-colors hover:bg-github-accent/20 disabled:opacity-50"
