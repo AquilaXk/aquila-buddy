@@ -74,11 +74,12 @@ public class PullRequestDraftTranslationService implements
         }
 
         PullRequestDraft translatedDraft = translatePullRequestDraftPort.translate(draft.get(), normalizedLanguage);
-        return Optional.of(savePullRequestDraftTranslationPort.savePullRequestDraftTranslation(
+        PullRequestDraftTranslation translation = savePullRequestDraftTranslationPort.savePullRequestDraftTranslation(
             draftId,
             normalizedLanguage,
             translatedDraft
-        ));
+        );
+        return Optional.of(translation.withSourceIssueId(draft.get().sourceIssueId()));
     }
 
     /**
@@ -109,7 +110,12 @@ public class PullRequestDraftTranslationService implements
 
     @Override
     public List<PullRequestDraftTranslation> listTranslations(String draftId) {
-        return loadPullRequestDraftTranslationPort.loadPullRequestDraftTranslations(draftId);
+        return loadPullRequestDraftPort.loadPullRequestDraft(draftId)
+            .map(draft -> loadPullRequestDraftTranslationPort.loadPullRequestDraftTranslations(draftId)
+                .stream()
+                .map(translation -> translation.withSourceIssueId(draft.sourceIssueId()))
+                .toList())
+            .orElseGet(List::of);
     }
 
     @Override
