@@ -447,6 +447,55 @@ class AiEnvironmentExamplesTest {
     }
 
     @Test
+    void langfuseObservabilitySmokeEnvValidationSkipsWhenDisabled() throws IOException, InterruptedException {
+        SmokeResult result = runLangfuseObservabilitySmoke(Map.of());
+
+        assertThat(result.exitCode()).isZero();
+        assertThat(result.output())
+            .contains("Langfuse observability smoke is disabled.")
+            .contains("LANGFUSE_SMOKE_ENABLED=true");
+    }
+
+    @Test
+    void langfuseObservabilitySmokeEnvValidationRejectsMissingEnvWhenEnabled()
+        throws IOException, InterruptedException {
+        SmokeResult result = runLangfuseObservabilitySmoke(Map.of(
+            "LANGFUSE_SMOKE_ENABLED", "true"
+        ));
+
+        assertThat(result.exitCode()).isNotZero();
+        assertThat(result.output())
+            .contains("missing required env: LANGFUSE_BASE_URL")
+            .contains("missing required env: LANGFUSE_PUBLIC_KEY")
+            .contains("missing required env: LANGFUSE_SECRET_KEY")
+            .contains("env must be a positive integer: LANGFUSE_SMOKE_TIMEOUT_SECONDS")
+            .contains("Langfuse observability smoke env validation failed.");
+    }
+
+    @Test
+    void langfuseObservabilitySmokeEnvValidationAcceptsDryRunAndMasksSecrets()
+        throws IOException, InterruptedException {
+        SmokeResult result = runLangfuseObservabilitySmoke(Map.ofEntries(
+            entry("LANGFUSE_SMOKE_ENABLED", "true"),
+            entry("LANGFUSE_SMOKE_MODE", "dry-run"),
+            entry("LANGFUSE_BASE_URL", "https://langfuse.example.com"),
+            entry("LANGFUSE_PUBLIC_KEY", "pk-live-secret"),
+            entry("LANGFUSE_SECRET_KEY", "sk-live-secret"),
+            entry("LANGFUSE_ENVIRONMENT", "staging"),
+            entry("LANGFUSE_SMOKE_TIMEOUT_SECONDS", "15")
+        ));
+
+        assertThat(result.exitCode()).isZero();
+        assertThat(result.output())
+            .contains("target=https://langfuse.example.com")
+            .contains("mode=dry-run")
+            .contains("environment=staging")
+            .contains("timeout=15s")
+            .doesNotContain("pk-live-secret")
+            .doesNotContain("sk-live-secret");
+    }
+
+    @Test
     void ciWorkflowRunsOperationalSmokeEnvValidation() throws IOException {
         String workflow = Files.readString(Path.of("../.github/workflows/ci.yml"));
 
@@ -551,6 +600,21 @@ class AiEnvironmentExamplesTest {
     private static SmokeResult runAiProviderSmokeRunner(Map<String, String> env)
         throws IOException, InterruptedException {
         ProcessBuilder builder = new ProcessBuilder("/bin/bash", "../tools/smoke/run-ai-provider-smoke.sh");
+        Map<String, String> processEnv = builder.environment();
+        processEnv.clear();
+        processEnv.putAll(env);
+        builder.redirectErrorStream(true);
+        Process process = builder.start();
+        String output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+        boolean exited = process.waitFor(10, TimeUnit.SECONDS);
+        assertThat(exited).isTrue();
+        return new SmokeResult(process.exitValue(), output);
+    }
+
+    private static SmokeResult runLangfuseObservabilitySmoke(Map<String, String> env)
+        throws IOException, InterruptedException {
+        ProcessBuilder builder =
+            new ProcessBuilder("/bin/bash", "../tools/smoke/validate-langfuse-observability-env.sh");
         Map<String, String> processEnv = builder.environment();
         processEnv.clear();
         processEnv.putAll(env);
