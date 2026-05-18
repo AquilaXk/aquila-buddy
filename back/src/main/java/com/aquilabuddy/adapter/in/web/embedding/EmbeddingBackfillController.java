@@ -43,6 +43,12 @@ public class EmbeddingBackfillController {
     }
 
     private void requireOperationToken(String requestedOperationToken) {
+        if (operationToken.isBlank()) {
+            throw new ResponseStatusException(
+                HttpStatus.SERVICE_UNAVAILABLE,
+                "embedding backfill operation token is not configured."
+            );
+        }
         if (!operationToken.equals(normalize(requestedOperationToken))) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "embedding backfill operation token is invalid.");
         }
