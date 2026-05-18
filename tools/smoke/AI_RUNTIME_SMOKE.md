@@ -206,6 +206,16 @@ dry-run은 성공 generation payload와 실패 generation payload가 prompt vers
 npm --prefix front run smoke:integration
 ```
 
+CI release gate처럼 `npm run build` 산출물을 검증할 때는 `next start` 모드를 사용합니다. route hydration이나 headless browser가 느린 runner에서는 `FRONTEND_INTEGRATION_ROUTE_TIMEOUT_MS`만 늘리고 기대 문구는 유지합니다.
+
+```bash
+NEXT_PUBLIC_API_URL=http://127.0.0.1:18080 \
+FRONTEND_INTEGRATION_SERVER_MODE=start \
+FRONTEND_INTEGRATION_FIXTURE_BACKEND_PORT=18080 \
+FRONTEND_INTEGRATION_ROUTE_TIMEOUT_MS=20000 \
+npm --prefix front run smoke:integration
+```
+
 실제 backend를 대상으로 수동 smoke를 수행할 때는 live backend URL을 지정합니다. 이 모드는 로컬 fixture backend를 사용하지 않으므로 backend, OAuth/JWT, 데이터 준비 상태를 운영자가 먼저 확인해야 합니다.
 
 ```bash

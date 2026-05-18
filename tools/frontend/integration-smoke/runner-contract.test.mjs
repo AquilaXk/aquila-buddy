@@ -35,12 +35,67 @@ test("integration smoke runner covers protected routes and failure envelope", as
   }
 });
 
+test("integration smoke runner supports release start mode", async () => {
+  const runner = await readFile(
+    resolve(repoRoot, "tools/frontend/integration-smoke/run-integration-smoke.mjs"),
+    "utf8"
+  );
+
+  assert.match(runner, /FRONTEND_INTEGRATION_SERVER_MODE/);
+  assert.match(runner, /serverMode === "start"/);
+  assert.match(runner, /"start"/);
+  assert.match(runner, /"dev"/);
+});
+
+test("integration smoke pins fixture backend for production build", async () => {
+  const runner = await readFile(
+    resolve(repoRoot, "tools/frontend/integration-smoke/run-integration-smoke.mjs"),
+    "utf8"
+  );
+  const workflow = await readFile(resolve(repoRoot, ".github/workflows/ci.yml"), "utf8");
+
+  assert.match(runner, /FRONTEND_INTEGRATION_FIXTURE_BACKEND_PORT/);
+  assert.match(runner, /createFrontendFixtureBackend\(\{ port: fixtureBackendPort/);
+  assert.match(workflow, /NEXT_PUBLIC_API_URL: http:\/\/127\.0\.0\.1:18080/);
+  assert.match(workflow, /FRONTEND_INTEGRATION_FIXTURE_BACKEND_PORT: "18080"/);
+});
+
+test("integration smoke runner applies route wait timeout", async () => {
+  const runner = await readFile(
+    resolve(repoRoot, "tools/frontend/integration-smoke/run-integration-smoke.mjs"),
+    "utf8"
+  );
+  const browserSession = await readFile(
+    resolve(repoRoot, "tools/extension/live-e2e/browser-session.mjs"),
+    "utf8"
+  );
+
+  assert.match(runner, /FRONTEND_INTEGRATION_ROUTE_TIMEOUT_MS/);
+  assert.match(runner, /page\.waitForText\(expectedText, routeTimeoutMs\)/);
+  assert.match(browserSession, /async waitForText\(text, timeoutMs\)/);
+  assert.match(browserSession, /waitForFunction\([^)]*timeoutMs/s);
+});
+
+test("integration smoke runner reports route diagnostics", async () => {
+  const runner = await readFile(
+    resolve(repoRoot, "tools/frontend/integration-smoke/run-integration-smoke.mjs"),
+    "utf8"
+  );
+
+  assert.match(runner, /serverMode=\$\{serverMode\}/);
+  assert.match(runner, /routeTimeoutMs=\$\{routeTimeoutMs\}/);
+  assert.match(runner, /document\.documentElement[\s\S]*outerHTML[\s\S]*slice\(0, 1200\)/);
+  assert.match(runner, /html=\$\{htmlPreview\}/);
+});
+
 test("ci workflow runs frontend integration smoke", async () => {
   const workflow = await readFile(resolve(repoRoot, ".github/workflows/ci.yml"), "utf8");
 
   assert.match(workflow, /Run frontend integration smoke contracts/);
   assert.match(workflow, /node --test \.\.\/tools\/frontend\/integration-smoke\/\*\.test\.mjs/);
   assert.match(workflow, /Run frontend integration smoke/);
+  assert.match(workflow, /FRONTEND_INTEGRATION_SERVER_MODE: start/);
+  assert.match(workflow, /FRONTEND_INTEGRATION_ROUTE_TIMEOUT_MS: "20000"/);
   assert.match(workflow, /npm run smoke:integration/);
 });
 
@@ -50,6 +105,8 @@ test("operations docs describe frontend integration smoke", async () => {
 
   for (const source of [readme, runbook]) {
     assert.match(source, /npm --prefix front run smoke:integration/);
+    assert.match(source, /FRONTEND_INTEGRATION_SERVER_MODE=start/);
+    assert.match(source, /FRONTEND_INTEGRATION_ROUTE_TIMEOUT_MS=20000/);
     assert.match(source, /FRONTEND_INTEGRATION_USE_LIVE_BACKEND=true/);
     assert.match(source, /NEXT_PUBLIC_API_URL=http:\/\/localhost:8080/);
     assert.match(source, /fixture backend/);

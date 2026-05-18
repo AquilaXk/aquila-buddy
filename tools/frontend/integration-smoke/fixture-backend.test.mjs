@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createServer } from "node:net";
 import test from "node:test";
 import { createFrontendFixtureBackend } from "./fixture-backend.mjs";
 
@@ -43,8 +44,33 @@ test("fixture backend can serve API failure envelopes", async () => {
   }
 });
 
+test("fixture backend can bind a configured port", async () => {
+  const port = await getAvailablePort();
+  const backend = await createFrontendFixtureBackend({ port });
+
+  try {
+    assert.equal(backend.origin, `http://127.0.0.1:${port}`);
+    const health = await getJson(`${backend.origin}/api/v1/health`);
+    assert.equal(health.data.status, "UP");
+  } finally {
+    await backend.close();
+  }
+});
+
 async function getJson(url) {
   const response = await fetch(url);
   assert.equal(response.status, 200);
   return response.json();
+}
+
+async function getAvailablePort() {
+  const server = createServer();
+  await new Promise((resolve, reject) => {
+    server.once("error", reject);
+    server.listen(0, "127.0.0.1", resolve);
+  });
+  const address = server.address();
+  await new Promise((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
+  assert.ok(address && typeof address !== "string");
+  return address.port;
 }

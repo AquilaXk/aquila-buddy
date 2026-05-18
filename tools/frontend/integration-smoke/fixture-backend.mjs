@@ -18,7 +18,7 @@ export async function createFrontendFixtureBackend(options = {}) {
 
   await new Promise((resolve, reject) => {
     server.once("error", reject);
-    server.listen(0, "127.0.0.1", () => {
+    server.listen(options.port ?? 0, "127.0.0.1", () => {
       server.off("error", reject);
       resolve();
     });

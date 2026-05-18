@@ -6,14 +6,17 @@ import { launchChromeSession } from "../../extension/live-e2e/browser-session.mj
 
 const repoRoot = resolve(import.meta.dirname, "..", "..", "..");
 const timeoutMs = positiveInteger(process.env.FRONTEND_INTEGRATION_SMOKE_TIMEOUT_MS, 90_000);
+const routeTimeoutMs = positiveInteger(process.env.FRONTEND_INTEGRATION_ROUTE_TIMEOUT_MS, 20_000);
+const fixtureBackendPort = optionalPositiveInteger(process.env.FRONTEND_INTEGRATION_FIXTURE_BACKEND_PORT);
+const serverMode = resolveServerMode();
 const useLiveBackend = process.env.FRONTEND_INTEGRATION_USE_LIVE_BACKEND === "true";
 
 const backend = useLiveBackend
   ? liveBackend()
-  : await createFrontendFixtureBackend();
+  : await createFrontendFixtureBackend({ port: fixtureBackendPort });
 const frontendPort = await getAvailablePort();
 const frontendOrigin = `http://127.0.0.1:${frontendPort}`;
-const next = startNextServer(frontendPort, backend.origin);
+const next = startNextServer(frontendPort, backend.origin, serverMode);
 let chrome;
 
 try {
@@ -73,21 +76,25 @@ async function login(page) {
 async function visitAndAssert(page, url, expectedText) {
   await page.navigate(url);
   try {
-    await page.waitForText(expectedText);
+    await page.waitForText(expectedText, routeTimeoutMs);
   } catch (error) {
     const currentUrl = await page.currentUrl();
     const bodyText = await page.evaluate("document.body ? document.body.innerText : ''");
+    const htmlPreview = await page.evaluate(
+      "document.documentElement ? document.documentElement.outerHTML.slice(0, 1200) : ''"
+    );
     throw new Error(
-      `Expected text not found after navigating to ${url}. currentUrl=${currentUrl} expected=${expectedText} body=${bodyText}`,
+      `Expected text not found after navigating to ${url}. currentUrl=${currentUrl} expected=${expectedText} serverMode=${serverMode} routeTimeoutMs=${routeTimeoutMs} body=${bodyText} html=${htmlPreview}`,
       { cause: error }
     );
   }
 }
 
-function startNextServer(port, apiUrl) {
+function startNextServer(port, apiUrl, serverMode) {
+  const script = serverMode === "start" ? "start" : "dev";
   const child = spawn(
     "npm",
-    ["--prefix", "front", "run", "dev", "--", "--hostname", "127.0.0.1", "--port", String(port)],
+    ["--prefix", "front", "run", script, "--", "--hostname", "127.0.0.1", "--port", String(port)],
     {
       cwd: repoRoot,
       detached: true,
@@ -112,6 +119,14 @@ function startNextServer(port, apiUrl) {
   });
 
   return child;
+}
+
+function resolveServerMode() {
+  const mode = process.env.FRONTEND_INTEGRATION_SERVER_MODE ?? "dev";
+  if (mode === "dev" || mode === "start") {
+    return mode;
+  }
+  throw new Error("FRONTEND_INTEGRATION_SERVER_MODE must be either 'dev' or 'start'.");
 }
 
 function liveBackend() {
@@ -185,4 +200,15 @@ async function waitFor(check, timeoutMessage, timeout = timeoutMs) {
 function positiveInteger(value, fallback) {
   const parsed = Number.parseInt(value ?? "", 10);
   return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function optionalPositiveInteger(value) {
+  if (!value) {
+    return undefined;
+  }
+  const parsed = Number.parseInt(value, 10);
+  if (Number.isInteger(parsed) && parsed > 0) {
+    return parsed;
+  }
+  throw new Error("FRONTEND_INTEGRATION_FIXTURE_BACKEND_PORT must be a positive integer.");
 }

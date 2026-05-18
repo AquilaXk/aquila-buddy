@@ -244,6 +244,16 @@ bash tools/smoke/run-langfuse-observability-smoke.sh
 npm --prefix front run smoke:integration
 ```
 
+release gate에서 build 산출물을 그대로 검증할 때는 `next start` 모드와 route 대기 시간을 명시합니다.
+
+```bash
+NEXT_PUBLIC_API_URL=http://127.0.0.1:18080 \
+FRONTEND_INTEGRATION_SERVER_MODE=start \
+FRONTEND_INTEGRATION_FIXTURE_BACKEND_PORT=18080 \
+FRONTEND_INTEGRATION_ROUTE_TIMEOUT_MS=20000 \
+npm --prefix front run smoke:integration
+```
+
 실제 backend와 연결해 수동으로 확인할 때는 OAuth/JWT 토큰을 브라우저에 준비한 환경에서 live backend URL을 지정합니다. 이 경로는 외부 인증 상태와 운영 데이터에 의존하므로 기본 CI에서는 실행하지 않습니다.
 
 ```bash
