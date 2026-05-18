@@ -98,6 +98,7 @@ class AiEnvironmentExamplesTest {
         String rootExample = Files.readString(Path.of("../.env.example"));
 
         assertThat(rootExample)
+            .contains("GITHUB_TOKEN_PERMISSIONS=metadata:read,contents:read,pull-requests:read,issues:read")
             .contains("# AI_PROVIDER=openai-compatible")
             .contains("AI_API_BASE_URL=https://api.openai.com/v1")
             .contains("AI_API_KEY=")
@@ -114,6 +115,7 @@ class AiEnvironmentExamplesTest {
         String backendExample = Files.readString(Path.of(".env.example"));
 
         assertThat(backendExample)
+            .contains("GITHUB_TOKEN_PERMISSIONS=metadata:read,contents:read,pull-requests:read,issues:read")
             .contains("# AI_PROVIDER=openai-compatible")
             .contains("AI_API_BASE_URL=https://api.openai.com/v1")
             .contains("AI_API_KEY=")
@@ -134,7 +136,8 @@ class AiEnvironmentExamplesTest {
             "AI_CHAT_MODEL", "gpt-test",
             "AI_EMBEDDING_MODEL", "text-embedding-test",
             "AI_EMBEDDING_DIMENSIONS", "1536",
-            "GITHUB_TOKEN", "github-token"
+            "GITHUB_TOKEN", "github-token",
+            "GITHUB_TOKEN_PERMISSIONS", "metadata:read,contents:read,pull-requests:read,issues:read"
         ));
 
         assertThat(result.exitCode()).isZero();
@@ -157,6 +160,45 @@ class AiEnvironmentExamplesTest {
             .contains("missing required env: AI_CHAT_MODEL")
             .contains("missing required env: AI_EMBEDDING_MODEL")
             .contains("env must be a positive integer: AI_EMBEDDING_DIMENSIONS")
+            .contains("missing required env: GITHUB_TOKEN_PERMISSIONS")
+            .contains("AI runtime smoke env validation failed.");
+    }
+
+    @Test
+    void runtimeSmokeRejectsGithubTokenWhenPermissionDeclarationIsMissing()
+        throws IOException, InterruptedException {
+        SmokeResult result = runSmoke(Map.of(
+            "AI_PROVIDER", "openai-compatible",
+            "AI_API_KEY", "test-key",
+            "AI_CHAT_MODEL", "gpt-test",
+            "AI_EMBEDDING_MODEL", "text-embedding-test",
+            "AI_EMBEDDING_DIMENSIONS", "1536",
+            "GITHUB_TOKEN", "github-token"
+        ));
+
+        assertThat(result.exitCode()).isNotZero();
+        assertThat(result.output())
+            .contains("missing required env: GITHUB_TOKEN_PERMISSIONS")
+            .contains("AI runtime smoke env validation failed.");
+    }
+
+    @Test
+    void runtimeSmokeRejectsGithubTokenWhenRequiredPermissionIsMissing()
+        throws IOException, InterruptedException {
+        SmokeResult result = runSmoke(Map.of(
+            "AI_PROVIDER", "openai-compatible",
+            "AI_API_KEY", "test-key",
+            "AI_CHAT_MODEL", "gpt-test",
+            "AI_EMBEDDING_MODEL", "text-embedding-test",
+            "AI_EMBEDDING_DIMENSIONS", "1536",
+            "GITHUB_TOKEN", "github-token",
+            "GITHUB_TOKEN_PERMISSIONS", "metadata:read,contents:read"
+        ));
+
+        assertThat(result.exitCode()).isNotZero();
+        assertThat(result.output())
+            .contains("missing GitHub token permission: pull-requests:read")
+            .contains("missing GitHub token permission: issues:read")
             .contains("AI runtime smoke env validation failed.");
     }
 
