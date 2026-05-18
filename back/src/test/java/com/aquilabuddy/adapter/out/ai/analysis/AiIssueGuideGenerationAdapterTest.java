@@ -1,7 +1,6 @@
 package com.aquilabuddy.adapter.out.ai.analysis;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.aquilabuddy.application.port.out.ai.AiClient;
 import com.aquilabuddy.domain.analysis.IssueGuide;
@@ -73,12 +72,22 @@ class AiIssueGuideGenerationAdapterTest {
     }
 
     @Test
-    void rejectsAiResponseWithoutRequiredMarkers() {
+    void fallsBackToRuleBasedGuideWhenAiResponseWithoutRequiredMarkers() {
         AiIssueGuideGenerationAdapter adapter = new AiIssueGuideGenerationAdapter(new CapturingAiClient("plain text"));
 
-        assertThatThrownBy(() -> adapter.generateIssueGuide(issue()))
-            .isInstanceOf(IllegalStateException.class)
-            .hasMessageContaining("GUIDELINE");
+        IssueGuide guide = adapter.generateIssueGuide(issue(), RepositoryCodeContext.fromFiles(
+            "spring-projects/spring-boot",
+            "main",
+            List.of(new RepositoryCodeContextFile("src/main/java/ValidationController.java", "class ValidationController {}")),
+            3,
+            200
+        ));
+
+        assertThat(guide.issueKey()).isEqualTo("demo-2");
+        assertThat(guide.filePaths()).containsExactly("src/main/java/ValidationController.java");
+        assertThat(guide.guideline()).isNotBlank();
+        assertThat(guide.pseudoCode()).isNotBlank();
+        assertThat(guide.sideEffects()).isNotEmpty();
     }
 
     private static RecommendedIssue issue() {

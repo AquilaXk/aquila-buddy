@@ -138,6 +138,37 @@ class AiGeneratedOutputQualityRegressionTest {
             .contains("Follow validation guide.");
     }
 
+    @Test
+    @DisplayName("[prompt=ai-output-quality-v2026-05-18 model=openai-compatible-contract fixture=issue-guide-parser-fallback] malformed issue guide response returns rule based guide")
+    void evaluatesIssueGuideParserFallbackQuality() {
+        AiIssueGuideGenerationAdapter adapter = new AiIssueGuideGenerationAdapter(new CapturingAiClient("plain text"));
+
+        IssueGuide guide = adapter.generateIssueGuide(issue(), codeContext());
+
+        assertQualityMetadata("issue-guide-parser-fallback");
+        assertSubmittableIssueGuide(guide);
+        assertThat(guide.filePaths()).containsExactly("src/main/java/demo/ValidationController.java");
+    }
+
+    @Test
+    @DisplayName("[prompt=ai-output-quality-v2026-05-18 model=openai-compatible-contract fixture=issue-guide-provider-fallback] provider failure returns rule based guide")
+    void evaluatesIssueGuideProviderFallbackQuality() {
+        AiIssueGuideGenerationAdapter adapter = new AiIssueGuideGenerationAdapter(new ThrowingAiClient());
+
+        IssueGuide guide = adapter.generateIssueGuide(issue(), codeContext());
+
+        assertQualityMetadata("issue-guide-provider-fallback");
+        assertSubmittableIssueGuide(guide);
+        assertThat(guide.filePaths()).containsExactly("src/main/java/demo/ValidationController.java");
+    }
+
+    private static void assertSubmittableIssueGuide(IssueGuide guide) {
+        assertThat(guide.issueKey()).isEqualTo("demo-2");
+        assertThat(guide.guideline()).isNotBlank();
+        assertThat(guide.pseudoCode()).isNotBlank();
+        assertThat(guide.sideEffects()).isNotEmpty().allSatisfy(sideEffect -> assertThat(sideEffect).isNotBlank());
+    }
+
     private static void assertSubmittablePullRequestDraft(PullRequestDraft draft, long issueNumber) {
         assertThat(draft.title()).isNotBlank();
         assertThat(draft.body())
@@ -230,6 +261,14 @@ class AiGeneratedOutputQualityRegressionTest {
         public String complete(String systemPrompt, String userPrompt) {
             this.userPrompt = userPrompt;
             return response;
+        }
+    }
+
+    private static class ThrowingAiClient implements AiClient {
+
+        @Override
+        public String complete(String systemPrompt, String userPrompt) {
+            throw new IllegalStateException("provider timeout");
         }
     }
 }
