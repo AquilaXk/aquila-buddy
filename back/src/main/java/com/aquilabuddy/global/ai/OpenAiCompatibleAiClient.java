@@ -29,6 +29,7 @@ public class OpenAiCompatibleAiClient implements AiClient, EmbeddingClient {
     private static final String PROVIDER = "openai-compatible";
     private static final String COMPLETION_PROMPT_VERSION = "ai-client.complete.v1";
     private static final String EMBEDDING_PROMPT_VERSION = "ai-client.embed.v1";
+    private static final int FAILURE_REASON_MAX_LENGTH = 1000;
 
     private final RestClient restClient;
     private final OpenAiCompatibleProperties properties;
@@ -94,7 +95,7 @@ public class OpenAiCompatibleAiClient implements AiClient, EmbeddingClient {
             ));
             return content;
         } catch (RestClientResponseException exception) {
-            recordFailure(AiCallOperation.COMPLETION, model, COMPLETION_PROMPT_VERSION, started, "RestClientResponseException");
+            recordFailure(AiCallOperation.COMPLETION, model, COMPLETION_PROMPT_VERSION, started, exception);
             throw new IllegalStateException("AI completion request failed with provider response status "
                 + exception.getStatusCode().value() + ".", exception);
         } catch (RestClientException exception) {
@@ -140,7 +141,7 @@ public class OpenAiCompatibleAiClient implements AiClient, EmbeddingClient {
             ));
             return vector;
         } catch (RestClientResponseException exception) {
-            recordFailure(AiCallOperation.EMBEDDING, model, EMBEDDING_PROMPT_VERSION, started, "RestClientResponseException");
+            recordFailure(AiCallOperation.EMBEDDING, model, EMBEDDING_PROMPT_VERSION, started, exception);
             throw new IllegalStateException("AI embedding request failed with provider response status "
                 + exception.getStatusCode().value() + ".", exception);
         } catch (RestClientException exception) {
@@ -210,7 +211,7 @@ public class OpenAiCompatibleAiClient implements AiClient, EmbeddingClient {
         long started,
         RuntimeException exception
     ) {
-        recordFailure(operation, model, promptVersion, started, exception.getClass().getSimpleName());
+        recordFailure(operation, model, promptVersion, started, exception.getClass().getSimpleName(), failureReason(exception));
     }
 
     private void recordFailure(
@@ -218,7 +219,25 @@ public class OpenAiCompatibleAiClient implements AiClient, EmbeddingClient {
         String model,
         String promptVersion,
         long started,
-        String errorType
+        RestClientResponseException exception
+    ) {
+        recordFailure(
+            operation,
+            model,
+            promptVersion,
+            started,
+            "RestClientResponseException",
+            failureReason(exception)
+        );
+    }
+
+    private void recordFailure(
+        AiCallOperation operation,
+        String model,
+        String promptVersion,
+        long started,
+        String errorType,
+        String failureReason
     ) {
         observer.record(AiCallObservation.failure(
             PROVIDER,
@@ -227,8 +246,39 @@ public class OpenAiCompatibleAiClient implements AiClient, EmbeddingClient {
             promptVersion,
             elapsedSince(started),
             errorType,
+            failureReason,
             Instant.now()
         ));
+    }
+
+    private static String failureReason(RestClientResponseException exception) {
+        String body = exception.getResponseBodyAsString();
+        String detail = hasText(body)
+            ? "Provider response status " + exception.getStatusCode().value() + ": " + body
+            : "Provider response status " + exception.getStatusCode().value();
+        return truncateFailureReason(detail);
+    }
+
+    private static String failureReason(RuntimeException exception) {
+        String message = exception.getMessage();
+        String detail = hasText(message)
+            ? exception.getClass().getSimpleName() + ": " + message
+            : exception.getClass().getSimpleName();
+        return truncateFailureReason(detail);
+    }
+
+    private static String truncateFailureReason(String reason) {
+        if (!hasText(reason)) {
+            return null;
+        }
+        String normalized = reason.strip();
+        return normalized.length() <= FAILURE_REASON_MAX_LENGTH
+            ? normalized
+            : normalized.substring(0, FAILURE_REASON_MAX_LENGTH);
+    }
+
+    private static boolean hasText(String value) {
+        return value != null && !value.isBlank();
     }
 
     private static Duration elapsedSince(long started) {

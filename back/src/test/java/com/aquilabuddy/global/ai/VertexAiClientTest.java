@@ -39,6 +39,7 @@ class VertexAiClientTest {
             .hasMessageContaining("Vertex AI completion content");
         assertThat(observer.firstObservation().success()).isFalse();
         assertThat(observer.firstObservation().errorType()).isEqualTo("IllegalStateException");
+        assertThat(observer.firstObservation().failureReason()).contains("Vertex AI completion content");
     }
 
     @Test

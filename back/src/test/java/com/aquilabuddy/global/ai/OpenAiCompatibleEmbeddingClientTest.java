@@ -87,6 +87,9 @@ class OpenAiCompatibleEmbeddingClientTest {
         assertThat(observer.firstObservation().success()).isFalse();
         assertThat(observer.firstObservation().operation()).isEqualTo(AiCallOperation.EMBEDDING);
         assertThat(observer.firstObservation().errorType()).isEqualTo("RestClientResponseException");
+        assertThat(observer.firstObservation().failureReason())
+            .contains("429")
+            .contains("rate limit");
     }
 
     @Test
@@ -148,6 +151,10 @@ class OpenAiCompatibleEmbeddingClientTest {
         assertThat(observer.firstObservation().success()).isFalse();
         assertThat(observer.firstObservation().operation()).isEqualTo(AiCallOperation.EMBEDDING);
         assertThat(observer.firstObservation().errorType()).isEqualTo("IllegalStateException");
+        assertThat(observer.firstObservation().failureReason())
+            .contains("dimension")
+            .contains("3")
+            .contains("2");
     }
 
     @Test

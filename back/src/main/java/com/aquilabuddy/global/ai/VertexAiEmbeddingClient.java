@@ -95,10 +95,18 @@ public class VertexAiEmbeddingClient implements EmbeddingClient {
                 PROMPT_VERSION,
                 elapsedSince(started),
                 exception.getClass().getSimpleName(),
+                failureReason(exception),
                 Instant.now()
             ));
             throw exception;
         }
+    }
+
+    private static String failureReason(RuntimeException exception) {
+        String message = exception.getMessage();
+        return message == null || message.isBlank()
+            ? exception.getClass().getSimpleName()
+            : exception.getClass().getSimpleName() + ": " + message.strip();
     }
 
     private static String requireInput(String value) {

@@ -89,6 +89,9 @@ class OpenAiCompatibleAiClientTest {
         assertThat(observer.firstObservation().success()).isFalse();
         assertThat(observer.firstObservation().operation()).isEqualTo(AiCallOperation.COMPLETION);
         assertThat(observer.firstObservation().errorType()).isEqualTo("RestClientResponseException");
+        assertThat(observer.firstObservation().failureReason())
+            .contains("502")
+            .contains("upstream unavailable");
     }
 
     @Test
