@@ -2,6 +2,8 @@ package com.aquilabuddy.adapter.out.persistence.user;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.aquilabuddy.application.port.out.ai.EmbeddingClient;
+import com.aquilabuddy.domain.embedding.EmbeddingVector;
 import com.aquilabuddy.domain.user.UserProfile;
 import com.aquilabuddy.domain.user.UserProfileUpdateRequest;
 import com.aquilabuddy.global.auth.CurrentUserGithubIdProvider;
@@ -9,12 +11,14 @@ import com.aquilabuddy.global.github.GitHubApiClient;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.web.client.RestClient;
 
@@ -24,11 +28,28 @@ import org.springframework.web.client.RestClient;
     CurrentUserGithubIdProvider.class,
     UserProfilePersistenceAdapterTest.GitHubClientTestConfig.class
 })
-@TestPropertySource(properties = "app.github.user-context.enabled=true")
+@TestPropertySource(properties = {
+    "app.github.user-context.enabled=true",
+    "app.embedding.expected-dimensions=3"
+})
 class UserProfilePersistenceAdapterTest {
+
+    private static final List<Double> DEFAULT_EMBEDDING_VALUES = List.of(0.4, 0.5, 0.6);
+    private static List<Double> embeddingValues = DEFAULT_EMBEDDING_VALUES;
 
     @Autowired
     private UserProfilePersistenceAdapter adapter;
+
+    @Autowired
+    private UserProfileJpaRepository repository;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
+    @BeforeEach
+    void setUp() {
+        embeddingValues = DEFAULT_EMBEDDING_VALUES;
+    }
 
     @Test
     void loadsCurrentUserProfileByDefaultGithubId() {
@@ -100,12 +121,45 @@ class UserProfilePersistenceAdapterTest {
         assertThat(refreshed.topics()).containsExactly("cli", "automation");
     }
 
+    @Test
+    void savesProfileEmbeddingWhenProviderDimensionMatchesExpectedDimension() {
+        adapter.refreshCurrentUserProfileVector();
+        repository.flush();
+
+        String storedEmbedding = jdbcTemplate.queryForObject(
+            "SELECT profile_embedding FROM user_profiles WHERE github_id = ?",
+            String.class,
+            10001L
+        );
+        assertThat(storedEmbedding).isEqualTo("[0.4,0.5,0.6]");
+    }
+
+    @Test
+    void skipsProfileEmbeddingWhenProviderDimensionDoesNotMatchExpectedDimension() {
+        embeddingValues = List.of(0.4, 0.5);
+
+        adapter.refreshCurrentUserProfileVector();
+        repository.flush();
+
+        String storedEmbedding = jdbcTemplate.queryForObject(
+            "SELECT profile_embedding FROM user_profiles WHERE github_id = ?",
+            String.class,
+            10001L
+        );
+        assertThat(storedEmbedding).isNull();
+    }
+
     @TestConfiguration
     static class GitHubClientTestConfig {
 
         @Bean
         GitHubApiClient gitHubApiClient() {
             return new StubGitHubApiClient();
+        }
+
+        @Bean
+        EmbeddingClient embeddingClient() {
+            return input -> new EmbeddingVector(embeddingValues);
         }
     }
 
