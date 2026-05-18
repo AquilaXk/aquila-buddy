@@ -202,6 +202,19 @@ class AiPullRequestDraftAdapterTest {
     }
 
     @Test
+    void fallsBackToDeterministicDraftWhenAiProviderFails() {
+        AiPullRequestDraftAdapter adapter = new AiPullRequestDraftAdapter(new ThrowingAiClient());
+
+        PullRequestDraft draft = adapter.generate(request());
+
+        assertThat(draft.title()).isEqualTo("docs: spring-projects/spring-boot#2 변경 초안");
+        assertThat(draft.body())
+            .startsWith("close #2")
+            .contains("## Summary")
+            .contains("## Tests");
+    }
+
+    @Test
     void fallsBackToDeterministicEnglishTranslationWhenAiResponseIsMalformed() {
         CapturingAiClient aiClient = new CapturingAiClient("plain response without markers");
         AiPullRequestDraftAdapter adapter = new AiPullRequestDraftAdapter(aiClient);
@@ -270,6 +283,14 @@ class AiPullRequestDraftAdapterTest {
             this.systemPrompt = systemPrompt;
             this.userPrompt = userPrompt;
             return response;
+        }
+    }
+
+    private static class ThrowingAiClient implements AiClient {
+
+        @Override
+        public String complete(String systemPrompt, String userPrompt) {
+            throw new IllegalStateException("provider timeout");
         }
     }
 }

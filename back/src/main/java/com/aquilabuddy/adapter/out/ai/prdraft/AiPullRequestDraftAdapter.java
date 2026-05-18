@@ -46,7 +46,12 @@ public class AiPullRequestDraftAdapter implements GeneratePullRequestDraftPort, 
 
     @Override
     public PullRequestDraft generate(PullRequestDraftRequest request) {
-        String response = aiClient.complete(DRAFT_SYSTEM_PROMPT, buildDraftPrompt(request));
+        String response;
+        try {
+            response = aiClient.complete(DRAFT_SYSTEM_PROMPT, buildDraftPrompt(request));
+        } catch (RuntimeException exception) {
+            return ensureClosingIssueLine(fallbackDraft(request), request.githubIssueNumber());
+        }
         return ensureClosingIssueLine(
             parseDraftOrFallback(response, () -> fallbackDraft(request)),
             request.githubIssueNumber()
@@ -56,7 +61,12 @@ public class AiPullRequestDraftAdapter implements GeneratePullRequestDraftPort, 
     @Override
     public PullRequestDraft translate(StoredPullRequestDraft draft, String targetLanguage) {
         String normalizedLanguage = normalizeTargetLanguage(targetLanguage);
-        String response = aiClient.complete(TRANSLATION_SYSTEM_PROMPT, buildTranslationPrompt(draft, normalizedLanguage));
+        String response;
+        try {
+            response = aiClient.complete(TRANSLATION_SYSTEM_PROMPT, buildTranslationPrompt(draft, normalizedLanguage));
+        } catch (RuntimeException exception) {
+            return ensureClosingIssueLine(fallbackTranslation(draft), draft.githubIssueNumber());
+        }
         return ensureClosingIssueLine(
             parseDraftOrFallback(response, () -> fallbackTranslation(draft)),
             draft.githubIssueNumber()

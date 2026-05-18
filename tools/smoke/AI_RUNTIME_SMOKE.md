@@ -21,9 +21,10 @@ AI_CHAT_MODEL=gpt-4o-mini
 AI_TEMPERATURE=0.2
 AI_EMBEDDING_MODEL=text-embedding-3-small
 AI_EMBEDDING_DIMENSIONS=1536
+AI_REQUEST_TIMEOUT_MILLIS=30000
 ```
 
-`AI_API_KEY` 대신 `OPENAI_API_KEY`를 사용할 수 있습니다. `AI_EMBEDDING_DIMENSIONS`는 pgvector schema의 `vector(1536)`과 맞춰야 합니다.
+`AI_API_KEY` 대신 `OPENAI_API_KEY`를 사용할 수 있습니다. `AI_EMBEDDING_DIMENSIONS`는 pgvector schema의 `vector(1536)`과 맞춰야 합니다. `AI_REQUEST_TIMEOUT_MILLIS`는 provider timeout/error observation과 fallback 동작을 재현할 때도 같은 기본값을 사용합니다.
 
 ## GitHub token 권한
 
@@ -75,10 +76,11 @@ embedding backfill 후 추천 순위가 score fallback 순서에서 pgvector sim
 
 1. PostgreSQL/pgvector를 준비합니다.
 2. `bash tools/smoke/validate-ai-runtime-env.sh`로 env와 token 권한 문자열을 검증합니다.
-3. `bash tools/smoke/validate-provider-e2e-env.sh`로 실제 provider E2E env를 검증합니다.
-4. backend를 운영 profile과 동일한 env로 실행합니다.
-5. OAuth 로그인으로 API 인증 header를 준비합니다.
-6. `bash tools/smoke/run-provider-e2e-smoke.sh`로 profile vector, issue crawl, pgvector recommendation, issue guide, PR draft, translation을 순서대로 실행합니다.
+3. `bash tools/smoke/validate-ai-provider-smoke-env.sh`와 `bash tools/smoke/run-ai-provider-smoke.sh`로 AI provider 직접 호출 smoke를 검증합니다.
+4. `bash tools/smoke/validate-provider-e2e-env.sh`로 실제 provider E2E env를 검증합니다.
+5. backend를 운영 profile과 동일한 env로 실행합니다.
+6. OAuth 로그인으로 API 인증 header를 준비합니다.
+7. `bash tools/smoke/run-provider-e2e-smoke.sh`로 profile vector, issue crawl, pgvector recommendation, issue guide, PR draft, translation을 순서대로 실행합니다.
 
 스크립트 없이 수동으로 점검할 때의 상세 흐름은 다음과 같습니다.
 
@@ -136,6 +138,34 @@ bash tools/smoke/run-provider-e2e-smoke.sh
 ```
 
 backend에는 같은 token 값을 `APP_EMBEDDING_BACKFILL_OPERATION_TOKEN`으로 주입해야 `/api/v1/embeddings/backfill`이 live smoke에서 열립니다. dry-run으로 순서만 확인하려면 `PROVIDER_E2E_DRY_RUN=true`를 사용합니다.
+
+AI provider 직접 smoke env와 실행 예시:
+
+```bash
+AI_PROVIDER_SMOKE_ENABLED=true \
+AI_PROVIDER_SMOKE_MODE=dry-run \
+AI_PROVIDER_SMOKE_TIMEOUT_SECONDS=30 \
+AI_PROVIDER=openai-compatible \
+AI_API_BASE_URL=https://api.openai.com/v1 \
+AI_API_KEY=openai_or_compatible_api_key \
+AI_CHAT_MODEL=gpt-4o-mini \
+AI_EMBEDDING_MODEL=text-embedding-3-small \
+AI_EMBEDDING_DIMENSIONS=1536 \
+bash tools/smoke/validate-ai-provider-smoke-env.sh
+
+AI_PROVIDER_SMOKE_ENABLED=true \
+AI_PROVIDER_SMOKE_MODE=dry-run \
+AI_PROVIDER_SMOKE_TIMEOUT_SECONDS=30 \
+AI_PROVIDER=openai-compatible \
+AI_API_BASE_URL=https://api.openai.com/v1 \
+AI_API_KEY=openai_or_compatible_api_key \
+AI_CHAT_MODEL=gpt-4o-mini \
+AI_EMBEDDING_MODEL=text-embedding-3-small \
+AI_EMBEDDING_DIMENSIONS=1536 \
+bash tools/smoke/run-ai-provider-smoke.sh
+```
+
+dry-run은 OpenAI-compatible chat completion, OpenAI-compatible embedding, Vertex AI text generation, Vertex AI embedding, provider timeout/error observation, provider fallback path 순서를 출력합니다. live mode는 OpenAI-compatible endpoint를 직접 호출하며 Vertex AI live smoke는 credential이 주입된 backend/provider E2E smoke에서 확인합니다.
 
 ## 실패 시 확인 순서
 

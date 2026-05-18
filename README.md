@@ -61,6 +61,7 @@ AI_CHAT_MODEL=gpt-4o-mini
 AI_TEMPERATURE=0.2
 AI_EMBEDDING_MODEL=text-embedding-3-small
 AI_EMBEDDING_DIMENSIONS=1536
+AI_REQUEST_TIMEOUT_MILLIS=30000
 ```
 
 `AI_API_KEY` 대신 `OPENAI_API_KEY`를 사용할 수 있습니다. chat model은 issue guide, PR 초안, 번역에 쓰이고 embedding model은 profile/issue embedding과 pgvector ranking smoke에 쓰입니다.
@@ -95,6 +96,8 @@ SPRING_PROFILES_ACTIVE=dev ./back/gradlew -p back bootRun
 
 ```bash
 bash tools/smoke/validate-ai-runtime-env.sh
+bash tools/smoke/validate-ai-provider-smoke-env.sh
+bash tools/smoke/run-ai-provider-smoke.sh
 bash tools/smoke/validate-provider-e2e-env.sh
 ```
 
@@ -167,6 +170,32 @@ bash tools/smoke/run-provider-e2e-smoke.sh
 ```
 
 실행 전 env만 확인할 때는 `bash tools/smoke/validate-provider-e2e-env.sh`, 실제 호출 없이 순서만 확인할 때는 `PROVIDER_E2E_DRY_RUN=true bash tools/smoke/run-provider-e2e-smoke.sh`를 사용합니다.
+
+AI provider 직접 smoke는 opt-in입니다. `AI_PROVIDER_SMOKE_MODE=dry-run`은 네트워크 호출 없이 OpenAI-compatible chat/embedding, Vertex text/embedding, timeout/error observation, provider fallback 확인 순서를 출력합니다. `AI_PROVIDER_SMOKE_MODE=live`와 실제 key를 설정하면 OpenAI-compatible chat completion과 embedding endpoint를 직접 호출합니다.
+
+```bash
+AI_PROVIDER_SMOKE_ENABLED=true \
+AI_PROVIDER_SMOKE_MODE=dry-run \
+AI_PROVIDER_SMOKE_TIMEOUT_SECONDS=30 \
+AI_PROVIDER=openai-compatible \
+AI_API_BASE_URL=https://api.openai.com/v1 \
+AI_API_KEY=openai_or_compatible_api_key \
+AI_CHAT_MODEL=gpt-4o-mini \
+AI_EMBEDDING_MODEL=text-embedding-3-small \
+AI_EMBEDDING_DIMENSIONS=1536 \
+bash tools/smoke/validate-ai-provider-smoke-env.sh
+
+AI_PROVIDER_SMOKE_ENABLED=true \
+AI_PROVIDER_SMOKE_MODE=dry-run \
+AI_PROVIDER_SMOKE_TIMEOUT_SECONDS=30 \
+AI_PROVIDER=openai-compatible \
+AI_API_BASE_URL=https://api.openai.com/v1 \
+AI_API_KEY=openai_or_compatible_api_key \
+AI_CHAT_MODEL=gpt-4o-mini \
+AI_EMBEDDING_MODEL=text-embedding-3-small \
+AI_EMBEDDING_DIMENSIONS=1536 \
+bash tools/smoke/run-ai-provider-smoke.sh
+```
 
 ## OCI Always Free Terraform
 

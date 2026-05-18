@@ -7,6 +7,7 @@ import com.aquilabuddy.domain.ai.AiCallObservation;
 import com.aquilabuddy.domain.ai.AiCallOperation;
 import com.aquilabuddy.domain.embedding.EmbeddingVector;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import java.net.http.HttpClient;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -14,6 +15,7 @@ import java.util.Objects;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
@@ -57,6 +59,7 @@ public class OpenAiCompatibleAiClient implements AiClient, EmbeddingClient {
         this.observer = Objects.requireNonNull(observer, "observer must not be null.");
         this.restClient = restClientBuilder
             .baseUrl(this.properties.apiBaseUrlOrDefault())
+            .requestFactory(requestFactory(this.properties.requestTimeoutMillisOrDefault()))
             .build();
     }
 
@@ -264,7 +267,22 @@ public class OpenAiCompatibleAiClient implements AiClient, EmbeddingClient {
         String detail = hasText(message)
             ? exception.getClass().getSimpleName() + ": " + message
             : exception.getClass().getSimpleName();
+        String lowerDetail = detail.toLowerCase();
+        if (lowerDetail.contains("timed out") || lowerDetail.contains("timeout")
+            || lowerDetail.contains("request cancelled")) {
+            detail = exception.getClass().getSimpleName() + ": timeout - " + message;
+        }
         return truncateFailureReason(detail);
+    }
+
+    private static JdkClientHttpRequestFactory requestFactory(int timeoutMillis) {
+        Duration timeout = Duration.ofMillis(timeoutMillis);
+        HttpClient httpClient = HttpClient.newBuilder()
+            .connectTimeout(timeout)
+            .build();
+        JdkClientHttpRequestFactory requestFactory = new JdkClientHttpRequestFactory(httpClient);
+        requestFactory.setReadTimeout(timeout);
+        return requestFactory;
     }
 
     private static String truncateFailureReason(String reason) {

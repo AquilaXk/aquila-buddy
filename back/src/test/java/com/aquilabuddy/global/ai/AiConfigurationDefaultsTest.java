@@ -21,6 +21,8 @@ class AiConfigurationDefaultsTest {
         assertThat(property(sources, "app.ai.provider")).isEqualTo("${AI_PROVIDER:vertex-ai}");
         assertThat(property(sources, "app.ai.vertex.credentials-path"))
             .isEqualTo("${VERTEX_AI_CREDENTIALS_PATH:${GOOGLE_APPLICATION_CREDENTIALS:./vertex-key.json}}");
+        assertThat(property(sources, "app.ai.openai-compatible.request-timeout-millis"))
+            .isEqualTo("${AI_REQUEST_TIMEOUT_MILLIS:30000}");
     }
 
     @Test
