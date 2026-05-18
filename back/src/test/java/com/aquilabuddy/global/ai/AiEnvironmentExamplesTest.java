@@ -334,6 +334,78 @@ class AiEnvironmentExamplesTest {
     }
 
     @Test
+    void aiProviderSmokeEnvValidationSkipsWhenDisabled() throws IOException, InterruptedException {
+        SmokeResult result = runAiProviderSmoke(Map.of());
+
+        assertThat(result.exitCode()).isZero();
+        assertThat(result.output())
+            .contains("AI provider smoke is disabled.")
+            .contains("AI_PROVIDER_SMOKE_ENABLED=true");
+    }
+
+    @Test
+    void aiProviderSmokeEnvValidationAcceptsOpenAiCompatibleTargetWhenEnabled()
+        throws IOException, InterruptedException {
+        SmokeResult result = runAiProviderSmoke(Map.ofEntries(
+            entry("AI_PROVIDER_SMOKE_ENABLED", "true"),
+            entry("AI_PROVIDER_SMOKE_MODE", "dry-run"),
+            entry("AI_PROVIDER", "openai-compatible"),
+            entry("AI_API_BASE_URL", "https://api.example.com/v1"),
+            entry("AI_API_KEY", "test-key"),
+            entry("AI_CHAT_MODEL", "gpt-test"),
+            entry("AI_EMBEDDING_MODEL", "text-embedding-test"),
+            entry("AI_EMBEDDING_DIMENSIONS", "1536"),
+            entry("AI_PROVIDER_SMOKE_TIMEOUT_SECONDS", "10")
+        ));
+
+        assertThat(result.exitCode()).isZero();
+        assertThat(result.output())
+            .contains("target=openai-compatible")
+            .contains("mode=dry-run")
+            .contains("timeout=10s");
+    }
+
+    @Test
+    void aiProviderSmokeEnvValidationAcceptsVertexTargetWhenEnabled()
+        throws IOException, InterruptedException {
+        SmokeResult result = runAiProviderSmoke(Map.ofEntries(
+            entry("AI_PROVIDER_SMOKE_ENABLED", "true"),
+            entry("AI_PROVIDER_SMOKE_MODE", "dry-run"),
+            entry("AI_PROVIDER", "vertex-ai"),
+            entry("GOOGLE_CLOUD_PROJECT_ID", "grepp-ai-project"),
+            entry("VERTEX_AI_LOCATION", "us-central1"),
+            entry("VERTEX_AI_MODEL", "gemini-2.5-flash"),
+            entry("VERTEX_AI_EMBEDDING_MODEL", "gemini-embedding-001"),
+            entry("VERTEX_AI_EMBEDDING_DIMENSIONS", "1536"),
+            entry("VERTEX_AI_CREDENTIALS_PATH", "/tmp/nonexistent-vertex-key.json"),
+            entry("AI_PROVIDER_SMOKE_TIMEOUT_SECONDS", "10")
+        ));
+
+        assertThat(result.exitCode()).isZero();
+        assertThat(result.output())
+            .contains("target=vertex-ai")
+            .contains("mode=dry-run")
+            .contains("timeout=10s");
+    }
+
+    @Test
+    void aiProviderSmokeEnvValidationRejectsMissingProviderContextWhenEnabled()
+        throws IOException, InterruptedException {
+        SmokeResult result = runAiProviderSmoke(Map.of(
+            "AI_PROVIDER_SMOKE_ENABLED", "true",
+            "AI_PROVIDER", "openai-compatible"
+        ));
+
+        assertThat(result.exitCode()).isNotZero();
+        assertThat(result.output())
+            .contains("missing required env: AI_API_KEY or OPENAI_API_KEY")
+            .contains("missing required env: AI_CHAT_MODEL")
+            .contains("missing required env: AI_EMBEDDING_MODEL")
+            .contains("env must be a positive integer: AI_EMBEDDING_DIMENSIONS")
+            .contains("AI provider smoke env validation failed.");
+    }
+
+    @Test
     void ciWorkflowRunsOperationalSmokeEnvValidation() throws IOException {
         String workflow = Files.readString(Path.of("../.github/workflows/ci.yml"));
 
@@ -395,6 +467,19 @@ class AiEnvironmentExamplesTest {
 
     private static SmokeResult runProviderE2eRunner(Map<String, String> env) throws IOException, InterruptedException {
         ProcessBuilder builder = new ProcessBuilder("/bin/bash", "../tools/smoke/run-provider-e2e-smoke.sh");
+        Map<String, String> processEnv = builder.environment();
+        processEnv.clear();
+        processEnv.putAll(env);
+        builder.redirectErrorStream(true);
+        Process process = builder.start();
+        String output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+        boolean exited = process.waitFor(10, TimeUnit.SECONDS);
+        assertThat(exited).isTrue();
+        return new SmokeResult(process.exitValue(), output);
+    }
+
+    private static SmokeResult runAiProviderSmoke(Map<String, String> env) throws IOException, InterruptedException {
+        ProcessBuilder builder = new ProcessBuilder("/bin/bash", "../tools/smoke/validate-ai-provider-smoke-env.sh");
         Map<String, String> processEnv = builder.environment();
         processEnv.clear();
         processEnv.putAll(env);
