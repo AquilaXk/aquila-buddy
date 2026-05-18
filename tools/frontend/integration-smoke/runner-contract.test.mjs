@@ -35,6 +35,15 @@ test("integration smoke runner covers protected routes and failure envelope", as
   }
 });
 
+test("ci workflow runs frontend integration smoke", async () => {
+  const workflow = await readFile(resolve(repoRoot, ".github/workflows/ci.yml"), "utf8");
+
+  assert.match(workflow, /Run frontend integration smoke contracts/);
+  assert.match(workflow, /node --test \.\.\/tools\/frontend\/integration-smoke\/\*\.test\.mjs/);
+  assert.match(workflow, /Run frontend integration smoke/);
+  assert.match(workflow, /npm run smoke:integration/);
+});
+
 function escapeRegExp(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
