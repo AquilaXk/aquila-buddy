@@ -1,6 +1,9 @@
 package com.aquilabuddy.global.ai;
 
+import com.aquilabuddy.application.port.out.ai.EmbeddingClient;
 import com.aquilabuddy.application.port.out.ai.AiClient;
+import com.aquilabuddy.domain.embedding.EmbeddingVector;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.List;
 import java.util.Objects;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -13,7 +16,7 @@ import org.springframework.web.client.RestClientException;
  */
 @Component
 @ConditionalOnProperty(prefix = "app.ai", name = "provider", havingValue = "openai-compatible")
-public class OpenAiCompatibleAiClient implements AiClient {
+public class OpenAiCompatibleAiClient implements AiClient, EmbeddingClient {
 
     private final RestClient restClient;
     private final AiProperties.OpenAiCompatible properties;
@@ -28,10 +31,7 @@ public class OpenAiCompatibleAiClient implements AiClient {
 
     @Override
     public String complete(String systemPrompt, String userPrompt) {
-        String apiKey = properties.apiKeyOrBlank();
-        if (apiKey.isBlank()) {
-            throw new IllegalStateException("app.ai.openai-compatible.api-key must not be blank.");
-        }
+        String apiKey = requireApiKey();
 
         ChatCompletionRequest request = new ChatCompletionRequest(
             properties.chatModelOrDefault(),
@@ -55,6 +55,39 @@ public class OpenAiCompatibleAiClient implements AiClient {
         }
     }
 
+    @Override
+    public EmbeddingVector embed(String input) {
+        String normalizedInput = requireInput(input);
+        String apiKey = requireApiKey();
+
+        EmbeddingRequest request = new EmbeddingRequest(
+            properties.embeddingModelOrDefault(),
+            normalizedInput,
+            "float",
+            properties.embeddingDimensionsOrDefault()
+        );
+
+        try {
+            EmbeddingResponse response = restClient.post()
+                .uri("/embeddings")
+                .headers(headers -> headers.setBearerAuth(apiKey))
+                .body(request)
+                .retrieve()
+                .body(EmbeddingResponse.class);
+            return firstEmbedding(response);
+        } catch (RestClientException exception) {
+            throw new IllegalStateException("AI embedding request failed.", exception);
+        }
+    }
+
+    private String requireApiKey() {
+        String apiKey = properties.apiKeyOrBlank();
+        if (apiKey.isBlank()) {
+            throw new IllegalStateException("app.ai.openai-compatible.api-key must not be blank.");
+        }
+        return apiKey;
+    }
+
     private static String firstContent(ChatCompletionResponse response) {
         if (response == null || response.choices() == null || response.choices().isEmpty()) {
             throw new IllegalStateException("AI completion response did not include choices.");
@@ -63,6 +96,26 @@ public class OpenAiCompatibleAiClient implements AiClient {
         ChatChoice choice = response.choices().getFirst();
         String content = choice == null || choice.message() == null ? null : choice.message().content();
         return requireText(content, "AI completion content");
+    }
+
+    private static EmbeddingVector firstEmbedding(EmbeddingResponse response) {
+        if (response == null || response.data() == null || response.data().isEmpty()) {
+            throw new IllegalStateException("AI embedding response did not include data.");
+        }
+
+        EmbeddingItem item = response.data().getFirst();
+        if (item == null || item.embedding() == null) {
+            throw new IllegalStateException("AI embedding response did not include an embedding vector.");
+        }
+        return new EmbeddingVector(item.embedding());
+    }
+
+    private static String requireInput(String value) {
+        String normalized = Objects.requireNonNull(value, "input must not be null.").trim();
+        if (normalized.isBlank()) {
+            throw new IllegalArgumentException("input must not be blank.");
+        }
+        return normalized;
     }
 
     private static String requireText(String value, String fieldName) {
@@ -98,6 +151,25 @@ public class OpenAiCompatibleAiClient implements AiClient {
 
     private record ChatMessageResponse(
         String content
+    ) {
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private record EmbeddingRequest(
+        String model,
+        String input,
+        String encoding_format,
+        Integer dimensions
+    ) {
+    }
+
+    private record EmbeddingResponse(
+        List<EmbeddingItem> data
+    ) {
+    }
+
+    private record EmbeddingItem(
+        List<Double> embedding
     ) {
     }
 }
