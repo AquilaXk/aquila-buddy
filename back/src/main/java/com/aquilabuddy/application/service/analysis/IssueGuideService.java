@@ -91,7 +91,9 @@ public class IssueGuideService implements GetIssueGuideUseCase, GetIssuePseudoCo
     @Override
     public IssueGuide findByIssueId(String issueId) {
         try {
-            return loadIssueGuidePort.loadIssueGuide(issueId);
+            IssueGuide guide = loadIssueGuidePort.loadIssueGuide(issueId);
+            issueGuideGenerationLimitPort.recordCacheHit(issueId);
+            return guide;
         } catch (NoSuchElementException ignored) {
             return generateAndCacheIssueGuide(issueId);
         }
