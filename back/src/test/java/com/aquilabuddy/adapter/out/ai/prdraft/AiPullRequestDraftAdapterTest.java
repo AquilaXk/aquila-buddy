@@ -3,13 +3,13 @@ package com.aquilabuddy.adapter.out.ai.prdraft;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.aquilabuddy.application.port.out.ai.AiClient;
 import com.aquilabuddy.domain.prdraft.PullRequestDraft;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftAnalysisContext;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftIssueContext;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftRequest;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftRepositoryGuideContext;
 import com.aquilabuddy.domain.prdraft.StoredPullRequestDraft;
-import com.aquilabuddy.global.ai.AiClient;
 import java.time.Instant;
 import java.util.List;
 import org.junit.jupiter.api.Test;

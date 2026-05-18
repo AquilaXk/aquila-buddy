@@ -1,4 +1,4 @@
-package com.aquilabuddy.global.ai;
+package com.aquilabuddy.application.port.out.ai;
 
 /**
  * AI completion 호출을 추상화하는 outbound client 계약입니다.

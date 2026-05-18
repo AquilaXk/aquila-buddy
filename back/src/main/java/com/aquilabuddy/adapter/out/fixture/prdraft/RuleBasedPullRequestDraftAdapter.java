@@ -5,12 +5,14 @@ import com.aquilabuddy.domain.prdraft.PullRequestDraft;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftRequest;
 import java.util.ArrayList;
 import java.util.List;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 /**
  * [Outgoing Adapter] 실제 AI 연동 전까지 사용할 규칙 기반 PR 초안 생성 adapter입니다.
  */
 @Component
+@ConditionalOnProperty(prefix = "app.ai", name = "provider", havingValue = "fixture", matchIfMissing = true)
 public class RuleBasedPullRequestDraftAdapter implements GeneratePullRequestDraftPort {
 
     /**

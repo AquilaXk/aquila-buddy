@@ -1,5 +1,6 @@
 package com.aquilabuddy.global.ai;
 
+import com.aquilabuddy.application.port.out.ai.AiClient;
 import java.util.List;
 import java.util.Objects;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
