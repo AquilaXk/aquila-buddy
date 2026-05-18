@@ -1,10 +1,12 @@
 package com.aquilabuddy.adapter.out.persistence.user;
 
 import com.aquilabuddy.application.port.out.ai.EmbeddingClient;
+import com.aquilabuddy.application.port.out.embedding.BackfillUserProfileEmbeddingPort;
 import com.aquilabuddy.application.port.out.user.LoadUserProfilePort;
 import com.aquilabuddy.application.port.out.user.CurrentUserGithubIdPort;
 import com.aquilabuddy.application.port.out.user.RefreshUserProfileVectorPort;
 import com.aquilabuddy.application.port.out.user.SaveUserProfilePort;
+import com.aquilabuddy.domain.embedding.EmbeddingBackfillResult;
 import com.aquilabuddy.domain.embedding.EmbeddingVector;
 import com.aquilabuddy.domain.user.UserProfile;
 import com.aquilabuddy.domain.user.UserProfileUpdateRequest;
@@ -14,6 +16,7 @@ import java.util.NoSuchElementException;
 import java.util.Optional;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,7 +28,8 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserProfilePersistenceAdapter implements
     LoadUserProfilePort,
     SaveUserProfilePort,
-    RefreshUserProfileVectorPort {
+    RefreshUserProfileVectorPort,
+    BackfillUserProfileEmbeddingPort {
 
     private static final String REFRESHED_VECTOR_UPDATED_AT = "2026-05-16T00:00:00Z";
 
@@ -99,6 +103,65 @@ public class UserProfilePersistenceAdapter implements
         return UserProfilePersistenceMapper.toDomain(repository.save(entity));
     }
 
+    @Override
+    public EmbeddingBackfillResult backfillMissingProfileEmbeddings(int limit) {
+        int requestedLimit = normalizeLimit(limit);
+        List<UserProfileJpaEntity> candidates = repository.findByProfileEmbeddingIsNullOrderByGithubIdAsc(
+            PageRequest.of(0, requestedLimit)
+        );
+        int skippedExisting = saturatedInt(repository.countByProfileEmbeddingIsNotNull());
+        EmbeddingClient embeddingClient = embeddingClientProvider.getIfAvailable();
+        if (embeddingClient == null) {
+            return new EmbeddingBackfillResult(
+                "profiles",
+                requestedLimit,
+                candidates.size(),
+                0,
+                skippedExisting,
+                0,
+                candidates.size(),
+                0,
+                0
+            );
+        }
+
+        int updated = 0;
+        int skippedBlankText = 0;
+        int skippedDimensionMismatch = 0;
+        int failed = 0;
+        for (UserProfileJpaEntity entity : candidates) {
+            String input = buildProfileEmbeddingInput(entity);
+            if (input.isBlank()) {
+                skippedBlankText++;
+                continue;
+            }
+            try {
+                EmbeddingVector vector = embeddingClient.embed(input);
+                if (vector.dimension() != expectedEmbeddingDimensions) {
+                    skippedDimensionMismatch++;
+                    continue;
+                }
+                entity.updateProfileEmbedding(vector.toPgvectorLiteral());
+                updated++;
+            } catch (RuntimeException exception) {
+                failed++;
+            }
+        }
+        repository.saveAll(candidates);
+
+        return new EmbeddingBackfillResult(
+            "profiles",
+            requestedLimit,
+            candidates.size(),
+            updated,
+            skippedExisting,
+            skippedBlankText,
+            0,
+            skippedDimensionMismatch,
+            failed
+        );
+    }
+
     private String createProfileEmbedding(UserProfileJpaEntity entity) {
         EmbeddingClient embeddingClient = embeddingClientProvider.getIfAvailable();
         if (embeddingClient == null) {
@@ -139,5 +202,16 @@ public class UserProfilePersistenceAdapter implements
 
         return repository.findById(githubId)
             .orElseThrow(() -> new NoSuchElementException("User profile not found: " + githubId));
+    }
+
+    private static int normalizeLimit(int limit) {
+        if (limit < 1) {
+            return 1;
+        }
+        return Math.min(limit, 500);
+    }
+
+    private static int saturatedInt(long value) {
+        return value > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) value;
     }
 }
