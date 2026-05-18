@@ -79,6 +79,9 @@ public class OpenAiCompatibleAiClient implements AiClient, EmbeddingClient {
                 .retrieve()
                 .body(EmbeddingResponse.class);
             return firstEmbedding(response);
+        } catch (RestClientResponseException exception) {
+            throw new IllegalStateException("AI embedding request failed with provider response status "
+                + exception.getStatusCode().value() + ".", exception);
         } catch (RestClientException exception) {
             throw new IllegalStateException("AI embedding request failed.", exception);
         }
