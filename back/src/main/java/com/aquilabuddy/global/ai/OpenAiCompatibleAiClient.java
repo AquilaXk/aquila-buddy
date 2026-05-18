@@ -2,10 +2,17 @@ package com.aquilabuddy.global.ai;
 
 import com.aquilabuddy.application.port.out.ai.EmbeddingClient;
 import com.aquilabuddy.application.port.out.ai.AiClient;
+import com.aquilabuddy.application.port.out.ai.AiCallObserver;
+import com.aquilabuddy.domain.ai.AiCallObservation;
+import com.aquilabuddy.domain.ai.AiCallOperation;
 import com.aquilabuddy.domain.embedding.EmbeddingVector;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
@@ -19,11 +26,34 @@ import org.springframework.web.client.RestClientResponseException;
 @ConditionalOnProperty(prefix = "app.ai", name = "provider", havingValue = "openai-compatible")
 public class OpenAiCompatibleAiClient implements AiClient, EmbeddingClient {
 
+    private static final String PROVIDER = "openai-compatible";
+    private static final String COMPLETION_PROMPT_VERSION = "ai-client.complete.v1";
+    private static final String EMBEDDING_PROMPT_VERSION = "ai-client.embed.v1";
+
     private final RestClient restClient;
     private final OpenAiCompatibleProperties properties;
+    private final AiCallObserver observer;
 
     public OpenAiCompatibleAiClient(RestClient.Builder restClientBuilder, OpenAiCompatibleProperties properties) {
+        this(restClientBuilder, properties, new NoopAiCallObserver());
+    }
+
+    @Autowired
+    public OpenAiCompatibleAiClient(
+        RestClient.Builder restClientBuilder,
+        OpenAiCompatibleProperties properties,
+        ObjectProvider<AiCallObserver> observerProvider
+    ) {
+        this(restClientBuilder, properties, observerProvider.getIfAvailable(NoopAiCallObserver::new));
+    }
+
+    public OpenAiCompatibleAiClient(
+        RestClient.Builder restClientBuilder,
+        OpenAiCompatibleProperties properties,
+        AiCallObserver observer
+    ) {
         this.properties = Objects.requireNonNull(properties, "properties must not be null.");
+        this.observer = Objects.requireNonNull(observer, "observer must not be null.");
         this.restClient = restClientBuilder
             .baseUrl(this.properties.apiBaseUrlOrDefault())
             .build();
@@ -32,9 +62,10 @@ public class OpenAiCompatibleAiClient implements AiClient, EmbeddingClient {
     @Override
     public String complete(String systemPrompt, String userPrompt) {
         String apiKey = requireApiKey();
+        String model = properties.chatModelOrDefault();
 
         ChatCompletionRequest request = new ChatCompletionRequest(
-            properties.chatModelOrDefault(),
+            model,
             List.of(
                 new ChatMessage("system", requireText(systemPrompt, "systemPrompt")),
                 new ChatMessage("user", requireText(userPrompt, "userPrompt"))
@@ -42,6 +73,7 @@ public class OpenAiCompatibleAiClient implements AiClient, EmbeddingClient {
             properties.temperatureOrDefault()
         );
 
+        long started = System.nanoTime();
         try {
             ChatCompletionResponse response = restClient.post()
                 .uri("/chat/completions")
@@ -49,12 +81,28 @@ public class OpenAiCompatibleAiClient implements AiClient, EmbeddingClient {
                 .body(request)
                 .retrieve()
                 .body(ChatCompletionResponse.class);
-            return firstContent(response);
+            String content = firstContent(response);
+            observer.record(AiCallObservation.success(
+                PROVIDER,
+                AiCallOperation.COMPLETION,
+                model,
+                COMPLETION_PROMPT_VERSION,
+                elapsedSince(started),
+                promptTokens(response),
+                completionTokens(response),
+                Instant.now()
+            ));
+            return content;
         } catch (RestClientResponseException exception) {
+            recordFailure(AiCallOperation.COMPLETION, model, COMPLETION_PROMPT_VERSION, started, "RestClientResponseException");
             throw new IllegalStateException("AI completion request failed with provider response status "
                 + exception.getStatusCode().value() + ".", exception);
         } catch (RestClientException exception) {
+            recordFailure(AiCallOperation.COMPLETION, model, COMPLETION_PROMPT_VERSION, started, exception);
             throw new IllegalStateException("AI completion request failed.", exception);
+        } catch (RuntimeException exception) {
+            recordFailure(AiCallOperation.COMPLETION, model, COMPLETION_PROMPT_VERSION, started, exception);
+            throw exception;
         }
     }
 
@@ -62,14 +110,16 @@ public class OpenAiCompatibleAiClient implements AiClient, EmbeddingClient {
     public EmbeddingVector embed(String input) {
         String normalizedInput = requireInput(input);
         String apiKey = requireApiKey();
+        String model = properties.embeddingModelOrDefault();
 
         EmbeddingRequest request = new EmbeddingRequest(
-            properties.embeddingModelOrDefault(),
+            model,
             normalizedInput,
             "float",
             properties.embeddingDimensionsOrDefault()
         );
 
+        long started = System.nanoTime();
         try {
             EmbeddingResponse response = restClient.post()
                 .uri("/embeddings")
@@ -77,12 +127,28 @@ public class OpenAiCompatibleAiClient implements AiClient, EmbeddingClient {
                 .body(request)
                 .retrieve()
                 .body(EmbeddingResponse.class);
-            return firstEmbedding(response);
+            EmbeddingVector vector = firstEmbedding(response);
+            observer.record(AiCallObservation.success(
+                PROVIDER,
+                AiCallOperation.EMBEDDING,
+                model,
+                EMBEDDING_PROMPT_VERSION,
+                elapsedSince(started),
+                embeddingPromptTokens(response),
+                null,
+                Instant.now()
+            ));
+            return vector;
         } catch (RestClientResponseException exception) {
+            recordFailure(AiCallOperation.EMBEDDING, model, EMBEDDING_PROMPT_VERSION, started, "RestClientResponseException");
             throw new IllegalStateException("AI embedding request failed with provider response status "
                 + exception.getStatusCode().value() + ".", exception);
         } catch (RestClientException exception) {
+            recordFailure(AiCallOperation.EMBEDDING, model, EMBEDDING_PROMPT_VERSION, started, exception);
             throw new IllegalStateException("AI embedding request failed.", exception);
+        } catch (RuntimeException exception) {
+            recordFailure(AiCallOperation.EMBEDDING, model, EMBEDDING_PROMPT_VERSION, started, exception);
+            throw exception;
         }
     }
 
@@ -132,6 +198,50 @@ public class OpenAiCompatibleAiClient implements AiClient, EmbeddingClient {
         return normalized;
     }
 
+    private void recordFailure(
+        AiCallOperation operation,
+        String model,
+        String promptVersion,
+        long started,
+        RuntimeException exception
+    ) {
+        recordFailure(operation, model, promptVersion, started, exception.getClass().getSimpleName());
+    }
+
+    private void recordFailure(
+        AiCallOperation operation,
+        String model,
+        String promptVersion,
+        long started,
+        String errorType
+    ) {
+        observer.record(AiCallObservation.failure(
+            PROVIDER,
+            operation,
+            model,
+            promptVersion,
+            elapsedSince(started),
+            errorType,
+            Instant.now()
+        ));
+    }
+
+    private static Duration elapsedSince(long started) {
+        return Duration.ofNanos(System.nanoTime() - started);
+    }
+
+    private static Integer promptTokens(ChatCompletionResponse response) {
+        return response == null || response.usage() == null ? null : response.usage().prompt_tokens();
+    }
+
+    private static Integer completionTokens(ChatCompletionResponse response) {
+        return response == null || response.usage() == null ? null : response.usage().completion_tokens();
+    }
+
+    private static Integer embeddingPromptTokens(EmbeddingResponse response) {
+        return response == null || response.usage() == null ? null : response.usage().prompt_tokens();
+    }
+
     private record ChatCompletionRequest(
         String model,
         List<ChatMessage> messages,
@@ -146,7 +256,14 @@ public class OpenAiCompatibleAiClient implements AiClient, EmbeddingClient {
     }
 
     private record ChatCompletionResponse(
-        List<ChatChoice> choices
+        List<ChatChoice> choices,
+        ChatUsage usage
+    ) {
+    }
+
+    private record ChatUsage(
+        Integer prompt_tokens,
+        Integer completion_tokens
     ) {
     }
 
@@ -170,12 +287,19 @@ public class OpenAiCompatibleAiClient implements AiClient, EmbeddingClient {
     }
 
     private record EmbeddingResponse(
-        List<EmbeddingItem> data
+        List<EmbeddingItem> data,
+        EmbeddingUsage usage
     ) {
     }
 
     private record EmbeddingItem(
         List<Double> embedding
+    ) {
+    }
+
+    private record EmbeddingUsage(
+        Integer prompt_tokens,
+        Integer total_tokens
     ) {
     }
 }
