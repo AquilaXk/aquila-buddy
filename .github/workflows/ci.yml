@@ -75,6 +75,32 @@ jobs:
           PGVECTOR_TEST_DB_PASSWORD: aquila
         run: bash tools/test/run-pgvector-integration.sh
 
+  operations-smoke:
+    name: Operations Smoke
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Validate openai-compatible pgvector smoke env
+        env:
+          AI_PROVIDER: openai-compatible
+          AI_API_BASE_URL: https://api.openai.com/v1
+          AI_API_KEY: test-key
+          AI_CHAT_MODEL: gpt-4o-mini
+          AI_TEMPERATURE: "0.2"
+          AI_EMBEDDING_MODEL: text-embedding-3-small
+          AI_EMBEDDING_DIMENSIONS: "1536"
+          GITHUB_TOKEN: github-token
+          GITHUB_TOKEN_PERMISSIONS: metadata:read,contents:read,pull-requests:read,issues:read
+          RECOMMENDATION_SIMILARITY_PROVIDER: pgvector
+          RECOMMENDATION_SIMILARITY_LIMIT: "20"
+          DB_URL: jdbc:postgresql://localhost:5432/aquila_buddy
+          DB_USER: aquila
+          DB_PASSWORD: aquila
+        run: bash tools/smoke/validate-ai-runtime-env.sh
+
   frontend:
     name: Frontend
     runs-on: ubuntu-latest

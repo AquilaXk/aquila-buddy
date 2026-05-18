@@ -70,10 +70,35 @@ class AiEnvironmentExamplesTest {
     }
 
     @Test
+    void operationalSmokeRunbookDocumentsAiGithubAndPgvectorReadiness() throws IOException {
+        String readme = Files.readString(Path.of("../README.md"));
+        String runbook = Files.readString(Path.of("../tools/smoke/AI_RUNTIME_SMOKE.md"));
+
+        assertThat(readme)
+            .contains("[AI 운영 smoke runbook](tools/smoke/AI_RUNTIME_SMOKE.md)")
+            .contains("GITHUB_TOKEN_PERMISSIONS=metadata:read,contents:read,pull-requests:read,issues:read");
+        assertThat(runbook)
+            .contains("# AI 운영 smoke runbook")
+            .contains("AI_PROVIDER=openai-compatible")
+            .contains("AI_EMBEDDING_DIMENSIONS=1536")
+            .contains("GITHUB_TOKEN_PERMISSIONS=metadata:read,contents:read,pull-requests:read,issues:read")
+            .contains("Metadata")
+            .contains("Contents")
+            .contains("Pull requests")
+            .contains("Issues")
+            .contains("X-Accepted-GitHub-Permissions")
+            .contains("RECOMMENDATION_SIMILARITY_PROVIDER=pgvector")
+            .contains("schema-postgres-pgvector.sql")
+            .contains("LANGFUSE_ENABLED=false")
+            .doesNotContain(legacyGlmApiKeyName());
+    }
+
+    @Test
     void rootEnvExampleDocumentsOpenAiCompatibleRuntimeSettings() throws IOException {
         String rootExample = Files.readString(Path.of("../.env.example"));
 
         assertThat(rootExample)
+            .contains("GITHUB_TOKEN_PERMISSIONS=metadata:read,contents:read,pull-requests:read,issues:read")
             .contains("# AI_PROVIDER=openai-compatible")
             .contains("AI_API_BASE_URL=https://api.openai.com/v1")
             .contains("AI_API_KEY=")
@@ -90,6 +115,7 @@ class AiEnvironmentExamplesTest {
         String backendExample = Files.readString(Path.of(".env.example"));
 
         assertThat(backendExample)
+            .contains("GITHUB_TOKEN_PERMISSIONS=metadata:read,contents:read,pull-requests:read,issues:read")
             .contains("# AI_PROVIDER=openai-compatible")
             .contains("AI_API_BASE_URL=https://api.openai.com/v1")
             .contains("AI_API_KEY=")
@@ -110,7 +136,8 @@ class AiEnvironmentExamplesTest {
             "AI_CHAT_MODEL", "gpt-test",
             "AI_EMBEDDING_MODEL", "text-embedding-test",
             "AI_EMBEDDING_DIMENSIONS", "1536",
-            "GITHUB_TOKEN", "github-token"
+            "GITHUB_TOKEN", "github-token",
+            "GITHUB_TOKEN_PERMISSIONS", "metadata:read,contents:read,pull-requests:read,issues:read"
         ));
 
         assertThat(result.exitCode()).isZero();
@@ -133,7 +160,59 @@ class AiEnvironmentExamplesTest {
             .contains("missing required env: AI_CHAT_MODEL")
             .contains("missing required env: AI_EMBEDDING_MODEL")
             .contains("env must be a positive integer: AI_EMBEDDING_DIMENSIONS")
+            .contains("missing required env: GITHUB_TOKEN_PERMISSIONS")
             .contains("AI runtime smoke env validation failed.");
+    }
+
+    @Test
+    void runtimeSmokeRejectsGithubTokenWhenPermissionDeclarationIsMissing()
+        throws IOException, InterruptedException {
+        SmokeResult result = runSmoke(Map.of(
+            "AI_PROVIDER", "openai-compatible",
+            "AI_API_KEY", "test-key",
+            "AI_CHAT_MODEL", "gpt-test",
+            "AI_EMBEDDING_MODEL", "text-embedding-test",
+            "AI_EMBEDDING_DIMENSIONS", "1536",
+            "GITHUB_TOKEN", "github-token"
+        ));
+
+        assertThat(result.exitCode()).isNotZero();
+        assertThat(result.output())
+            .contains("missing required env: GITHUB_TOKEN_PERMISSIONS")
+            .contains("AI runtime smoke env validation failed.");
+    }
+
+    @Test
+    void runtimeSmokeRejectsGithubTokenWhenRequiredPermissionIsMissing()
+        throws IOException, InterruptedException {
+        SmokeResult result = runSmoke(Map.of(
+            "AI_PROVIDER", "openai-compatible",
+            "AI_API_KEY", "test-key",
+            "AI_CHAT_MODEL", "gpt-test",
+            "AI_EMBEDDING_MODEL", "text-embedding-test",
+            "AI_EMBEDDING_DIMENSIONS", "1536",
+            "GITHUB_TOKEN", "github-token",
+            "GITHUB_TOKEN_PERMISSIONS", "metadata:read,contents:read"
+        ));
+
+        assertThat(result.exitCode()).isNotZero();
+        assertThat(result.output())
+            .contains("missing GitHub token permission: pull-requests:read")
+            .contains("missing GitHub token permission: issues:read")
+            .contains("AI runtime smoke env validation failed.");
+    }
+
+    @Test
+    void ciWorkflowRunsOperationalSmokeEnvValidation() throws IOException {
+        String workflow = Files.readString(Path.of("../.github/workflows/ci.yml"));
+
+        assertThat(workflow)
+            .contains("operations-smoke:")
+            .contains("name: Operations Smoke")
+            .contains("AI_PROVIDER: openai-compatible")
+            .contains("GITHUB_TOKEN_PERMISSIONS: metadata:read,contents:read,pull-requests:read,issues:read")
+            .contains("RECOMMENDATION_SIMILARITY_PROVIDER: pgvector")
+            .contains("bash tools/smoke/validate-ai-runtime-env.sh");
     }
 
     private static String legacyGlmApiKeyName() {

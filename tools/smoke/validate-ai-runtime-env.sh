@@ -32,6 +32,17 @@ require_any_var() {
   fi
 }
 
+require_github_token_permission() {
+  local permission="$1"
+  local value="${GITHUB_TOKEN_PERMISSIONS:-}"
+  local normalized
+  normalized=",${value//[[:space:]]/},"
+  if [[ "${normalized}" != *",${permission},"* ]]; then
+    printf 'missing GitHub token permission: %s\n' "${permission}" >&2
+    missing=1
+  fi
+}
+
 provider="${AI_PROVIDER:-vertex-ai}"
 case "${provider}" in
   vertex-ai)
@@ -62,6 +73,13 @@ case "${provider}" in
 esac
 
 require_var GITHUB_TOKEN
+require_var GITHUB_TOKEN_PERMISSIONS
+if [[ -n "${GITHUB_TOKEN_PERMISSIONS:-}" ]]; then
+  require_github_token_permission "metadata:read"
+  require_github_token_permission "contents:read"
+  require_github_token_permission "pull-requests:read"
+  require_github_token_permission "issues:read"
+fi
 
 similarity_provider="${RECOMMENDATION_SIMILARITY_PROVIDER:-score}"
 case "${similarity_provider}" in
