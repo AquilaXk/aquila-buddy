@@ -288,9 +288,48 @@ public class GitHubApiClient {
                     .map(content -> toRepositoryCodeContextFile(item.path(), content, maxContentChars))
                     .ifPresent(files::add);
             }
+            if (files.isEmpty()) {
+                files.addAll(loadRepositoryTreeCodeContextFiles(upstreamRepo, maxFiles, maxContentChars));
+            }
             return new GitHubRepositoryCodeContext(upstreamRepo, "default", files);
         } catch (RestClientException exception) {
             return GitHubRepositoryCodeContext.empty(upstreamRepo);
+        }
+    }
+
+    private List<GitHubRepositoryCodeContextFile> loadRepositoryTreeCodeContextFiles(
+        String upstreamRepo,
+        int maxFiles,
+        int maxContentChars
+    ) {
+        try {
+            GitHubRepositoryTreeResponse response = restClient.get()
+                .uri(uriBuilder -> uriBuilder
+                    .path("/repos/" + upstreamRepo + "/git/trees/HEAD")
+                    .queryParam("recursive", "1")
+                    .build())
+                .headers(this::applyAuthorization)
+                .retrieve()
+                .body(GitHubRepositoryTreeResponse.class);
+            List<GitHubRepositoryTreeItemResponse> tree = response == null || response.tree() == null
+                ? List.of()
+                : response.tree();
+
+            List<GitHubRepositoryCodeContextFile> files = new ArrayList<>();
+            for (GitHubRepositoryTreeItemResponse item : tree) {
+                if (files.size() >= maxFiles) {
+                    break;
+                }
+                if (item == null || !"blob".equals(item.type()) || !hasText(item.path())) {
+                    continue;
+                }
+                getContentFile(upstreamRepo, item.path())
+                    .map(content -> toRepositoryCodeContextFile(item.path(), content, maxContentChars))
+                    .ifPresent(files::add);
+            }
+            return files;
+        } catch (RestClientException exception) {
+            return List.of();
         }
     }
 
@@ -501,6 +540,15 @@ public class GitHubApiClient {
     }
 
     private record GitHubCodeSearchItemResponse(String path) {
+    }
+
+    private record GitHubRepositoryTreeResponse(List<GitHubRepositoryTreeItemResponse> tree) {
+    }
+
+    private record GitHubRepositoryTreeItemResponse(
+        String path,
+        String type
+    ) {
     }
 
     private record GitHubContentResponse(String content) {
