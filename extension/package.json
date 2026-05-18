@@ -1,6 +1,7 @@
 {
   "private": true,
   "scripts": {
-    "validate": "node ../tools/extension/validate-extension.mjs"
+    "validate": "node ../tools/extension/validate-extension.mjs",
+    "test:e2e": "node ../tools/extension/live-e2e/run-live-e2e.mjs"
   }
 }

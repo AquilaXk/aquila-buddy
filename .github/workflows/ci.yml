@@ -118,3 +118,6 @@ jobs:
 
       - name: Run extension validation
         run: npm --prefix extension run validate
+
+      - name: Run extension live E2E
+        run: npm --prefix extension run test:e2e
