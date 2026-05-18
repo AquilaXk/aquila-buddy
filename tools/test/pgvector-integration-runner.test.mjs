@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";
 
@@ -24,4 +25,18 @@ test("pgvector integration runner exports compose database defaults", () => {
   assert.match(runner, /jdbc:postgresql:\/\/localhost:\$\{PGVECTOR_TEST_DB_PORT:-54329\}\/aquila_buddy/);
   assert.match(runner, /PGVECTOR_TEST_DB_USER:-aquila/);
   assert.match(runner, /PGVECTOR_TEST_DB_PASSWORD:-aquila/);
+});
+
+test("pgvector integration runner rejects invalid compose port before docker is used", () => {
+  const result = spawnSync("bash", ["tools/test/run-pgvector-integration.sh", "--compose", "--dry-run"], {
+    cwd: new URL("../..", import.meta.url),
+    env: {
+      ...process.env,
+      PGVECTOR_TEST_DB_PORT: "not-a-port",
+    },
+    encoding: "utf8",
+  });
+
+  assert.notEqual(result.status, 0);
+  assert.match(`${result.stdout}\n${result.stderr}`, /PGVECTOR_TEST_DB_PORT must be a positive integer/);
 });
