@@ -92,6 +92,8 @@ test("operations docs describe frontend integration smoke", async () => {
 
   for (const source of [readme, runbook]) {
     assert.match(source, /npm --prefix front run smoke:integration/);
+    assert.match(source, /FRONTEND_INTEGRATION_SERVER_MODE=start/);
+    assert.match(source, /FRONTEND_INTEGRATION_ROUTE_TIMEOUT_MS=20000/);
     assert.match(source, /FRONTEND_INTEGRATION_USE_LIVE_BACKEND=true/);
     assert.match(source, /NEXT_PUBLIC_API_URL=http:\/\/localhost:8080/);
     assert.match(source, /fixture backend/);
