@@ -65,6 +65,36 @@ try {
   const pseudoCode = await detailPage.textContent("#omos-analysis-result .omos-code-block");
   assertIncludes(pseudoCode, "render first contribution CTA", "issue pseudo result");
 
+  const prPage = await chrome.newPage(
+    `${server.origin}/AquilaXk/aquila-buddy/compare/main...AquilaXk:feature-branch`
+  );
+  await installContentScript(prPage, {
+    prDraft: {
+      data: {
+        id: 901,
+        title: "[Test] Chrome extension live 검증 추가",
+        body: "## 관련 이슈\nclose #219\n\n## 요약\nExtension live 검증을 추가합니다.",
+      },
+    },
+    prTranslation: {
+      data: {
+        titleEn: "Add Chrome extension live validation",
+        bodyEn: "## Related issue\nclose #219\n\n## Summary\nAdd extension live validation.",
+      },
+    },
+  });
+  await prPage.click("#omos-toggle");
+  await prPage.fill("#omos-issue-number", "219");
+  await prPage.click("#omos-draft-btn");
+  const draftTitle = await prPage.textContent(".omos-draft-title");
+  assertIncludes(draftTitle, "live 검증", "draft title preview");
+
+  await prPage.click("#omos-apply-btn");
+  const appliedTitle = await prPage.inputValue("#pull_request_title");
+  const appliedBody = await prPage.inputValue("#pull_request_body");
+  assertEqual(appliedTitle, "Add Chrome extension live validation", "applied PR title");
+  assertIncludes(appliedBody, "close #219", "applied PR body issue link");
+
   console.log("extension live e2e passed");
 } finally {
   await chrome.close();

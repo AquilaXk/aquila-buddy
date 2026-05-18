@@ -181,6 +181,12 @@ function createPage(client) {
           if (message.type === "GET_ISSUE_PSEUDO") {
             return { ok: true, data: fixtures.issuePseudo ?? null };
           }
+          if (message.type === "CREATE_PR_DRAFT") {
+            return { ok: true, data: fixtures.prDraft ?? null };
+          }
+          if (message.type === "TRANSLATE_PR_DRAFT") {
+            return { ok: true, data: fixtures.prTranslation ?? null };
+          }
           return { ok: false, error: "UNHANDLED_TEST_MESSAGE_" + message.type };
         }
       `);
@@ -199,6 +205,21 @@ function createPage(client) {
     async textContent(selector) {
       await waitForFunction(client, `Boolean(document.querySelector(${JSON.stringify(selector)}))`);
       return evaluate(client, `document.querySelector(${JSON.stringify(selector)}).textContent`);
+    },
+    async fill(selector, value) {
+      await waitForFunction(client, `Boolean(document.querySelector(${JSON.stringify(selector)}))`);
+      await evaluate(client, `
+        {
+          const input = document.querySelector(${JSON.stringify(selector)});
+          input.value = ${JSON.stringify(value)};
+          input.dispatchEvent(new Event("input", { bubbles: true }));
+          input.dispatchEvent(new Event("change", { bubbles: true }));
+        }
+      `);
+    },
+    async inputValue(selector) {
+      await waitForFunction(client, `Boolean(document.querySelector(${JSON.stringify(selector)}))`);
+      return evaluate(client, `document.querySelector(${JSON.stringify(selector)}).value`);
     },
     async close() {
       client.close();
