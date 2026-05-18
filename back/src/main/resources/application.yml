@@ -48,3 +48,10 @@ app:
       enabled: ${GITHUB_ISSUE_SEARCH_ENABLED:false}
       query: 'label:"good first issue"'
       limit: 3
+  ai:
+    provider: ${AI_PROVIDER:fixture}
+    openai-compatible:
+      api-base-url: ${AI_API_BASE_URL:https://api.openai.com/v1}
+      api-key: ${AI_API_KEY:${OPENAI_API_KEY:}}
+      chat-model: ${AI_CHAT_MODEL:gpt-4o-mini}
+      temperature: ${AI_TEMPERATURE:0.2}
