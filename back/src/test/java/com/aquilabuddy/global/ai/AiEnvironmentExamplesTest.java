@@ -66,6 +66,22 @@ class AiEnvironmentExamplesTest {
     }
 
     @Test
+    void rootEnvExampleDocumentsOpenAiCompatibleRuntimeSettings() throws IOException {
+        String rootExample = Files.readString(Path.of("../.env.example"));
+
+        assertThat(rootExample)
+            .contains("# AI_PROVIDER=openai-compatible")
+            .contains("AI_API_BASE_URL=https://api.openai.com/v1")
+            .contains("AI_API_KEY=")
+            .contains("OPENAI_API_KEY=")
+            .contains("AI_CHAT_MODEL=gpt-4o-mini")
+            .contains("AI_TEMPERATURE=0.2")
+            .contains("AI_EMBEDDING_MODEL=text-embedding-3-small")
+            .contains("AI_EMBEDDING_DIMENSIONS=1536")
+            .doesNotContain(legacyGlmApiKeyName());
+    }
+
+    @Test
     void runtimeSmokeAcceptsOpenAiCompatibleProviderWhenRequiredEnvIsPresent()
         throws IOException, InterruptedException {
         SmokeResult result = runSmoke(Map.of(
