@@ -13,6 +13,8 @@ test("pgvector integration runner documents compose and dry-run options", () => 
 
 test("pgvector integration runner can own docker compose lifecycle", () => {
   assert.match(runner, /docker compose/);
+  assert.match(runner, /PGVECTOR_COMPOSE_PROJECT_NAME/);
+  assert.match(runner, /-p "\$COMPOSE_PROJECT_NAME"/);
   assert.match(runner, /trap .*compose_down.*EXIT/);
   assert.match(runner, /compose_up/);
   assert.match(runner, /compose_down/);

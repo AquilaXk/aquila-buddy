@@ -5,6 +5,7 @@ VALIDATE_ONLY=false
 USE_COMPOSE=false
 DRY_RUN=false
 COMPOSE_FILE="tools/test/compose.pgvector-integration.yaml"
+COMPOSE_PROJECT_NAME="${PGVECTOR_COMPOSE_PROJECT_NAME:-aquila-buddy-pgvector-test}"
 
 usage() {
   echo "Usage: bash tools/test/run-pgvector-integration.sh [--validate-only] [--compose] [--dry-run]" >&2
@@ -30,11 +31,11 @@ for arg in "$@"; do
 done
 
 compose_up() {
-  docker compose -f "$COMPOSE_FILE" up -d --wait postgres
+  docker compose -p "$COMPOSE_PROJECT_NAME" -f "$COMPOSE_FILE" up -d --wait postgres
 }
 
 compose_down() {
-  docker compose -f "$COMPOSE_FILE" down --volumes --remove-orphans
+  docker compose -p "$COMPOSE_PROJECT_NAME" -f "$COMPOSE_FILE" down --volumes --remove-orphans
 }
 
 node tools/db/validate-pgvector-init.mjs
@@ -58,6 +59,7 @@ if [[ "$DRY_RUN" == "true" ]]; then
   echo "pgvector integration test plan:"
   echo "compose=$USE_COMPOSE"
   echo "compose_file=$COMPOSE_FILE"
+  echo "compose_project=$COMPOSE_PROJECT_NAME"
   echo "db_url=$PGVECTOR_TEST_DB_URL"
   echo "gradle_test=PgvectorRecommendedIssueSimilarityIntegrationTest"
   exit 0
