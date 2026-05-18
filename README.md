@@ -33,6 +33,7 @@ npm run dev
 기본 운영 AI provider는 `vertex-ai`입니다.
 
 - `AI_PROVIDER=vertex-ai`: Google Vertex AI Gemini completion/embedding provider를 사용합니다.
+- `AI_PROVIDER=openai-compatible`: OpenAI-compatible chat completion/embedding provider를 사용합니다.
 - `RECOMMENDATION_SIMILARITY_PROVIDER=pgvector`: 사용자 profile embedding과 issue embedding의 pgvector similarity ranking을 사용합니다.
 - `LANGFUSE_ENABLED=true`: AI 호출을 Langfuse generation event로 함께 전송합니다. 기본값은 `false`입니다.
 
@@ -50,6 +51,19 @@ GOOGLE_APPLICATION_CREDENTIALS=./vertex-key.json
 
 `vertex-key.json` 같은 credential 파일은 로컬에만 두고 git에 추가하지 않습니다.
 `.gitignore`는 `vertex-key.json`, `**/vertex-key.json`, credential/service-account JSON 패턴을 제외합니다.
+
+OpenAI-compatible smoke에 필요한 기본 env:
+
+```bash
+AI_API_BASE_URL=https://api.openai.com/v1
+AI_API_KEY=openai_or_compatible_api_key
+AI_CHAT_MODEL=gpt-4o-mini
+AI_TEMPERATURE=0.2
+AI_EMBEDDING_MODEL=text-embedding-3-small
+AI_EMBEDDING_DIMENSIONS=1536
+```
+
+`AI_API_KEY` 대신 `OPENAI_API_KEY`를 사용할 수 있습니다. chat model은 issue guide, PR 초안, 번역에 쓰이고 embedding model은 profile/issue embedding과 pgvector ranking smoke에 쓰입니다.
 
 Langfuse tracing은 선택 기능이며 secret key는 환경 변수로만 주입합니다.
 
@@ -91,6 +105,25 @@ VERTEX_AI_EMBEDDING_MODEL=gemini-embedding-001 \
 VERTEX_AI_EMBEDDING_DIMENSIONS=1536 \
 VERTEX_AI_CREDENTIALS_PATH=./vertex-key.json \
 GOOGLE_APPLICATION_CREDENTIALS=./vertex-key.json \
+RECOMMENDATION_SIMILARITY_PROVIDER=pgvector \
+RECOMMENDATION_SIMILARITY_LIMIT=20 \
+DB_URL=jdbc:postgresql://localhost:5432/aquila_buddy \
+DB_USER=aquila \
+DB_PASSWORD=aquila \
+GITHUB_TOKEN=github_pat_or_fine_grained_token \
+bash tools/smoke/validate-ai-runtime-env.sh
+```
+
+OpenAI-compatible + pgvector smoke env 예시:
+
+```bash
+AI_PROVIDER=openai-compatible \
+AI_API_BASE_URL=https://api.openai.com/v1 \
+AI_API_KEY=openai_or_compatible_api_key \
+AI_CHAT_MODEL=gpt-4o-mini \
+AI_TEMPERATURE=0.2 \
+AI_EMBEDDING_MODEL=text-embedding-3-small \
+AI_EMBEDDING_DIMENSIONS=1536 \
 RECOMMENDATION_SIMILARITY_PROVIDER=pgvector \
 RECOMMENDATION_SIMILARITY_LIMIT=20 \
 DB_URL=jdbc:postgresql://localhost:5432/aquila_buddy \

@@ -21,6 +21,17 @@ require_integer() {
   fi
 }
 
+require_any_var() {
+  local first_name="$1"
+  local second_name="$2"
+  local first_value="${!first_name:-}"
+  local second_value="${!second_name:-}"
+  if [[ -z "${first_value}" && -z "${second_value}" ]]; then
+    printf 'missing required env: %s or %s\n' "${first_name}" "${second_name}" >&2
+    missing=1
+  fi
+}
+
 provider="${AI_PROVIDER:-vertex-ai}"
 case "${provider}" in
   vertex-ai)
@@ -38,8 +49,14 @@ case "${provider}" in
       printf 'create it locally, but do not commit the credential file.\n' >&2
     fi
     ;;
+  openai-compatible)
+    require_any_var AI_API_KEY OPENAI_API_KEY
+    require_var AI_CHAT_MODEL
+    require_var AI_EMBEDDING_MODEL
+    require_integer AI_EMBEDDING_DIMENSIONS
+    ;;
   *)
-    printf 'AI_PROVIDER must be vertex-ai for runtime smoke.\n' >&2
+    printf 'AI_PROVIDER must be vertex-ai or openai-compatible for runtime smoke.\n' >&2
     missing=1
     ;;
 esac
