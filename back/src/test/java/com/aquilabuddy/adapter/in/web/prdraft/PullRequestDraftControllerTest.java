@@ -307,6 +307,7 @@ class PullRequestDraftControllerTest {
             .andExpect(jsonPath("$.success").value(true))
             .andExpect(jsonPath("$.data.id").isNotEmpty())
             .andExpect(jsonPath("$.data.draftId").value(id))
+            .andExpect(jsonPath("$.data.sourceIssueId").value("issue-2"))
             .andExpect(jsonPath("$.data.targetLanguage").value("en"))
             .andExpect(jsonPath("$.data.title").value("docs: Prepare spring-projects/spring-boot#2 update"))
             .andExpect(jsonPath("$.data.body").value(org.hamcrest.Matchers.containsString("## Summary")));
@@ -321,6 +322,7 @@ class PullRequestDraftControllerTest {
             .andExpect(jsonPath("$.success").value(true))
             .andExpect(jsonPath("$.data.titleEn").value("docs: Prepare spring-projects/spring-boot#2 update"))
             .andExpect(jsonPath("$.data.bodyEn").value(org.hamcrest.Matchers.containsString("## Summary")))
+            .andExpect(jsonPath("$.data.sourceIssueId").value("issue-2"))
             .andExpect(jsonPath("$.data.githubUrl").value(org.hamcrest.Matchers.containsString(
                 "https://github.com/spring-projects/spring-boot/compare/main...aquila-dev:feat/validation-docs"
             )))
@@ -329,6 +331,7 @@ class PullRequestDraftControllerTest {
         mockMvc.perform(get("/api/v1/pr/{id}/translations", id))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.data[0].draftId").value(id))
+            .andExpect(jsonPath("$.data[0].sourceIssueId").value("issue-2"))
             .andExpect(jsonPath("$.data[0].targetLanguage").value("en"));
     }
 
@@ -341,6 +344,7 @@ class PullRequestDraftControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.success").value(true))
             .andExpect(jsonPath("$.data[0].draftId").value(id))
+            .andExpect(jsonPath("$.data[0].sourceIssueId").value("issue-2"))
             .andExpect(jsonPath("$.data[0].targetLanguage").value("en"));
     }
 
@@ -410,6 +414,7 @@ class PullRequestDraftControllerTest {
             .andExpect(jsonPath("$.data[0].translationId").value(translationId))
             .andExpect(jsonPath("$.data[0].upstreamRepo").value("spring-projects/spring-boot"))
             .andExpect(jsonPath("$.data[0].githubIssueNumber").value(2))
+            .andExpect(jsonPath("$.data[0].sourceIssueId").value("issue-2"))
             .andExpect(jsonPath("$.data[0].targetLanguage").value("en"))
             .andExpect(jsonPath("$.data[0].title").value("docs: Prepare spring-projects/spring-boot#2 update"))
             .andExpect(jsonPath("$.data[0].createdAt").isNotEmpty());
@@ -527,9 +532,10 @@ class PullRequestDraftControllerTest {
                       "githubIssueNumber": %d,
                       "baseBranch": "main",
                       "headBranch": "%s",
-                      "diffContent": "diff --git a/docs.adoc b/docs.adoc\\n+Add validation example"
+                      "diffContent": "diff --git a/docs.adoc b/docs.adoc\\n+Add validation example",
+                      "sourceIssueId": "issue-%d"
                     }
-                    """, githubIssueNumber, headBranch)))
+                    """, githubIssueNumber, headBranch, githubIssueNumber)))
             .andExpect(status().isOk())
             .andReturn();
 

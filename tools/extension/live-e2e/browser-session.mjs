@@ -52,7 +52,7 @@ export async function launchChromeSession() {
     async close() {
       chrome.kill("SIGTERM");
       await new Promise((resolve) => chrome.once("exit", resolve));
-      await rm(userDataDir, { recursive: true, force: true });
+      await rm(userDataDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
     },
   };
 }

@@ -39,7 +39,11 @@ class AiPullRequestDraftAdapterTest {
         assertThat(aiClient.userPrompt).contains("Merged PR sample #1:");
         assertThat(aiClient.userPrompt).contains("## Summary\n- Improve docs");
         assertThat(aiClient.userPrompt).contains("Issue title: Fix validation message");
+        assertThat(aiClient.userPrompt).contains("Issue summary: Error message should explain invalid input.");
+        assertThat(aiClient.userPrompt).contains("Recommendation reason: Matches Java validation topic");
         assertThat(aiClient.userPrompt).contains("Guideline: Follow validation guide.");
+        assertThat(aiClient.userPrompt).contains("Pseudo code: if invalid then return helpful message");
+        assertThat(aiClient.userPrompt).contains("Side effect: Update documentation examples.");
     }
 
     @Test
@@ -90,6 +94,7 @@ class AiPullRequestDraftAdapterTest {
         assertThat(aiClient.userPrompt).contains("Target language: en");
         assertThat(aiClient.userPrompt).contains("Source title: [Docs] README 기여 안내 보완");
         assertThat(aiClient.userPrompt).contains("Source body:");
+        assertThat(aiClient.userPrompt).contains("close #123");
     }
 
     @Test
@@ -120,6 +125,22 @@ class AiPullRequestDraftAdapterTest {
             .contains("## Changes")
             .contains("## Tests")
             .contains("Add validation example");
+    }
+
+    @Test
+    void fallsBackToDeterministicDraftWhenAiResponseHasBlankTitleMarker() {
+        CapturingAiClient aiClient = new CapturingAiClient("""
+            TITLE:
+            BODY: ## Summary
+            - Missing title should use fallback.
+            """);
+        AiPullRequestDraftAdapter adapter = new AiPullRequestDraftAdapter(aiClient);
+
+        PullRequestDraft draft = adapter.generate(request());
+
+        assertThat(draft.title()).isEqualTo("docs: spring-projects/spring-boot#2 변경 초안");
+        assertThat(draft.body()).startsWith("close #2");
+        assertThat(draft.body()).contains("## Tests");
     }
 
     @Test
@@ -171,7 +192,7 @@ class AiPullRequestDraftAdapterTest {
             "main",
             "feat/readme-fix",
             "[Docs] README 기여 안내 보완",
-            "## 변경 사항\n- README 안내를 보완합니다.",
+            "close #123\n\n## 변경 사항\n- README 안내를 보완합니다.",
             Instant.parse("2026-05-15T01:00:00Z")
         );
     }

@@ -34,6 +34,7 @@ npm run dev
 
 - `AI_PROVIDER=vertex-ai`: Google Vertex AI Gemini completion/embedding provider를 사용합니다.
 - `RECOMMENDATION_SIMILARITY_PROVIDER=pgvector`: 사용자 profile embedding과 issue embedding의 pgvector similarity ranking을 사용합니다.
+- `LANGFUSE_ENABLED=true`: AI 호출을 Langfuse generation event로 함께 전송합니다. 기본값은 `false`입니다.
 
 Vertex AI smoke에 필요한 기본 env:
 
@@ -49,6 +50,16 @@ GOOGLE_APPLICATION_CREDENTIALS=./vertex-key.json
 
 `vertex-key.json` 같은 credential 파일은 로컬에만 두고 git에 추가하지 않습니다.
 `.gitignore`는 `vertex-key.json`, `**/vertex-key.json`, credential/service-account JSON 패턴을 제외합니다.
+
+Langfuse tracing은 선택 기능이며 secret key는 환경 변수로만 주입합니다.
+
+```bash
+LANGFUSE_ENABLED=false
+LANGFUSE_BASE_URL=https://cloud.langfuse.com
+LANGFUSE_PUBLIC_KEY=
+LANGFUSE_SECRET_KEY=
+LANGFUSE_ENVIRONMENT=local
+```
 
 GitHub 연동 smoke에는 repository/issue 조회가 가능한 token이 필요합니다.
 OAuth 로그인을 함께 확인할 때는 `read:user`, `user:email` scope의 GitHub OAuth app 설정도 필요합니다.
@@ -96,6 +107,7 @@ bash tools/smoke/validate-ai-runtime-env.sh
 3. issue crawl/search를 실행해 `issue_embedding` 저장을 확인합니다.
 4. `RECOMMENDATION_SIMILARITY_PROVIDER=pgvector`로 추천 순위가 embedding similarity를 반영하는지 확인합니다.
 5. issue guide, PR draft, translation을 실행해 AI 호출과 `ai_call_observations` 저장을 확인합니다.
+6. `LANGFUSE_ENABLED=true` 환경에서는 같은 호출이 Langfuse generation event로 적재되는지 확인합니다.
 
 ## Ports
 
