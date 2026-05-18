@@ -7,6 +7,7 @@ if [[ "${PROVIDER_E2E_SMOKE_ENABLED:-false}" != "true" ]]; then
 fi
 
 missing=0
+dry_run="${PROVIDER_E2E_DRY_RUN:-false}"
 
 require_var() {
   local name="$1"
@@ -37,7 +38,31 @@ require_any_var() {
   fi
 }
 
+require_live_var() {
+  if [[ "${dry_run}" == "true" ]]; then
+    return
+  fi
+  require_var "$1"
+}
+
+require_live_integer() {
+  if [[ "${dry_run}" == "true" ]]; then
+    return
+  fi
+  require_integer "$1"
+}
+
+require_live_any_var() {
+  if [[ "${dry_run}" == "true" ]]; then
+    return
+  fi
+  require_any_var "$1" "$2"
+}
+
 require_github_token_permission() {
+  if [[ "${dry_run}" == "true" ]]; then
+    return
+  fi
   local permission="$1"
   local value="${GITHUB_TOKEN_PERMISSIONS:-}"
   local normalized
@@ -68,7 +93,7 @@ case "${provider}" in
     fi
     ;;
   openai-compatible)
-    require_any_var AI_API_KEY OPENAI_API_KEY
+    require_live_any_var AI_API_KEY OPENAI_API_KEY
     require_var AI_CHAT_MODEL
     require_var AI_EMBEDDING_MODEL
     require_integer AI_EMBEDDING_DIMENSIONS
@@ -79,8 +104,8 @@ case "${provider}" in
     ;;
 esac
 
-require_var GITHUB_TOKEN
-require_var GITHUB_TOKEN_PERMISSIONS
+require_live_var GITHUB_TOKEN
+require_live_var GITHUB_TOKEN_PERMISSIONS
 if [[ -n "${GITHUB_TOKEN_PERMISSIONS:-}" ]]; then
   require_github_token_permission "metadata:read"
   require_github_token_permission "contents:read"
@@ -92,19 +117,19 @@ if [[ "${RECOMMENDATION_SIMILARITY_PROVIDER:-}" != "pgvector" ]]; then
   printf 'missing required env: RECOMMENDATION_SIMILARITY_PROVIDER=pgvector\n' >&2
   missing=1
 fi
-require_var DB_URL
-require_var DB_USER
-require_var DB_PASSWORD
+require_live_var DB_URL
+require_live_var DB_USER
+require_live_var DB_PASSWORD
 require_integer RECOMMENDATION_SIMILARITY_LIMIT
-require_var EMBEDDING_BACKFILL_OPERATION_TOKEN
+require_live_var EMBEDDING_BACKFILL_OPERATION_TOKEN
 
 auth_mode="${PROVIDER_E2E_AUTH_MODE:-default-github-id}"
 case "${auth_mode}" in
   default-github-id)
-    require_var DEFAULT_GITHUB_ID
+    require_live_var DEFAULT_GITHUB_ID
     ;;
   oauth-header)
-    require_var PROVIDER_E2E_AUTH_HEADER
+    require_live_var PROVIDER_E2E_AUTH_HEADER
     ;;
   *)
     printf 'PROVIDER_E2E_AUTH_MODE must be default-github-id or oauth-header.\n' >&2
@@ -124,3 +149,6 @@ fi
 
 printf 'Provider E2E smoke env validation passed for provider=%s auth=%s similarity=pgvector\n' \
   "${provider}" "${auth_mode}"
+if [[ "${dry_run}" == "true" ]]; then
+  printf 'Provider E2E dry-run validation skipped live secret requirements.\n'
+fi

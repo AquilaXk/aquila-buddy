@@ -22,6 +22,8 @@ print_plan() {
   printf '07 POST /api/v1/pr\n'
   printf '08 POST /api/v1/pr/{draftId}/translate\n'
   printf '09 GET /api/v1/ai/observability\n'
+  printf 'Evidence rows: profile-vector, issue-crawl, embedding-backfill, pgvector-recommendation, issue-guide, pr-draft, translation, observability-trace\n'
+  printf 'Evidence policy: record result, command or run URL, and retry note without secret values.\n'
 }
 
 if [[ "${PROVIDER_E2E_DRY_RUN:-false}" == "true" ]]; then
