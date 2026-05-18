@@ -351,8 +351,7 @@ function buildPullRequestDraftHref(issue: IssueDetailIssue, guide: IssueGuide | 
     issueTitle: issue.title,
     sourceIssueId: issue.id,
     base: "main",
-    head: buildHeadBranch(issue),
-    diff: buildDiffSeed(issue, guide)
+    head: buildHeadBranch(issue)
   });
 
   return `/pr-draft?${params.toString()}`;
@@ -367,14 +366,4 @@ function buildHeadBranch(issue: IssueDetailIssue) {
     .replace(/-+$/g, "");
 
   return `feat/${slug || `issue-${issue.issueNumber}`}`;
-}
-
-function buildDiffSeed(issue: IssueDetailIssue, guide: IssueGuide | null) {
-  const guideSummary = guide?.guideline ?? issue.summary;
-
-  return [
-    `diff --git a/ISSUE-${issue.issueNumber}.md b/ISSUE-${issue.issueNumber}.md`,
-    `+${issue.title}`,
-    `+${guideSummary}`
-  ].join("\n");
 }

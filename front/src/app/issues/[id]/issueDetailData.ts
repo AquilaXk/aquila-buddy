@@ -70,7 +70,6 @@ export function buildPullRequestDraftHref(issue: IssueDetailIssue, guide: IssueG
     issueTitle: issue.title,
     base: "main",
     head: buildHeadBranch(issue),
-    diff: buildDiffSeed(issue, guide),
     sourceIssueId: issue.id
   });
 
@@ -126,16 +125,6 @@ function buildHeadBranch(issue: IssueDetailIssue): string {
     .replace(/-+$/g, "");
 
   return `feat/${slug || `issue-${issue.issueNumber}`}`;
-}
-
-function buildDiffSeed(issue: IssueDetailIssue, guide: IssueGuide | null): string {
-  const guideSummary = guide?.guideline ?? issue.summary;
-
-  return [
-    `diff --git a/ISSUE-${issue.issueNumber}.md b/ISSUE-${issue.issueNumber}.md`,
-    `+${issue.title}`,
-    `+${guideSummary}`
-  ].join("\n");
 }
 
 async function loadSafely<T>(promise: Promise<T>, fallback: T): Promise<LoadResult<T>> {

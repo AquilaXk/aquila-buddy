@@ -22,8 +22,6 @@ type DraftInput = {
   issueTitle: string;
   baseBranch: string;
   headBranch: string;
-  diffSeed: string;
-  hasExplicitDiffSeed: boolean;
 };
 
 type SearchParamsLike = {
@@ -142,8 +140,7 @@ function PrDraftContent() {
         githubIssueNumber: Number(draftInput.githubIssueNumber),
         sourceIssueId: draftInput.issueId || undefined,
         baseBranch: baseBranch.trim(),
-        headBranch: headBranch.trim(),
-        diffContent: draftInput.diffSeed
+        headBranch: headBranch.trim()
       });
 
       setDraft(createdDraft);
@@ -436,7 +433,6 @@ function readDraftInputFromSearchParams(searchParams: SearchParamsLike): DraftIn
   const upstreamRepo = readTextParam(searchParams, "repo", "");
   const githubIssueNumber = readIssueNumberParam(searchParams);
   const issueTitle = readTextParam(searchParams, "issueTitle", "");
-  const explicitDiffSeed = readTextParam(searchParams, "diff", "");
 
   return {
     upstreamRepo,
@@ -444,9 +440,7 @@ function readDraftInputFromSearchParams(searchParams: SearchParamsLike): DraftIn
     issueId: readTextParam(searchParams, "issueId", readTextParam(searchParams, "sourceIssueId", "")),
     issueTitle,
     baseBranch: readTextParam(searchParams, "base", "main"),
-    headBranch: readTextParam(searchParams, "head", ""),
-    diffSeed: explicitDiffSeed || buildDiffSeed(upstreamRepo, githubIssueNumber, issueTitle),
-    hasExplicitDiffSeed: Boolean(explicitDiffSeed)
+    headBranch: readTextParam(searchParams, "head", "")
   };
 }
 
@@ -459,10 +453,7 @@ function mergeDraftInputWithIssue(currentInput: DraftInput, issue: RecommendedIs
     ...currentInput,
     upstreamRepo,
     githubIssueNumber,
-    issueTitle,
-    diffSeed: currentInput.hasExplicitDiffSeed
-      ? currentInput.diffSeed
-      : buildDiffSeed(upstreamRepo, githubIssueNumber, issueTitle)
+    issueTitle
   };
 }
 
@@ -481,14 +472,6 @@ function readIssueNumberParam(searchParams: SearchParamsLike) {
   }
 
   return String(issueNumber);
-}
-
-function buildDiffSeed(upstreamRepo: string, issueNumber: string, issueTitle: string) {
-  return [
-    `diff --git a/ISSUE-${issueNumber || "draft"}.md b/ISSUE-${issueNumber || "draft"}.md`,
-    `+${upstreamRepo} #${issueNumber}`,
-    `+${issueTitle || "PR draft context"}`
-  ].join("\n");
 }
 
 function formatDate(value: string) {
