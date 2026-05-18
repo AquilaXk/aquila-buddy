@@ -10,19 +10,44 @@ import java.util.Objects;
 public record PullRequestDraftTranslation(
     String id,
     String draftId,
+    String sourceIssueId,
     String targetLanguage,
     String title,
     String body,
     Instant createdAt
 ) {
 
+    public PullRequestDraftTranslation(
+        String id,
+        String draftId,
+        String targetLanguage,
+        String title,
+        String body,
+        Instant createdAt
+    ) {
+        this(id, draftId, null, targetLanguage, title, body, createdAt);
+    }
+
     public PullRequestDraftTranslation {
         id = requireText(id, "id");
         draftId = requireText(draftId, "draftId");
+        sourceIssueId = optionalText(sourceIssueId);
         targetLanguage = requireText(targetLanguage, "targetLanguage").toLowerCase(Locale.ROOT);
         title = requireText(title, "title");
         body = requireText(body, "body");
         createdAt = Objects.requireNonNull(createdAt, "createdAt must not be null.");
+    }
+
+    public PullRequestDraftTranslation withSourceIssueId(String sourceIssueId) {
+        return new PullRequestDraftTranslation(id, draftId, sourceIssueId, targetLanguage, title, body, createdAt);
+    }
+
+    private static String optionalText(String value) {
+        if (value == null) {
+            return null;
+        }
+        String normalized = value.trim();
+        return normalized.isBlank() ? null : normalized;
     }
 
     private static String requireText(String value, String fieldName) {

@@ -193,6 +193,7 @@ export type PullRequestDraftTimeline = {
 export type PullRequestDraftTranslation = PullRequestDraft & {
   id: string;
   draftId: string;
+  sourceIssueId: string | null;
   targetLanguage: "en";
   createdAt: string;
 };
