@@ -9,12 +9,14 @@ import com.aquilabuddy.application.port.in.issue.ListCollectedIssuesUseCase;
 import com.aquilabuddy.application.port.out.issue.FindRecommendedIssuePort;
 import com.aquilabuddy.application.port.out.issue.LoadCollectedIssuesPort;
 import com.aquilabuddy.application.port.out.issue.LoadRecommendedIssuesPort;
+import com.aquilabuddy.application.port.out.issue.RankRecommendedIssuesPort;
 import com.aquilabuddy.application.port.out.issue.SaveRecommendedIssuesPort;
 import com.aquilabuddy.application.port.out.issue.SearchRecommendedIssuesPort;
 import com.aquilabuddy.domain.issue.RecommendedIssue;
 import com.aquilabuddy.domain.issue.RecommendedIssueHistory;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 /**
@@ -36,6 +38,24 @@ public class RecommendedIssueService implements
     private final FindRecommendedIssuePort findRecommendedIssuePort;
     private final SaveRecommendedIssuesPort saveRecommendedIssuesPort;
     private final SearchRecommendedIssuesPort searchRecommendedIssuesPort;
+    private final RankRecommendedIssuesPort rankRecommendedIssuesPort;
+
+    @Autowired
+    public RecommendedIssueService(
+        LoadRecommendedIssuesPort loadRecommendedIssuesPort,
+        LoadCollectedIssuesPort loadCollectedIssuesPort,
+        FindRecommendedIssuePort findRecommendedIssuePort,
+        SaveRecommendedIssuesPort saveRecommendedIssuesPort,
+        SearchRecommendedIssuesPort searchRecommendedIssuesPort,
+        RankRecommendedIssuesPort rankRecommendedIssuesPort
+    ) {
+        this.loadRecommendedIssuesPort = loadRecommendedIssuesPort;
+        this.loadCollectedIssuesPort = loadCollectedIssuesPort;
+        this.findRecommendedIssuePort = findRecommendedIssuePort;
+        this.saveRecommendedIssuesPort = saveRecommendedIssuesPort;
+        this.searchRecommendedIssuesPort = searchRecommendedIssuesPort;
+        this.rankRecommendedIssuesPort = rankRecommendedIssuesPort;
+    }
 
     public RecommendedIssueService(
         LoadRecommendedIssuesPort loadRecommendedIssuesPort,
@@ -44,11 +64,14 @@ public class RecommendedIssueService implements
         SaveRecommendedIssuesPort saveRecommendedIssuesPort,
         SearchRecommendedIssuesPort searchRecommendedIssuesPort
     ) {
-        this.loadRecommendedIssuesPort = loadRecommendedIssuesPort;
-        this.loadCollectedIssuesPort = loadCollectedIssuesPort;
-        this.findRecommendedIssuePort = findRecommendedIssuePort;
-        this.saveRecommendedIssuesPort = saveRecommendedIssuesPort;
-        this.searchRecommendedIssuesPort = searchRecommendedIssuesPort;
+        this(
+            loadRecommendedIssuesPort,
+            loadCollectedIssuesPort,
+            findRecommendedIssuePort,
+            saveRecommendedIssuesPort,
+            searchRecommendedIssuesPort,
+            List::copyOf
+        );
     }
 
     /**
@@ -60,12 +83,12 @@ public class RecommendedIssueService implements
             List<RecommendedIssue> searchedIssues = searchRecommendedIssuesPort.searchRecommendedIssues();
             if (!searchedIssues.isEmpty()) {
                 saveRecommendedIssuesPort.saveRecommendedIssues(searchedIssues);
-                return searchedIssues;
+                return rankRecommendedIssuesPort.rankRecommendedIssues(searchedIssues);
             }
         } catch (RuntimeException ignored) {
             // 외부 검색 장애가 추천 API 전체 실패로 번지지 않도록 저장 데이터 fallback을 유지합니다.
         }
-        return loadRecommendedIssuesPort.loadRecommendedIssues();
+        return rankRecommendedIssuesPort.rankRecommendedIssues(loadRecommendedIssuesPort.loadRecommendedIssues());
     }
 
     /**
