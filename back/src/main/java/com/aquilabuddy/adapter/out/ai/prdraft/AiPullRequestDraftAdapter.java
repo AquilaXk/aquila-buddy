@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.function.Supplier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
@@ -43,13 +44,15 @@ public class AiPullRequestDraftAdapter implements GeneratePullRequestDraftPort, 
 
     @Override
     public PullRequestDraft generate(PullRequestDraftRequest request) {
-        return parseDraft(aiClient.complete(DRAFT_SYSTEM_PROMPT, buildDraftPrompt(request)));
+        String response = aiClient.complete(DRAFT_SYSTEM_PROMPT, buildDraftPrompt(request));
+        return parseDraftOrFallback(response, () -> fallbackDraft(request));
     }
 
     @Override
     public PullRequestDraft translate(StoredPullRequestDraft draft, String targetLanguage) {
         String normalizedLanguage = normalizeTargetLanguage(targetLanguage);
-        return parseDraft(aiClient.complete(TRANSLATION_SYSTEM_PROMPT, buildTranslationPrompt(draft, normalizedLanguage)));
+        String response = aiClient.complete(TRANSLATION_SYSTEM_PROMPT, buildTranslationPrompt(draft, normalizedLanguage));
+        return parseDraftOrFallback(response, () -> fallbackTranslation(draft));
     }
 
     private static String buildDraftPrompt(PullRequestDraftRequest request) {
@@ -108,6 +111,57 @@ public class AiPullRequestDraftAdapter implements GeneratePullRequestDraftPort, 
             throw new IllegalStateException("AI response TITLE and BODY must not be blank.");
         }
         return new PullRequestDraft(title, body);
+    }
+
+    private static PullRequestDraft parseDraftOrFallback(String response, Supplier<PullRequestDraft> fallback) {
+        try {
+            return parseDraft(response);
+        } catch (IllegalStateException | NullPointerException ignored) {
+            return fallback.get();
+        }
+    }
+
+    private static PullRequestDraft fallbackDraft(PullRequestDraftRequest request) {
+        String title = "docs: " + request.upstreamRepo() + "#" + request.githubIssueNumber() + " 변경 초안";
+        String body = String.join("\n",
+            "close #" + request.githubIssueNumber(),
+            "",
+            "## Summary",
+            "- " + request.upstreamRepo() + " #" + request.githubIssueNumber() + " 변경 초안입니다.",
+            "",
+            "## Changes",
+            "- " + firstMeaningfulLine(request.diffContent(), "요청된 변경 내용을 정리합니다."),
+            "",
+            "## Tests",
+            "- 변경 후 관련 검증을 실행합니다."
+        );
+        return new PullRequestDraft(title, body);
+    }
+
+    private static PullRequestDraft fallbackTranslation(StoredPullRequestDraft draft) {
+        String body = String.join("\n",
+            "## Summary",
+            "- Translation could not be generated automatically.",
+            "",
+            "## Source title",
+            draft.title(),
+            "",
+            "## Source body",
+            draft.body()
+        );
+        return new PullRequestDraft("docs: translate pull request draft", body);
+    }
+
+    private static String firstMeaningfulLine(String value, String fallback) {
+        if (value == null || value.isBlank()) {
+            return fallback;
+        }
+        return value.lines()
+            .map(String::trim)
+            .filter(line -> !line.isBlank())
+            .filter(line -> !line.startsWith("diff --git"))
+            .findFirst()
+            .orElse(fallback);
     }
 
     private static String normalizeTargetLanguage(String targetLanguage) {
