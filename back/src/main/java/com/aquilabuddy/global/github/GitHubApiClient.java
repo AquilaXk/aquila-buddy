@@ -293,6 +293,20 @@ public class GitHubApiClient {
             return GitHubRepositoryCodeContext.empty(upstreamRepo);
         }
 
+        List<GitHubRepositoryCodeContextFile> files =
+            loadCodeSearchCodeContextFiles(upstreamRepo, query, maxFiles, maxContentChars);
+        if (files.isEmpty()) {
+            files = loadRepositoryTreeCodeContextFiles(upstreamRepo, query, maxFiles, maxContentChars);
+        }
+        return new GitHubRepositoryCodeContext(upstreamRepo, "default", files);
+    }
+
+    private List<GitHubRepositoryCodeContextFile> loadCodeSearchCodeContextFiles(
+        String upstreamRepo,
+        String query,
+        int maxFiles,
+        int maxContentChars
+    ) {
         try {
             GitHubCodeSearchResponse response = restClient.get()
                 .uri(uriBuilder -> uriBuilder
@@ -318,12 +332,9 @@ public class GitHubApiClient {
                     .map(content -> toRepositoryCodeContextFile(item.path(), content, maxContentChars))
                     .ifPresent(files::add);
             }
-            if (files.isEmpty()) {
-                files.addAll(loadRepositoryTreeCodeContextFiles(upstreamRepo, query, maxFiles, maxContentChars));
-            }
-            return new GitHubRepositoryCodeContext(upstreamRepo, "default", files);
+            return files;
         } catch (RestClientException exception) {
-            return GitHubRepositoryCodeContext.empty(upstreamRepo);
+            return List.of();
         }
     }
 

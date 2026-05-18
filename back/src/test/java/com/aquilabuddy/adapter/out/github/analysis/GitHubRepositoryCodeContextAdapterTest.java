@@ -54,6 +54,17 @@ class GitHubRepositoryCodeContextAdapterTest {
         assertThat(context.hasFiles()).isFalse();
     }
 
+    @Test
+    void normalizesInvalidLimitsBeforeLoadingRepositoryCodeContext() {
+        RecordingGitHubApiClient client = new RecordingGitHubApiClient();
+        GitHubRepositoryCodeContextAdapter adapter = new GitHubRepositoryCodeContextAdapter(client, 0, -10);
+
+        adapter.loadRepositoryCodeContext(issue());
+
+        assertThat(client.maxFiles).isEqualTo(3);
+        assertThat(client.maxContentChars).isEqualTo(2000);
+    }
+
     private static RecommendedIssue issue() {
         return new RecommendedIssue(
             "demo-2",
