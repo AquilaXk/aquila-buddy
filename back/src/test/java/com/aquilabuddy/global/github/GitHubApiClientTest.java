@@ -527,6 +527,48 @@ class GitHubApiClientTest {
     }
 
     @Test
+    void treeRepositoryCodeContextAppliesMaxFilesAndContentTruncation() {
+        route("/search/code", 200, """
+            {
+              "items": []
+            }
+            """);
+        route("/repos/spring-projects/spring-boot/git/trees/HEAD", 200, """
+            {
+              "tree": [
+                {
+                  "path": "src/main/java/ValidationController.java",
+                  "type": "blob"
+                },
+                {
+                  "path": "src/main/java/ValidationService.java",
+                  "type": "blob"
+                }
+              ]
+            }
+            """);
+        route(
+            "/repos/spring-projects/spring-boot/contents/src/main/java/ValidationController.java",
+            200,
+            contentBody("class ValidationController { void validate() { System.out.println(\"long\"); } }")
+        );
+        route(
+            "/repos/spring-projects/spring-boot/contents/src/main/java/ValidationService.java",
+            200,
+            contentBody("class ValidationService { void validate() {} }")
+        );
+        GitHubApiClient client = client();
+
+        GitHubApiClient.GitHubRepositoryCodeContext context =
+            client.loadRepositoryCodeContext("spring-projects/spring-boot", "validation controller", 1, 24);
+
+        assertThat(context.files()).hasSize(1);
+        assertThat(context.files().getFirst().path()).isEqualTo("src/main/java/ValidationController.java");
+        assertThat(context.files().getFirst().content()).isEqualTo("class ValidationControll...");
+        assertThat(context.files().getFirst().truncated()).isTrue();
+    }
+
+    @Test
     void fallsBackToTreeRepositoryCodeContextWhenCodeSearchFails() {
         route("/search/code", 403, """
             {"message": "API rate limit exceeded"}
