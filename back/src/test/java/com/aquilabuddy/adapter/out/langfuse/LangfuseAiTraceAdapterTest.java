@@ -61,9 +61,42 @@ class LangfuseAiTraceAdapterTest {
         assertThat(body).contains("\"operation\":\"COMPLETION\"");
         assertThat(body).contains("\"promptVersion\":\"ai-client.complete.v1\"");
         assertThat(body).contains("\"model\":\"gemini-2.5-flash\"");
+        assertThat(body).contains("\"latencyMillis\":42");
         assertThat(body).contains("\"input\":12");
         assertThat(body).contains("\"output\":5");
         assertThat(body).contains("\"environment\":\"test\"");
+    }
+
+    @Test
+    void sendsFailureReasonAndLatencyMetadata() throws Exception {
+        server.enqueue(new MockResponse()
+            .setResponseCode(207)
+            .setHeader("Content-Type", "application/json")
+            .setBody("{\"successes\":1,\"errors\":[]}"));
+        LangfuseAiTraceAdapter adapter = adapter();
+
+        adapter.record(AiCallObservation.failure(
+            "openai-compatible",
+            AiCallOperation.EMBEDDING,
+            "text-embedding-3-small",
+            "ai-client.embed.v1",
+            Duration.ofMillis(13),
+            "SocketTimeoutException",
+            "provider request timed out",
+            Instant.parse("2026-05-18T07:00:00Z")
+        ));
+
+        RecordedRequest request = server.takeRequest();
+        String body = request.getBody().readUtf8();
+        assertThat(body).contains("\"level\":\"ERROR\"");
+        assertThat(body).contains("\"statusMessage\":\"SocketTimeoutException\"");
+        assertThat(body).contains("\"provider\":\"openai-compatible\"");
+        assertThat(body).contains("\"operation\":\"EMBEDDING\"");
+        assertThat(body).contains("\"promptVersion\":\"ai-client.embed.v1\"");
+        assertThat(body).contains("\"model\":\"text-embedding-3-small\"");
+        assertThat(body).contains("\"latencyMillis\":13");
+        assertThat(body).contains("\"errorType\":\"SocketTimeoutException\"");
+        assertThat(body).contains("\"failureReason\":\"provider request timed out\"");
     }
 
     @Test
