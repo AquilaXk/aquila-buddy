@@ -7,6 +7,7 @@ import com.aquilabuddy.domain.embedding.EmbeddingVector;
 import com.aquilabuddy.domain.issue.RecommendedIssue;
 import com.aquilabuddy.domain.user.UserProfile;
 import java.util.List;
+import java.util.stream.IntStream;
 import javax.sql.DataSource;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
@@ -27,12 +28,12 @@ class PgvectorRecommendedIssueSimilarityIntegrationTest {
         DataSource dataSource = dataSource();
         initializeSchema(dataSource);
         JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
-        insertIssue(jdbcTemplate, "far-issue", 1L, "[0,1,0]", 0.99);
-        insertIssue(jdbcTemplate, "near-issue", 2L, "[1,0,0]", 0.10);
+        insertIssue(jdbcTemplate, "far-issue", 1L, vectorLiteral(0.0, 1.0), 0.99);
+        insertIssue(jdbcTemplate, "near-issue", 2L, vectorLiteral(1.0, 0.0), 0.10);
 
         PgvectorRecommendedIssueSimilarityAdapter adapter = new PgvectorRecommendedIssueSimilarityAdapter(
             JdbcClient.create(dataSource),
-            input -> new EmbeddingVector(List.of(1.0, 0.0, 0.0)),
+            input -> new EmbeddingVector(vectorValues(1.0, 0.0)),
             currentUserProfilePort(),
             10
         );
@@ -121,6 +122,26 @@ class PgvectorRecommendedIssueSimilarityIntegrationTest {
             "OPEN",
             "Demo reason"
         );
+    }
+
+    private static String vectorLiteral(double firstValue, double secondValue) {
+        return "[" + String.join(",", vectorValues(firstValue, secondValue).stream()
+            .map(String::valueOf)
+            .toList()) + "]";
+    }
+
+    private static List<Double> vectorValues(double firstValue, double secondValue) {
+        return IntStream.range(0, 1536)
+            .mapToObj(index -> {
+                if (index == 0) {
+                    return firstValue;
+                }
+                if (index == 1) {
+                    return secondValue;
+                }
+                return 0.0;
+            })
+            .toList();
     }
 
     private static String env(String name, String defaultValue) {
