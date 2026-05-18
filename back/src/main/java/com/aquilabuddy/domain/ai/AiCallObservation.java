@@ -15,6 +15,7 @@ public record AiCallObservation(
     long latencyMillis,
     boolean success,
     String errorType,
+    String failureReason,
     Integer inputTokens,
     Integer outputTokens,
     Instant observedAt
@@ -30,8 +31,12 @@ public record AiCallObservation(
         }
         if (!success) {
             errorType = requireText(errorType, "errorType");
+            failureReason = normalizeOptional(failureReason);
         } else if (errorType != null && errorType.isBlank()) {
             errorType = null;
+            failureReason = null;
+        } else {
+            failureReason = null;
         }
         observedAt = Objects.requireNonNull(observedAt, "observedAt must not be null.");
     }
@@ -54,6 +59,7 @@ public record AiCallObservation(
             latencyMillis(latency),
             true,
             null,
+            null,
             inputTokens,
             outputTokens,
             observedAt
@@ -69,6 +75,28 @@ public record AiCallObservation(
         String errorType,
         Instant observedAt
     ) {
+        return failure(
+            provider,
+            operation,
+            model,
+            promptVersion,
+            latency,
+            errorType,
+            null,
+            observedAt
+        );
+    }
+
+    public static AiCallObservation failure(
+        String provider,
+        AiCallOperation operation,
+        String model,
+        String promptVersion,
+        Duration latency,
+        String errorType,
+        String failureReason,
+        Instant observedAt
+    ) {
         return new AiCallObservation(
             provider,
             operation,
@@ -77,6 +105,7 @@ public record AiCallObservation(
             latencyMillis(latency),
             false,
             errorType,
+            failureReason,
             null,
             null,
             observedAt
@@ -85,6 +114,13 @@ public record AiCallObservation(
 
     private static long latencyMillis(Duration latency) {
         return Objects.requireNonNull(latency, "latency must not be null.").toMillis();
+    }
+
+    private static String normalizeOptional(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value.trim();
     }
 
     private static String requireText(String value, String fieldName) {

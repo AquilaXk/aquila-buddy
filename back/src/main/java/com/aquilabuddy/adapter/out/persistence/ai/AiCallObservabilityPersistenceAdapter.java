@@ -63,6 +63,7 @@ public class AiCallObservabilityPersistenceAdapter implements LoadAiCallObservab
             entity.getLatencyMillis(),
             entity.isSuccess(),
             entity.getErrorType(),
+            null,
             entity.getInputTokens(),
             entity.getOutputTokens(),
             entity.getObservedAt()

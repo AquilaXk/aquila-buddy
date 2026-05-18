@@ -47,6 +47,7 @@ class AiCallObservabilityServiceTest {
                     42,
                     true,
                     null,
+                    null,
                     120,
                     32,
                     Instant.parse("2026-05-18T06:00:00Z")
