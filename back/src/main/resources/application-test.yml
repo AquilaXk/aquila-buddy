@@ -9,6 +9,8 @@ spring:
       ddl-auto: none
 
 app:
+  ai:
+    provider: fixture
   github:
     issue-search:
       enabled: false

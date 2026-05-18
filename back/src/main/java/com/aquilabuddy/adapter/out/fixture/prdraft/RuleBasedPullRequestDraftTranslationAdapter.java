@@ -4,12 +4,14 @@ import com.aquilabuddy.application.port.out.prdraft.TranslatePullRequestDraftPor
 import com.aquilabuddy.domain.prdraft.PullRequestDraft;
 import com.aquilabuddy.domain.prdraft.StoredPullRequestDraft;
 import java.util.Locale;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 /**
  * [Outgoing Adapter] 실제 AI 번역 연동 전까지 사용할 규칙 기반 PR 초안 영문 변환 adapter입니다.
  */
 @Component
+@ConditionalOnProperty(prefix = "app.ai", name = "provider", havingValue = "fixture", matchIfMissing = true)
 public class RuleBasedPullRequestDraftTranslationAdapter implements TranslatePullRequestDraftPort {
 
     /**
