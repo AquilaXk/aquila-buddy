@@ -10,6 +10,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestClientResponseException;
 
 /**
  * OpenAI Chat Completions 호환 API를 호출하는 AI client입니다.
@@ -50,6 +51,9 @@ public class OpenAiCompatibleAiClient implements AiClient, EmbeddingClient {
                 .retrieve()
                 .body(ChatCompletionResponse.class);
             return firstContent(response);
+        } catch (RestClientResponseException exception) {
+            throw new IllegalStateException("AI completion request failed with provider response status "
+                + exception.getStatusCode().value() + ".", exception);
         } catch (RestClientException exception) {
             throw new IllegalStateException("AI completion request failed.", exception);
         }
