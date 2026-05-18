@@ -10,6 +10,7 @@ import com.aquilabuddy.domain.issue.RecommendedIssue;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 /**
@@ -27,13 +28,16 @@ public class RecommendedIssuePersistenceAdapter implements
 
     private final RecommendedIssueJpaRepository repository;
     private final ObjectProvider<EmbeddingClient> embeddingClientProvider;
+    private final int expectedEmbeddingDimensions;
 
     public RecommendedIssuePersistenceAdapter(
         RecommendedIssueJpaRepository repository,
-        ObjectProvider<EmbeddingClient> embeddingClientProvider
+        ObjectProvider<EmbeddingClient> embeddingClientProvider,
+        @Value("${app.embedding.expected-dimensions:1536}") int expectedEmbeddingDimensions
     ) {
         this.repository = repository;
         this.embeddingClientProvider = embeddingClientProvider;
+        this.expectedEmbeddingDimensions = expectedEmbeddingDimensions;
     }
 
     /**
@@ -100,6 +104,9 @@ public class RecommendedIssuePersistenceAdapter implements
 
         try {
             EmbeddingVector vector = embeddingClient.embed(buildIssueEmbeddingInput(issue));
+            if (vector.dimension() != expectedEmbeddingDimensions) {
+                return null;
+            }
             return vector.toPgvectorLiteral();
         } catch (RuntimeException exception) {
             return null;
