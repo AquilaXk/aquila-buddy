@@ -10,6 +10,7 @@ import java.util.Objects;
 public record PullRequestDraftTranslateResult(
     String titleEn,
     String bodyEn,
+    String sourceIssueId,
     String githubUrl
 ) {
 
@@ -45,6 +46,7 @@ public record PullRequestDraftTranslateResult(
         return new PullRequestDraftTranslateResult(
             translation.title(),
             translation.body(),
+            draft.sourceIssueId(),
             buildGithubUrl(draft, translation, compareReference)
         );
     }
