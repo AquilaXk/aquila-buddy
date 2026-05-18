@@ -20,14 +20,7 @@ app:
       query: ${GITHUB_ISSUE_SEARCH_QUERY:label:"good first issue"}
       limit: ${GITHUB_ISSUE_SEARCH_LIMIT:3}
   ai:
-    provider: ${AI_PROVIDER:fixture}
-    openai-compatible:
-      api-base-url: ${AI_API_BASE_URL:https://api.openai.com/v1}
-      api-key: ${AI_API_KEY:${OPENAI_API_KEY:${GLM_API_KEY:}}}
-      chat-model: ${AI_CHAT_MODEL:gpt-4o-mini}
-      temperature: ${AI_TEMPERATURE:0.2}
-      embedding-model: ${AI_EMBEDDING_MODEL:text-embedding-3-small}
-      embedding-dimensions: ${AI_EMBEDDING_DIMENSIONS:1536}
+    provider: ${AI_PROVIDER:vertex-ai}
   recommendation:
     similarity:
       provider: ${RECOMMENDATION_SIMILARITY_PROVIDER:score}
