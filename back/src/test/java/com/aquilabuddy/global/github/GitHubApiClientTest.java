@@ -486,16 +486,33 @@ class GitHubApiClientTest {
     }
 
     @Test
-    void returnsEmptyRepositoryCodeContextWhenCodeSearchFails() {
+    void fallsBackToTreeRepositoryCodeContextWhenCodeSearchFails() {
         route("/search/code", 403, """
             {"message": "API rate limit exceeded"}
             """);
+        route("/repos/spring-projects/spring-boot/git/trees/HEAD", 200, """
+            {
+              "tree": [
+                {
+                  "path": "src/main/java/ValidationController.java",
+                  "type": "blob"
+                }
+              ]
+            }
+            """);
+        route(
+            "/repos/spring-projects/spring-boot/contents/src/main/java/ValidationController.java",
+            200,
+            contentBody("class ValidationController { void validate() {} }")
+        );
         GitHubApiClient client = client();
 
         GitHubApiClient.GitHubRepositoryCodeContext context =
-            client.loadRepositoryCodeContext("spring-projects/spring-boot", "validation", 3, 100);
+            client.loadRepositoryCodeContext("spring-projects/spring-boot", "validation controller", 3, 100);
 
-        assertThat(context.files()).isEmpty();
+        assertThat(context.files())
+            .extracting(GitHubApiClient.GitHubRepositoryCodeContextFile::path)
+            .containsExactly("src/main/java/ValidationController.java");
     }
 
     private GitHubApiClient client() {
