@@ -2,6 +2,7 @@ package com.aquilabuddy.adapter.in.web.embedding;
 
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -15,10 +16,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(EmbeddingBackfillController.class)
 @AutoConfigureMockMvc(addFilters = false)
+@TestPropertySource(properties = "app.embedding.backfill.operation-token=test-operation-token")
 class EmbeddingBackfillControllerTest {
 
     @Autowired
@@ -57,7 +60,9 @@ class EmbeddingBackfillControllerTest {
                 )
             ));
 
-        mockMvc.perform(post("/api/v1/embeddings/backfill").param("limit", "25"))
+        mockMvc.perform(post("/api/v1/embeddings/backfill")
+                .header("X-Aquila-Operation-Token", "test-operation-token")
+                .param("limit", "25"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.success").value(true))
             .andExpect(jsonPath("$.data.profiles.target").value("profiles"))
@@ -68,5 +73,23 @@ class EmbeddingBackfillControllerTest {
             .andExpect(jsonPath("$.data.issues.failureReasons[0]").value("issue-1: IllegalStateException"));
 
         then(backfillEmbeddingsUseCase).should().backfillEmbeddings(25);
+    }
+
+    @Test
+    void rejectsBackfillWhenOperationTokenIsMissing() throws Exception {
+        mockMvc.perform(post("/api/v1/embeddings/backfill").param("limit", "25"))
+            .andExpect(status().isForbidden());
+
+        verifyNoInteractions(backfillEmbeddingsUseCase);
+    }
+
+    @Test
+    void rejectsBackfillWhenOperationTokenDoesNotMatch() throws Exception {
+        mockMvc.perform(post("/api/v1/embeddings/backfill")
+                .header("X-Aquila-Operation-Token", "wrong-token")
+                .param("limit", "25"))
+            .andExpect(status().isForbidden());
+
+        verifyNoInteractions(backfillEmbeddingsUseCase);
     }
 }
