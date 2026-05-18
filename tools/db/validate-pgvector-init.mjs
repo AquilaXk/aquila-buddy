@@ -26,6 +26,16 @@ assertIncludes(pgvectorSql, "USING NULLIF(profile_embedding, '')::vector", "prof
 assertIncludes(pgvectorSql, "USING NULLIF(issue_embedding, '')::vector", "issue embedding conversion expression");
 assertIncludes(
   pgvectorSql,
+  "CREATE INDEX IF NOT EXISTS idx_user_profiles_profile_embedding",
+  "user profile embedding HNSW index"
+);
+assertIncludes(
+  pgvectorSql,
+  "USING hnsw (profile_embedding vector_cosine_ops)",
+  "user profile embedding HNSW cosine operator"
+);
+assertIncludes(
+  pgvectorSql,
   "CREATE INDEX IF NOT EXISTS idx_recommended_issues_issue_embedding",
   "recommended issue embedding HNSW index"
 );

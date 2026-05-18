@@ -28,6 +28,8 @@ class PgvectorInitContractTest {
         String validator = Files.readString(Path.of("../tools/db/validate-pgvector-init.mjs"));
 
         assertThat(validator)
+            .contains("idx_user_profiles_profile_embedding")
+            .contains("USING hnsw (profile_embedding vector_cosine_ops)")
             .contains("idx_recommended_issues_issue_embedding")
             .contains("USING hnsw (issue_embedding vector_cosine_ops)")
             .contains("schema.sql must be applied before schema-postgres-pgvector.sql");

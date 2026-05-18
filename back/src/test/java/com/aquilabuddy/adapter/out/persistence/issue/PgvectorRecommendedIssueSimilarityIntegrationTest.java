@@ -48,6 +48,22 @@ class PgvectorRecommendedIssueSimilarityIntegrationTest {
             .containsExactly("near-issue", "far-issue");
     }
 
+    @Test
+    void initializesVectorColumnsAndHnswIndexesForOperationalSchema() {
+        DataSource dataSource = dataSource();
+        initializeSchema(dataSource);
+        JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
+
+        assertThat(columnType(jdbcTemplate, "user_profiles", "profile_embedding")).isEqualTo("vector");
+        assertThat(columnType(jdbcTemplate, "recommended_issues", "issue_embedding")).isEqualTo("vector");
+        assertThat(indexDefinition(jdbcTemplate, "user_profiles", "idx_user_profiles_profile_embedding"))
+            .contains("USING hnsw")
+            .contains("profile_embedding vector_cosine_ops");
+        assertThat(indexDefinition(jdbcTemplate, "recommended_issues", "idx_recommended_issues_issue_embedding"))
+            .contains("USING hnsw")
+            .contains("issue_embedding vector_cosine_ops");
+    }
+
     private static DataSource dataSource() {
         DriverManagerDataSource dataSource = new DriverManagerDataSource();
         dataSource.setUrl(env("PGVECTOR_TEST_DB_URL", "jdbc:postgresql://localhost:5432/aquila_buddy"));
@@ -128,6 +144,30 @@ class PgvectorRecommendedIssueSimilarityIntegrationTest {
         return "[" + String.join(",", vectorValues(firstValue, secondValue).stream()
             .map(String::valueOf)
             .toList()) + "]";
+    }
+
+    private static String columnType(JdbcTemplate jdbcTemplate, String tableName, String columnName) {
+        return jdbcTemplate.queryForObject("""
+            SELECT udt_name
+            FROM information_schema.columns
+            WHERE table_name = ? AND column_name = ?
+            """,
+            String.class,
+            tableName,
+            columnName
+        );
+    }
+
+    private static String indexDefinition(JdbcTemplate jdbcTemplate, String tableName, String indexName) {
+        return jdbcTemplate.queryForObject("""
+            SELECT indexdef
+            FROM pg_indexes
+            WHERE tablename = ? AND indexname = ?
+            """,
+            String.class,
+            tableName,
+            indexName
+        );
     }
 
     private static List<Double> vectorValues(double firstValue, double secondValue) {
