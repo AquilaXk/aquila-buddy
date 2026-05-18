@@ -341,6 +341,72 @@ class GitHubApiClientTest {
     }
 
     @Test
+    void codeSearchCodeContextDeduplicatesFiltersAndSanitizesContents() {
+        route("/search/code", 200, """
+            {
+              "items": [
+                {
+                  "path": "src/main/java/ValidationController.java"
+                },
+                {
+                  "path": "src/main/java/ValidationController.java"
+                },
+                {
+                  "path": "node_modules/pkg/index.js"
+                },
+                {
+                  "path": "src/main/resources/logo.png"
+                },
+                {
+                  "path": "src/main/java/ValidationService.java"
+                }
+              ]
+            }
+            """);
+        route(
+            "/repos/spring-projects/spring-boot/contents/src/main/java/ValidationController.java",
+            200,
+            contentBody("""
+                // generated comment
+
+                class ValidationController {
+                  // validate request
+                  void validate() {}
+                }
+                """)
+        );
+        route(
+            "/repos/spring-projects/spring-boot/contents/src/main/java/ValidationService.java",
+            200,
+            contentBody("""
+
+                # comment from script-like file
+                class ValidationService {}
+                """)
+        );
+        GitHubApiClient client = client();
+
+        GitHubApiClient.GitHubRepositoryCodeContext context =
+            client.loadRepositoryCodeContext("spring-projects/spring-boot", "validation", 3, 120);
+
+        assertThat(context.files())
+            .extracting(GitHubApiClient.GitHubRepositoryCodeContextFile::path)
+            .containsExactly(
+                "src/main/java/ValidationController.java",
+                "src/main/java/ValidationService.java"
+            );
+        assertThat(context.files().getFirst().content())
+            .doesNotContain("generated comment")
+            .doesNotContain("validate request")
+            .doesNotContain("\n\n")
+            .contains("class ValidationController")
+            .contains("void validate() {}");
+        assertThat(context.files().get(1).content())
+            .doesNotContain("comment from script-like file")
+            .contains("class ValidationService {}");
+    }
+
+    @Test
     void loadsRepositoryCodeContextFromTreeWhenCodeSearchIsEmpty() {
         route("/search/code", 200, """
             {

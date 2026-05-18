@@ -6,11 +6,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Comparator;
+import java.util.LinkedHashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.springframework.beans.factory.annotation.Value;
@@ -321,11 +323,15 @@ public class GitHubApiClient {
                 ? List.of()
                 : response.items();
             List<GitHubRepositoryCodeContextFile> files = new ArrayList<>();
+            Set<String> seenPaths = new LinkedHashSet<>();
             for (GitHubCodeSearchItemResponse item : items) {
                 if (files.size() >= maxFiles) {
                     break;
                 }
-                if (item == null || !hasText(item.path())) {
+                if (item == null || !hasText(item.path()) || !isRepositoryTreeCodeCandidate(item.path())) {
+                    continue;
+                }
+                if (!seenPaths.add(item.path())) {
                     continue;
                 }
                 getContentFile(upstreamRepo, item.path())
@@ -450,11 +456,31 @@ public class GitHubApiClient {
     }
 
     private GitHubRepositoryCodeContextFile toRepositoryCodeContextFile(String path, String content, int maxContentChars) {
-        if (maxContentChars <= 0 || content.length() <= maxContentChars) {
-            return new GitHubRepositoryCodeContextFile(path, content, false);
+        String sanitizedContent = sanitizeCodeContextContent(content);
+        if (maxContentChars <= 0 || sanitizedContent.length() <= maxContentChars) {
+            return new GitHubRepositoryCodeContextFile(path, sanitizedContent, false);
         }
 
-        return new GitHubRepositoryCodeContextFile(path, content.substring(0, maxContentChars) + "...", true);
+        return new GitHubRepositoryCodeContextFile(path, sanitizedContent.substring(0, maxContentChars) + "...", true);
+    }
+
+    private String sanitizeCodeContextContent(String content) {
+        if (!hasText(content)) {
+            return "";
+        }
+
+        return Arrays.stream(content.split("\\R"))
+            .map(String::stripTrailing)
+            .filter(line -> {
+                String stripped = line.strip();
+                return !stripped.isEmpty()
+                    && !stripped.startsWith("//")
+                    && !stripped.startsWith("#")
+                    && !stripped.startsWith("/*")
+                    && !stripped.startsWith("*")
+                    && !stripped.startsWith("*/");
+            })
+            .collect(Collectors.joining("\n"));
     }
 
     private String codeSearchQuery(String upstreamRepo, String query) {
