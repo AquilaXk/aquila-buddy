@@ -50,7 +50,19 @@ public class EmbeddingBackfillController {
     ) {
         requireOperationToken(requestedOperationToken, operator, limit);
         int effectiveLimit = normalizeLimit(limit);
-        EmbeddingBackfillSummary summary = backfillEmbeddingsUseCase.backfillEmbeddings(effectiveLimit);
+        EmbeddingBackfillSummary summary;
+        try {
+            summary = backfillEmbeddingsUseCase.backfillEmbeddings(effectiveLimit);
+        } catch (RuntimeException error) {
+            recordEmbeddingBackfillAuditUseCase.record(EmbeddingBackfillAuditEvent.failed(
+                operator,
+                limit,
+                effectiveLimit,
+                error,
+                Instant.now()
+            ));
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "embedding backfill failed.", error);
+        }
         recordEmbeddingBackfillAuditUseCase.record(EmbeddingBackfillAuditEvent.succeeded(
             operator,
             limit,

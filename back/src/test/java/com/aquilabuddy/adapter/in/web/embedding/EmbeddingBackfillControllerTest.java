@@ -130,6 +130,26 @@ class EmbeddingBackfillControllerTest {
     }
 
     @Test
+    void recordsAuditEventWhenBackfillFails() throws Exception {
+        given(backfillEmbeddingsUseCase.backfillEmbeddings(25))
+            .willThrow(new IllegalStateException("provider unavailable"));
+
+        mockMvc.perform(post("/api/v1/embeddings/backfill")
+                .header("X-Aquila-Operation-Token", "test-operation-token")
+                .header("X-Aquila-Operator", "release-manager")
+                .param("limit", "25"))
+            .andExpect(status().is5xxServerError());
+
+        then(recordEmbeddingBackfillAuditUseCase).should().record(argThat(event ->
+            event.outcome() == EmbeddingBackfillAuditOutcome.FAILED
+                && event.operator().equals("release-manager")
+                && event.reason().equals("IllegalStateException: provider unavailable")
+                && event.requestedLimit() == 25
+                && event.effectiveLimit() == 25
+        ));
+    }
+
+    @Test
     void rejectsBackfillWhenOperationTokenIsMissing() throws Exception {
         mockMvc.perform(post("/api/v1/embeddings/backfill").param("limit", "25"))
             .andExpect(status().isForbidden());

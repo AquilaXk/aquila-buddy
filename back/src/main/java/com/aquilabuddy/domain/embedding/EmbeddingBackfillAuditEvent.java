@@ -69,6 +69,26 @@ public record EmbeddingBackfillAuditEvent(
         );
     }
 
+    public static EmbeddingBackfillAuditEvent failed(
+        String operator,
+        int requestedLimit,
+        int effectiveLimit,
+        Throwable error,
+        Instant occurredAt
+    ) {
+        return new EmbeddingBackfillAuditEvent(
+            EmbeddingBackfillAuditOutcome.FAILED,
+            operator,
+            requestedLimit,
+            effectiveLimit,
+            0,
+            0,
+            1,
+            failureReason(error),
+            occurredAt
+        );
+    }
+
     private static void requireNonNegative(int value, String fieldName) {
         if (value < 0) {
             throw new IllegalArgumentException(fieldName + " must not be negative.");
@@ -80,5 +100,16 @@ public record EmbeddingBackfillAuditEvent(
             return defaultValue;
         }
         return value.trim();
+    }
+
+    private static String failureReason(Throwable error) {
+        if (error == null) {
+            return "unknown";
+        }
+        String message = error.getMessage();
+        if (message == null || message.isBlank()) {
+            return error.getClass().getSimpleName();
+        }
+        return error.getClass().getSimpleName() + ": " + message.trim();
     }
 }
