@@ -29,6 +29,7 @@ class AiIssueGuideGenerationAdapterTest {
         IssueGuide guide = adapter.generateIssueGuide(issue());
 
         assertThat(guide.issueKey()).isEqualTo("demo-2");
+        assertThat(guide.filePaths()).isEmpty();
         assertThat(guide.guideline()).contains("Validate the request contract");
         assertThat(guide.pseudoCode()).contains("Find validation entry point");
         assertThat(guide.sideEffects()).containsExactly(
@@ -60,7 +61,7 @@ class AiIssueGuideGenerationAdapterTest {
             200
         );
 
-        adapter.generateIssueGuide(issue(), codeContext);
+        IssueGuide guide = adapter.generateIssueGuide(issue(), codeContext);
 
         assertThat(aiClient.systemPrompt)
             .contains("Base GUIDELINE, PSEUDO_CODE, and SIDE_EFFECTS on repository code context when it is present.");
@@ -68,6 +69,7 @@ class AiIssueGuideGenerationAdapterTest {
             .contains("Repository code context: spring-projects/spring-boot@main")
             .contains("File: src/main/java/ValidationController.java")
             .contains("class ValidationController {}");
+        assertThat(guide.filePaths()).containsExactly("src/main/java/ValidationController.java");
     }
 
     @Test

@@ -34,6 +34,15 @@ public class IssueGuideJpaEntity {
 
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(
+        name = "issue_guide_file_paths",
+        joinColumns = @JoinColumn(name = "issue_guide_id")
+    )
+    @OrderColumn(name = "path_order")
+    @Column(name = "file_path", nullable = false, length = 500)
+    private List<String> filePaths = new ArrayList<>();
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(
         name = "issue_guide_side_effects",
         joinColumns = @JoinColumn(name = "issue_guide_id")
     )
@@ -50,9 +59,20 @@ public class IssueGuideJpaEntity {
         String pseudoCode,
         List<String> sideEffects
     ) {
+        this(issueId, guideline, pseudoCode, List.of(), sideEffects);
+    }
+
+    IssueGuideJpaEntity(
+        String issueId,
+        String guideline,
+        String pseudoCode,
+        List<String> filePaths,
+        List<String> sideEffects
+    ) {
         this.issueId = issueId;
         this.guideline = guideline;
         this.pseudoCode = pseudoCode;
+        this.filePaths = new ArrayList<>(filePaths == null ? List.of() : filePaths);
         this.sideEffects = new ArrayList<>(sideEffects);
     }
 
@@ -66,6 +86,10 @@ public class IssueGuideJpaEntity {
 
     String getPseudoCode() {
         return pseudoCode;
+    }
+
+    List<String> getFilePaths() {
+        return List.copyOf(filePaths);
     }
 
     List<String> getSideEffects() {

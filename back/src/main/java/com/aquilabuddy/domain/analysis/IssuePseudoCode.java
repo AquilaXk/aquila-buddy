@@ -7,11 +7,12 @@ import java.util.Objects;
  */
 public record IssuePseudoCode(
     String issueKey,
+    java.util.List<String> filePaths,
     String pseudoCode
 ) {
 
     public static IssuePseudoCode from(IssueGuide guide) {
         Objects.requireNonNull(guide, "guide must not be null");
-        return new IssuePseudoCode(guide.issueKey(), guide.pseudoCode());
+        return new IssuePseudoCode(guide.issueKey(), guide.filePaths(), guide.pseudoCode());
     }
 }

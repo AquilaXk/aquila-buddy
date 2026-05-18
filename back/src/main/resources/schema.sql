@@ -1,4 +1,5 @@
 DROP TABLE IF EXISTS issue_guide_side_effects;
+DROP TABLE IF EXISTS issue_guide_file_paths;
 DROP TABLE IF EXISTS ai_call_observations;
 DROP TABLE IF EXISTS issue_guide_generation_requests;
 DROP TABLE IF EXISTS issue_guides;
@@ -127,6 +128,17 @@ CREATE TABLE issue_guide_side_effects (
     side_effect VARCHAR(1000) NOT NULL,
     PRIMARY KEY (issue_guide_id, effect_order),
     CONSTRAINT fk_issue_guide_side_effects_guide
+        FOREIGN KEY (issue_guide_id)
+        REFERENCES issue_guides(issue_id)
+        ON DELETE CASCADE
+);
+
+CREATE TABLE issue_guide_file_paths (
+    issue_guide_id VARCHAR(100) NOT NULL,
+    path_order INTEGER NOT NULL,
+    file_path VARCHAR(500) NOT NULL,
+    PRIMARY KEY (issue_guide_id, path_order),
+    CONSTRAINT fk_issue_guide_file_paths_guide
         FOREIGN KEY (issue_guide_id)
         REFERENCES issue_guides(issue_id)
         ON DELETE CASCADE

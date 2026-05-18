@@ -26,6 +26,7 @@ class IssueGuideControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.success").value(true))
             .andExpect(jsonPath("$.data.issueKey").value("demo-1"))
+            .andExpect(jsonPath("$.data.filePaths[0]").value("front/src/app/issues/[id]/page.tsx"))
             .andExpect(jsonPath("$.data.guideline").isNotEmpty())
             .andExpect(jsonPath("$.data.pseudoCode").isNotEmpty())
             .andExpect(jsonPath("$.data.sideEffects[0]").isNotEmpty());
@@ -49,6 +50,7 @@ class IssueGuideControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.success").value(true))
             .andExpect(jsonPath("$.data.issueKey").value("demo-1"))
+            .andExpect(jsonPath("$.data.filePaths[0]").value("front/src/app/issues/[id]/page.tsx"))
             .andExpect(jsonPath("$.data.pseudoCode").isNotEmpty());
     }
 }

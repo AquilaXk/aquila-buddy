@@ -7,8 +7,23 @@ import java.util.List;
  */
 public record IssueGuide(
     String issueKey,
+    List<String> filePaths,
     String guideline,
     String pseudoCode,
     List<String> sideEffects
 ) {
+
+    public IssueGuide(
+        String issueKey,
+        String guideline,
+        String pseudoCode,
+        List<String> sideEffects
+    ) {
+        this(issueKey, List.of(), guideline, pseudoCode, sideEffects);
+    }
+
+    public IssueGuide {
+        filePaths = filePaths == null ? List.of() : List.copyOf(filePaths);
+        sideEffects = sideEffects == null ? List.of() : List.copyOf(sideEffects);
+    }
 }

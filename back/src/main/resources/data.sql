@@ -104,3 +104,12 @@ INSERT INTO issue_guide_side_effects (
 ('demo-1', 1, '기존 안내와 중복되는 설명이 생기지 않도록 주변 문맥을 확인해야 합니다.'),
 ('demo-2', 0, '검증 메시지 문구가 바뀌면 관련 문서와 테스트 기대값도 함께 바뀔 수 있습니다.'),
 ('demo-2', 1, '동일 응답 형식을 사용하는 화면의 에러 표시 문구를 확인해야 합니다.');
+
+INSERT INTO issue_guide_file_paths (
+    issue_guide_id,
+    path_order,
+    file_path
+) VALUES
+('demo-1', 0, 'front/src/app/issues/[id]/page.tsx'),
+('demo-1', 1, 'front/src/lib/api.ts'),
+('demo-2', 0, 'back/src/main/java/com/aquilabuddy/adapter/in/web/analysis/IssueGuideController.java');
