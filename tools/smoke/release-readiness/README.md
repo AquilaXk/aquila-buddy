@@ -2,6 +2,8 @@
 
 배포 후보별 운영 점검 결과는 이 디렉터리에 commit 단위 markdown으로 남깁니다.
 
+- 동등성 완료 매트릭스: `PARITY_COMPLETION_MATRIX.md`
+
 ## 기록 원칙
 
 - secret 값, token 원문, OAuth/JWT bearer 값은 기록하지 않습니다.

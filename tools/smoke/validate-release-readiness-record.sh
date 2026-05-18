@@ -18,6 +18,7 @@ collect_records() {
   find "$RECORD_DIR" -maxdepth 1 -type f -name '*.md' \
     ! -name 'README.md' \
     ! -name 'TEMPLATE.md' \
+    ! -name 'PARITY_COMPLETION_MATRIX.md' \
     | sort
 }
 
