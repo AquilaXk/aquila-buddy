@@ -8,6 +8,7 @@ import com.sun.net.httpserver.HttpServer;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -297,6 +298,61 @@ class GitHubApiClientTest {
         );
     }
 
+    @Test
+    void loadsRepositoryCodeContextFromCodeSearchAndContents() {
+        route("/search/code", 200, """
+            {
+              "items": [
+                {
+                  "path": "src/main/java/ValidationController.java"
+                },
+                {
+                  "path": "src/test/java/ValidationControllerTest.java"
+                },
+                {
+                  "path": "README.md"
+                }
+              ]
+            }
+            """);
+        route(
+            "/repos/spring-projects/spring-boot/contents/src/main/java/ValidationController.java",
+            200,
+            contentBody("class ValidationController {}")
+        );
+        route(
+            "/repos/spring-projects/spring-boot/contents/src/test/java/ValidationControllerTest.java",
+            200,
+            contentBody("assert validation response")
+        );
+        GitHubApiClient client = client();
+
+        GitHubApiClient.GitHubRepositoryCodeContext context =
+            client.loadRepositoryCodeContext("spring-projects/spring-boot", "validation controller", 2, 12);
+
+        assertThat(context.repository()).isEqualTo("spring-projects/spring-boot");
+        assertThat(context.branch()).isEqualTo("default");
+        assertThat(context.files()).hasSize(2);
+        assertThat(context.files().getFirst().path()).isEqualTo("src/main/java/ValidationController.java");
+        assertThat(context.files().getFirst().content()).isEqualTo("class Valida...");
+        assertThat(context.files().getFirst().truncated()).isTrue();
+        assertThat(context.files().get(1).path()).isEqualTo("src/test/java/ValidationControllerTest.java");
+        assertThat(context.files().get(1).content()).isEqualTo("assert valid...");
+    }
+
+    @Test
+    void returnsEmptyRepositoryCodeContextWhenCodeSearchFails() {
+        route("/search/code", 403, """
+            {"message": "API rate limit exceeded"}
+            """);
+        GitHubApiClient client = client();
+
+        GitHubApiClient.GitHubRepositoryCodeContext context =
+            client.loadRepositoryCodeContext("spring-projects/spring-boot", "validation", 3, 100);
+
+        assertThat(context.files()).isEmpty();
+    }
+
     private GitHubApiClient client() {
         return new GitHubApiClient(RestClient.builder(), baseUrl(), "");
     }
@@ -307,6 +363,15 @@ class GitHubApiClientTest {
 
     private void route(String path, int status, String body) {
         server.createContext(path, exchange -> respond(exchange, status, body));
+    }
+
+    private String contentBody(String content) {
+        String encoded = Base64.getEncoder().encodeToString(content.getBytes(StandardCharsets.UTF_8));
+        return """
+            {
+              "content": "%s"
+            }
+            """.formatted(encoded);
     }
 
     private void respond(HttpExchange exchange, int status, String body) throws IOException {
