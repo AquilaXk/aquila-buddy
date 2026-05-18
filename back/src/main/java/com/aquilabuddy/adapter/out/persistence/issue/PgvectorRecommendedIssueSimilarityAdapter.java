@@ -48,20 +48,24 @@ public class PgvectorRecommendedIssueSimilarityAdapter implements RankRecommende
             return List.of();
         }
 
-        UserProfile profile = loadUserProfilePort.loadCurrentUserProfile();
-        EmbeddingVector queryVector = embeddingClient.embed(buildUserProfileEmbeddingInput(profile));
-        List<String> issueIds = issues.stream()
-            .map(RecommendedIssue::id)
-            .toList();
+        try {
+            UserProfile profile = loadUserProfilePort.loadCurrentUserProfile();
+            EmbeddingVector queryVector = embeddingClient.embed(buildUserProfileEmbeddingInput(profile));
+            List<String> issueIds = issues.stream()
+                .map(RecommendedIssue::id)
+                .toList();
 
-        List<RecommendedIssue> rankedIssues = jdbcClient.sql(PgvectorRecommendedIssueSimilaritySql.rankByIssueIds())
-            .param("queryVector", queryVector.toPgvectorLiteral())
-            .param("issueIds", issueIds)
-            .param("limit", Math.min(limit, issueIds.size()))
-            .query(this::mapIssue)
-            .list();
+            List<RecommendedIssue> rankedIssues = jdbcClient.sql(PgvectorRecommendedIssueSimilaritySql.rankByIssueIds())
+                .param("queryVector", queryVector.toPgvectorLiteral())
+                .param("issueIds", issueIds)
+                .param("limit", Math.min(limit, issueIds.size()))
+                .query(this::mapIssue)
+                .list();
 
-        return mergeRankedWithScoreFallback(issues, rankedIssues);
+            return mergeRankedWithScoreFallback(issues, rankedIssues);
+        } catch (RuntimeException exception) {
+            return List.copyOf(issues);
+        }
     }
 
     static List<RecommendedIssue> mergeRankedWithScoreFallback(
