@@ -406,6 +406,31 @@ class AiEnvironmentExamplesTest {
     }
 
     @Test
+    void aiProviderSmokeRunnerDryRunDocumentsProviderVerificationPath()
+        throws IOException, InterruptedException {
+        SmokeResult result = runAiProviderSmokeRunner(Map.ofEntries(
+            entry("AI_PROVIDER_SMOKE_ENABLED", "true"),
+            entry("AI_PROVIDER_SMOKE_MODE", "dry-run"),
+            entry("AI_PROVIDER", "openai-compatible"),
+            entry("AI_API_BASE_URL", "https://api.example.com/v1"),
+            entry("AI_API_KEY", "test-key"),
+            entry("AI_CHAT_MODEL", "gpt-test"),
+            entry("AI_EMBEDDING_MODEL", "text-embedding-test"),
+            entry("AI_EMBEDDING_DIMENSIONS", "1536"),
+            entry("AI_PROVIDER_SMOKE_TIMEOUT_SECONDS", "10")
+        ));
+
+        assertThat(result.exitCode()).isZero();
+        assertThat(result.output())
+            .contains("01 OpenAI-compatible chat completion")
+            .contains("02 OpenAI-compatible embedding")
+            .contains("03 Vertex AI text generation")
+            .contains("04 Vertex AI embedding")
+            .contains("05 provider timeout/error observation")
+            .contains("06 provider fallback path");
+    }
+
+    @Test
     void ciWorkflowRunsOperationalSmokeEnvValidation() throws IOException {
         String workflow = Files.readString(Path.of("../.github/workflows/ci.yml"));
 
@@ -480,6 +505,20 @@ class AiEnvironmentExamplesTest {
 
     private static SmokeResult runAiProviderSmoke(Map<String, String> env) throws IOException, InterruptedException {
         ProcessBuilder builder = new ProcessBuilder("/bin/bash", "../tools/smoke/validate-ai-provider-smoke-env.sh");
+        Map<String, String> processEnv = builder.environment();
+        processEnv.clear();
+        processEnv.putAll(env);
+        builder.redirectErrorStream(true);
+        Process process = builder.start();
+        String output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+        boolean exited = process.waitFor(10, TimeUnit.SECONDS);
+        assertThat(exited).isTrue();
+        return new SmokeResult(process.exitValue(), output);
+    }
+
+    private static SmokeResult runAiProviderSmokeRunner(Map<String, String> env)
+        throws IOException, InterruptedException {
+        ProcessBuilder builder = new ProcessBuilder("/bin/bash", "../tools/smoke/run-ai-provider-smoke.sh");
         Map<String, String> processEnv = builder.environment();
         processEnv.clear();
         processEnv.putAll(env);
