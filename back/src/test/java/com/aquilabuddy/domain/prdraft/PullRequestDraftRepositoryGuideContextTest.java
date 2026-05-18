@@ -46,4 +46,27 @@ class PullRequestDraftRepositoryGuideContextTest {
             "Merged PR samples: 3"
         );
     }
+
+    @Test
+    void exposesRepositoryGuidePromptLinesWithFullContext() {
+        PullRequestDraftRepositoryGuideContext context = new PullRequestDraftRepositoryGuideContext(
+            "Please run tests before opening a PR.",
+            "## Summary\n- Describe changes\n## Tests\n- List verification",
+            List.of(
+                "## Summary\n- Improve docs",
+                "## Summary\n- Fix validation"
+            )
+        );
+
+        assertThat(context.guidePromptLines()).containsExactly(
+            "CONTRIBUTING:",
+            "Please run tests before opening a PR.",
+            "PR template:",
+            "## Summary\n- Describe changes\n## Tests\n- List verification",
+            "Merged PR sample #1:",
+            "## Summary\n- Improve docs",
+            "Merged PR sample #2:",
+            "## Summary\n- Fix validation"
+        );
+    }
 }
