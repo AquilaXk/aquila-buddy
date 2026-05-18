@@ -11,6 +11,9 @@ spring:
 app:
   ai:
     provider: fixture
+  recommendation:
+    similarity:
+      provider: score
   github:
     issue-search:
       enabled: false

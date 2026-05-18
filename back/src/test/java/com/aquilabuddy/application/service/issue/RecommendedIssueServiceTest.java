@@ -7,6 +7,7 @@ import com.aquilabuddy.application.port.out.issue.LoadCollectedIssuesPort;
 import com.aquilabuddy.application.port.out.issue.SaveRecommendedIssuesPort;
 import com.aquilabuddy.application.port.out.issue.SearchRecommendedIssuesPort;
 import com.aquilabuddy.application.port.out.issue.FindRecommendedIssuePort;
+import com.aquilabuddy.application.port.out.issue.RankRecommendedIssuesPort;
 import com.aquilabuddy.domain.issue.RecommendedIssue;
 import com.aquilabuddy.domain.issue.RecommendedIssueHistory;
 import java.util.List;
@@ -54,6 +55,26 @@ class RecommendedIssueServiceTest {
     }
 
     @Test
+    void ranksSearchedIssuesBeforeReturningThem() {
+        RecommendedIssue low = issue("low", "spring-projects/spring-boot", 101);
+        RecommendedIssue high = issue("high", "vercel/next.js", 2);
+        RecordingRankRecommendedIssuesPort rankPort = new RecordingRankRecommendedIssuesPort(List.of(high, low));
+        RecommendedIssueService service = new RecommendedIssueService(
+            new CountingLoadRecommendedIssuesPort(List.of()),
+            new CountingLoadRecommendedIssuesPort(List.of()),
+            new InMemoryFindRecommendedIssuePort(List.of()),
+            new RecordingSaveRecommendedIssuesPort(),
+            () -> List.of(low, high),
+            rankPort
+        );
+
+        List<RecommendedIssue> result = service.recommend();
+
+        assertThat(result).containsExactly(high, low);
+        assertThat(rankPort.receivedIssues()).containsExactly(low, high);
+    }
+
+    @Test
     void crawlsIssuesBySearchQueryAndSavesResult() {
         RecommendedIssue searched = issue("github-search", "spring-projects/spring-boot", 101);
         RecordingSearchRecommendedIssuesPort searchPort = new RecordingSearchRecommendedIssuesPort(List.of(searched));
@@ -87,6 +108,26 @@ class RecommendedIssueServiceTest {
         List<RecommendedIssue> result = service.recommend();
 
         assertThat(result).containsExactly(stored);
+    }
+
+    @Test
+    void ranksStoredFallbackIssuesBeforeReturningThem() {
+        RecommendedIssue low = issue("low", "spring-projects/spring-boot", 101);
+        RecommendedIssue high = issue("high", "vercel/next.js", 2);
+        RecordingRankRecommendedIssuesPort rankPort = new RecordingRankRecommendedIssuesPort(List.of(high, low));
+        RecommendedIssueService service = new RecommendedIssueService(
+            new CountingLoadRecommendedIssuesPort(List.of(low, high)),
+            new CountingLoadRecommendedIssuesPort(List.of(low, high)),
+            new InMemoryFindRecommendedIssuePort(List.of(low, high)),
+            new RecordingSaveRecommendedIssuesPort(),
+            List::of,
+            rankPort
+        );
+
+        List<RecommendedIssue> result = service.recommend();
+
+        assertThat(result).containsExactly(high, low);
+        assertThat(rankPort.receivedIssues()).containsExactly(low, high);
     }
 
     @Test
@@ -205,6 +246,26 @@ class RecommendedIssueServiceTest {
 
         String receivedQuery() {
             return receivedQuery;
+        }
+    }
+
+    private static final class RecordingRankRecommendedIssuesPort implements RankRecommendedIssuesPort {
+
+        private final List<RecommendedIssue> rankedIssues;
+        private List<RecommendedIssue> receivedIssues = List.of();
+
+        private RecordingRankRecommendedIssuesPort(List<RecommendedIssue> rankedIssues) {
+            this.rankedIssues = rankedIssues;
+        }
+
+        @Override
+        public List<RecommendedIssue> rankRecommendedIssues(List<RecommendedIssue> issues) {
+            receivedIssues = List.copyOf(issues);
+            return rankedIssues;
+        }
+
+        List<RecommendedIssue> receivedIssues() {
+            return receivedIssues;
         }
     }
 
