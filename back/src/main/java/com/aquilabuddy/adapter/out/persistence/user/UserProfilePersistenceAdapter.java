@@ -11,6 +11,7 @@ import com.aquilabuddy.domain.embedding.EmbeddingVector;
 import com.aquilabuddy.domain.user.UserProfile;
 import com.aquilabuddy.domain.user.UserProfileUpdateRequest;
 import com.aquilabuddy.global.github.GitHubApiClient;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
@@ -32,6 +33,7 @@ public class UserProfilePersistenceAdapter implements
     BackfillUserProfileEmbeddingPort {
 
     private static final String REFRESHED_VECTOR_UPDATED_AT = "2026-05-16T00:00:00Z";
+    private static final int MAX_FAILURE_REASON_SAMPLES = 10;
 
     private final UserProfileJpaRepository repository;
     private final CurrentUserGithubIdPort currentUserGithubIdPort;
@@ -129,6 +131,7 @@ public class UserProfilePersistenceAdapter implements
         int skippedBlankText = 0;
         int skippedDimensionMismatch = 0;
         int failed = 0;
+        List<String> failureReasons = new ArrayList<>();
         for (UserProfileJpaEntity entity : candidates) {
             String input = buildProfileEmbeddingInput(entity);
             if (input.isBlank()) {
@@ -139,12 +142,18 @@ public class UserProfilePersistenceAdapter implements
                 EmbeddingVector vector = embeddingClient.embed(input);
                 if (vector.dimension() != expectedEmbeddingDimensions) {
                     skippedDimensionMismatch++;
+                    addFailureReason(
+                        failureReasons,
+                        profileLabel(entity) + ": expected " + expectedEmbeddingDimensions
+                            + " dimensions but was " + vector.dimension()
+                    );
                     continue;
                 }
                 entity.updateProfileEmbedding(vector.toPgvectorLiteral());
                 updated++;
             } catch (RuntimeException exception) {
                 failed++;
+                addFailureReason(failureReasons, profileLabel(entity) + ": " + exception.getClass().getSimpleName());
             }
         }
         repository.saveAll(candidates);
@@ -158,7 +167,8 @@ public class UserProfilePersistenceAdapter implements
             skippedBlankText,
             0,
             skippedDimensionMismatch,
-            failed
+            failed,
+            failureReasons
         );
     }
 
@@ -213,5 +223,15 @@ public class UserProfilePersistenceAdapter implements
 
     private static int saturatedInt(long value) {
         return value > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) value;
+    }
+
+    private static String profileLabel(UserProfileJpaEntity entity) {
+        return entity.getGithubId() + "/" + entity.getLogin();
+    }
+
+    private static void addFailureReason(List<String> failureReasons, String reason) {
+        if (failureReasons.size() < MAX_FAILURE_REASON_SAMPLES) {
+            failureReasons.add(reason);
+        }
     }
 }

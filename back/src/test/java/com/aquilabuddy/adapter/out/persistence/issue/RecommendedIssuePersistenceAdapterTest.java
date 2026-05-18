@@ -278,8 +278,33 @@ class RecommendedIssuePersistenceAdapterTest {
             0,
             0,
             0,
-            1
+            1,
+            List.of("provider-failure-issue: IllegalStateException")
         ));
+        assertThat(result.failureReasons())
+            .containsExactly("provider-failure-issue: IllegalStateException");
+    }
+
+    @Test
+    void reportsIssueBackfillDimensionMismatchReason() {
+        embeddingValues = List.of(0.1, 0.2);
+        repository.save(new RecommendedIssueJpaEntity(
+            "dimension-mismatch-backfill-issue",
+            "spring-projects/spring-boot",
+            104,
+            "Improve validation example",
+            "검증 예시 개선 이슈입니다.",
+            1.0,
+            List.of("good first issue"),
+            "OPEN",
+            "dimension mismatch 관측 대상입니다."
+        ));
+
+        EmbeddingBackfillResult result = adapter.backfillMissingIssueEmbeddings(10);
+
+        assertThat(result.skippedDimensionMismatch()).isEqualTo(1);
+        assertThat(result.failureReasons())
+            .containsExactly("dimension-mismatch-backfill-issue: expected 3 dimensions but was 2");
     }
 
     @Test

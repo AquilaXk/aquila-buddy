@@ -9,6 +9,7 @@ import com.aquilabuddy.application.port.out.issue.SaveRecommendedIssuesPort;
 import com.aquilabuddy.domain.embedding.EmbeddingBackfillResult;
 import com.aquilabuddy.domain.embedding.EmbeddingVector;
 import com.aquilabuddy.domain.issue.RecommendedIssue;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.beans.factory.ObjectProvider;
@@ -29,6 +30,8 @@ public class RecommendedIssuePersistenceAdapter implements
     FindRecommendedIssuePort,
     SaveRecommendedIssuesPort,
     BackfillRecommendedIssueEmbeddingPort {
+
+    private static final int MAX_FAILURE_REASON_SAMPLES = 10;
 
     private final RecommendedIssueJpaRepository repository;
     private final ObjectProvider<EmbeddingClient> embeddingClientProvider;
@@ -126,6 +129,7 @@ public class RecommendedIssuePersistenceAdapter implements
         int skippedBlankText = 0;
         int skippedDimensionMismatch = 0;
         int failed = 0;
+        List<String> failureReasons = new ArrayList<>();
         for (RecommendedIssueJpaEntity entity : candidates) {
             String input = buildIssueEmbeddingInput(entity);
             if (input.isBlank()) {
@@ -136,12 +140,18 @@ public class RecommendedIssuePersistenceAdapter implements
                 EmbeddingVector vector = embeddingClient.embed(input);
                 if (vector.dimension() != expectedEmbeddingDimensions) {
                     skippedDimensionMismatch++;
+                    addFailureReason(
+                        failureReasons,
+                        entity.getId() + ": expected " + expectedEmbeddingDimensions
+                            + " dimensions but was " + vector.dimension()
+                    );
                     continue;
                 }
                 entity.updateIssueEmbedding(vector.toPgvectorLiteral());
                 updated++;
             } catch (RuntimeException exception) {
                 failed++;
+                addFailureReason(failureReasons, entity.getId() + ": " + exception.getClass().getSimpleName());
             }
         }
         repository.saveAll(candidates);
@@ -155,7 +165,8 @@ public class RecommendedIssuePersistenceAdapter implements
             skippedBlankText,
             0,
             skippedDimensionMismatch,
-            failed
+            failed,
+            failureReasons
         );
     }
 
@@ -209,5 +220,11 @@ public class RecommendedIssuePersistenceAdapter implements
 
     private static int saturatedInt(long value) {
         return value > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) value;
+    }
+
+    private static void addFailureReason(List<String> failureReasons, String reason) {
+        if (failureReasons.size() < MAX_FAILURE_REASON_SAMPLES) {
+            failureReasons.add(reason);
+        }
     }
 }

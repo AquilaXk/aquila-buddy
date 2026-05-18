@@ -1,5 +1,6 @@
 package com.aquilabuddy.domain.embedding;
 
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -14,7 +15,8 @@ public record EmbeddingBackfillResult(
     int skippedBlankText,
     int skippedProviderUnavailable,
     int skippedDimensionMismatch,
-    int failed
+    int failed,
+    List<String> failureReasons
 ) {
 
     public EmbeddingBackfillResult {
@@ -30,11 +32,48 @@ public record EmbeddingBackfillResult(
         requireNonNegative(skippedProviderUnavailable, "skippedProviderUnavailable");
         requireNonNegative(skippedDimensionMismatch, "skippedDimensionMismatch");
         requireNonNegative(failed, "failed");
+        failureReasons = normalizeFailureReasons(failureReasons);
+    }
+
+    public EmbeddingBackfillResult(
+        String target,
+        int requestedLimit,
+        int candidates,
+        int updated,
+        int skippedExisting,
+        int skippedBlankText,
+        int skippedProviderUnavailable,
+        int skippedDimensionMismatch,
+        int failed
+    ) {
+        this(
+            target,
+            requestedLimit,
+            candidates,
+            updated,
+            skippedExisting,
+            skippedBlankText,
+            skippedProviderUnavailable,
+            skippedDimensionMismatch,
+            failed,
+            List.of()
+        );
     }
 
     private static void requireNonNegative(int value, String fieldName) {
         if (value < 0) {
             throw new IllegalArgumentException(fieldName + " must not be negative.");
         }
+    }
+
+    private static List<String> normalizeFailureReasons(List<String> values) {
+        if (values == null || values.isEmpty()) {
+            return List.of();
+        }
+        return values.stream()
+            .filter(Objects::nonNull)
+            .map(String::trim)
+            .filter(value -> !value.isBlank())
+            .toList();
     }
 }

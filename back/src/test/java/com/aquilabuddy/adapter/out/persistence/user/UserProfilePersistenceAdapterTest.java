@@ -217,8 +217,22 @@ class UserProfilePersistenceAdapterTest {
             0,
             0,
             0,
-            1
+            1,
+            List.of("10001/aquila-dev: IllegalStateException")
         ));
+        assertThat(result.failureReasons())
+            .containsExactly("10001/aquila-dev: IllegalStateException");
+    }
+
+    @Test
+    void reportsProfileBackfillDimensionMismatchReason() {
+        embeddingValues = List.of(0.4, 0.5);
+
+        EmbeddingBackfillResult result = adapter.backfillMissingProfileEmbeddings(10);
+
+        assertThat(result.skippedDimensionMismatch()).isEqualTo(1);
+        assertThat(result.failureReasons())
+            .containsExactly("10001/aquila-dev: expected 3 dimensions but was 2");
     }
 
     @TestConfiguration
