@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.stereotype.Component;
 
@@ -34,6 +35,7 @@ public class AiIssueGuideGenerationAdapter implements GenerateIssueGuidePort {
     private final AiClient aiClient;
     private final GenerateIssueGuidePort fallbackGenerator;
 
+    @Autowired
     public AiIssueGuideGenerationAdapter(AiClient aiClient) {
         this(aiClient, new RuleBasedIssueGuideGenerationAdapter());
     }
