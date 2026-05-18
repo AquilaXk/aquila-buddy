@@ -1,6 +1,7 @@
 package com.aquilabuddy.global.ai;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static java.util.Map.entry;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -76,7 +77,9 @@ class AiEnvironmentExamplesTest {
 
         assertThat(readme)
             .contains("[AI 운영 smoke runbook](tools/smoke/AI_RUNTIME_SMOKE.md)")
-            .contains("GITHUB_TOKEN_PERMISSIONS=metadata:read,contents:read,pull-requests:read,issues:read");
+            .contains("GITHUB_TOKEN_PERMISSIONS=metadata:read,contents:read,pull-requests:read,issues:read")
+            .contains("bash tools/smoke/validate-provider-e2e-env.sh")
+            .contains("bash tools/smoke/run-provider-e2e-smoke.sh");
         assertThat(runbook)
             .contains("# AI 운영 smoke runbook")
             .contains("AI_PROVIDER=openai-compatible")
@@ -90,6 +93,12 @@ class AiEnvironmentExamplesTest {
             .contains("RECOMMENDATION_SIMILARITY_PROVIDER=pgvector")
             .contains("schema-postgres-pgvector.sql")
             .contains("LANGFUSE_ENABLED=false")
+            .contains("PROVIDER_E2E_SMOKE_ENABLED=true")
+            .contains("PROVIDER_E2E_AUTH_MODE=oauth-header")
+            .contains("PROVIDER_E2E_AUTH_HEADER='Authorization: Bearer")
+            .contains("EMBEDDING_BACKFILL_OPERATION_TOKEN=")
+            .contains("bash tools/smoke/validate-provider-e2e-env.sh")
+            .contains("bash tools/smoke/run-provider-e2e-smoke.sh")
             .doesNotContain(legacyGlmApiKeyName());
     }
 
@@ -107,6 +116,13 @@ class AiEnvironmentExamplesTest {
             .contains("AI_TEMPERATURE=0.2")
             .contains("AI_EMBEDDING_MODEL=text-embedding-3-small")
             .contains("AI_EMBEDDING_DIMENSIONS=1536")
+            .contains("PROVIDER_E2E_SMOKE_ENABLED=false")
+            .contains("BACKEND_BASE_URL=http://localhost:8080")
+            .contains("PROVIDER_E2E_AUTH_MODE=oauth-header")
+            .contains("PROVIDER_E2E_AUTH_HEADER=")
+            .contains("PROVIDER_E2E_REPO_FULL_NAME=")
+            .contains("PROVIDER_E2E_ISSUE_NUMBER=")
+            .contains("EMBEDDING_BACKFILL_OPERATION_TOKEN=")
             .doesNotContain(legacyGlmApiKeyName());
     }
 
@@ -124,6 +140,13 @@ class AiEnvironmentExamplesTest {
             .contains("AI_TEMPERATURE=0.2")
             .contains("AI_EMBEDDING_MODEL=text-embedding-3-small")
             .contains("AI_EMBEDDING_DIMENSIONS=1536")
+            .contains("PROVIDER_E2E_SMOKE_ENABLED=false")
+            .contains("BACKEND_BASE_URL=http://localhost:8080")
+            .contains("PROVIDER_E2E_AUTH_MODE=oauth-header")
+            .contains("PROVIDER_E2E_AUTH_HEADER=")
+            .contains("PROVIDER_E2E_REPO_FULL_NAME=")
+            .contains("PROVIDER_E2E_ISSUE_NUMBER=")
+            .contains("EMBEDDING_BACKFILL_OPERATION_TOKEN=")
             .doesNotContain(legacyGlmApiKeyName());
     }
 
@@ -203,6 +226,110 @@ class AiEnvironmentExamplesTest {
     }
 
     @Test
+    void providerE2eSmokeEnvValidationSkipsWhenDisabled() throws IOException, InterruptedException {
+        SmokeResult result = runProviderE2eSmoke(Map.of());
+
+        assertThat(result.exitCode()).isZero();
+        assertThat(result.output())
+            .contains("Provider E2E smoke is disabled.")
+            .contains("PROVIDER_E2E_SMOKE_ENABLED=true");
+    }
+
+    @Test
+    void providerE2eSmokeEnvValidationAcceptsOpenAiCompatiblePgvectorWhenEnabled()
+        throws IOException, InterruptedException {
+        SmokeResult result = runProviderE2eSmoke(Map.ofEntries(
+            entry("PROVIDER_E2E_SMOKE_ENABLED", "true"),
+            entry("BACKEND_BASE_URL", "https://api.example.com"),
+            entry("AI_PROVIDER", "openai-compatible"),
+            entry("AI_API_KEY", "test-key"),
+            entry("AI_CHAT_MODEL", "gpt-test"),
+            entry("AI_EMBEDDING_MODEL", "text-embedding-test"),
+            entry("AI_EMBEDDING_DIMENSIONS", "1536"),
+            entry("GITHUB_TOKEN", "github-token"),
+            entry("GITHUB_TOKEN_PERMISSIONS", "metadata:read,contents:read,pull-requests:read,issues:read"),
+            entry("RECOMMENDATION_SIMILARITY_PROVIDER", "pgvector"),
+            entry("DB_URL", "jdbc:postgresql://localhost:5432/aquila_buddy"),
+            entry("DB_USER", "aquila"),
+            entry("DB_PASSWORD", "secret"),
+            entry("RECOMMENDATION_SIMILARITY_LIMIT", "20"),
+            entry("EMBEDDING_BACKFILL_OPERATION_TOKEN", "operation-token"),
+            entry("DEFAULT_GITHUB_ID", "aquila"),
+            entry("PROVIDER_E2E_REPO_FULL_NAME", "owner/repo"),
+            entry("PROVIDER_E2E_ISSUE_NUMBER", "123"),
+            entry("PROVIDER_E2E_BASE_BRANCH", "main"),
+            entry("PROVIDER_E2E_HEAD_BRANCH", "provider-e2e-smoke")
+        ));
+
+        assertThat(result.exitCode()).isZero();
+        assertThat(result.output())
+            .contains("provider=openai-compatible")
+            .contains("auth=default-github-id")
+            .contains("similarity=pgvector");
+    }
+
+    @Test
+    void providerE2eSmokeEnvValidationRejectsMissingRuntimeContextWhenEnabled()
+        throws IOException, InterruptedException {
+        SmokeResult result = runProviderE2eSmoke(Map.of(
+            "PROVIDER_E2E_SMOKE_ENABLED", "true",
+            "AI_PROVIDER", "openai-compatible",
+            "GITHUB_TOKEN", "github-token"
+        ));
+
+        assertThat(result.exitCode()).isNotZero();
+        assertThat(result.output())
+            .contains("missing required env: BACKEND_BASE_URL")
+            .contains("missing required env: AI_API_KEY or OPENAI_API_KEY")
+            .contains("missing required env: RECOMMENDATION_SIMILARITY_PROVIDER=pgvector")
+            .contains("missing required env: DB_URL")
+            .contains("missing required env: EMBEDDING_BACKFILL_OPERATION_TOKEN")
+            .contains("missing required env: DEFAULT_GITHUB_ID")
+            .contains("missing required env: PROVIDER_E2E_REPO_FULL_NAME")
+            .contains("Provider E2E smoke env validation failed.");
+    }
+
+    @Test
+    void providerE2eSmokeRunnerDryRunDocumentsEndToEndBackendPath()
+        throws IOException, InterruptedException {
+        SmokeResult result = runProviderE2eRunner(Map.ofEntries(
+            entry("PROVIDER_E2E_SMOKE_ENABLED", "true"),
+            entry("PROVIDER_E2E_DRY_RUN", "true"),
+            entry("BACKEND_BASE_URL", "https://api.example.com"),
+            entry("AI_PROVIDER", "openai-compatible"),
+            entry("AI_API_KEY", "test-key"),
+            entry("AI_CHAT_MODEL", "gpt-test"),
+            entry("AI_EMBEDDING_MODEL", "text-embedding-test"),
+            entry("AI_EMBEDDING_DIMENSIONS", "1536"),
+            entry("GITHUB_TOKEN", "github-token"),
+            entry("GITHUB_TOKEN_PERMISSIONS", "metadata:read,contents:read,pull-requests:read,issues:read"),
+            entry("RECOMMENDATION_SIMILARITY_PROVIDER", "pgvector"),
+            entry("DB_URL", "jdbc:postgresql://localhost:5432/aquila_buddy"),
+            entry("DB_USER", "aquila"),
+            entry("DB_PASSWORD", "secret"),
+            entry("RECOMMENDATION_SIMILARITY_LIMIT", "20"),
+            entry("EMBEDDING_BACKFILL_OPERATION_TOKEN", "operation-token"),
+            entry("DEFAULT_GITHUB_ID", "aquila"),
+            entry("PROVIDER_E2E_REPO_FULL_NAME", "owner/repo"),
+            entry("PROVIDER_E2E_ISSUE_NUMBER", "123"),
+            entry("PROVIDER_E2E_BASE_BRANCH", "main"),
+            entry("PROVIDER_E2E_HEAD_BRANCH", "provider-e2e-smoke")
+        ));
+
+        assertThat(result.exitCode()).isZero();
+        assertThat(result.output())
+            .contains("01 GET /api/v1/health")
+            .contains("02 POST /api/v1/users/me/vector")
+            .contains("03 POST /api/v1/issues/crawl/search")
+            .contains("04 GET /api/v1/issues/recommend")
+            .contains("05 GET /api/v1/issues/lookup")
+            .contains("06 GET /api/v1/issues/{issueId}/guide")
+            .contains("07 POST /api/v1/pr")
+            .contains("08 POST /api/v1/pr/{draftId}/translate")
+            .contains("09 GET /api/v1/ai/observability");
+    }
+
+    @Test
     void ciWorkflowRunsOperationalSmokeEnvValidation() throws IOException {
         String workflow = Files.readString(Path.of("../.github/workflows/ci.yml"));
 
@@ -215,12 +342,55 @@ class AiEnvironmentExamplesTest {
             .contains("bash tools/smoke/validate-ai-runtime-env.sh");
     }
 
+    @Test
+    void providerE2eSmokeWorkflowIsManualAndOptIn() throws IOException {
+        String workflow = Files.readString(Path.of("../.github/workflows/provider-e2e-smoke.yml"));
+
+        assertThat(workflow)
+            .contains("workflow_dispatch:")
+            .doesNotContain("\n  pull_request:")
+            .doesNotContain("\n  push:")
+            .contains("PROVIDER_E2E_SMOKE_ENABLED: ${{ inputs.enabled }}")
+            .contains("PROVIDER_E2E_DRY_RUN: ${{ inputs.dry_run }}")
+            .contains("PROVIDER_E2E_AUTH_HEADER: ${{ secrets.PROVIDER_E2E_AUTH_HEADER }}")
+            .contains("GITHUB_TOKEN: ${{ secrets.PROVIDER_E2E_GITHUB_TOKEN || github.token }}")
+            .contains("EMBEDDING_BACKFILL_OPERATION_TOKEN: ${{ secrets.EMBEDDING_BACKFILL_OPERATION_TOKEN }}")
+            .contains("bash tools/smoke/validate-provider-e2e-env.sh")
+            .contains("bash tools/smoke/run-provider-e2e-smoke.sh");
+    }
+
     private static String legacyGlmApiKeyName() {
         return "G" + "LM_API_KEY";
     }
 
     private static SmokeResult runSmoke(Map<String, String> env) throws IOException, InterruptedException {
         ProcessBuilder builder = new ProcessBuilder("/bin/bash", "../tools/smoke/validate-ai-runtime-env.sh");
+        Map<String, String> processEnv = builder.environment();
+        processEnv.clear();
+        processEnv.putAll(env);
+        builder.redirectErrorStream(true);
+        Process process = builder.start();
+        String output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+        boolean exited = process.waitFor(10, TimeUnit.SECONDS);
+        assertThat(exited).isTrue();
+        return new SmokeResult(process.exitValue(), output);
+    }
+
+    private static SmokeResult runProviderE2eSmoke(Map<String, String> env) throws IOException, InterruptedException {
+        ProcessBuilder builder = new ProcessBuilder("/bin/bash", "../tools/smoke/validate-provider-e2e-env.sh");
+        Map<String, String> processEnv = builder.environment();
+        processEnv.clear();
+        processEnv.putAll(env);
+        builder.redirectErrorStream(true);
+        Process process = builder.start();
+        String output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+        boolean exited = process.waitFor(10, TimeUnit.SECONDS);
+        assertThat(exited).isTrue();
+        return new SmokeResult(process.exitValue(), output);
+    }
+
+    private static SmokeResult runProviderE2eRunner(Map<String, String> env) throws IOException, InterruptedException {
+        ProcessBuilder builder = new ProcessBuilder("/bin/bash", "../tools/smoke/run-provider-e2e-smoke.sh");
         Map<String, String> processEnv = builder.environment();
         processEnv.clear();
         processEnv.putAll(env);

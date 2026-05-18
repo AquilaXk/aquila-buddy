@@ -94,6 +94,7 @@ SPRING_PROFILES_ACTIVE=dev ./back/gradlew -p back bootRun
 
 ```bash
 bash tools/smoke/validate-ai-runtime-env.sh
+bash tools/smoke/validate-provider-e2e-env.sh
 ```
 
 Vertex AI + pgvector smoke env 예시:
@@ -145,6 +146,24 @@ bash tools/smoke/validate-ai-runtime-env.sh
 4. `RECOMMENDATION_SIMILARITY_PROVIDER=pgvector`로 추천 순위가 embedding similarity를 반영하는지 확인합니다.
 5. issue guide, PR draft, translation을 실행해 AI 호출과 `ai_call_observations` 저장을 확인합니다.
 6. `LANGFUSE_ENABLED=true` 환경에서는 같은 호출이 Langfuse generation event로 적재되는지 확인합니다.
+
+실제 provider E2E smoke는 opt-in입니다. OAuth 또는 JWT에서 얻은 API 인증 header를 준비한 뒤 다음 값을 채우고 실행합니다.
+
+```bash
+PROVIDER_E2E_SMOKE_ENABLED=true \
+PROVIDER_E2E_DRY_RUN=false \
+BACKEND_BASE_URL=http://localhost:8080 \
+PROVIDER_E2E_AUTH_MODE=oauth-header \
+PROVIDER_E2E_AUTH_HEADER='Authorization: Bearer oauth_or_jwt_token' \
+PROVIDER_E2E_REPO_FULL_NAME=owner/repo \
+PROVIDER_E2E_ISSUE_NUMBER=123 \
+PROVIDER_E2E_BASE_BRANCH=main \
+PROVIDER_E2E_HEAD_BRANCH=provider-e2e-smoke \
+EMBEDDING_BACKFILL_OPERATION_TOKEN=operation_token \
+bash tools/smoke/run-provider-e2e-smoke.sh
+```
+
+실행 전 env만 확인할 때는 `bash tools/smoke/validate-provider-e2e-env.sh`, 실제 호출 없이 순서만 확인할 때는 `PROVIDER_E2E_DRY_RUN=true bash tools/smoke/run-provider-e2e-smoke.sh`를 사용합니다.
 
 ## OCI Always Free Terraform
 

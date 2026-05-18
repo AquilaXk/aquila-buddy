@@ -72,12 +72,17 @@ bash tools/test/run-pgvector-integration.sh
 
 1. PostgreSQL/pgvector를 준비합니다.
 2. `bash tools/smoke/validate-ai-runtime-env.sh`로 env와 token 권한 문자열을 검증합니다.
-3. backend를 운영 profile과 동일한 env로 실행합니다.
-4. OAuth 로그인 또는 `DEFAULT_GITHUB_ID` fallback 사용자로 profile을 준비합니다.
-5. profile vector refresh를 실행하고 `profile_embedding` 저장을 확인합니다.
-6. issue crawl/search를 실행하고 `issue_embedding` 저장을 확인합니다.
-7. `RECOMMENDATION_SIMILARITY_PROVIDER=pgvector` 상태에서 추천 순위가 embedding similarity를 반영하는지 확인합니다.
-8. issue guide, PR draft, translation을 실행하고 `ai_call_observations`와 Langfuse trace를 확인합니다.
+3. `bash tools/smoke/validate-provider-e2e-env.sh`로 실제 provider E2E env를 검증합니다.
+4. backend를 운영 profile과 동일한 env로 실행합니다.
+5. OAuth 로그인으로 API 인증 header를 준비합니다.
+6. `bash tools/smoke/run-provider-e2e-smoke.sh`로 profile vector, issue crawl, pgvector recommendation, issue guide, PR draft, translation을 순서대로 실행합니다.
+
+스크립트 없이 수동으로 점검할 때의 상세 흐름은 다음과 같습니다.
+
+1. profile vector refresh를 실행하고 `profile_embedding` 저장을 확인합니다.
+2. issue crawl/search를 실행하고 `issue_embedding` 저장을 확인합니다.
+3. `RECOMMENDATION_SIMILARITY_PROVIDER=pgvector` 상태에서 추천 순위가 embedding similarity를 반영하는지 확인합니다.
+4. issue guide, PR draft, translation을 실행하고 `ai_call_observations`와 Langfuse trace를 확인합니다.
 
 OpenAI-compatible + pgvector env 검증 예시:
 
@@ -98,6 +103,36 @@ GITHUB_TOKEN=github_pat_or_fine_grained_token \
 GITHUB_TOKEN_PERMISSIONS=metadata:read,contents:read,pull-requests:read,issues:read \
 bash tools/smoke/validate-ai-runtime-env.sh
 ```
+
+실제 provider E2E smoke env와 실행 예시:
+
+```bash
+PROVIDER_E2E_SMOKE_ENABLED=true \
+PROVIDER_E2E_DRY_RUN=false \
+BACKEND_BASE_URL=http://localhost:8080 \
+PROVIDER_E2E_AUTH_MODE=oauth-header \
+PROVIDER_E2E_AUTH_HEADER='Authorization: Bearer oauth_or_jwt_token' \
+PROVIDER_E2E_REPO_FULL_NAME=owner/repo \
+PROVIDER_E2E_ISSUE_NUMBER=123 \
+PROVIDER_E2E_BASE_BRANCH=main \
+PROVIDER_E2E_HEAD_BRANCH=provider-e2e-smoke \
+EMBEDDING_BACKFILL_OPERATION_TOKEN=operation_token \
+bash tools/smoke/validate-provider-e2e-env.sh
+
+PROVIDER_E2E_SMOKE_ENABLED=true \
+PROVIDER_E2E_DRY_RUN=false \
+BACKEND_BASE_URL=http://localhost:8080 \
+PROVIDER_E2E_AUTH_MODE=oauth-header \
+PROVIDER_E2E_AUTH_HEADER='Authorization: Bearer oauth_or_jwt_token' \
+PROVIDER_E2E_REPO_FULL_NAME=owner/repo \
+PROVIDER_E2E_ISSUE_NUMBER=123 \
+PROVIDER_E2E_BASE_BRANCH=main \
+PROVIDER_E2E_HEAD_BRANCH=provider-e2e-smoke \
+EMBEDDING_BACKFILL_OPERATION_TOKEN=operation_token \
+bash tools/smoke/run-provider-e2e-smoke.sh
+```
+
+backend에는 같은 token 값을 `APP_EMBEDDING_BACKFILL_OPERATION_TOKEN`으로 주입해야 `/api/v1/embeddings/backfill`이 live smoke에서 열립니다. dry-run으로 순서만 확인하려면 `PROVIDER_E2E_DRY_RUN=true`를 사용합니다.
 
 ## 실패 시 확인 순서
 
