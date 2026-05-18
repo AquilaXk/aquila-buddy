@@ -73,14 +73,14 @@ export default function DashboardPage() {
             <div>
               <p className="text-base font-bold text-yellow-300">프로필 분석이 필요합니다</p>
               <p className="mt-2 text-sm leading-6 text-github-muted">
-                GitHub 활동과 기술 스택을 분석하면 이슈 추천과 PR 초안 품질이 높아집니다.
+                이슈 추천을 받으려면 먼저 마이페이지에서 벡터 업데이트를 완료해주세요.
               </p>
             </div>
             <Link
               className="focus-ring inline-flex items-center justify-center rounded-md border border-yellow-400/60 px-4 py-2 text-sm font-semibold text-yellow-200 hover:bg-yellow-500/10"
               href="/profile"
             >
-              프로필 편집
+              프로필로 이동
             </Link>
           </div>
         </section>
@@ -169,7 +169,7 @@ const serviceSteps = [
   {
     step: "STEP 1",
     title: "프로필 분석",
-    description: "GitHub 활동 기반 기술 스택과 관심 주제를 정리합니다.",
+    description: "GitHub 활동을 분석하여 AI 추천을 위한 벡터를 생성합니다.",
     action: "프로필로 이동",
     href: "/profile",
     accentClass: "hover:bg-github-accent/5"
@@ -177,7 +177,7 @@ const serviceSteps = [
   {
     step: "STEP 2",
     title: "이슈 추천",
-    description: "분석된 프로필과 맞는 오픈소스 이슈를 탐색합니다.",
+    description: "나의 기술 스택에 맞는 오픈소스 이슈를 추천받고 분석 힌트를 확인합니다.",
     action: "이슈 추천 보기",
     href: "/issues",
     accentClass: "hover:bg-emerald-500/5"
@@ -185,7 +185,7 @@ const serviceSteps = [
   {
     step: "STEP 3",
     title: "PR 초안 생성",
-    description: "선택한 이슈의 맥락을 바탕으로 기여 초안을 작성합니다.",
+    description: "코드 작업 후 브랜치 정보를 입력하면 AI가 PR을 자동 작성합니다.",
     action: "초안 만들기",
     href: "/pr-draft",
     accentClass: "hover:bg-yellow-500/5"
