@@ -77,6 +77,7 @@ public class AiPullRequestDraftAdapter implements GeneratePullRequestDraftPort, 
         appendSection(lines, "Repository guide summary", request.repositoryGuideContext().guideSummaryLines());
         appendSection(lines, "Repository guide context", request.repositoryGuideContext().guidePromptLines());
         appendRepositoryGuideQualityRules(lines, request);
+        appendDraftQualityRequirements(lines);
         appendSection(lines, "Issue context", request.issueContext().contextSummaryLines());
         appendSection(lines, "Analysis context", request.analysisContext().contextSummaryLines());
         return String.join("\n", lines);
@@ -116,6 +117,15 @@ public class AiPullRequestDraftAdapter implements GeneratePullRequestDraftPort, 
         lines.add("- Preserve PR template headings when a PR template is present.");
         lines.add("- Follow CONTRIBUTING instructions without inventing repository rules.");
         lines.add("- Use merged PR samples only as tone and structure references.");
+    }
+
+    private static void appendDraftQualityRequirements(List<String> lines) {
+        lines.add("");
+        lines.add("Draft quality requirements:");
+        lines.add("- Base Changes and Tests on the diff content.");
+        lines.add("- Explain why the change matters using Issue context.");
+        lines.add("- Convert Analysis context into implementation notes without copying it verbatim.");
+        lines.add("- Do not mention files, tests, or side effects that are not present in the provided context.");
     }
 
     private static PullRequestDraft parseDraft(String response) {
