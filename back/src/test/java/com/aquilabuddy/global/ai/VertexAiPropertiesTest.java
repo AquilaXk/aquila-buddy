@@ -19,6 +19,8 @@ class VertexAiPropertiesTest {
                 "app.ai.vertex.project-id=grepp-ai-project",
                 "app.ai.vertex.location=us-central1",
                 "app.ai.vertex.model=gemini-2.5-flash",
+                "app.ai.vertex.embedding-model=gemini-embedding-001",
+                "app.ai.vertex.embedding-dimensions=1536",
                 "app.ai.vertex.credentials-path=/tmp/vertex-key.json"
             )
             .run(context -> {
@@ -27,6 +29,8 @@ class VertexAiPropertiesTest {
                 assertThat(properties.projectIdOrThrow()).isEqualTo("grepp-ai-project");
                 assertThat(properties.locationOrDefault()).isEqualTo("us-central1");
                 assertThat(properties.modelOrDefault()).isEqualTo("gemini-2.5-flash");
+                assertThat(properties.embeddingModelOrDefault()).isEqualTo("gemini-embedding-001");
+                assertThat(properties.embeddingDimensionsOrDefault()).isEqualTo(1536);
                 assertThat(properties.credentialsPathOrBlank()).isEqualTo("/tmp/vertex-key.json");
             });
     }
@@ -37,18 +41,22 @@ class VertexAiPropertiesTest {
             " grepp-ai-project ",
             " ",
             " ",
+            " ",
+            null,
             null
         );
 
         assertThat(properties.projectIdOrThrow()).isEqualTo("grepp-ai-project");
         assertThat(properties.locationOrDefault()).isEqualTo("us-central1");
         assertThat(properties.modelOrDefault()).isEqualTo("gemini-2.5-flash");
+        assertThat(properties.embeddingModelOrDefault()).isEqualTo("gemini-embedding-001");
+        assertThat(properties.embeddingDimensionsOrDefault()).isEqualTo(1536);
         assertThat(properties.credentialsPathOrBlank()).isEmpty();
     }
 
     @Test
     void rejectsBlankProjectId() {
-        VertexAiProperties properties = new VertexAiProperties(" ", "us-central1", "gemini-2.5-flash", null);
+        VertexAiProperties properties = new VertexAiProperties(" ", "us-central1", "gemini-2.5-flash", null, null, null);
 
         assertThatThrownBy(properties::projectIdOrThrow)
             .isInstanceOf(IllegalStateException.class)
