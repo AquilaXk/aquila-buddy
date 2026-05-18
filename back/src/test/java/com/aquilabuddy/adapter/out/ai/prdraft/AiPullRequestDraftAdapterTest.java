@@ -93,6 +93,20 @@ class AiPullRequestDraftAdapterTest {
     }
 
     @Test
+    void addsClosingIssueLineWhenTranslatedDraftBodyOmitsIt() {
+        CapturingAiClient aiClient = new CapturingAiClient("""
+            TITLE: docs: prepare validation guide update
+            BODY: ## Summary
+            - Translate the source draft.
+            """);
+        AiPullRequestDraftAdapter adapter = new AiPullRequestDraftAdapter(aiClient);
+
+        PullRequestDraft draft = adapter.translate(storedDraft(), "en");
+
+        assertThat(draft.body()).startsWith("close #123\n\n## Summary");
+    }
+
+    @Test
     void fallsBackToDeterministicDraftWhenAiResponseIsMalformed() {
         CapturingAiClient aiClient = new CapturingAiClient("plain response without markers");
         AiPullRequestDraftAdapter adapter = new AiPullRequestDraftAdapter(aiClient);

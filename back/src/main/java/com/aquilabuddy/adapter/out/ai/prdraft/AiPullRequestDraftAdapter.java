@@ -56,7 +56,10 @@ public class AiPullRequestDraftAdapter implements GeneratePullRequestDraftPort, 
     public PullRequestDraft translate(StoredPullRequestDraft draft, String targetLanguage) {
         String normalizedLanguage = normalizeTargetLanguage(targetLanguage);
         String response = aiClient.complete(TRANSLATION_SYSTEM_PROMPT, buildTranslationPrompt(draft, normalizedLanguage));
-        return parseDraftOrFallback(response, () -> fallbackTranslation(draft));
+        return ensureClosingIssueLine(
+            parseDraftOrFallback(response, () -> fallbackTranslation(draft)),
+            draft.githubIssueNumber()
+        );
     }
 
     private static String buildDraftPrompt(PullRequestDraftRequest request) {
