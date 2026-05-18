@@ -281,6 +281,17 @@ export default function PrDetailPage() {
         )}
       </section>
 
+      {draft.diffContent ? (
+        <section className="surface mb-5 p-5">
+          <p className="mb-2 text-xs font-semibold text-github-muted">코드 변경 내용 (diff)</p>
+          <pre className="max-h-48 overflow-y-auto whitespace-pre-wrap rounded-md bg-github-bg p-4 font-mono text-xs leading-6 text-github-text">
+            {draft.diffContent.length > 3000
+              ? `${draft.diffContent.slice(0, 3000)}\n... (생략)`
+              : draft.diffContent}
+          </pre>
+        </section>
+      ) : null}
+
       {editing ? (
         <div className="flex flex-wrap gap-3">
           <button

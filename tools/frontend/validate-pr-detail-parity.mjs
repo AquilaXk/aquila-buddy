@@ -65,6 +65,8 @@ assertIncludes("draft.sourceIssueId", "PR detail page must branch on stored sour
 assertIncludes("원본 이슈 보기", "PR detail page must link to the source issue detail.");
 assertIncludes("PR 제목", "PR detail page must show the title card.");
 assertIncludes("PR 본문", "PR detail page must show the body card.");
+assertIncludes("코드 변경 내용 (diff)", "PR detail page must show the diff card.");
+assertIncludes("draft.diffContent", "PR detail page must render stored diff content.");
 assertIncludes("편집", "PR detail page must expose edit action.");
 assertIncludes("삭제", "PR detail page must expose delete action.");
 assertIncludes("저장", "PR detail page must expose save action.");
