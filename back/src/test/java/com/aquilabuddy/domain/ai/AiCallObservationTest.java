@@ -31,6 +31,7 @@ class AiCallObservationTest {
         assertThat(observation.latencyMillis()).isEqualTo(42);
         assertThat(observation.success()).isTrue();
         assertThat(observation.errorType()).isNull();
+        assertThat(observation.failureReason()).isNull();
         assertThat(observation.inputTokens()).isEqualTo(120);
         assertThat(observation.outputTokens()).isEqualTo(32);
         assertThat(observation.observedAt()).isEqualTo(OBSERVED_AT);
@@ -45,6 +46,7 @@ class AiCallObservationTest {
             "ai-client.embed.v1",
             Duration.ofMillis(105),
             "IllegalStateException",
+            "Embedding provider returned invalid vector dimensions",
             OBSERVED_AT
         );
 
@@ -53,6 +55,7 @@ class AiCallObservationTest {
         assertThat(observation.latencyMillis()).isEqualTo(105);
         assertThat(observation.success()).isFalse();
         assertThat(observation.errorType()).isEqualTo("IllegalStateException");
+        assertThat(observation.failureReason()).isEqualTo("Embedding provider returned invalid vector dimensions");
         assertThat(observation.inputTokens()).isNull();
         assertThat(observation.outputTokens()).isNull();
     }

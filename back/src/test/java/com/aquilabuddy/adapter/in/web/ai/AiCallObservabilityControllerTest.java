@@ -34,10 +34,10 @@ class AiCallObservabilityControllerTest {
         given(getAiCallObservabilityUseCase.getRecentAiCallObservability(10))
             .willReturn(new AiCallObservabilityReport(
                 10,
+                2,
                 1,
                 1,
-                0,
-                42,
+                74,
                 120,
                 32,
                 List.of(new AiCallObservation(
@@ -48,9 +48,22 @@ class AiCallObservabilityControllerTest {
                     42,
                     true,
                     null,
+                    null,
                     120,
                     32,
                     Instant.parse("2026-05-18T06:00:00Z")
+                ), new AiCallObservation(
+                    "vertex-ai",
+                    AiCallOperation.EMBEDDING,
+                    "gemini-embedding-001",
+                    "ai-client.embed.v1",
+                    105,
+                    false,
+                    "IllegalStateException",
+                    "Embedding provider returned invalid vector dimensions",
+                    null,
+                    null,
+                    Instant.parse("2026-05-18T06:01:00Z")
                 ))
             ));
 
@@ -59,12 +72,16 @@ class AiCallObservabilityControllerTest {
             .andExpect(jsonPath("$.success").value(true))
             .andExpect(jsonPath("$.data.requestedLimit").value(10))
             .andExpect(jsonPath("$.data.successCount").value(1))
-            .andExpect(jsonPath("$.data.averageLatencyMillis").value(42))
+            .andExpect(jsonPath("$.data.failureCount").value(1))
+            .andExpect(jsonPath("$.data.averageLatencyMillis").value(74))
             .andExpect(jsonPath("$.data.totalInputTokens").value(120))
             .andExpect(jsonPath("$.data.totalOutputTokens").value(32))
             .andExpect(jsonPath("$.data.recentCalls[0].provider").value("openai-compatible"))
             .andExpect(jsonPath("$.data.recentCalls[0].model").value("gpt-4o-mini"))
-            .andExpect(jsonPath("$.data.recentCalls[0].promptVersion").value("ai-client.complete.v1"));
+            .andExpect(jsonPath("$.data.recentCalls[0].promptVersion").value("ai-client.complete.v1"))
+            .andExpect(jsonPath("$.data.recentCalls[1].success").value(false))
+            .andExpect(jsonPath("$.data.recentCalls[1].errorType").value("IllegalStateException"))
+            .andExpect(jsonPath("$.data.recentCalls[1].failureReason").value("Embedding provider returned invalid vector dimensions"));
 
         then(getAiCallObservabilityUseCase).should().getRecentAiCallObservability(10);
     }

@@ -52,6 +52,7 @@ class VertexAiEmbeddingClientTest {
             .hasMessageContaining("Vertex AI embedding vector");
         assertThat(observer.firstObservation().success()).isFalse();
         assertThat(observer.firstObservation().errorType()).isEqualTo("IllegalStateException");
+        assertThat(observer.firstObservation().failureReason()).contains("Vertex AI embedding vector");
     }
 
     @Test
@@ -70,6 +71,10 @@ class VertexAiEmbeddingClientTest {
         assertThat(observer.firstObservation().success()).isFalse();
         assertThat(observer.firstObservation().operation()).isEqualTo(AiCallOperation.EMBEDDING);
         assertThat(observer.firstObservation().errorType()).isEqualTo("IllegalStateException");
+        assertThat(observer.firstObservation().failureReason())
+            .contains("dimension")
+            .contains("3")
+            .contains("2");
     }
 
     private static final class CapturingVertexAiEmbeddingGenerator implements VertexAiEmbeddingGenerator {

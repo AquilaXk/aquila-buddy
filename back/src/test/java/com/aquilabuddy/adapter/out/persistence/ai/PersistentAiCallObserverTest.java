@@ -76,6 +76,7 @@ class PersistentAiCallObserverTest {
             "ai-client.embed.v1",
             Duration.ofMillis(105),
             "IllegalStateException",
+            "Embedding provider returned invalid vector dimensions",
             OBSERVED_AT
         ));
 
@@ -84,6 +85,7 @@ class PersistentAiCallObserverTest {
         assertThat(saved.getOperation()).isEqualTo(AiCallOperation.EMBEDDING);
         assertThat(saved.isSuccess()).isFalse();
         assertThat(saved.getErrorType()).isEqualTo("IllegalStateException");
+        assertThat(saved.getFailureReason()).isEqualTo("Embedding provider returned invalid vector dimensions");
         assertThat(saved.getInputTokens()).isNull();
         assertThat(saved.getOutputTokens()).isNull();
     }

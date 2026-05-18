@@ -90,6 +90,7 @@ CREATE TABLE ai_call_observations (
     latency_millis BIGINT NOT NULL,
     success BOOLEAN NOT NULL,
     error_type VARCHAR(255),
+    failure_reason VARCHAR(1000),
     input_tokens INTEGER,
     output_tokens INTEGER,
     observed_at TIMESTAMP NOT NULL
