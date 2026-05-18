@@ -21,28 +21,32 @@ public class GoogleGenAiVertexTextGenerator implements VertexAiTextGenerator, Au
 
     private static final List<String> CLOUD_PLATFORM_SCOPE = List.of("https://www.googleapis.com/auth/cloud-platform");
 
-    private final Client client;
+    private final VertexAiProperties properties;
     private final String model;
+    private volatile Client client;
 
     public GoogleGenAiVertexTextGenerator(VertexAiProperties properties) {
-        VertexAiProperties safeProperties = Objects.requireNonNull(properties, "properties must not be null.");
+        this.properties = Objects.requireNonNull(properties, "properties must not be null.");
+        this.model = this.properties.modelOrDefault();
+    }
+
+    private static Client buildClient(VertexAiProperties properties) {
         Client.Builder builder = Client.builder()
-            .project(safeProperties.projectIdOrThrow())
-            .location(safeProperties.locationOrDefault())
+            .project(properties.projectIdOrThrow())
+            .location(properties.locationOrDefault())
             .enterprise(true);
-        String credentialsPath = safeProperties.credentialsPathOrBlank();
+        String credentialsPath = properties.credentialsPathOrBlank();
         if (!credentialsPath.isBlank()) {
             builder.credentials(loadCredentials(credentialsPath));
         }
-        this.client = builder.build();
-        this.model = safeProperties.modelOrDefault();
+        return builder.build();
     }
 
     @Override
     public String generate(String prompt) {
         String normalizedPrompt = requirePrompt(prompt);
         try {
-            GenerateContentResponse response = client.models.generateContent(model, normalizedPrompt, null);
+            GenerateContentResponse response = client().models.generateContent(model, normalizedPrompt, null);
             return response == null ? null : response.text();
         } catch (RuntimeException exception) {
             throw new IllegalStateException("Vertex AI completion request failed.", exception);
@@ -51,7 +55,10 @@ public class GoogleGenAiVertexTextGenerator implements VertexAiTextGenerator, Au
 
     @Override
     public void close() {
-        client.close();
+        Client initializedClient = client;
+        if (initializedClient != null) {
+            initializedClient.close();
+        }
     }
 
     private static String requirePrompt(String prompt) {
@@ -68,5 +75,19 @@ public class GoogleGenAiVertexTextGenerator implements VertexAiTextGenerator, Au
         } catch (IOException exception) {
             throw new IllegalStateException("app.ai.vertex.credentials-path could not be loaded.", exception);
         }
+    }
+
+    private Client client() {
+        Client initializedClient = client;
+        if (initializedClient == null) {
+            synchronized (this) {
+                initializedClient = client;
+                if (initializedClient == null) {
+                    initializedClient = buildClient(properties);
+                    client = initializedClient;
+                }
+            }
+        }
+        return initializedClient;
     }
 }
