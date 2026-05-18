@@ -8,6 +8,7 @@ import java.util.Base64;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -38,6 +39,28 @@ public class GitHubApiClient {
         ".github/PULL_REQUEST_TEMPLATE/pull_request_template.md",
         "PULL_REQUEST_TEMPLATE/pull_request_template.md",
         "docs/PULL_REQUEST_TEMPLATE/pull_request_template.md"
+    );
+    private static final List<String> TREE_EXCLUDED_PATH_SEGMENTS = List.of(
+        "/.git/",
+        "/.gradle/",
+        "/.idea/",
+        "/build/",
+        "/dist/",
+        "/node_modules/",
+        "/target/",
+        "/vendor/"
+    );
+    private static final List<String> TREE_ASSET_EXTENSIONS = List.of(
+        ".avif",
+        ".gif",
+        ".ico",
+        ".jpeg",
+        ".jpg",
+        ".pdf",
+        ".png",
+        ".svg",
+        ".webp",
+        ".zip"
     );
 
     private final RestClient restClient;
@@ -320,7 +343,7 @@ public class GitHubApiClient {
                 if (files.size() >= maxFiles) {
                     break;
                 }
-                if (item == null || !"blob".equals(item.type()) || !hasText(item.path())) {
+                if (item == null || !"blob".equals(item.type()) || !isRepositoryTreeCodeCandidate(item.path())) {
                     continue;
                 }
                 getContentFile(upstreamRepo, item.path())
@@ -331,6 +354,18 @@ public class GitHubApiClient {
         } catch (RestClientException exception) {
             return List.of();
         }
+    }
+
+    private boolean isRepositoryTreeCodeCandidate(String path) {
+        if (!hasText(path)) {
+            return false;
+        }
+
+        String normalized = "/" + path.strip().toLowerCase(Locale.ROOT);
+        if (TREE_EXCLUDED_PATH_SEGMENTS.stream().anyMatch(normalized::contains)) {
+            return false;
+        }
+        return TREE_ASSET_EXTENSIONS.stream().noneMatch(normalized::endsWith);
     }
 
     private Optional<String> firstExistingContent(String upstreamRepo, List<String> paths) {

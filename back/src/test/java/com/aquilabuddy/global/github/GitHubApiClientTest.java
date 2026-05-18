@@ -374,6 +374,65 @@ class GitHubApiClientTest {
     }
 
     @Test
+    void skipsVendorBuildAndAssetFilesWhenSelectingTreeCodeContext() {
+        route("/search/code", 200, """
+            {
+              "items": []
+            }
+            """);
+        route("/repos/spring-projects/spring-boot/git/trees/HEAD", 200, """
+            {
+              "tree": [
+                {
+                  "path": "node_modules/pkg/index.js",
+                  "type": "blob"
+                },
+                {
+                  "path": "build/generated/ValidationController.java",
+                  "type": "blob"
+                },
+                {
+                  "path": "src/main/resources/logo.png",
+                  "type": "blob"
+                },
+                {
+                  "path": "src/main/java/ValidationController.java",
+                  "type": "blob"
+                }
+              ]
+            }
+            """);
+        route(
+            "/repos/spring-projects/spring-boot/contents/node_modules/pkg/index.js",
+            200,
+            contentBody("console.log('vendor')")
+        );
+        route(
+            "/repos/spring-projects/spring-boot/contents/build/generated/ValidationController.java",
+            200,
+            contentBody("class GeneratedValidationController {}")
+        );
+        route(
+            "/repos/spring-projects/spring-boot/contents/src/main/resources/logo.png",
+            200,
+            contentBody("png data")
+        );
+        route(
+            "/repos/spring-projects/spring-boot/contents/src/main/java/ValidationController.java",
+            200,
+            contentBody("class ValidationController { void validate() {} }")
+        );
+        GitHubApiClient client = client();
+
+        GitHubApiClient.GitHubRepositoryCodeContext context =
+            client.loadRepositoryCodeContext("spring-projects/spring-boot", "validation controller", 1, 100);
+
+        assertThat(context.files())
+            .extracting(GitHubApiClient.GitHubRepositoryCodeContextFile::path)
+            .containsExactly("src/main/java/ValidationController.java");
+    }
+
+    @Test
     void returnsEmptyRepositoryCodeContextWhenCodeSearchFails() {
         route("/search/code", 403, """
             {"message": "API rate limit exceeded"}
