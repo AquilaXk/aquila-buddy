@@ -87,5 +87,7 @@ tools/templates/agent-*.md
 *.tfvars
 !*.tfvars.example
 *.tfplan
+**/terraform.env
+!**/terraform.env.example
 crash.log
 crash.*.log

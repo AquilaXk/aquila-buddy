@@ -109,6 +109,43 @@ bash tools/smoke/validate-ai-runtime-env.sh
 5. issue guide, PR draft, translation을 실행해 AI 호출과 `ai_call_observations` 저장을 확인합니다.
 6. `LANGFUSE_ENABLED=true` 환경에서는 같은 호출이 Langfuse generation event로 적재되는지 확인합니다.
 
+## OCI Always Free Terraform
+
+OCI Always Free A1 Flex 배포 baseline은 `infra/terraform/oci/always-free-a1-flex`에 둡니다.
+
+- 기본 shape: `VM.Standard.A1.Flex`
+- 기본 resource prefix: `aquila-buddy-a1`
+- 기본 hostname label: `aquilabuddy`
+- 기본 VCN DNS label: `aquilabuddyvcn`
+- storage: boot volume `50GB`, data Block Volume `150GB`, data volume `0` VPU/GB
+- data mount: `/var/lib/aquila-data`, Docker data-root `/var/lib/aquila-data/docker`
+
+실제 OCID, fingerprint, private key, SSH key는 commit하지 않습니다. `terraform.tfvars.example` 또는 `terraform.env.example`를 복사해 로컬에서만 실제 값으로 채웁니다.
+
+```bash
+cd infra/terraform/oci/always-free-a1-flex
+cp terraform.tfvars.example terraform.tfvars
+terraform init
+terraform fmt -check
+terraform validate
+terraform plan
+```
+
+환경 변수 방식으로 실행할 때는 shell export template을 사용합니다.
+
+```bash
+cd infra/terraform/oci/always-free-a1-flex
+cp terraform.env.example terraform.env
+# terraform.env에 실제 OCID, fingerprint, SSH public key를 채웁니다.
+set -a
+source terraform.env
+set +a
+terraform init
+terraform plan
+```
+
+`terraform.tfvars`, `terraform.env`, `.terraform/`, `*.tfstate`, `*.tfplan`은 gitignore 대상입니다.
+
 ## Ports
 
 - Backend: `http://localhost:8080`
