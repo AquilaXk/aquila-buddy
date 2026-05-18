@@ -17,7 +17,8 @@
     "validate:pr-detail": "node ../tools/frontend/validate-pr-detail-parity.mjs",
     "validate:brand-gothic": "node ../tools/frontend/validate-brand-gothic-parity.mjs",
     "validate:api-envelope": "node ../tools/frontend/validate-api-envelope-parity.mjs",
-    "validate:oauth-callback": "node ../tools/frontend/validate-oauth-callback-parity.mjs"
+    "validate:oauth-callback": "node ../tools/frontend/validate-oauth-callback-parity.mjs",
+    "smoke:integration": "node ../tools/frontend/integration-smoke/run-integration-smoke.mjs"
   },
   "dependencies": {
     "next": "16.2.6",

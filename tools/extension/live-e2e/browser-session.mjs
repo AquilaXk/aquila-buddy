@@ -278,6 +278,26 @@ function createPage(client) {
       await waitForFunction(client, `Boolean(document.querySelector(${JSON.stringify(selector)}))`);
       return evaluate(client, `document.querySelector(${JSON.stringify(selector)}).value`);
     },
+    async evaluate(expression) {
+      return evaluate(client, expression);
+    },
+    async navigate(url) {
+      const loadEvent = client.waitForEvent("Page.loadEventFired");
+      await client.send("Page.navigate", { url });
+      await Promise.race([
+        loadEvent,
+        new Promise((resolve) => setTimeout(resolve, 1_000)),
+      ]);
+    },
+    async waitForText(text) {
+      await waitForFunction(
+        client,
+        `Boolean(document.body && document.body.innerText.includes(${JSON.stringify(text)}))`
+      );
+    },
+    async currentUrl() {
+      return evaluate(client, "window.location.href");
+    },
     async close() {
       client.close();
     },

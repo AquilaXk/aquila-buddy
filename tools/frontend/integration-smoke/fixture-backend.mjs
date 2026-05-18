@@ -1,6 +1,9 @@
 import { createServer } from "node:http";
 
 export async function createFrontendFixtureBackend(options = {}) {
+  const state = {
+    profileFailure: Boolean(options.profileFailure),
+  };
   const server = createServer((request, response) => {
     const url = new URL(request.url ?? "/", "http://127.0.0.1");
 
@@ -9,7 +12,7 @@ export async function createFrontendFixtureBackend(options = {}) {
       return;
     }
 
-    const payload = routeFixture(url, request.method ?? "GET", options);
+    const payload = routeFixture(url, request.method ?? "GET", state);
     writeJson(response, payload.httpStatus ?? 200, payload.body);
   });
 
@@ -28,6 +31,9 @@ export async function createFrontendFixtureBackend(options = {}) {
 
   return {
     origin: `http://127.0.0.1:${address.port}`,
+    setProfileFailure(value) {
+      state.profileFailure = Boolean(value);
+    },
     close: () => new Promise((resolve, reject) => {
       server.close((error) => (error ? reject(error) : resolve()));
     }),
