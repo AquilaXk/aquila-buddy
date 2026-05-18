@@ -14,6 +14,7 @@ class PullRequestDraftTranslateResultTest {
 
         assertThat(result.titleEn()).isEqualTo("docs: Prepare contributor guide");
         assertThat(result.bodyEn()).isEqualTo("## Summary\n- Prepare contributor guide.");
+        assertThat(result.sourceIssueId()).isEqualTo("issue-123");
         assertThat(result.githubUrl())
             .isEqualTo(
                 "https://github.com/spring-projects/spring-boot/compare/main...feat/readme-fix"
@@ -69,6 +70,7 @@ class PullRequestDraftTranslateResultTest {
             "feat/readme-fix",
             "[Docs] README 기여 안내 보완",
             "## 변경 사항\n- README 안내를 보완합니다.",
+            "issue-123",
             Instant.parse("2026-05-16T01:00:00Z")
         );
     }
