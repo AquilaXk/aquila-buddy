@@ -8,6 +8,7 @@ import java.util.Base64;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -38,6 +39,35 @@ public class GitHubApiClient {
         ".github/PULL_REQUEST_TEMPLATE/pull_request_template.md",
         "PULL_REQUEST_TEMPLATE/pull_request_template.md",
         "docs/PULL_REQUEST_TEMPLATE/pull_request_template.md"
+    );
+    private static final List<String> TREE_EXCLUDED_PATH_SEGMENTS = List.of(
+        "/.git/",
+        "/.gradle/",
+        "/.idea/",
+        "/build/",
+        "/dist/",
+        "/node_modules/",
+        "/target/",
+        "/vendor/"
+    );
+    private static final List<String> TREE_ASSET_EXTENSIONS = List.of(
+        ".avif",
+        ".gif",
+        ".ico",
+        ".jpeg",
+        ".jpg",
+        ".pdf",
+        ".png",
+        ".svg",
+        ".webp",
+        ".zip"
+    );
+    private static final List<String> TREE_QUERY_STOP_WORDS = List.of(
+        "and",
+        "first",
+        "good",
+        "issue",
+        "the"
     );
 
     private final RestClient restClient;
@@ -288,10 +318,101 @@ public class GitHubApiClient {
                     .map(content -> toRepositoryCodeContextFile(item.path(), content, maxContentChars))
                     .ifPresent(files::add);
             }
+            if (files.isEmpty()) {
+                files.addAll(loadRepositoryTreeCodeContextFiles(upstreamRepo, query, maxFiles, maxContentChars));
+            }
             return new GitHubRepositoryCodeContext(upstreamRepo, "default", files);
         } catch (RestClientException exception) {
             return GitHubRepositoryCodeContext.empty(upstreamRepo);
         }
+    }
+
+    private List<GitHubRepositoryCodeContextFile> loadRepositoryTreeCodeContextFiles(
+        String upstreamRepo,
+        String query,
+        int maxFiles,
+        int maxContentChars
+    ) {
+        try {
+            GitHubRepositoryTreeResponse response = restClient.get()
+                .uri(uriBuilder -> uriBuilder
+                    .path("/repos/" + upstreamRepo + "/git/trees/HEAD")
+                    .queryParam("recursive", "1")
+                    .build())
+                .headers(this::applyAuthorization)
+                .retrieve()
+                .body(GitHubRepositoryTreeResponse.class);
+            List<GitHubRepositoryTreeItemResponse> tree = response == null || response.tree() == null
+                ? List.of()
+                : response.tree();
+            List<String> queryTokens = codeContextQueryTokens(query);
+            List<GitHubRepositoryTreeCandidate> candidates = tree.stream()
+                .filter(item -> item != null && "blob".equals(item.type()))
+                .filter(item -> isRepositoryTreeCodeCandidate(item.path()))
+                .map(item -> new GitHubRepositoryTreeCandidate(
+                    item.path(),
+                    treeCandidateScore(item.path(), queryTokens)
+                ))
+                .filter(candidate -> queryTokens.isEmpty() || candidate.score() > 0)
+                .sorted(Comparator
+                    .comparingInt(GitHubRepositoryTreeCandidate::score)
+                    .reversed()
+                    .thenComparing(GitHubRepositoryTreeCandidate::path))
+                .toList();
+
+            List<GitHubRepositoryCodeContextFile> files = new ArrayList<>();
+            for (GitHubRepositoryTreeCandidate candidate : candidates) {
+                if (files.size() >= maxFiles) {
+                    break;
+                }
+                getContentFile(upstreamRepo, candidate.path())
+                    .map(content -> toRepositoryCodeContextFile(candidate.path(), content, maxContentChars))
+                    .ifPresent(files::add);
+            }
+            return files;
+        } catch (RestClientException exception) {
+            return List.of();
+        }
+    }
+
+    private List<String> codeContextQueryTokens(String query) {
+        if (!hasText(query)) {
+            return List.of();
+        }
+
+        return Arrays.stream(query.toLowerCase(Locale.ROOT).split("[^a-z0-9]+"))
+            .map(String::strip)
+            .filter(token -> token.length() >= 3)
+            .filter(token -> !TREE_QUERY_STOP_WORDS.contains(token))
+            .distinct()
+            .toList();
+    }
+
+    private int treeCandidateScore(String path, List<String> queryTokens) {
+        if (!hasText(path) || queryTokens.isEmpty()) {
+            return 0;
+        }
+
+        String normalized = path.toLowerCase(Locale.ROOT);
+        int score = 0;
+        for (String token : queryTokens) {
+            if (normalized.contains(token)) {
+                score++;
+            }
+        }
+        return score;
+    }
+
+    private boolean isRepositoryTreeCodeCandidate(String path) {
+        if (!hasText(path)) {
+            return false;
+        }
+
+        String normalized = "/" + path.strip().toLowerCase(Locale.ROOT);
+        if (TREE_EXCLUDED_PATH_SEGMENTS.stream().anyMatch(normalized::contains)) {
+            return false;
+        }
+        return TREE_ASSET_EXTENSIONS.stream().noneMatch(normalized::endsWith);
     }
 
     private Optional<String> firstExistingContent(String upstreamRepo, List<String> paths) {
@@ -501,6 +622,21 @@ public class GitHubApiClient {
     }
 
     private record GitHubCodeSearchItemResponse(String path) {
+    }
+
+    private record GitHubRepositoryTreeResponse(List<GitHubRepositoryTreeItemResponse> tree) {
+    }
+
+    private record GitHubRepositoryTreeItemResponse(
+        String path,
+        String type
+    ) {
+    }
+
+    private record GitHubRepositoryTreeCandidate(
+        String path,
+        int score
+    ) {
     }
 
     private record GitHubContentResponse(String content) {

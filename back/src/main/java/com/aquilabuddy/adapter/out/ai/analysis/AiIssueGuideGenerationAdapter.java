@@ -22,6 +22,7 @@ public class AiIssueGuideGenerationAdapter implements GenerateIssueGuidePort {
     private static final String SYSTEM_PROMPT = """
         You are an issue guide generator for an open-source contribution assistant.
         Use only the provided issue metadata and repository code context.
+        Base GUIDELINE, PSEUDO_CODE, and SIDE_EFFECTS on repository code context when it is present.
         Return exactly this marker format.
         GUIDELINE: <one focused implementation guideline>
         PSEUDO_CODE:
