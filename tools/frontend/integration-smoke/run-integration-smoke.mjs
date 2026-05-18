@@ -6,6 +6,7 @@ import { launchChromeSession } from "../../extension/live-e2e/browser-session.mj
 
 const repoRoot = resolve(import.meta.dirname, "..", "..", "..");
 const timeoutMs = positiveInteger(process.env.FRONTEND_INTEGRATION_SMOKE_TIMEOUT_MS, 90_000);
+const serverMode = resolveServerMode();
 const useLiveBackend = process.env.FRONTEND_INTEGRATION_USE_LIVE_BACKEND === "true";
 
 const backend = useLiveBackend
@@ -13,7 +14,7 @@ const backend = useLiveBackend
   : await createFrontendFixtureBackend();
 const frontendPort = await getAvailablePort();
 const frontendOrigin = `http://127.0.0.1:${frontendPort}`;
-const next = startNextServer(frontendPort, backend.origin);
+const next = startNextServer(frontendPort, backend.origin, serverMode);
 let chrome;
 
 try {
@@ -84,10 +85,11 @@ async function visitAndAssert(page, url, expectedText) {
   }
 }
 
-function startNextServer(port, apiUrl) {
+function startNextServer(port, apiUrl, serverMode) {
+  const script = serverMode === "start" ? "start" : "dev";
   const child = spawn(
     "npm",
-    ["--prefix", "front", "run", "dev", "--", "--hostname", "127.0.0.1", "--port", String(port)],
+    ["--prefix", "front", "run", script, "--", "--hostname", "127.0.0.1", "--port", String(port)],
     {
       cwd: repoRoot,
       detached: true,
@@ -112,6 +114,14 @@ function startNextServer(port, apiUrl) {
   });
 
   return child;
+}
+
+function resolveServerMode() {
+  const mode = process.env.FRONTEND_INTEGRATION_SERVER_MODE ?? "dev";
+  if (mode === "dev" || mode === "start") {
+    return mode;
+  }
+  throw new Error("FRONTEND_INTEGRATION_SERVER_MODE must be either 'dev' or 'start'.");
 }
 
 function liveBackend() {
