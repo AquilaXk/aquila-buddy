@@ -50,6 +50,7 @@ class PullRequestDraftTranslationServiceTest {
         assertThat(savePort.savedDraftId).isEqualTo("draft-1");
         assertThat(savePort.savedTargetLanguage).isEqualTo("en");
         assertThat(translation.get().title()).isEqualTo("translated title");
+        assertThat(translation.get().sourceIssueId()).isEqualTo("issue-123");
     }
 
     @Test
@@ -125,6 +126,9 @@ class PullRequestDraftTranslationServiceTest {
         assertThat(translations)
             .extracting(PullRequestDraftTranslation::id)
             .containsExactly("translation-1");
+        assertThat(translations)
+            .extracting(PullRequestDraftTranslation::sourceIssueId)
+            .containsExactly("issue-123");
     }
 
     @Test
@@ -407,6 +411,7 @@ class PullRequestDraftTranslationServiceTest {
             "feat/readme-fix",
             "[Docs] README 기여 안내 보완",
             "## 변경 사항\n- README 안내를 보완합니다.",
+            "issue-123",
             Instant.parse("2026-05-15T01:00:00Z")
         );
     }
