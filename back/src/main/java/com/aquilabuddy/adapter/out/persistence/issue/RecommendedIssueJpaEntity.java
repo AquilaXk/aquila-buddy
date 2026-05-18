@@ -56,6 +56,9 @@ public class RecommendedIssueJpaEntity {
     @Column(name = "reason", nullable = false, length = 1_000)
     private String reason;
 
+    @Column(name = "issue_embedding", length = 12_000)
+    private String issueEmbedding;
+
     protected RecommendedIssueJpaEntity() {
     }
 
@@ -70,6 +73,21 @@ public class RecommendedIssueJpaEntity {
         String status,
         String reason
     ) {
+        this(id, repoFullName, issueNumber, title, summary, score, labels, status, reason, null);
+    }
+
+    RecommendedIssueJpaEntity(
+        String id,
+        String repoFullName,
+        long issueNumber,
+        String title,
+        String summary,
+        double score,
+        List<String> labels,
+        String status,
+        String reason,
+        String issueEmbedding
+    ) {
         this.id = id;
         this.repoFullName = repoFullName;
         this.issueNumber = issueNumber;
@@ -79,6 +97,7 @@ public class RecommendedIssueJpaEntity {
         this.labels = new ArrayList<>(labels);
         this.status = status;
         this.reason = reason;
+        this.issueEmbedding = issueEmbedding;
     }
 
     String getId() {
@@ -115,5 +134,13 @@ public class RecommendedIssueJpaEntity {
 
     String getReason() {
         return reason;
+    }
+
+    String getIssueEmbedding() {
+        return issueEmbedding;
+    }
+
+    void updateIssueEmbedding(String issueEmbedding) {
+        this.issueEmbedding = issueEmbedding;
     }
 }

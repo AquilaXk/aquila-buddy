@@ -47,7 +47,8 @@ CREATE TABLE recommended_issues (
     summary VARCHAR(1000) NOT NULL,
     score DOUBLE PRECISION NOT NULL,
     status VARCHAR(50) NOT NULL,
-    reason VARCHAR(1000) NOT NULL
+    reason VARCHAR(1000) NOT NULL,
+    issue_embedding VARCHAR(12000)
 );
 
 CREATE TABLE recommended_issue_labels (

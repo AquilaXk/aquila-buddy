@@ -146,6 +146,7 @@ class RecommendedIssuePersistenceAdapterTest {
         );
 
         adapter.saveRecommendedIssues(List.of(searched));
+        repository.flush();
 
         String storedEmbedding = jdbcTemplate.queryForObject(
             "SELECT issue_embedding FROM recommended_issues WHERE issue_id = ?",
