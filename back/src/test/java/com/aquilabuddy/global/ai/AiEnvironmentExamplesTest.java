@@ -20,6 +20,10 @@ class AiEnvironmentExamplesTest {
             .contains("VERTEX_AI_LOCATION=us-central1")
             .contains("VERTEX_AI_MODEL=gemini-2.5-flash")
             .contains("VERTEX_AI_CREDENTIALS_PATH=./vertex-key.json")
+            .contains("LANGFUSE_ENABLED=false")
+            .contains("LANGFUSE_BASE_URL=https://cloud.langfuse.com")
+            .contains("LANGFUSE_PUBLIC_KEY=")
+            .contains("LANGFUSE_SECRET_KEY=")
             .doesNotContain(legacyGlmApiKeyName())
             .doesNotContain("GEMINI_API_KEY");
         assertThat(backendExample)
@@ -28,6 +32,10 @@ class AiEnvironmentExamplesTest {
             .contains("VERTEX_AI_LOCATION=us-central1")
             .contains("VERTEX_AI_MODEL=gemini-2.5-flash")
             .contains("VERTEX_AI_CREDENTIALS_PATH=./vertex-key.json")
+            .contains("LANGFUSE_ENABLED=false")
+            .contains("LANGFUSE_BASE_URL=https://cloud.langfuse.com")
+            .contains("LANGFUSE_PUBLIC_KEY=")
+            .contains("LANGFUSE_SECRET_KEY=")
             .doesNotContain(legacyGlmApiKeyName())
             .doesNotContain("GEMINI_API_KEY");
     }
@@ -43,6 +51,8 @@ class AiEnvironmentExamplesTest {
             .doesNotContain(legacyGlmApiKeyName());
         assertThat(readme)
             .contains("기본 운영 AI provider는 `vertex-ai`입니다.")
+            .contains("LANGFUSE_ENABLED=true")
+            .contains("Langfuse tracing은 선택 기능")
             .doesNotContain("AI_PROVIDER=openai-compatible")
             .doesNotContain(legacyGlmApiKeyName());
         assertThat(smokeScript)
