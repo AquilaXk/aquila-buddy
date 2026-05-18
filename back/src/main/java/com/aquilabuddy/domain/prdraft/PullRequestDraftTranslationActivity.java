@@ -12,6 +12,7 @@ public record PullRequestDraftTranslationActivity(
     String translationId,
     String upstreamRepo,
     long githubIssueNumber,
+    String sourceIssueId,
     String targetLanguage,
     String title,
     Instant createdAt
@@ -46,6 +47,7 @@ public record PullRequestDraftTranslationActivity(
             translation.id(),
             draft.upstreamRepo(),
             draft.githubIssueNumber(),
+            draft.sourceIssueId(),
             translation.targetLanguage(),
             translation.title(),
             translation.createdAt()

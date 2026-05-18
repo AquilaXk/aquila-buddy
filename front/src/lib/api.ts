@@ -208,6 +208,7 @@ export type PullRequestDraftTranslationActivity = {
   translationId: string;
   upstreamRepo: string;
   githubIssueNumber: number;
+  sourceIssueId: string | null;
   targetLanguage: "en";
   title: string;
   createdAt: string;
