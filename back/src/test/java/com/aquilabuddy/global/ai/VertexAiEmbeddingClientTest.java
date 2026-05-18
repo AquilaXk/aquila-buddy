@@ -54,6 +54,24 @@ class VertexAiEmbeddingClientTest {
         assertThat(observer.firstObservation().errorType()).isEqualTo("IllegalStateException");
     }
 
+    @Test
+    void rejectsGeneratedVectorWhenDimensionDoesNotMatchConfiguredDimension() {
+        RecordingAiCallObserver observer = new RecordingAiCallObserver();
+        VertexAiEmbeddingClient client = new VertexAiEmbeddingClient(
+            new CapturingVertexAiEmbeddingGenerator(List.of(0.1, -0.2)),
+            observer,
+            "gemini-embedding-001",
+            3
+        );
+
+        assertThatThrownBy(() -> client.embed("Java Spring contribution"))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("dimension");
+        assertThat(observer.firstObservation().success()).isFalse();
+        assertThat(observer.firstObservation().operation()).isEqualTo(AiCallOperation.EMBEDDING);
+        assertThat(observer.firstObservation().errorType()).isEqualTo("IllegalStateException");
+    }
+
     private static final class CapturingVertexAiEmbeddingGenerator implements VertexAiEmbeddingGenerator {
 
         private final List<Double> response;
