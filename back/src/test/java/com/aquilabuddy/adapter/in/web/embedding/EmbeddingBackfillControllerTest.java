@@ -97,6 +97,23 @@ class EmbeddingBackfillControllerTest {
     }
 
     @Test
+    void usesDefaultBackfillLimitWhenLimitIsOmitted() throws Exception {
+        given(backfillEmbeddingsUseCase.backfillEmbeddings(50))
+            .willReturn(new EmbeddingBackfillSummary(
+                new EmbeddingBackfillResult("profiles", 50, 0, 0, 0, 0, 0, 0, 0, List.of()),
+                new EmbeddingBackfillResult("issues", 50, 0, 0, 0, 0, 0, 0, 0, List.of())
+            ));
+
+        mockMvc.perform(post("/api/v1/embeddings/backfill")
+                .header("X-Aquila-Operation-Token", "test-operation-token"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.profiles.requestedLimit").value(50))
+            .andExpect(jsonPath("$.data.issues.requestedLimit").value(50));
+
+        then(backfillEmbeddingsUseCase).should().backfillEmbeddings(50);
+    }
+
+    @Test
     void rejectsBackfillWhenOperationTokenIsMissing() throws Exception {
         mockMvc.perform(post("/api/v1/embeddings/backfill").param("limit", "25"))
             .andExpect(status().isForbidden());
