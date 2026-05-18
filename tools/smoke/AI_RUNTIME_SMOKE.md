@@ -198,6 +198,22 @@ bash tools/smoke/run-langfuse-observability-smoke.sh
 
 dry-run은 성공 generation payload와 실패 generation payload가 prompt version, model, latency, usage, error type, failure reason metadata를 포함하는지 확인할 항목을 출력합니다. live mode는 synthetic trace event만 전송하며 실제 issue guide/PR draft/translation 호출과 연결된 trace는 provider E2E smoke 이후 Langfuse 화면에서 같은 필드가 남는지 확인합니다.
 
+## frontend/backend integration smoke
+
+기본 CI는 실제 OAuth나 외부 provider 없이 fixture backend를 실행하고 headless Chrome으로 `/dashboard`, `/profile`, `/issues`, `/issues/issue-1`, `/pr-draft`, `/pr/draft-1` 흐름을 확인합니다. 이 smoke는 인증 token이 없는 보호 라우트가 `/login`으로 이동하는지, fixture backend의 success envelope가 화면에 렌더링되는지, failure envelope가 깨진 화면 대신 오류 상태로 표시되는지 검증합니다.
+
+```bash
+npm --prefix front run smoke:integration
+```
+
+실제 backend를 대상으로 수동 smoke를 수행할 때는 live backend URL을 지정합니다. 이 모드는 로컬 fixture backend를 사용하지 않으므로 backend, OAuth/JWT, 데이터 준비 상태를 운영자가 먼저 확인해야 합니다.
+
+```bash
+FRONTEND_INTEGRATION_USE_LIVE_BACKEND=true \
+NEXT_PUBLIC_API_URL=http://localhost:8080 \
+npm --prefix front run smoke:integration
+```
+
 ## 실패 시 확인 순서
 
 - provider 401/403: `AI_API_KEY` 또는 `OPENAI_API_KEY` 주입 여부를 확인합니다.

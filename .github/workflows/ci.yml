@@ -129,6 +129,16 @@ jobs:
       - name: Build frontend
         run: npm run build
 
+      - name: Run frontend integration smoke contracts
+        run: node --test ../tools/frontend/integration-smoke/*.test.mjs
+
+      - name: Run frontend integration smoke
+        env:
+          FRONTEND_INTEGRATION_SMOKE_TIMEOUT_MS: "90000"
+          EXTENSION_E2E_CHROME_STARTUP_TIMEOUT_MS: "30000"
+          EXTENSION_E2E_CHROME_EXTRA_FLAGS: "--enable-logging=stderr --v=1"
+        run: npm run smoke:integration
+
   extension:
     name: Extension
     runs-on: ubuntu-latest
