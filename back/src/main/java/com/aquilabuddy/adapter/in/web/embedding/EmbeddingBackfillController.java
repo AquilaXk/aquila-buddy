@@ -1,8 +1,11 @@
 package com.aquilabuddy.adapter.in.web.embedding;
 
 import com.aquilabuddy.application.port.in.embedding.BackfillEmbeddingsUseCase;
+import com.aquilabuddy.application.port.in.embedding.RecordEmbeddingBackfillAuditUseCase;
+import com.aquilabuddy.domain.embedding.EmbeddingBackfillAuditEvent;
 import com.aquilabuddy.domain.embedding.EmbeddingBackfillSummary;
 import com.aquilabuddy.global.response.ApiResponse;
+import java.time.Instant;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -20,15 +23,18 @@ import org.springframework.web.server.ResponseStatusException;
 public class EmbeddingBackfillController {
 
     private final BackfillEmbeddingsUseCase backfillEmbeddingsUseCase;
+    private final RecordEmbeddingBackfillAuditUseCase recordEmbeddingBackfillAuditUseCase;
     private final String operationToken;
     private final int maxLimit;
 
     public EmbeddingBackfillController(
         BackfillEmbeddingsUseCase backfillEmbeddingsUseCase,
+        RecordEmbeddingBackfillAuditUseCase recordEmbeddingBackfillAuditUseCase,
         @Value("${app.embedding.backfill.operation-token:}") String operationToken,
         @Value("${app.embedding.backfill.max-limit:200}") int maxLimit
     ) {
         this.backfillEmbeddingsUseCase = backfillEmbeddingsUseCase;
+        this.recordEmbeddingBackfillAuditUseCase = recordEmbeddingBackfillAuditUseCase;
         this.operationToken = operationToken == null ? "" : operationToken.trim();
         this.maxLimit = maxLimit > 0 ? maxLimit : 200;
     }
@@ -39,22 +45,48 @@ public class EmbeddingBackfillController {
     @PostMapping("/backfill")
     ApiResponse<EmbeddingBackfillSummary> backfill(
         @RequestHeader(value = "X-Aquila-Operation-Token", required = false) String requestedOperationToken,
+        @RequestHeader(value = "X-Aquila-Operator", required = false) String operator,
         @RequestParam(defaultValue = "50") int limit
     ) {
-        requireOperationToken(requestedOperationToken);
-        return ApiResponse.success(backfillEmbeddingsUseCase.backfillEmbeddings(normalizeLimit(limit)));
+        requireOperationToken(requestedOperationToken, operator, limit);
+        int effectiveLimit = normalizeLimit(limit);
+        EmbeddingBackfillSummary summary = backfillEmbeddingsUseCase.backfillEmbeddings(effectiveLimit);
+        recordEmbeddingBackfillAuditUseCase.record(EmbeddingBackfillAuditEvent.succeeded(
+            operator,
+            limit,
+            effectiveLimit,
+            summary,
+            Instant.now()
+        ));
+        return ApiResponse.success(summary);
     }
 
-    private void requireOperationToken(String requestedOperationToken) {
+    private void requireOperationToken(String requestedOperationToken, String operator, int requestedLimit) {
         if (operationToken.isBlank()) {
+            recordDenied(operator, requestedLimit, "token-not-configured");
             throw new ResponseStatusException(
                 HttpStatus.SERVICE_UNAVAILABLE,
                 "embedding backfill operation token is not configured."
             );
         }
-        if (!operationToken.equals(normalize(requestedOperationToken))) {
+        String normalizedRequestedToken = normalize(requestedOperationToken);
+        if (normalizedRequestedToken.isBlank()) {
+            recordDenied(operator, requestedLimit, "missing-token");
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "embedding backfill operation token is invalid.");
         }
+        if (!operationToken.equals(normalizedRequestedToken)) {
+            recordDenied(operator, requestedLimit, "invalid-token");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "embedding backfill operation token is invalid.");
+        }
+    }
+
+    private void recordDenied(String operator, int requestedLimit, String reason) {
+        recordEmbeddingBackfillAuditUseCase.record(EmbeddingBackfillAuditEvent.denied(
+            operator,
+            requestedLimit,
+            reason,
+            Instant.now()
+        ));
     }
 
     private static String normalize(String value) {

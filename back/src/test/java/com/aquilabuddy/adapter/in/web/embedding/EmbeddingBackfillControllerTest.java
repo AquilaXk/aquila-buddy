@@ -1,5 +1,6 @@
 package com.aquilabuddy.adapter.in.web.embedding;
 
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -8,6 +9,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.aquilabuddy.application.port.in.embedding.BackfillEmbeddingsUseCase;
+import com.aquilabuddy.application.port.in.embedding.RecordEmbeddingBackfillAuditUseCase;
+import com.aquilabuddy.domain.embedding.EmbeddingBackfillAuditOutcome;
 import com.aquilabuddy.domain.embedding.EmbeddingBackfillResult;
 import com.aquilabuddy.domain.embedding.EmbeddingBackfillSummary;
 import java.util.List;
@@ -15,8 +18,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(EmbeddingBackfillController.class)
@@ -32,6 +35,9 @@ class EmbeddingBackfillControllerTest {
 
     @MockitoBean
     private BackfillEmbeddingsUseCase backfillEmbeddingsUseCase;
+
+    @MockitoBean
+    private RecordEmbeddingBackfillAuditUseCase recordEmbeddingBackfillAuditUseCase;
 
     @Test
     void backfillsEmbeddingsWithRequestedLimit() throws Exception {
@@ -65,6 +71,7 @@ class EmbeddingBackfillControllerTest {
 
         mockMvc.perform(post("/api/v1/embeddings/backfill")
                 .header("X-Aquila-Operation-Token", "test-operation-token")
+                .header("X-Aquila-Operator", "release-manager")
                 .param("limit", "25"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.success").value(true))
@@ -76,6 +83,15 @@ class EmbeddingBackfillControllerTest {
             .andExpect(jsonPath("$.data.issues.failureReasons[0]").value("issue-1: IllegalStateException"));
 
         then(backfillEmbeddingsUseCase).should().backfillEmbeddings(25);
+        then(recordEmbeddingBackfillAuditUseCase).should().record(argThat(event ->
+            event.outcome() == EmbeddingBackfillAuditOutcome.SUCCEEDED
+                && event.operator().equals("release-manager")
+                && event.requestedLimit() == 25
+                && event.effectiveLimit() == 25
+                && event.profileUpdated() == 2
+                && event.issueUpdated() == 2
+                && event.failed() == 1
+        ));
     }
 
     @Test
@@ -119,15 +135,27 @@ class EmbeddingBackfillControllerTest {
             .andExpect(status().isForbidden());
 
         verifyNoInteractions(backfillEmbeddingsUseCase);
+        then(recordEmbeddingBackfillAuditUseCase).should().record(argThat(event ->
+            event.outcome() == EmbeddingBackfillAuditOutcome.DENIED
+                && event.reason().equals("missing-token")
+                && event.requestedLimit() == 25
+        ));
     }
 
     @Test
     void rejectsBackfillWhenOperationTokenDoesNotMatch() throws Exception {
         mockMvc.perform(post("/api/v1/embeddings/backfill")
                 .header("X-Aquila-Operation-Token", "wrong-token")
+                .header("X-Aquila-Operator", "release-manager")
                 .param("limit", "25"))
             .andExpect(status().isForbidden());
 
         verifyNoInteractions(backfillEmbeddingsUseCase);
+        then(recordEmbeddingBackfillAuditUseCase).should().record(argThat(event ->
+            event.outcome() == EmbeddingBackfillAuditOutcome.DENIED
+                && event.operator().equals("release-manager")
+                && event.reason().equals("invalid-token")
+                && event.requestedLimit() == 25
+        ));
     }
 }
