@@ -230,21 +230,27 @@ function createPage(client) {
         };
         function resolveOmosMessage(message, fixtures) {
           if (message.type === "GET_CACHED_RECOMMENDATIONS") {
-            return { ok: true, data: fixtures.cachedRecommendations ?? null };
+            return asFixtureResponse(fixtures.cachedRecommendations);
           }
           if (message.type === "GET_ISSUE_GUIDE") {
-            return { ok: true, data: fixtures.issueGuide ?? null };
+            return asFixtureResponse(fixtures.issueGuide);
           }
           if (message.type === "GET_ISSUE_PSEUDO") {
-            return { ok: true, data: fixtures.issuePseudo ?? null };
+            return asFixtureResponse(fixtures.issuePseudo);
           }
           if (message.type === "CREATE_PR_DRAFT") {
-            return { ok: true, data: fixtures.prDraft ?? null };
+            return asFixtureResponse(fixtures.prDraft);
           }
           if (message.type === "TRANSLATE_PR_DRAFT") {
-            return { ok: true, data: fixtures.prTranslation ?? null };
+            return asFixtureResponse(fixtures.prTranslation);
           }
           return { ok: false, error: "UNHANDLED_TEST_MESSAGE_" + message.type };
+        }
+        function asFixtureResponse(value) {
+          if (value && Object.prototype.hasOwnProperty.call(value, "ok")) {
+            return value;
+          }
+          return { ok: true, data: value ?? null };
         }
       `);
 

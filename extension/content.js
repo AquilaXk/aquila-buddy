@@ -115,9 +115,9 @@ function renderIssueList(el) {
             <a href="https://github.com/${issue.repoFullName}/issues/${issue.issueNumber}" target="_blank">
               #${issue.issueNumber}
             </a>
-            <p>${issue.title}</p>
+            <p>${escapeHtml(issue.title)}</p>
             <div class="omos-labels">
-              ${(issue.labels ?? []).map((l) => `<span class="omos-label">${l}</span>`).join('')}
+              ${(issue.labels ?? []).map((l) => `<span class="omos-label">${escapeHtml(l)}</span>`).join('')}
             </div>
           </div>`
           )
@@ -189,7 +189,7 @@ function renderIssueDetail(el) {
       recReasonEl.innerHTML = `
         <h3 class="omos-section-title">추천 이유</h3>
         <div class="omos-reason-card">
-          <p class="omos-reason-text">${matched.summary}</p>
+          <p class="omos-reason-text">${escapeHtml(matched.summary)}</p>
         </div>
         <hr class="omos-divider">
       `;
@@ -326,11 +326,11 @@ function renderPrCreate(el) {
           <div class="omos-result">
             <div class="omos-result-section">
               <p class="omos-result-label">제목</p>
-              <p class="omos-draft-title">${draft?.title ?? ''}</p>
+              <p class="omos-draft-title">${escapeHtml(draft?.title)}</p>
             </div>
             <div class="omos-result-section">
               <p class="omos-result-label">본문</p>
-              <pre class="omos-code-block">${draft?.body ?? ''}</pre>
+              <pre class="omos-code-block">${escapeHtml(draft?.body)}</pre>
             </div>
             <button class="omos-btn" id="omos-apply-btn">PR 폼에 적용</button>
             <div id="omos-translate-status"></div>
@@ -388,7 +388,7 @@ function renderError(error) {
   if (error === 'CONTEXT_INVALIDATED') {
     return `<p class="omos-error">Extension이 업데이트됐습니다.<br>페이지를 새로고침해주세요. (F5)</p>`;
   }
-  return `<p class="omos-error">오류가 발생했습니다.<br>${error ?? '알 수 없는 오류'}</p>`;
+  return `<p class="omos-error">오류가 발생했습니다.<br>${escapeHtml(error ?? '알 수 없는 오류')}</p>`;
 }
 
 // ── 진입점 ───────────────────────────────────────────────────────────────────

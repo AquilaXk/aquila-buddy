@@ -18,9 +18,16 @@ try {
           issueNumber: 42,
           title: "Improve onboarding copy",
           labels: ["good first issue"],
-          summary: "문서 기여로 시작하기 좋습니다.",
+          summary: '문서 기여로 시작하기 좋습니다. <img src=x onerror="window.__omosXss=true">',
         },
       ],
+    },
+    issueGuide: {
+      data: {
+        filePaths: ["front/app/dashboard/page.tsx"],
+        guideline: "온보딩 문구를 사용자의 첫 기여 흐름에 맞게 정리합니다.",
+        sideEffects: "기존 CTA 문구와 중복되지 않도록 확인합니다.",
+      },
     },
   });
   await page.click("#omos-toggle");
@@ -28,6 +35,29 @@ try {
     'a[href="/AquilaXk/aquila-buddy/issues/42"] .omos-badge'
   );
   assertEqual(badgeText, "✦ OMOS", "recommended issue badge text");
+  await page.click("#omos-close");
+  await page.click("#omos-toggle");
+  const badgeCount = await page.evaluate(
+    `document.querySelectorAll('a[href="/AquilaXk/aquila-buddy/issues/42"] .omos-badge').length`
+  );
+  assertEqual(badgeCount, 1, "recommended issue badge must not be duplicated");
+  const unrelatedBadgeCount = await page.evaluate(
+    `document.querySelectorAll('a[href="/AquilaXk/aquila-buddy/issues/77"] .omos-badge').length`
+  );
+  assertEqual(unrelatedBadgeCount, 0, "unrelated issue badge count");
+  await page.evaluate(`
+    document.body.innerHTML = '<main id="repo-content-pjax-container"><bdi class="js-issue-title markdown-title">Improve onboarding copy</bdi><div class="edit-comment-hide"><task-lists><p>Make first contribution flow easier to understand.</p></task-lists></div></main>';
+    history.pushState({}, "", "/AquilaXk/aquila-buddy/issues/42");
+    document.dispatchEvent(new Event("turbo:load"));
+  `);
+  const toggleCountAfterTurbo = await page.evaluate(`document.querySelectorAll("#omos-toggle").length`);
+  const sidebarCountAfterTurbo = await page.evaluate(`document.querySelectorAll("#omos-sidebar").length`);
+  assertEqual(toggleCountAfterTurbo, 1, "turbo navigation toggle count");
+  assertEqual(sidebarCountAfterTurbo, 1, "turbo navigation sidebar count");
+  await page.click("#omos-toggle");
+  await page.click("#omos-guide-btn");
+  const turboGuideline = await page.textContent("#omos-analysis-result .omos-result-text");
+  assertIncludes(turboGuideline, "첫 기여 흐름", "turbo issue guide result");
 
   const detailPage = await chrome.newPage(`${server.origin}/AquilaXk/aquila-buddy/issues/42`);
   await installContentScript(detailPage, {
@@ -38,7 +68,7 @@ try {
           issueNumber: 42,
           title: "Improve onboarding copy",
           labels: ["good first issue"],
-          summary: "문서 기여로 시작하기 좋습니다.",
+          summary: '문서 기여로 시작하기 좋습니다. <img src=x onerror="window.__omosXss=true">',
         },
       ],
     },
@@ -57,6 +87,12 @@ try {
     },
   });
   await detailPage.click("#omos-toggle");
+  const reasonText = await detailPage.textContent("#omos-rec-reason .omos-reason-text");
+  assertIncludes(reasonText, "문서 기여로 시작하기 좋습니다.", "escaped recommendation reason text");
+  const reasonInjectedNodeCount = await detailPage.evaluate(
+    `document.querySelectorAll("#omos-rec-reason img, #omos-rec-reason script").length`
+  );
+  assertEqual(reasonInjectedNodeCount, 0, "recommendation reason injected node count");
   await detailPage.click("#omos-guide-btn");
   const guideline = await detailPage.textContent("#omos-analysis-result .omos-result-text");
   assertIncludes(guideline, "첫 기여 흐름", "issue guide result");
@@ -65,6 +101,21 @@ try {
   const pseudoCode = await detailPage.textContent("#omos-analysis-result .omos-code-block");
   assertIncludes(pseudoCode, "render first contribution CTA", "issue pseudo result");
 
+  const errorPage = await chrome.newPage(`${server.origin}/AquilaXk/aquila-buddy/issues/42`);
+  await installContentScript(errorPage, {
+    cachedRecommendations: {
+      data: [],
+    },
+    issueGuide: {
+      ok: false,
+      error: "TOKEN_EXPIRED",
+    },
+  });
+  await errorPage.click("#omos-toggle");
+  await errorPage.click("#omos-guide-btn");
+  const errorText = await errorPage.textContent("#omos-analysis-result .omos-error");
+  assertIncludes(errorText, "세션이 만료", "issue guide error state");
+
   const prPage = await chrome.newPage(
     `${server.origin}/AquilaXk/aquila-buddy/compare/main...AquilaXk:feature-branch`
   );
@@ -72,8 +123,8 @@ try {
     prDraft: {
       data: {
         id: 901,
-        title: "[Test] Chrome extension live 검증 추가",
-        body: "## 관련 이슈\nclose #219\n\n## 요약\nExtension live 검증을 추가합니다.",
+        title: '[Test] Chrome extension live 검증 추가 <img src=x onerror="window.__omosXss=true">',
+        body: "## 관련 이슈\nclose #219\n\n## 요약\nExtension live 검증을 추가합니다.\n<script>window.__omosXss=true</script>",
       },
     },
     prTranslation: {
@@ -88,12 +139,36 @@ try {
   await prPage.click("#omos-draft-btn");
   const draftTitle = await prPage.textContent(".omos-draft-title");
   assertIncludes(draftTitle, "live 검증", "draft title preview");
+  const draftInjectedNodeCount = await prPage.evaluate(
+    `document.querySelectorAll(".omos-draft-title img, #omos-draft-result script").length`
+  );
+  assertEqual(draftInjectedNodeCount, 0, "draft preview injected node count");
 
   await prPage.click("#omos-apply-btn");
   const appliedTitle = await prPage.inputValue("#pull_request_title");
   const appliedBody = await prPage.inputValue("#pull_request_body");
   assertEqual(appliedTitle, "Add Chrome extension live validation", "applied PR title");
   assertIncludes(appliedBody, "close #219", "applied PR body issue link");
+  const prMessages = await prPage.evaluate(
+    `window.__omosMessages.map((message) => ({ type: message.type, payload: message.payload ?? null, draftId: message.draftId ?? null }))`
+  );
+  assertDeepEqual(prMessages, [
+    {
+      type: "CREATE_PR_DRAFT",
+      payload: {
+        upstreamRepo: "AquilaXk/aquila-buddy",
+        githubIssueNumber: 219,
+        baseBranch: "main",
+        headBranch: "feature-branch",
+      },
+      draftId: null,
+    },
+    {
+      type: "TRANSLATE_PR_DRAFT",
+      payload: null,
+      draftId: 901,
+    },
+  ], "PR create message payloads");
 
   console.log("extension live e2e passed");
 } finally {
@@ -114,5 +189,13 @@ function assertIncludes(value, expected, label) {
 function assertEqual(actual, expected, label) {
   if (actual !== expected) {
     throw new Error(`${label}: expected ${expected}, received ${actual}`);
+  }
+}
+
+function assertDeepEqual(actual, expected, label) {
+  const actualJson = JSON.stringify(actual);
+  const expectedJson = JSON.stringify(expected);
+  if (actualJson !== expectedJson) {
+    throw new Error(`${label}: expected ${expectedJson}, received ${actualJson}`);
   }
 }
