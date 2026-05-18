@@ -77,7 +77,9 @@ class AiEnvironmentExamplesTest {
 
         assertThat(readme)
             .contains("[AI 운영 smoke runbook](tools/smoke/AI_RUNTIME_SMOKE.md)")
-            .contains("GITHUB_TOKEN_PERMISSIONS=metadata:read,contents:read,pull-requests:read,issues:read");
+            .contains("GITHUB_TOKEN_PERMISSIONS=metadata:read,contents:read,pull-requests:read,issues:read")
+            .contains("bash tools/smoke/validate-provider-e2e-env.sh")
+            .contains("bash tools/smoke/run-provider-e2e-smoke.sh");
         assertThat(runbook)
             .contains("# AI 운영 smoke runbook")
             .contains("AI_PROVIDER=openai-compatible")
@@ -91,6 +93,12 @@ class AiEnvironmentExamplesTest {
             .contains("RECOMMENDATION_SIMILARITY_PROVIDER=pgvector")
             .contains("schema-postgres-pgvector.sql")
             .contains("LANGFUSE_ENABLED=false")
+            .contains("PROVIDER_E2E_SMOKE_ENABLED=true")
+            .contains("PROVIDER_E2E_AUTH_MODE=oauth-header")
+            .contains("PROVIDER_E2E_AUTH_HEADER='Authorization: Bearer")
+            .contains("EMBEDDING_BACKFILL_OPERATION_TOKEN=")
+            .contains("bash tools/smoke/validate-provider-e2e-env.sh")
+            .contains("bash tools/smoke/run-provider-e2e-smoke.sh")
             .doesNotContain(legacyGlmApiKeyName());
     }
 
@@ -108,6 +116,13 @@ class AiEnvironmentExamplesTest {
             .contains("AI_TEMPERATURE=0.2")
             .contains("AI_EMBEDDING_MODEL=text-embedding-3-small")
             .contains("AI_EMBEDDING_DIMENSIONS=1536")
+            .contains("PROVIDER_E2E_SMOKE_ENABLED=false")
+            .contains("BACKEND_BASE_URL=http://localhost:8080")
+            .contains("PROVIDER_E2E_AUTH_MODE=oauth-header")
+            .contains("PROVIDER_E2E_AUTH_HEADER=")
+            .contains("PROVIDER_E2E_REPO_FULL_NAME=")
+            .contains("PROVIDER_E2E_ISSUE_NUMBER=")
+            .contains("EMBEDDING_BACKFILL_OPERATION_TOKEN=")
             .doesNotContain(legacyGlmApiKeyName());
     }
 
@@ -125,6 +140,13 @@ class AiEnvironmentExamplesTest {
             .contains("AI_TEMPERATURE=0.2")
             .contains("AI_EMBEDDING_MODEL=text-embedding-3-small")
             .contains("AI_EMBEDDING_DIMENSIONS=1536")
+            .contains("PROVIDER_E2E_SMOKE_ENABLED=false")
+            .contains("BACKEND_BASE_URL=http://localhost:8080")
+            .contains("PROVIDER_E2E_AUTH_MODE=oauth-header")
+            .contains("PROVIDER_E2E_AUTH_HEADER=")
+            .contains("PROVIDER_E2E_REPO_FULL_NAME=")
+            .contains("PROVIDER_E2E_ISSUE_NUMBER=")
+            .contains("EMBEDDING_BACKFILL_OPERATION_TOKEN=")
             .doesNotContain(legacyGlmApiKeyName());
     }
 
