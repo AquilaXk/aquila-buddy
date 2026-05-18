@@ -1,0 +1,63 @@
+name: AI Provider Smoke
+
+on:
+  workflow_dispatch:
+    inputs:
+      enabled:
+        description: "Run direct AI provider smoke"
+        required: true
+        type: boolean
+        default: false
+      mode:
+        description: "Validate the path without calls or run live provider calls"
+        required: true
+        type: choice
+        default: dry-run
+        options:
+          - dry-run
+          - live
+      provider:
+        description: "AI provider target"
+        required: true
+        type: choice
+        default: openai-compatible
+        options:
+          - openai-compatible
+          - vertex-ai
+
+permissions:
+  contents: read
+
+jobs:
+  ai-provider-smoke:
+    name: AI Provider Smoke
+    runs-on: ubuntu-latest
+    env:
+      AI_PROVIDER_SMOKE_ENABLED: ${{ inputs.enabled }}
+      AI_PROVIDER_SMOKE_MODE: ${{ inputs.mode }}
+      AI_PROVIDER: ${{ inputs.provider }}
+      AI_PROVIDER_SMOKE_TIMEOUT_SECONDS: ${{ vars.AI_PROVIDER_SMOKE_TIMEOUT_SECONDS || '30' }}
+      AI_REQUEST_TIMEOUT_MILLIS: ${{ vars.AI_REQUEST_TIMEOUT_MILLIS || '30000' }}
+      AI_API_BASE_URL: ${{ vars.AI_API_BASE_URL || 'https://api.openai.com/v1' }}
+      AI_API_KEY: ${{ secrets.AI_API_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      AI_CHAT_MODEL: ${{ vars.AI_CHAT_MODEL || 'gpt-4o-mini' }}
+      AI_TEMPERATURE: ${{ vars.AI_TEMPERATURE || '0.2' }}
+      AI_EMBEDDING_MODEL: ${{ vars.AI_EMBEDDING_MODEL || 'text-embedding-3-small' }}
+      AI_EMBEDDING_DIMENSIONS: ${{ vars.AI_EMBEDDING_DIMENSIONS || '1536' }}
+      GOOGLE_CLOUD_PROJECT_ID: ${{ vars.GOOGLE_CLOUD_PROJECT_ID || 'grepp-ai-project' }}
+      VERTEX_AI_LOCATION: ${{ vars.VERTEX_AI_LOCATION || 'us-central1' }}
+      VERTEX_AI_MODEL: ${{ vars.VERTEX_AI_MODEL || 'gemini-2.5-flash' }}
+      VERTEX_AI_EMBEDDING_MODEL: ${{ vars.VERTEX_AI_EMBEDDING_MODEL || 'gemini-embedding-001' }}
+      VERTEX_AI_EMBEDDING_DIMENSIONS: ${{ vars.VERTEX_AI_EMBEDDING_DIMENSIONS || '1536' }}
+      VERTEX_AI_CREDENTIALS_PATH: ${{ vars.VERTEX_AI_CREDENTIALS_PATH || './vertex-key.json' }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Validate AI provider smoke env
+        run: bash tools/smoke/validate-ai-provider-smoke-env.sh
+
+      - name: Run AI provider smoke
+        run: bash tools/smoke/run-ai-provider-smoke.sh

@@ -79,7 +79,9 @@ class AiEnvironmentExamplesTest {
             .contains("[AI 운영 smoke runbook](tools/smoke/AI_RUNTIME_SMOKE.md)")
             .contains("GITHUB_TOKEN_PERMISSIONS=metadata:read,contents:read,pull-requests:read,issues:read")
             .contains("bash tools/smoke/validate-provider-e2e-env.sh")
-            .contains("bash tools/smoke/run-provider-e2e-smoke.sh");
+            .contains("bash tools/smoke/run-provider-e2e-smoke.sh")
+            .contains("bash tools/smoke/validate-ai-provider-smoke-env.sh")
+            .contains("bash tools/smoke/run-ai-provider-smoke.sh");
         assertThat(runbook)
             .contains("# AI 운영 smoke runbook")
             .contains("AI_PROVIDER=openai-compatible")
@@ -103,6 +105,8 @@ class AiEnvironmentExamplesTest {
             .contains("EMBEDDING_BACKFILL_OPERATION_TOKEN=")
             .contains("bash tools/smoke/validate-provider-e2e-env.sh")
             .contains("bash tools/smoke/run-provider-e2e-smoke.sh")
+            .contains("bash tools/smoke/validate-ai-provider-smoke-env.sh")
+            .contains("bash tools/smoke/run-ai-provider-smoke.sh")
             .doesNotContain(legacyGlmApiKeyName());
     }
 
@@ -127,6 +131,10 @@ class AiEnvironmentExamplesTest {
             .contains("PROVIDER_E2E_REPO_FULL_NAME=")
             .contains("PROVIDER_E2E_ISSUE_NUMBER=")
             .contains("EMBEDDING_BACKFILL_OPERATION_TOKEN=")
+            .contains("AI_PROVIDER_SMOKE_ENABLED=false")
+            .contains("AI_PROVIDER_SMOKE_MODE=dry-run")
+            .contains("AI_PROVIDER_SMOKE_TIMEOUT_SECONDS=30")
+            .contains("AI_REQUEST_TIMEOUT_MILLIS=30000")
             .doesNotContain(legacyGlmApiKeyName());
     }
 
@@ -151,6 +159,10 @@ class AiEnvironmentExamplesTest {
             .contains("PROVIDER_E2E_REPO_FULL_NAME=")
             .contains("PROVIDER_E2E_ISSUE_NUMBER=")
             .contains("EMBEDDING_BACKFILL_OPERATION_TOKEN=")
+            .contains("AI_PROVIDER_SMOKE_ENABLED=false")
+            .contains("AI_PROVIDER_SMOKE_MODE=dry-run")
+            .contains("AI_PROVIDER_SMOKE_TIMEOUT_SECONDS=30")
+            .contains("AI_REQUEST_TIMEOUT_MILLIS=30000")
             .doesNotContain(legacyGlmApiKeyName());
     }
 
@@ -458,6 +470,22 @@ class AiEnvironmentExamplesTest {
             .contains("EMBEDDING_BACKFILL_OPERATION_TOKEN: ${{ secrets.EMBEDDING_BACKFILL_OPERATION_TOKEN }}")
             .contains("bash tools/smoke/validate-provider-e2e-env.sh")
             .contains("bash tools/smoke/run-provider-e2e-smoke.sh");
+    }
+
+    @Test
+    void aiProviderSmokeWorkflowIsManualAndOptIn() throws IOException {
+        String workflow = Files.readString(Path.of("../.github/workflows/ai-provider-smoke.yml"));
+
+        assertThat(workflow)
+            .contains("workflow_dispatch:")
+            .doesNotContain("\n  pull_request:")
+            .doesNotContain("\n  push:")
+            .contains("AI_PROVIDER_SMOKE_ENABLED: ${{ inputs.enabled }}")
+            .contains("AI_PROVIDER_SMOKE_MODE: ${{ inputs.mode }}")
+            .contains("AI_PROVIDER: ${{ inputs.provider }}")
+            .contains("AI_REQUEST_TIMEOUT_MILLIS: ${{ vars.AI_REQUEST_TIMEOUT_MILLIS || '30000' }}")
+            .contains("bash tools/smoke/validate-ai-provider-smoke-env.sh")
+            .contains("bash tools/smoke/run-ai-provider-smoke.sh");
     }
 
     private static String legacyGlmApiKeyName() {
