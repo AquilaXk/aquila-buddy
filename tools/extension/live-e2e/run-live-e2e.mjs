@@ -22,12 +22,42 @@ try {
         },
       ],
     },
+    issueGuide: {
+      data: {
+        filePaths: ["front/app/dashboard/page.tsx"],
+        guideline: "온보딩 문구를 사용자의 첫 기여 흐름에 맞게 정리합니다.",
+        sideEffects: "기존 CTA 문구와 중복되지 않도록 확인합니다.",
+      },
+    },
   });
   await page.click("#omos-toggle");
   const badgeText = await page.textContent(
     'a[href="/AquilaXk/aquila-buddy/issues/42"] .omos-badge'
   );
   assertEqual(badgeText, "✦ OMOS", "recommended issue badge text");
+  await page.click("#omos-close");
+  await page.click("#omos-toggle");
+  const badgeCount = await page.evaluate(
+    `document.querySelectorAll('a[href="/AquilaXk/aquila-buddy/issues/42"] .omos-badge').length`
+  );
+  assertEqual(badgeCount, 1, "recommended issue badge must not be duplicated");
+  const unrelatedBadgeCount = await page.evaluate(
+    `document.querySelectorAll('a[href="/AquilaXk/aquila-buddy/issues/77"] .omos-badge').length`
+  );
+  assertEqual(unrelatedBadgeCount, 0, "unrelated issue badge count");
+  await page.evaluate(`
+    document.body.innerHTML = '<main id="repo-content-pjax-container"><bdi class="js-issue-title markdown-title">Improve onboarding copy</bdi><div class="edit-comment-hide"><task-lists><p>Make first contribution flow easier to understand.</p></task-lists></div></main>';
+    history.pushState({}, "", "/AquilaXk/aquila-buddy/issues/42");
+    document.dispatchEvent(new Event("turbo:load"));
+  `);
+  const toggleCountAfterTurbo = await page.evaluate(`document.querySelectorAll("#omos-toggle").length`);
+  const sidebarCountAfterTurbo = await page.evaluate(`document.querySelectorAll("#omos-sidebar").length`);
+  assertEqual(toggleCountAfterTurbo, 1, "turbo navigation toggle count");
+  assertEqual(sidebarCountAfterTurbo, 1, "turbo navigation sidebar count");
+  await page.click("#omos-toggle");
+  await page.click("#omos-guide-btn");
+  const turboGuideline = await page.textContent("#omos-analysis-result .omos-result-text");
+  assertIncludes(turboGuideline, "첫 기여 흐름", "turbo issue guide result");
 
   const detailPage = await chrome.newPage(`${server.origin}/AquilaXk/aquila-buddy/issues/42`);
   await installContentScript(detailPage, {
@@ -65,6 +95,21 @@ try {
   const pseudoCode = await detailPage.textContent("#omos-analysis-result .omos-code-block");
   assertIncludes(pseudoCode, "render first contribution CTA", "issue pseudo result");
 
+  const errorPage = await chrome.newPage(`${server.origin}/AquilaXk/aquila-buddy/issues/42`);
+  await installContentScript(errorPage, {
+    cachedRecommendations: {
+      data: [],
+    },
+    issueGuide: {
+      ok: false,
+      error: "TOKEN_EXPIRED",
+    },
+  });
+  await errorPage.click("#omos-toggle");
+  await errorPage.click("#omos-guide-btn");
+  const errorText = await errorPage.textContent("#omos-analysis-result .omos-error");
+  assertIncludes(errorText, "세션이 만료", "issue guide error state");
+
   const prPage = await chrome.newPage(
     `${server.origin}/AquilaXk/aquila-buddy/compare/main...AquilaXk:feature-branch`
   );
@@ -94,6 +139,26 @@ try {
   const appliedBody = await prPage.inputValue("#pull_request_body");
   assertEqual(appliedTitle, "Add Chrome extension live validation", "applied PR title");
   assertIncludes(appliedBody, "close #219", "applied PR body issue link");
+  const prMessages = await prPage.evaluate(
+    `window.__omosMessages.map((message) => ({ type: message.type, payload: message.payload ?? null, draftId: message.draftId ?? null }))`
+  );
+  assertDeepEqual(prMessages, [
+    {
+      type: "CREATE_PR_DRAFT",
+      payload: {
+        upstreamRepo: "AquilaXk/aquila-buddy",
+        githubIssueNumber: 219,
+        baseBranch: "main",
+        headBranch: "feature-branch",
+      },
+      draftId: null,
+    },
+    {
+      type: "TRANSLATE_PR_DRAFT",
+      payload: null,
+      draftId: 901,
+    },
+  ], "PR create message payloads");
 
   console.log("extension live e2e passed");
 } finally {
@@ -114,5 +179,13 @@ function assertIncludes(value, expected, label) {
 function assertEqual(actual, expected, label) {
   if (actual !== expected) {
     throw new Error(`${label}: expected ${expected}, received ${actual}`);
+  }
+}
+
+function assertDeepEqual(actual, expected, label) {
+  const actualJson = JSON.stringify(actual);
+  const expectedJson = JSON.stringify(expected);
+  if (actualJson !== expectedJson) {
+    throw new Error(`${label}: expected ${expectedJson}, received ${actualJson}`);
   }
 }
