@@ -1,16 +1,19 @@
 package com.aquilabuddy.adapter.out.persistence.issue;
 
 import com.aquilabuddy.application.port.out.ai.EmbeddingClient;
+import com.aquilabuddy.application.port.out.embedding.BackfillRecommendedIssueEmbeddingPort;
 import com.aquilabuddy.application.port.out.issue.FindRecommendedIssuePort;
 import com.aquilabuddy.application.port.out.issue.LoadCollectedIssuesPort;
 import com.aquilabuddy.application.port.out.issue.LoadRecommendedIssuesPort;
 import com.aquilabuddy.application.port.out.issue.SaveRecommendedIssuesPort;
+import com.aquilabuddy.domain.embedding.EmbeddingBackfillResult;
 import com.aquilabuddy.domain.embedding.EmbeddingVector;
 import com.aquilabuddy.domain.issue.RecommendedIssue;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 
 /**
@@ -24,7 +27,8 @@ public class RecommendedIssuePersistenceAdapter implements
     LoadRecommendedIssuesPort,
     LoadCollectedIssuesPort,
     FindRecommendedIssuePort,
-    SaveRecommendedIssuesPort {
+    SaveRecommendedIssuesPort,
+    BackfillRecommendedIssueEmbeddingPort {
 
     private final RecommendedIssueJpaRepository repository;
     private final ObjectProvider<EmbeddingClient> embeddingClientProvider;
@@ -96,6 +100,65 @@ public class RecommendedIssuePersistenceAdapter implements
         repository.saveAll(entities);
     }
 
+    @Override
+    public EmbeddingBackfillResult backfillMissingIssueEmbeddings(int limit) {
+        int requestedLimit = normalizeLimit(limit);
+        List<RecommendedIssueJpaEntity> candidates = repository.findByIssueEmbeddingIsNullOrderByScoreDescIssueNumberAsc(
+            PageRequest.of(0, requestedLimit)
+        );
+        int skippedExisting = saturatedInt(repository.countByIssueEmbeddingIsNotNull());
+        EmbeddingClient embeddingClient = embeddingClientProvider.getIfAvailable();
+        if (embeddingClient == null) {
+            return new EmbeddingBackfillResult(
+                "issues",
+                requestedLimit,
+                candidates.size(),
+                0,
+                skippedExisting,
+                0,
+                candidates.size(),
+                0,
+                0
+            );
+        }
+
+        int updated = 0;
+        int skippedBlankText = 0;
+        int skippedDimensionMismatch = 0;
+        int failed = 0;
+        for (RecommendedIssueJpaEntity entity : candidates) {
+            String input = buildIssueEmbeddingInput(entity);
+            if (input.isBlank()) {
+                skippedBlankText++;
+                continue;
+            }
+            try {
+                EmbeddingVector vector = embeddingClient.embed(input);
+                if (vector.dimension() != expectedEmbeddingDimensions) {
+                    skippedDimensionMismatch++;
+                    continue;
+                }
+                entity.updateIssueEmbedding(vector.toPgvectorLiteral());
+                updated++;
+            } catch (RuntimeException exception) {
+                failed++;
+            }
+        }
+        repository.saveAll(candidates);
+
+        return new EmbeddingBackfillResult(
+            "issues",
+            requestedLimit,
+            candidates.size(),
+            updated,
+            skippedExisting,
+            skippedBlankText,
+            0,
+            skippedDimensionMismatch,
+            failed
+        );
+    }
+
     private String createIssueEmbedding(RecommendedIssue issue) {
         EmbeddingClient embeddingClient = embeddingClientProvider.getIfAvailable();
         if (embeddingClient == null) {
@@ -123,5 +186,28 @@ public class RecommendedIssuePersistenceAdapter implements
             "Status: " + issue.status(),
             "Reason: " + issue.reason()
         ).trim();
+    }
+
+    private static String buildIssueEmbeddingInput(RecommendedIssueJpaEntity issue) {
+        return String.join("\n",
+            "Repository: " + issue.getRepoFullName(),
+            "Issue number: #" + issue.getIssueNumber(),
+            "Title: " + issue.getTitle(),
+            "Summary: " + issue.getSummary(),
+            "Labels: " + String.join(", ", issue.getLabels()),
+            "Status: " + issue.getStatus(),
+            "Reason: " + issue.getReason()
+        ).trim();
+    }
+
+    private static int normalizeLimit(int limit) {
+        if (limit < 1) {
+            return 1;
+        }
+        return Math.min(limit, 500);
+    }
+
+    private static int saturatedInt(long value) {
+        return value > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) value;
     }
 }
