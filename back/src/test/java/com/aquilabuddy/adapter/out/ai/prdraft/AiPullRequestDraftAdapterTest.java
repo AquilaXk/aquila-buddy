@@ -34,6 +34,10 @@ class AiPullRequestDraftAdapterTest {
         assertThat(aiClient.userPrompt).contains("Issue: #2");
         assertThat(aiClient.userPrompt).contains("Add validation example");
         assertThat(aiClient.userPrompt).contains("CONTRIBUTING: Run tests before PR.");
+        assertThat(aiClient.userPrompt).contains("PR template:");
+        assertThat(aiClient.userPrompt).contains("## Summary\n- Describe changes");
+        assertThat(aiClient.userPrompt).contains("Merged PR sample #1:");
+        assertThat(aiClient.userPrompt).contains("## Summary\n- Improve docs");
         assertThat(aiClient.userPrompt).contains("Issue title: Fix validation message");
         assertThat(aiClient.userPrompt).contains("Guideline: Follow validation guide.");
     }
@@ -58,14 +62,34 @@ class AiPullRequestDraftAdapterTest {
     }
 
     @Test
-    void rejectsMalformedAiResponse() {
+    void fallsBackToDeterministicDraftWhenAiResponseIsMalformed() {
         CapturingAiClient aiClient = new CapturingAiClient("plain response without markers");
         AiPullRequestDraftAdapter adapter = new AiPullRequestDraftAdapter(aiClient);
 
-        assertThatThrownBy(() -> adapter.generate(request()))
-            .isInstanceOf(IllegalStateException.class)
-            .hasMessageContaining("TITLE")
-            .hasMessageContaining("BODY");
+        PullRequestDraft draft = adapter.generate(request());
+
+        assertThat(draft.title()).isEqualTo("docs: spring-projects/spring-boot#2 변경 초안");
+        assertThat(draft.body())
+            .contains("close #2")
+            .contains("## Summary")
+            .contains("## Changes")
+            .contains("## Tests")
+            .contains("Add validation example");
+    }
+
+    @Test
+    void fallsBackToDeterministicEnglishTranslationWhenAiResponseIsMalformed() {
+        CapturingAiClient aiClient = new CapturingAiClient("plain response without markers");
+        AiPullRequestDraftAdapter adapter = new AiPullRequestDraftAdapter(aiClient);
+
+        PullRequestDraft draft = adapter.translate(storedDraft(), "en");
+
+        assertThat(draft.title()).isEqualTo("docs: translate pull request draft");
+        assertThat(draft.body())
+            .contains("## Summary")
+            .contains("Translation could not be generated automatically.")
+            .contains("## Source title")
+            .contains("[Docs] README 기여 안내 보완");
     }
 
     private static PullRequestDraftRequest request() {
