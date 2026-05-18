@@ -20,11 +20,10 @@ import org.springframework.web.client.RestClientResponseException;
 public class OpenAiCompatibleAiClient implements AiClient, EmbeddingClient {
 
     private final RestClient restClient;
-    private final AiProperties.OpenAiCompatible properties;
+    private final OpenAiCompatibleProperties properties;
 
-    public OpenAiCompatibleAiClient(RestClient.Builder restClientBuilder, AiProperties properties) {
-        this.properties = Objects.requireNonNull(properties, "properties must not be null.")
-            .openaiCompatibleOrDefault();
+    public OpenAiCompatibleAiClient(RestClient.Builder restClientBuilder, OpenAiCompatibleProperties properties) {
+        this.properties = Objects.requireNonNull(properties, "properties must not be null.");
         this.restClient = restClientBuilder
             .baseUrl(this.properties.apiBaseUrlOrDefault())
             .build();

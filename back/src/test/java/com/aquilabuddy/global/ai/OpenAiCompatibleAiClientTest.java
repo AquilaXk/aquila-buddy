@@ -119,14 +119,13 @@ class OpenAiCompatibleAiClientTest {
     private OpenAiCompatibleAiClient client(String apiKey) {
         return new OpenAiCompatibleAiClient(
             RestClient.builder(),
-            new AiProperties(
-                "openai-compatible",
-                new AiProperties.OpenAiCompatible(
-                    server.url("/").toString(),
-                    apiKey,
-                    "gpt-4o-mini",
-                    0.2
-                )
+            new OpenAiCompatibleProperties(
+                server.url("/").toString(),
+                apiKey,
+                "gpt-4o-mini",
+                0.2,
+                "text-embedding-3-small",
+                1536
             )
         );
     }

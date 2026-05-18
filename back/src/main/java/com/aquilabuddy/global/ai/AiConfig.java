@@ -7,6 +7,6 @@ import org.springframework.context.annotation.Configuration;
  * AI provider 설정 바인딩을 application context에 등록합니다.
  */
 @Configuration
-@EnableConfigurationProperties(AiProperties.class)
+@EnableConfigurationProperties({AiProperties.class, OpenAiCompatibleProperties.class})
 public class AiConfig {
 }
