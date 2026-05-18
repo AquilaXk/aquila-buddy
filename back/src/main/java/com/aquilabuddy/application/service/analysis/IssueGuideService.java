@@ -5,13 +5,17 @@ import com.aquilabuddy.application.port.in.analysis.GetIssuePseudoCodeUseCase;
 import com.aquilabuddy.application.port.out.analysis.GenerateIssueGuidePort;
 import com.aquilabuddy.application.port.out.analysis.IssueGuideGenerationLimitPort;
 import com.aquilabuddy.application.port.out.analysis.LoadIssueGuidePort;
+import com.aquilabuddy.application.port.out.analysis.LoadRepositoryCodeContextPort;
 import com.aquilabuddy.application.port.out.analysis.SaveIssueGuidePort;
 import com.aquilabuddy.application.port.out.issue.FindRecommendedIssuePort;
 import com.aquilabuddy.domain.analysis.IssueGuide;
-import com.aquilabuddy.domain.analysis.IssuePseudoCode;
 import com.aquilabuddy.domain.analysis.IssueGuideWorkflow;
+import com.aquilabuddy.domain.analysis.IssuePseudoCode;
+import com.aquilabuddy.domain.analysis.RepositoryCodeContext;
 import com.aquilabuddy.domain.issue.RecommendedIssue;
 import java.util.NoSuchElementException;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 /**
@@ -27,6 +31,7 @@ public class IssueGuideService implements GetIssueGuideUseCase, GetIssuePseudoCo
     private final SaveIssueGuidePort saveIssueGuidePort;
     private final IssueGuideGenerationLimitPort issueGuideGenerationLimitPort;
     private final FindRecommendedIssuePort findRecommendedIssuePort;
+    private final LoadRepositoryCodeContextPort loadRepositoryCodeContextPort;
 
     public IssueGuideService(
         LoadIssueGuidePort loadIssueGuidePort,
@@ -35,11 +40,49 @@ public class IssueGuideService implements GetIssueGuideUseCase, GetIssuePseudoCo
         IssueGuideGenerationLimitPort issueGuideGenerationLimitPort,
         FindRecommendedIssuePort findRecommendedIssuePort
     ) {
+        this(
+            loadIssueGuidePort,
+            generateIssueGuidePort,
+            saveIssueGuidePort,
+            issueGuideGenerationLimitPort,
+            findRecommendedIssuePort,
+            issue -> RepositoryCodeContext.empty()
+        );
+    }
+
+    @Autowired
+    public IssueGuideService(
+        LoadIssueGuidePort loadIssueGuidePort,
+        GenerateIssueGuidePort generateIssueGuidePort,
+        SaveIssueGuidePort saveIssueGuidePort,
+        IssueGuideGenerationLimitPort issueGuideGenerationLimitPort,
+        FindRecommendedIssuePort findRecommendedIssuePort,
+        ObjectProvider<LoadRepositoryCodeContextPort> loadRepositoryCodeContextPortProvider
+    ) {
+        this(
+            loadIssueGuidePort,
+            generateIssueGuidePort,
+            saveIssueGuidePort,
+            issueGuideGenerationLimitPort,
+            findRecommendedIssuePort,
+            loadRepositoryCodeContextPortProvider.getIfAvailable(() -> issue -> RepositoryCodeContext.empty())
+        );
+    }
+
+    IssueGuideService(
+        LoadIssueGuidePort loadIssueGuidePort,
+        GenerateIssueGuidePort generateIssueGuidePort,
+        SaveIssueGuidePort saveIssueGuidePort,
+        IssueGuideGenerationLimitPort issueGuideGenerationLimitPort,
+        FindRecommendedIssuePort findRecommendedIssuePort,
+        LoadRepositoryCodeContextPort loadRepositoryCodeContextPort
+    ) {
         this.loadIssueGuidePort = loadIssueGuidePort;
         this.generateIssueGuidePort = generateIssueGuidePort;
         this.saveIssueGuidePort = saveIssueGuidePort;
         this.issueGuideGenerationLimitPort = issueGuideGenerationLimitPort;
         this.findRecommendedIssuePort = findRecommendedIssuePort;
+        this.loadRepositoryCodeContextPort = loadRepositoryCodeContextPort;
     }
 
     /**
@@ -59,9 +102,17 @@ public class IssueGuideService implements GetIssueGuideUseCase, GetIssuePseudoCo
             .orElseThrow(() -> new NoSuchElementException("Recommended issue not found: " + issueId));
 
         issueGuideGenerationLimitPort.acquireGenerationSlot(issueId);
-        IssueGuide generatedGuide = generateIssueGuidePort.generateIssueGuide(issue);
+        IssueGuide generatedGuide = generateIssueGuidePort.generateIssueGuide(issue, loadRepositoryCodeContext(issue));
         saveIssueGuidePort.saveIssueGuide(generatedGuide);
         return generatedGuide;
+    }
+
+    private RepositoryCodeContext loadRepositoryCodeContext(RecommendedIssue issue) {
+        try {
+            return loadRepositoryCodeContextPort.loadRepositoryCodeContext(issue);
+        } catch (RuntimeException ignored) {
+            return RepositoryCodeContext.empty();
+        }
     }
 
     /**

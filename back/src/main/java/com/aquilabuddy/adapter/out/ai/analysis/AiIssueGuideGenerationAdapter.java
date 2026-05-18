@@ -3,7 +3,9 @@ package com.aquilabuddy.adapter.out.ai.analysis;
 import com.aquilabuddy.application.port.out.ai.AiClient;
 import com.aquilabuddy.application.port.out.analysis.GenerateIssueGuidePort;
 import com.aquilabuddy.domain.analysis.IssueGuide;
+import com.aquilabuddy.domain.analysis.RepositoryCodeContext;
 import com.aquilabuddy.domain.issue.RecommendedIssue;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -19,7 +21,7 @@ public class AiIssueGuideGenerationAdapter implements GenerateIssueGuidePort {
 
     private static final String SYSTEM_PROMPT = """
         You are an issue guide generator for an open-source contribution assistant.
-        Use only the provided issue metadata.
+        Use only the provided issue metadata and repository code context.
         Return exactly this marker format.
         GUIDELINE: <one focused implementation guideline>
         PSEUDO_CODE:
@@ -36,11 +38,16 @@ public class AiIssueGuideGenerationAdapter implements GenerateIssueGuidePort {
 
     @Override
     public IssueGuide generateIssueGuide(RecommendedIssue issue) {
-        return parseGuide(issue.id(), aiClient.complete(SYSTEM_PROMPT, buildPrompt(issue)));
+        return generateIssueGuide(issue, RepositoryCodeContext.empty());
     }
 
-    private static String buildPrompt(RecommendedIssue issue) {
-        return String.join("\n",
+    @Override
+    public IssueGuide generateIssueGuide(RecommendedIssue issue, RepositoryCodeContext codeContext) {
+        return parseGuide(issue.id(), aiClient.complete(SYSTEM_PROMPT, buildPrompt(issue, codeContext)));
+    }
+
+    private static String buildPrompt(RecommendedIssue issue, RepositoryCodeContext codeContext) {
+        List<String> lines = new ArrayList<>(List.of(
             "Issue ID: " + issue.id(),
             "Repository: " + issue.repoFullName(),
             "Issue number: #" + issue.issueNumber(),
@@ -49,7 +56,10 @@ public class AiIssueGuideGenerationAdapter implements GenerateIssueGuidePort {
             "Labels: " + String.join(", ", issue.labels()),
             "Status: " + issue.status(),
             "Recommendation reason: " + issue.reason()
-        );
+        ));
+        RepositoryCodeContext safeContext = codeContext == null ? RepositoryCodeContext.empty() : codeContext;
+        lines.addAll(safeContext.promptSummaryLines());
+        return String.join("\n", lines);
     }
 
     private static IssueGuide parseGuide(String issueId, String response) {
