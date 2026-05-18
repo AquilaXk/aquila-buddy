@@ -2,10 +2,16 @@ package com.aquilabuddy.application.service.analysis;
 
 import com.aquilabuddy.application.port.in.analysis.GetIssueGuideUseCase;
 import com.aquilabuddy.application.port.in.analysis.GetIssuePseudoCodeUseCase;
+import com.aquilabuddy.application.port.out.analysis.GenerateIssueGuidePort;
+import com.aquilabuddy.application.port.out.analysis.IssueGuideGenerationLimitPort;
 import com.aquilabuddy.application.port.out.analysis.LoadIssueGuidePort;
+import com.aquilabuddy.application.port.out.analysis.SaveIssueGuidePort;
+import com.aquilabuddy.application.port.out.issue.FindRecommendedIssuePort;
 import com.aquilabuddy.domain.analysis.IssueGuide;
 import com.aquilabuddy.domain.analysis.IssuePseudoCode;
 import com.aquilabuddy.domain.analysis.IssueGuideWorkflow;
+import com.aquilabuddy.domain.issue.RecommendedIssue;
+import java.util.NoSuchElementException;
 import org.springframework.stereotype.Service;
 
 /**
@@ -17,17 +23,45 @@ import org.springframework.stereotype.Service;
 public class IssueGuideService implements GetIssueGuideUseCase, GetIssuePseudoCodeUseCase {
 
     private final LoadIssueGuidePort loadIssueGuidePort;
+    private final GenerateIssueGuidePort generateIssueGuidePort;
+    private final SaveIssueGuidePort saveIssueGuidePort;
+    private final IssueGuideGenerationLimitPort issueGuideGenerationLimitPort;
+    private final FindRecommendedIssuePort findRecommendedIssuePort;
 
-    public IssueGuideService(LoadIssueGuidePort loadIssueGuidePort) {
+    public IssueGuideService(
+        LoadIssueGuidePort loadIssueGuidePort,
+        GenerateIssueGuidePort generateIssueGuidePort,
+        SaveIssueGuidePort saveIssueGuidePort,
+        IssueGuideGenerationLimitPort issueGuideGenerationLimitPort,
+        FindRecommendedIssuePort findRecommendedIssuePort
+    ) {
         this.loadIssueGuidePort = loadIssueGuidePort;
+        this.generateIssueGuidePort = generateIssueGuidePort;
+        this.saveIssueGuidePort = saveIssueGuidePort;
+        this.issueGuideGenerationLimitPort = issueGuideGenerationLimitPort;
+        this.findRecommendedIssuePort = findRecommendedIssuePort;
     }
 
     /**
-     * 이슈 식별자를 outbound port에 위임해 작업 가이드를 조회합니다.
+     * 캐시된 guide를 우선 반환하고, 없으면 추천 이슈 기반 guide를 생성해 저장합니다.
      */
     @Override
     public IssueGuide findByIssueId(String issueId) {
-        return loadIssueGuidePort.loadIssueGuide(issueId);
+        try {
+            return loadIssueGuidePort.loadIssueGuide(issueId);
+        } catch (NoSuchElementException ignored) {
+            return generateAndCacheIssueGuide(issueId);
+        }
+    }
+
+    private IssueGuide generateAndCacheIssueGuide(String issueId) {
+        RecommendedIssue issue = findRecommendedIssuePort.findById(issueId)
+            .orElseThrow(() -> new NoSuchElementException("Recommended issue not found: " + issueId));
+
+        issueGuideGenerationLimitPort.acquireGenerationSlot(issueId);
+        IssueGuide generatedGuide = generateIssueGuidePort.generateIssueGuide(issue);
+        saveIssueGuidePort.saveIssueGuide(generatedGuide);
+        return generatedGuide;
     }
 
     /**
