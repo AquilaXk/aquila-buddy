@@ -35,6 +35,8 @@ for (const text of [
   "이름",
   "이메일",
   "프로필 저장",
+  "프로필을 저장했습니다.",
+  "프로필 저장에 실패했습니다.",
   "프로필 벡터",
   "GitHub 활동을 분석하여 나에게 맞는 이슈를 추천받기 위한 임베딩 벡터를 생성합니다.",
   "감지된 주요 언어",
@@ -50,6 +52,9 @@ for (const text of [
 assertIncludes(profilePanel, "primaryLanguages: profile.primaryLanguages", "Profile save must preserve detected languages.");
 assertIncludes(profilePanel, "topics: profile.topics", "Profile save must preserve detected topics.");
 assertIncludes(profilePanel, "refreshUserProfileVector", "Profile panel must keep vector refresh behavior.");
+assertIncludes(profilePanel, "requestState.status === \"saving\"", "Profile panel must expose the saving fixture state.");
+assertIncludes(profilePanel, "requestState.status === \"refreshing\"", "Profile panel must expose the vector refresh fixture state.");
+assertNotIncludes(profilePanel, "required", "Profile form must not block save/error fixtures with browser-only required constraints.");
 
 for (const text of [
   "Public Profile",

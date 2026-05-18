@@ -92,7 +92,6 @@ export function ProfileEditorPanel({ initialProfile }: ProfileEditorPanelProps) 
               className="w-full rounded-lg border border-github-border bg-github-bg px-3 py-2 text-sm text-github-text transition-colors focus:border-github-purple focus:outline-none"
               onChange={(event) => setName(event.target.value)}
               placeholder="이름을 입력하세요"
-              required
               type="text"
               value={name}
             />
@@ -104,7 +103,6 @@ export function ProfileEditorPanel({ initialProfile }: ProfileEditorPanelProps) 
               className="w-full rounded-lg border border-github-border bg-github-bg px-3 py-2 text-sm text-github-text transition-colors focus:border-github-purple focus:outline-none"
               onChange={(event) => setEmail(event.target.value)}
               placeholder="이메일을 입력하세요"
-              required
               type="email"
               value={email}
             />
