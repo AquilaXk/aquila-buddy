@@ -3,6 +3,7 @@ package com.aquilabuddy.global.ai;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.aquilabuddy.domain.ai.AiCallOperation;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
@@ -36,10 +37,15 @@ class OpenAiCompatibleAiClientTest {
                     "content": "TITLE: docs: update guide\\nBODY: ## Summary\\n- Update the guide."
                   }
                 }
-              ]
+              ],
+              "usage": {
+                "prompt_tokens": 120,
+                "completion_tokens": 32
+              }
             }
             """);
-        OpenAiCompatibleAiClient client = client("test-key");
+        RecordingAiCallObserver observer = new RecordingAiCallObserver();
+        OpenAiCompatibleAiClient client = client("test-key", observer);
 
         String content = client.complete("You write concise PR drafts.", "Create a PR draft.");
 
@@ -54,6 +60,14 @@ class OpenAiCompatibleAiClientTest {
         assertThat(body).contains("\"content\":\"You write concise PR drafts.\"");
         assertThat(body).contains("\"role\":\"user\"");
         assertThat(body).contains("\"content\":\"Create a PR draft.\"");
+        assertThat(observer.firstObservation().provider()).isEqualTo("openai-compatible");
+        assertThat(observer.firstObservation().operation()).isEqualTo(AiCallOperation.COMPLETION);
+        assertThat(observer.firstObservation().model()).isEqualTo("gpt-4o-mini");
+        assertThat(observer.firstObservation().promptVersion()).isEqualTo("ai-client.complete.v1");
+        assertThat(observer.firstObservation().success()).isTrue();
+        assertThat(observer.firstObservation().inputTokens()).isEqualTo(120);
+        assertThat(observer.firstObservation().outputTokens()).isEqualTo(32);
+        assertThat(observer.firstObservation().latencyMillis()).isGreaterThanOrEqualTo(0);
     }
 
     @Test
@@ -66,11 +80,16 @@ class OpenAiCompatibleAiClientTest {
             }
             """);
         OpenAiCompatibleAiClient client = client("test-key");
+        RecordingAiCallObserver observer = new RecordingAiCallObserver();
+        client = client("test-key", observer);
 
         assertThatThrownBy(() -> client.complete("system", "user"))
             .isInstanceOf(IllegalStateException.class)
             .hasMessageContaining("AI completion request failed")
             .hasMessageContaining("502");
+        assertThat(observer.firstObservation().success()).isFalse();
+        assertThat(observer.firstObservation().operation()).isEqualTo(AiCallOperation.COMPLETION);
+        assertThat(observer.firstObservation().errorType()).isEqualTo("RestClientResponseException");
     }
 
     @Test
@@ -117,6 +136,10 @@ class OpenAiCompatibleAiClientTest {
     }
 
     private OpenAiCompatibleAiClient client(String apiKey) {
+        return client(apiKey, new RecordingAiCallObserver());
+    }
+
+    private OpenAiCompatibleAiClient client(String apiKey, RecordingAiCallObserver observer) {
         return new OpenAiCompatibleAiClient(
             RestClient.builder(),
             new OpenAiCompatibleProperties(
@@ -126,7 +149,8 @@ class OpenAiCompatibleAiClientTest {
                 0.2,
                 "text-embedding-3-small",
                 1536
-            )
+            ),
+            observer
         );
     }
 

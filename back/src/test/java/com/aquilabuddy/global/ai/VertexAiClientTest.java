@@ -3,6 +3,7 @@ package com.aquilabuddy.global.ai;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.aquilabuddy.domain.ai.AiCallOperation;
 import org.junit.jupiter.api.Test;
 
 class VertexAiClientTest {
@@ -10,7 +11,8 @@ class VertexAiClientTest {
     @Test
     void delegatesCompletionPromptToVertexGenerator() {
         CapturingVertexAiTextGenerator generator = new CapturingVertexAiTextGenerator("generated guide");
-        VertexAiClient client = new VertexAiClient(generator);
+        RecordingAiCallObserver observer = new RecordingAiCallObserver();
+        VertexAiClient client = new VertexAiClient(generator, observer, "gemini-2.5-flash");
 
         String content = client.complete("system guidance", "user request");
 
@@ -20,15 +22,23 @@ class VertexAiClientTest {
             .contains("system guidance")
             .contains("User prompt:")
             .contains("user request");
+        assertThat(observer.firstObservation().provider()).isEqualTo("vertex-ai");
+        assertThat(observer.firstObservation().operation()).isEqualTo(AiCallOperation.COMPLETION);
+        assertThat(observer.firstObservation().model()).isEqualTo("gemini-2.5-flash");
+        assertThat(observer.firstObservation().promptVersion()).isEqualTo("ai-client.complete.v1");
+        assertThat(observer.firstObservation().success()).isTrue();
     }
 
     @Test
     void rejectsBlankGeneratedContent() {
-        VertexAiClient client = new VertexAiClient(new CapturingVertexAiTextGenerator(" "));
+        RecordingAiCallObserver observer = new RecordingAiCallObserver();
+        VertexAiClient client = new VertexAiClient(new CapturingVertexAiTextGenerator(" "), observer, "gemini-2.5-flash");
 
         assertThatThrownBy(() -> client.complete("system", "user"))
             .isInstanceOf(IllegalStateException.class)
             .hasMessageContaining("Vertex AI completion content");
+        assertThat(observer.firstObservation().success()).isFalse();
+        assertThat(observer.firstObservation().errorType()).isEqualTo("IllegalStateException");
     }
 
     @Test

@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.aquilabuddy.domain.embedding.EmbeddingVector;
+import com.aquilabuddy.domain.ai.AiCallOperation;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
@@ -37,10 +38,15 @@ class OpenAiCompatibleEmbeddingClientTest {
                   "index": 0
                 }
               ],
-              "model": "text-embedding-3-small"
+              "model": "text-embedding-3-small",
+              "usage": {
+                "prompt_tokens": 14,
+                "total_tokens": 14
+              }
             }
             """);
-        OpenAiCompatibleAiClient client = client("test-key");
+        RecordingAiCallObserver observer = new RecordingAiCallObserver();
+        OpenAiCompatibleAiClient client = client("test-key", observer);
 
         EmbeddingVector vector = client.embed("Java Spring open source contributor");
 
@@ -53,6 +59,13 @@ class OpenAiCompatibleEmbeddingClientTest {
         assertThat(body).contains("\"input\":\"Java Spring open source contributor\"");
         assertThat(body).contains("\"encoding_format\":\"float\"");
         assertThat(body).contains("\"dimensions\":3");
+        assertThat(observer.firstObservation().provider()).isEqualTo("openai-compatible");
+        assertThat(observer.firstObservation().operation()).isEqualTo(AiCallOperation.EMBEDDING);
+        assertThat(observer.firstObservation().model()).isEqualTo("text-embedding-3-small");
+        assertThat(observer.firstObservation().promptVersion()).isEqualTo("ai-client.embed.v1");
+        assertThat(observer.firstObservation().success()).isTrue();
+        assertThat(observer.firstObservation().inputTokens()).isEqualTo(14);
+        assertThat(observer.firstObservation().outputTokens()).isNull();
     }
 
     @Test
@@ -65,11 +78,16 @@ class OpenAiCompatibleEmbeddingClientTest {
             }
             """);
         OpenAiCompatibleAiClient client = client("test-key");
+        RecordingAiCallObserver observer = new RecordingAiCallObserver();
+        client = client("test-key", observer);
 
         assertThatThrownBy(() -> client.embed("Java Spring"))
             .isInstanceOf(IllegalStateException.class)
             .hasMessageContaining("AI embedding request failed")
             .hasMessageContaining("429");
+        assertThat(observer.firstObservation().success()).isFalse();
+        assertThat(observer.firstObservation().operation()).isEqualTo(AiCallOperation.EMBEDDING);
+        assertThat(observer.firstObservation().errorType()).isEqualTo("RestClientResponseException");
     }
 
     @Test
@@ -115,6 +133,10 @@ class OpenAiCompatibleEmbeddingClientTest {
     }
 
     private OpenAiCompatibleAiClient client(String apiKey) {
+        return client(apiKey, new RecordingAiCallObserver());
+    }
+
+    private OpenAiCompatibleAiClient client(String apiKey, RecordingAiCallObserver observer) {
         return new OpenAiCompatibleAiClient(
             RestClient.builder(),
             new OpenAiCompatibleProperties(
@@ -124,7 +146,8 @@ class OpenAiCompatibleEmbeddingClientTest {
                 0.2,
                 "text-embedding-3-small",
                 3
-            )
+            ),
+            observer
         );
     }
 
