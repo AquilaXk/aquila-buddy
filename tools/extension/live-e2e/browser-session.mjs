@@ -175,6 +175,12 @@ function createPage(client) {
           if (message.type === "GET_CACHED_RECOMMENDATIONS") {
             return { ok: true, data: fixtures.cachedRecommendations ?? null };
           }
+          if (message.type === "GET_ISSUE_GUIDE") {
+            return { ok: true, data: fixtures.issueGuide ?? null };
+          }
+          if (message.type === "GET_ISSUE_PSEUDO") {
+            return { ok: true, data: fixtures.issuePseudo ?? null };
+          }
           return { ok: false, error: "UNHANDLED_TEST_MESSAGE_" + message.type };
         }
       `);
