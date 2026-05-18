@@ -48,3 +48,41 @@
 | PR autofill | 자동 검증 | `npm --prefix extension run test:e2e` | issue number 입력, draft 생성, translation, title/body 적용 |
 | GitHub Turbo navigation | 자동 검증 | `npm --prefix extension run test:e2e` | sidebar/toggle 재초기화 |
 | XSS escaping | 자동 검증 | `tools/extension/validate-analysis-filepaths.mjs`, `npm --prefix extension run test:e2e` | file path, recommendation reason, PR draft preview escaping |
+
+## 운영 smoke 체크리스트
+| 영역 | 상태 | 검증 | 확인 범위 |
+| --- | --- | --- | --- |
+| AI provider 설정 | 자동 검증 | `tools/smoke/validate-ai-runtime-env.sh`, `tools/smoke/validate-ai-provider-smoke-env.sh` | `AI_PROVIDER=openai-compatible`, chat model, embedding model, dimension |
+| AI provider live 호출 | 수동 검증 | `tools/smoke/run-ai-provider-smoke.sh` | chat completion, embedding, timeout/error path |
+| OAuth/JWT 운영 인증 | 수동 검증 | `tools/smoke/run-provider-e2e-smoke.sh` | OAuth 또는 JWT 인증 header로 user context 확인 |
+| profile vector | 수동 검증 | `tools/smoke/run-provider-e2e-smoke.sh` | `/api/v1/users/me/vector` profile embedding 저장 |
+| issue crawl | 수동 검증 | `tools/smoke/run-provider-e2e-smoke.sh` | GitHub token scope, search query, collected issue 저장 |
+| embedding backfill | 자동 검증 | `back/src/test/java/com/aquilabuddy/adapter/in/web/embedding/EmbeddingBackfillControllerTest.java` | admin token, limit guard, audit log |
+| embedding backfill live | 수동 검증 | `tools/smoke/run-provider-e2e-smoke.sh` | staging DB에서 backfill 전후 결과 기록 |
+| pgvector init | 자동 검증 | `back/src/test/java/com/aquilabuddy/adapter/out/persistence/issue/PgvectorInitContractTest.java`, `tools/smoke/release-readiness/2026-05-19-main-3f2f1d5.md` | schema 적용, vector type, HNSW index |
+| pgvector 추천 live | 수동 검증 | `tools/smoke/run-provider-e2e-smoke.sh` | vector index 기반 recommend/lookup, ranking 변화 |
+| issue guide live | 수동 검증 | `tools/smoke/run-provider-e2e-smoke.sh` | provider 응답 기반 guide 생성, fallback 없는 성공 |
+| PR draft live | 수동 검증 | `tools/smoke/run-provider-e2e-smoke.sh` | diff, issue context, analysis context 기반 draft 생성 |
+| translation live | 수동 검증 | `tools/smoke/run-provider-e2e-smoke.sh` | 생성 draft id의 영문 title/body 생성 |
+| Langfuse 관측 | 자동 검증 | `tools/smoke/validate-langfuse-observability-env.sh`, `back/src/test/java/com/aquilabuddy/adapter/out/persistence/ai/PersistentAiCallObserverTest.java` | prompt version, model, latency, token usage, failure reason 저장 계약 |
+| Langfuse live trace | 수동 검증 | `tools/smoke/run-langfuse-observability-smoke.sh` | live endpoint trace 적재 확인 |
+| secret hygiene | 자동 검증 | `tools/smoke/validate-release-readiness-record.sh` | record에 token/API key 원문이 없는지 검사 |
+| release readiness record | 자동 검증 | `tools/smoke/release-readiness/2026-05-19-main-3f2f1d5.md` | main commit, CI run, pending-manual live smoke 조건 |
+
+## 필수 검증 명령
+| 목적 | 명령 |
+| --- | --- |
+| backend 전체 검증 | `./back/gradlew -p back check` |
+| frontend type/build/smoke | `npm --prefix front run typecheck`, `npm --prefix front run build`, `npm --prefix front run smoke:integration` |
+| 확장 검증 | `npm --prefix extension run validate`, `npm --prefix extension run test:e2e` |
+| release readiness record | `bash tools/smoke/validate-release-readiness-record.sh` |
+| provider E2E disabled skip | `PROVIDER_E2E_SMOKE_ENABLED=false bash tools/smoke/run-provider-e2e-smoke.sh` |
+| provider E2E dry-run | `PROVIDER_E2E_SMOKE_ENABLED=true PROVIDER_E2E_DRY_RUN=true ... bash tools/smoke/run-provider-e2e-smoke.sh` |
+| provider E2E live | `PROVIDER_E2E_SMOKE_ENABLED=true PROVIDER_E2E_DRY_RUN=false ... bash tools/smoke/run-provider-e2e-smoke.sh` |
+
+## 판정
+- 프론트엔드 구조와 핵심 UI UX 흐름은 자동 검증 상태입니다.
+- 백엔드 API 계약과 AI 생성물 품질 게이트는 자동 검증 상태입니다.
+- 확장 프로그램의 GitHub 유사 DOM 흐름은 자동 검증 상태입니다.
+- 실제 staging secret, OAuth session, Langfuse endpoint, staging DB가 필요한 운영 smoke는 수동 검증 상태입니다.
+- release readiness record는 secret 값을 기록하지 않고 `pending-manual` 재실행 조건을 남깁니다.
