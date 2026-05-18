@@ -8,6 +8,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Objects;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
@@ -30,8 +31,8 @@ public class VertexAiClient implements AiClient {
     }
 
     @Autowired
-    public VertexAiClient(VertexAiTextGenerator generator, AiCallObserver observer, VertexAiProperties properties) {
-        this(generator, observer, properties.modelOrDefault());
+    public VertexAiClient(VertexAiTextGenerator generator, ObjectProvider<AiCallObserver> observerProvider, VertexAiProperties properties) {
+        this(generator, observerProvider.getIfAvailable(NoopAiCallObserver::new), properties.modelOrDefault());
     }
 
     public VertexAiClient(VertexAiTextGenerator generator, AiCallObserver observer, String model) {

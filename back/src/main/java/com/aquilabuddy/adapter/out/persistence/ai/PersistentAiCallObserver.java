@@ -3,8 +3,6 @@ package com.aquilabuddy.adapter.out.persistence.ai;
 import com.aquilabuddy.application.port.out.ai.AiCallObserver;
 import com.aquilabuddy.domain.ai.AiCallObservation;
 import java.util.Objects;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 /**
@@ -12,8 +10,6 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class PersistentAiCallObserver implements AiCallObserver {
-
-    private static final Logger log = LoggerFactory.getLogger(PersistentAiCallObserver.class);
 
     private final AiCallObservationJpaRepository repository;
 
@@ -26,7 +22,7 @@ public class PersistentAiCallObserver implements AiCallObserver {
         try {
             repository.save(AiCallObservationJpaEntity.from(Objects.requireNonNull(observation, "observation must not be null.")));
         } catch (RuntimeException exception) {
-            log.warn("AI call observation could not be persisted.", exception);
+            // 관측 저장 실패가 실제 AI 기능 호출을 막지 않도록 한다.
         }
     }
 }

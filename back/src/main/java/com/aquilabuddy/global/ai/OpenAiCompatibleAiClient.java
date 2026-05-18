@@ -12,6 +12,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
@@ -38,6 +39,14 @@ public class OpenAiCompatibleAiClient implements AiClient, EmbeddingClient {
     }
 
     @Autowired
+    public OpenAiCompatibleAiClient(
+        RestClient.Builder restClientBuilder,
+        OpenAiCompatibleProperties properties,
+        ObjectProvider<AiCallObserver> observerProvider
+    ) {
+        this(restClientBuilder, properties, observerProvider.getIfAvailable(NoopAiCallObserver::new));
+    }
+
     public OpenAiCompatibleAiClient(
         RestClient.Builder restClientBuilder,
         OpenAiCompatibleProperties properties,

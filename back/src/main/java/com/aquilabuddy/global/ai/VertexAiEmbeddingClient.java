@@ -10,6 +10,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
@@ -32,8 +33,12 @@ public class VertexAiEmbeddingClient implements EmbeddingClient {
     }
 
     @Autowired
-    public VertexAiEmbeddingClient(VertexAiEmbeddingGenerator generator, AiCallObserver observer, VertexAiProperties properties) {
-        this(generator, observer, properties.embeddingModelOrDefault());
+    public VertexAiEmbeddingClient(
+        VertexAiEmbeddingGenerator generator,
+        ObjectProvider<AiCallObserver> observerProvider,
+        VertexAiProperties properties
+    ) {
+        this(generator, observerProvider.getIfAvailable(NoopAiCallObserver::new), properties.embeddingModelOrDefault());
     }
 
     public VertexAiEmbeddingClient(VertexAiEmbeddingGenerator generator, AiCallObserver observer, String model) {
