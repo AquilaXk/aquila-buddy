@@ -49,6 +49,7 @@ assertIncludes("연결된 이슈", "PR detail page must show connected issue con
 assertFileIncludes(apiClient, "sourceIssueId?: string;", "PR draft create API request must accept sourceIssueId.");
 assertFileIncludes(apiClient, "sourceIssueId: string | null;", "Stored PR draft API type must expose sourceIssueId.");
 assertFileIncludes(apiClient, "type PullRequestDraftReadiness = {\n  draftId: string;\n  sourceIssueId: string | null;", "PR draft readiness API type must expose sourceIssueId.");
+assertFileIncludes(apiClient, "type PullRequestDraftTranslationReadiness = {\n  draftId: string;\n  translationId: string;\n  targetLanguage: \"en\";\n  sourceIssueId: string | null;", "PR draft translation readiness API type must expose sourceIssueId.");
 assertFileIncludes(apiClient, "type PullRequestDraftSubmission = {\n  draftId: string;\n  upstreamRepo: string;\n  githubIssueNumber: number;\n  sourceIssueId: string | null;", "PR draft submission API type must expose sourceIssueId.");
 assertFileIncludes(apiClient, "type PullRequestDraftTranslationSubmission = {\n  draftId: string;\n  translationId: string;\n  targetLanguage: \"en\";\n  upstreamRepo: string;\n  githubIssueNumber: number;\n  sourceIssueId: string | null;", "PR draft translation submission API type must expose sourceIssueId.");
 assertFileIncludes(apiClient, "type PullRequestDraftContributionReport = {\n  draftId: string;\n  upstreamRepo: string;\n  githubIssueNumber: number;\n  sourceIssueId: string | null;", "PR draft contribution report API type must expose sourceIssueId.");

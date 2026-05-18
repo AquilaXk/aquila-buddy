@@ -10,6 +10,7 @@ public record PullRequestDraftTranslationReadiness(
     String draftId,
     String translationId,
     String targetLanguage,
+    String sourceIssueId,
     List<PullRequestDraftReadinessItem> items,
     int readyCount
 ) {
@@ -77,6 +78,7 @@ public record PullRequestDraftTranslationReadiness(
             draft.id(),
             translation.id(),
             translation.targetLanguage(),
+            draft.sourceIssueId(),
             items,
             (int) items.stream()
                 .filter(item -> item.status() == PullRequestDraftReadinessStatus.READY)

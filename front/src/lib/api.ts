@@ -217,6 +217,7 @@ export type PullRequestDraftTranslationReadiness = {
   draftId: string;
   translationId: string;
   targetLanguage: "en";
+  sourceIssueId: string | null;
   items: PullRequestDraftReadinessItem[];
   readyCount: number;
 };
