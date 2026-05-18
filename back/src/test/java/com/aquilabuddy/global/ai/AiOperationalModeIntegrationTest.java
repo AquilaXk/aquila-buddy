@@ -2,9 +2,11 @@ package com.aquilabuddy.global.ai;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.aquilabuddy.application.port.out.ai.EmbeddingClient;
 import com.aquilabuddy.application.port.out.analysis.GenerateIssueGuidePort;
 import com.aquilabuddy.application.port.out.prdraft.GeneratePullRequestDraftPort;
 import com.aquilabuddy.application.port.out.prdraft.TranslatePullRequestDraftPort;
+import com.aquilabuddy.domain.embedding.EmbeddingVector;
 import com.aquilabuddy.domain.analysis.IssueGuide;
 import com.aquilabuddy.domain.issue.RecommendedIssue;
 import com.aquilabuddy.domain.prdraft.PullRequestDraft;
@@ -38,6 +40,9 @@ class AiOperationalModeIntegrationTest {
 
     @Autowired
     private GenerateIssueGuidePort generateIssueGuidePort;
+
+    @Autowired
+    private EmbeddingClient embeddingClient;
 
     @Autowired
     private GeneratePullRequestDraftPort generatePullRequestDraftPort;
@@ -135,6 +140,32 @@ class AiOperationalModeIntegrationTest {
         assertThat(body).contains("Target language: en");
         assertThat(body).contains("Source title: [Docs] README 기여 안내 보완");
         assertThat(body).contains("Source body:");
+    }
+
+    @Test
+    void embeddingUsesOpenAiCompatibleEmbeddingProvider() throws Exception {
+        enqueueJson("""
+            {
+              "data": [
+                {
+                  "embedding": [0.1, 0.2, -0.3],
+                  "index": 0
+                }
+              ],
+              "model": "ops-embedding-model"
+            }
+            """);
+
+        EmbeddingVector vector = embeddingClient.embed("Java Spring open source contributor");
+
+        RecordedRequest request = takeRequest();
+        assertThat(vector.values()).containsExactly(0.1, 0.2, -0.3);
+        assertThat(request.getPath()).isEqualTo("/embeddings");
+        assertThat(request.getHeader("Authorization")).isEqualTo("Bearer test-key");
+        String body = request.getBody().readUtf8();
+        assertThat(body).contains("\"model\":\"ops-embedding-model\"");
+        assertThat(body).contains("\"input\":\"Java Spring open source contributor\"");
+        assertThat(body).contains("\"dimensions\":3");
     }
 
     private static RecommendedIssue issue() {
