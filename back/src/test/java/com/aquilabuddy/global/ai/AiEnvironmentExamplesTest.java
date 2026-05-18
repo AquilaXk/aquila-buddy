@@ -329,9 +329,11 @@ class AiEnvironmentExamplesTest {
     @Test
     void providerE2eSmokeRunnerDryRunDocumentsEndToEndBackendPath()
         throws IOException, InterruptedException {
+        Path evidenceFile = Files.createTempFile("provider-e2e-dry-run", ".md");
         SmokeResult result = runProviderE2eRunner(Map.ofEntries(
             entry("PROVIDER_E2E_SMOKE_ENABLED", "true"),
             entry("PROVIDER_E2E_DRY_RUN", "true"),
+            entry("PROVIDER_E2E_EVIDENCE_FILE", evidenceFile.toString()),
             entry("BACKEND_BASE_URL", "https://api.example.com"),
             entry("AI_PROVIDER", "openai-compatible"),
             entry("AI_API_KEY", "test-key"),
@@ -364,6 +366,46 @@ class AiEnvironmentExamplesTest {
             .contains("07 POST /api/v1/pr")
             .contains("08 POST /api/v1/pr/{draftId}/translate")
             .contains("09 GET /api/v1/ai/observability");
+
+        assertThat(Files.readString(evidenceFile))
+            .contains("# Provider E2E Smoke Evidence")
+            .contains("- result: dry-run")
+            .contains("- provider: openai-compatible")
+            .contains("| profile-vector | planned |")
+            .contains("| translation | planned |");
+    }
+
+    @Test
+    void providerE2eSmokeRunnerSkipsAndWritesEvidenceWhenLiveSecretsAreMissing()
+        throws IOException, InterruptedException {
+        Path evidenceFile = Files.createTempFile("provider-e2e-skip", ".md");
+
+        SmokeResult result = runProviderE2eRunner(Map.ofEntries(
+            entry("PROVIDER_E2E_SMOKE_ENABLED", "true"),
+            entry("PROVIDER_E2E_DRY_RUN", "false"),
+            entry("PROVIDER_E2E_SKIP_ON_MISSING_SECRETS", "true"),
+            entry("PROVIDER_E2E_EVIDENCE_FILE", evidenceFile.toString()),
+            entry("BACKEND_BASE_URL", "https://api.example.com"),
+            entry("AI_PROVIDER", "openai-compatible"),
+            entry("AI_CHAT_MODEL", "gpt-test"),
+            entry("AI_EMBEDDING_MODEL", "text-embedding-test"),
+            entry("AI_EMBEDDING_DIMENSIONS", "1536"),
+            entry("RECOMMENDATION_SIMILARITY_PROVIDER", "pgvector"),
+            entry("RECOMMENDATION_SIMILARITY_LIMIT", "20"),
+            entry("PROVIDER_E2E_REPO_FULL_NAME", "owner/repo"),
+            entry("PROVIDER_E2E_ISSUE_NUMBER", "123"),
+            entry("PROVIDER_E2E_BASE_BRANCH", "main"),
+            entry("PROVIDER_E2E_HEAD_BRANCH", "provider-e2e-smoke")
+        ));
+
+        assertThat(result.exitCode()).isZero();
+        assertThat(result.output())
+            .contains("Provider E2E smoke skipped because required live secrets/env are missing.");
+        assertThat(Files.readString(evidenceFile))
+            .contains("# Provider E2E Smoke Evidence")
+            .contains("- result: skipped")
+            .contains("- failure_reason: required live secret/env missing")
+            .contains("| provider-e2e | skipped |");
     }
 
     @Test
@@ -551,10 +593,14 @@ class AiEnvironmentExamplesTest {
             .contains("PROVIDER_E2E_SMOKE_ENABLED: ${{ inputs.enabled }}")
             .contains("PROVIDER_E2E_DRY_RUN: ${{ inputs.dry_run }}")
             .contains("PROVIDER_E2E_AUTH_HEADER: ${{ secrets.PROVIDER_E2E_AUTH_HEADER }}")
+            .contains("PROVIDER_E2E_SKIP_ON_MISSING_SECRETS: \"true\"")
+            .contains("PROVIDER_E2E_EVIDENCE_FILE: tools/smoke/release-readiness/provider-e2e-smoke-${{ github.run_id }}.md")
             .contains("GITHUB_TOKEN: ${{ secrets.PROVIDER_E2E_GITHUB_TOKEN || github.token }}")
             .contains("EMBEDDING_BACKFILL_OPERATION_TOKEN: ${{ secrets.EMBEDDING_BACKFILL_OPERATION_TOKEN }}")
             .contains("bash tools/smoke/validate-provider-e2e-env.sh")
-            .contains("bash tools/smoke/run-provider-e2e-smoke.sh");
+            .contains("bash tools/smoke/run-provider-e2e-smoke.sh")
+            .contains("uses: actions/upload-artifact@v4")
+            .contains("provider-e2e-smoke-evidence");
     }
 
     @Test
