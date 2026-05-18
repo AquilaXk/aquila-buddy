@@ -2,6 +2,7 @@ package com.aquilabuddy.global.github;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Comparator;
@@ -249,6 +250,50 @@ public class GitHubApiClient {
         );
     }
 
+    /**
+     * GitHub code search 결과의 파일 경로를 contents API로 읽어 issue guide용 코드 맥락을 구성합니다.
+     */
+    public GitHubRepositoryCodeContext loadRepositoryCodeContext(
+        String upstreamRepo,
+        String query,
+        int maxFiles,
+        int maxContentChars
+    ) {
+        if (!hasText(upstreamRepo) || maxFiles <= 0) {
+            return GitHubRepositoryCodeContext.empty(upstreamRepo);
+        }
+
+        try {
+            GitHubCodeSearchResponse response = restClient.get()
+                .uri(uriBuilder -> uriBuilder
+                    .path("/search/code")
+                    .queryParam("q", codeSearchQuery(upstreamRepo, query))
+                    .queryParam("per_page", maxFiles)
+                    .build())
+                .headers(this::applyAuthorization)
+                .retrieve()
+                .body(GitHubCodeSearchResponse.class);
+            List<GitHubCodeSearchItemResponse> items = response == null || response.items() == null
+                ? List.of()
+                : response.items();
+            List<GitHubRepositoryCodeContextFile> files = new ArrayList<>();
+            for (GitHubCodeSearchItemResponse item : items) {
+                if (files.size() >= maxFiles) {
+                    break;
+                }
+                if (item == null || !hasText(item.path())) {
+                    continue;
+                }
+                getContentFile(upstreamRepo, item.path())
+                    .map(content -> toRepositoryCodeContextFile(item.path(), content, maxContentChars))
+                    .ifPresent(files::add);
+            }
+            return new GitHubRepositoryCodeContext(upstreamRepo, "default", files);
+        } catch (RestClientException exception) {
+            return GitHubRepositoryCodeContext.empty(upstreamRepo);
+        }
+    }
+
     private Optional<String> firstExistingContent(String upstreamRepo, List<String> paths) {
         return paths.stream()
             .map(path -> getContentFile(upstreamRepo, path))
@@ -270,6 +315,19 @@ public class GitHubApiClient {
         } catch (RestClientException exception) {
             return Optional.empty();
         }
+    }
+
+    private GitHubRepositoryCodeContextFile toRepositoryCodeContextFile(String path, String content, int maxContentChars) {
+        if (maxContentChars <= 0 || content.length() <= maxContentChars) {
+            return new GitHubRepositoryCodeContextFile(path, content, false);
+        }
+
+        return new GitHubRepositoryCodeContextFile(path, content.substring(0, maxContentChars) + "...", true);
+    }
+
+    private String codeSearchQuery(String upstreamRepo, String query) {
+        String normalizedQuery = hasText(query) ? query.strip() : "TODO";
+        return normalizedQuery + " repo:" + upstreamRepo;
     }
 
     private List<String> getMergedPullRequestSamples(String upstreamRepo) {
@@ -373,6 +431,35 @@ public class GitHubApiClient {
         }
     }
 
+    public record GitHubRepositoryCodeContext(
+        String repository,
+        String branch,
+        List<GitHubRepositoryCodeContextFile> files
+    ) {
+
+        public GitHubRepositoryCodeContext {
+            repository = repository == null ? "" : repository.strip();
+            branch = branch == null ? "" : branch.strip();
+            files = files == null ? List.of() : List.copyOf(files);
+        }
+
+        static GitHubRepositoryCodeContext empty(String repository) {
+            return new GitHubRepositoryCodeContext(repository, "default", List.of());
+        }
+    }
+
+    public record GitHubRepositoryCodeContextFile(
+        String path,
+        String content,
+        boolean truncated
+    ) {
+
+        public GitHubRepositoryCodeContextFile {
+            path = path == null ? "" : path.strip();
+            content = content == null ? "" : content.strip();
+        }
+    }
+
     private record GitHubUserProfileResponse(
         String login,
         String bio,
@@ -408,6 +495,12 @@ public class GitHubApiClient {
     }
 
     private record GitHubCompareFileResponse(String filename, String patch) {
+    }
+
+    private record GitHubCodeSearchResponse(List<GitHubCodeSearchItemResponse> items) {
+    }
+
+    private record GitHubCodeSearchItemResponse(String path) {
     }
 
     private record GitHubContentResponse(String content) {
