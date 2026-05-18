@@ -14,7 +14,7 @@ class RepositoryCodeContextTest {
             "main",
             List.of(
                 new RepositoryCodeContextFile("src/main/java/App.java", repeat("a", 20)),
-                new RepositoryCodeContextFile("src/test/java/AppTest.java", "assert behavior"),
+                new RepositoryCodeContextFile("src/test/java/AppTest.java", "assert ok"),
                 new RepositoryCodeContextFile("README.md", "ignored by max file count")
             ),
             2,
@@ -26,7 +26,7 @@ class RepositoryCodeContextTest {
         assertThat(context.files()).hasSize(2);
         assertThat(context.files().getFirst().content()).isEqualTo("aaaaaaaaaa...");
         assertThat(context.files().getFirst().truncated()).isTrue();
-        assertThat(context.files().get(1).content()).isEqualTo("assert behavior");
+        assertThat(context.files().get(1).content()).isEqualTo("assert ok");
         assertThat(context.files().get(1).truncated()).isFalse();
     }
 
