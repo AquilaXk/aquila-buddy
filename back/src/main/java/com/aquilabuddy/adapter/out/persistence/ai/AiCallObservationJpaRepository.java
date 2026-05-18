@@ -1,6 +1,7 @@
 package com.aquilabuddy.adapter.out.persistence.ai;
 
 import java.util.List;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 /**
@@ -9,4 +10,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface AiCallObservationJpaRepository extends JpaRepository<AiCallObservationJpaEntity, Long> {
 
     List<AiCallObservationJpaEntity> findAllByOrderByObservationIdAsc();
+
+    List<AiCallObservationJpaEntity> findByOrderByObservationIdDesc(Pageable pageable);
 }
