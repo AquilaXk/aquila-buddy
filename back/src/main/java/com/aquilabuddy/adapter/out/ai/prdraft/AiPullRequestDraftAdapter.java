@@ -11,14 +11,14 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.function.Supplier;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.stereotype.Component;
 
 /**
  * AI completion 결과를 PR 초안 생성/번역 outbound port로 연결합니다.
  */
 @Component
-@ConditionalOnProperty(prefix = "app.ai", name = "provider", havingValue = "openai-compatible")
+@ConditionalOnExpression("'${app.ai.provider:fixture}' == 'openai-compatible' || '${app.ai.provider:fixture}' == 'vertex-ai'")
 public class AiPullRequestDraftAdapter implements GeneratePullRequestDraftPort, TranslatePullRequestDraftPort {
 
     private static final String DRAFT_SYSTEM_PROMPT = """

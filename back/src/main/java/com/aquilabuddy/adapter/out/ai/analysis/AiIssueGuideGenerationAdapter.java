@@ -9,14 +9,14 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.stereotype.Component;
 
 /**
  * AI completion 결과를 issue guide 생성 outbound port로 연결합니다.
  */
 @Component
-@ConditionalOnProperty(prefix = "app.ai", name = "provider", havingValue = "openai-compatible")
+@ConditionalOnExpression("'${app.ai.provider:fixture}' == 'openai-compatible' || '${app.ai.provider:fixture}' == 'vertex-ai'")
 public class AiIssueGuideGenerationAdapter implements GenerateIssueGuidePort {
 
     private static final String SYSTEM_PROMPT = """
