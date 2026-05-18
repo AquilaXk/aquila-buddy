@@ -88,6 +88,7 @@ PostgreSQL/pgvector와 실제 AI provider를 함께 확인하는 최소 순서:
 ```bash
 docker compose up -d
 bash tools/test/run-pgvector-integration.sh --validate-only
+bash tools/test/run-pgvector-integration.sh --compose --dry-run
 bash tools/smoke/validate-ai-runtime-env.sh
 SPRING_PROFILES_ACTIVE=dev ./back/gradlew -p back bootRun
 ```
@@ -152,6 +153,13 @@ bash tools/smoke/validate-ai-runtime-env.sh
 6. `LANGFUSE_ENABLED=true` 환경에서는 같은 호출이 Langfuse generation event로 적재되는지 확인합니다.
 
 pgvector 운영 검증은 `schema.sql` 이후 `schema-postgres-pgvector.sql` 적용 순서, `profile_embedding`/`issue_embedding`의 `vector(1536)` 변환, `idx_user_profiles_profile_embedding`/`idx_recommended_issues_issue_embedding` HNSW index, backfill 후 추천 순위 변경을 확인합니다.
+
+로컬에서 격리된 PostgreSQL + pgvector 컨테이너로 통합 테스트를 실행하려면 `--compose`를 사용합니다. 기본 포트는 `54329`이며 `PGVECTOR_TEST_DB_PORT`로 바꿀 수 있습니다.
+
+```bash
+bash tools/test/run-pgvector-integration.sh --compose --dry-run
+PGVECTOR_TEST_DB_PORT=54329 bash tools/test/run-pgvector-integration.sh --compose
+```
 
 실제 provider E2E smoke는 opt-in입니다. OAuth 또는 JWT에서 얻은 API 인증 header를 준비한 뒤 다음 값을 채우고 실행합니다.
 

@@ -64,6 +64,7 @@ DB_PASSWORD=aquila
 
 ```bash
 bash tools/test/run-pgvector-integration.sh --validate-only
+bash tools/test/run-pgvector-integration.sh --compose --dry-run
 bash tools/db/init-postgres-pgvector.sh --dry-run
 bash tools/test/run-pgvector-integration.sh
 ```
@@ -71,6 +72,7 @@ bash tools/test/run-pgvector-integration.sh
 운영 DB에는 `schema.sql` 적용 후 `schema-postgres-pgvector.sql`을 적용해 `profile_embedding`과 `embedding`이 `vector(1536)`으로 변환되어야 합니다.
 `schema-postgres-pgvector.sql`은 `idx_user_profiles_profile_embedding`, `idx_recommended_issues_issue_embedding` HNSW index를 생성해야 하며, 실제 Postgres 통합 테스트는 column type과 index definition을 함께 확인합니다.
 embedding backfill 후 추천 순위가 score fallback 순서에서 pgvector similarity 순서로 바뀌는지도 `PgvectorRecommendedIssueSimilarityIntegrationTest`에서 검증합니다.
+로컬 격리 검증은 `bash tools/test/run-pgvector-integration.sh --compose`로 실행하며, 기본 포트 `54329`는 `PGVECTOR_TEST_DB_PORT`로 변경할 수 있습니다.
 
 ## smoke 순서
 
