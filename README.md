@@ -28,6 +28,49 @@ npm install
 npm run dev
 ```
 
+## Runtime Configuration
+
+운영 AI 경로를 확인할 때는 `fixture` 기본값을 명시적으로 바꿉니다.
+
+- `AI_PROVIDER=vertex-ai`: Google Vertex AI Gemini completion/embedding provider를 사용합니다.
+- `AI_PROVIDER=openai-compatible`: OpenAI Chat Completions 호환 `/chat/completions`, `/embeddings` provider를 사용합니다.
+- `RECOMMENDATION_SIMILARITY_PROVIDER=pgvector`: 사용자 profile embedding과 issue embedding의 pgvector similarity ranking을 사용합니다.
+
+Vertex AI smoke에 필요한 기본 env:
+
+```bash
+GOOGLE_CLOUD_PROJECT_ID=grepp-ai-project
+VERTEX_AI_LOCATION=us-central1
+VERTEX_AI_MODEL=gemini-2.5-flash
+VERTEX_AI_EMBEDDING_MODEL=gemini-embedding-001
+VERTEX_AI_EMBEDDING_DIMENSIONS=1536
+GOOGLE_APPLICATION_CREDENTIALS=/absolute/path/to/vertex-key.json
+```
+
+`vertex-key.json` 같은 credential 파일은 로컬에만 두고 git에 추가하지 않습니다.
+`.gitignore`는 `vertex-key.json`, `**/vertex-key.json`, credential/service-account JSON 패턴을 제외합니다.
+
+GitHub 연동 smoke에는 repository/issue 조회가 가능한 token이 필요합니다.
+OAuth 로그인을 함께 확인할 때는 `read:user`, `user:email` scope의 GitHub OAuth app 설정도 필요합니다.
+
+## Runtime Smoke
+
+PostgreSQL/pgvector와 실제 AI provider를 함께 확인하는 최소 순서:
+
+```bash
+docker compose up -d
+bash tools/smoke/validate-ai-runtime-env.sh
+SPRING_PROFILES_ACTIVE=dev ./back/gradlew -p back bootRun
+```
+
+수동 smoke 흐름:
+
+1. OAuth 로그인 또는 `DEFAULT_GITHUB_ID` fallback 사용자로 profile을 준비합니다.
+2. profile vector refresh를 실행해 `profile_embedding` 저장을 확인합니다.
+3. issue crawl/search를 실행해 `issue_embedding` 저장을 확인합니다.
+4. `RECOMMENDATION_SIMILARITY_PROVIDER=pgvector`로 추천 순위가 embedding similarity를 반영하는지 확인합니다.
+5. issue guide, PR draft, translation을 실행해 AI 호출과 `ai_call_observations` 저장을 확인합니다.
+
 ## Ports
 
 - Backend: `http://localhost:8080`
