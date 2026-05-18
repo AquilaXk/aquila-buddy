@@ -200,6 +200,7 @@ export type PullRequestDraftTranslation = PullRequestDraft & {
 export type PullRequestDraftTranslateResult = {
   titleEn: string;
   bodyEn: string;
+  sourceIssueId: string | null;
   githubUrl: string;
 };
 
