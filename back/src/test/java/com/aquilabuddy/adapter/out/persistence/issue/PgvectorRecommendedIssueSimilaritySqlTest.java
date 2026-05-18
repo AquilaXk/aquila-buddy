@@ -13,6 +13,7 @@ class PgvectorRecommendedIssueSimilaritySqlTest {
         assertThat(sql).contains("recommended_issues");
         assertThat(sql).contains("issue_embedding <=> CAST(:queryVector AS vector)");
         assertThat(sql).contains("WHERE issue_id IN (:issueIds)");
+        assertThat(sql).contains("AND issue_embedding IS NOT NULL");
         assertThat(sql).contains("ORDER BY issue_embedding <=> CAST(:queryVector AS vector)");
         assertThat(sql).contains("LIMIT :limit");
     }
