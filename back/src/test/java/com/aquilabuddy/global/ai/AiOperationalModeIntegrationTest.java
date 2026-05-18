@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.aquilabuddy.application.port.out.analysis.GenerateIssueGuidePort;
 import com.aquilabuddy.application.port.out.prdraft.GeneratePullRequestDraftPort;
+import com.aquilabuddy.application.port.out.prdraft.TranslatePullRequestDraftPort;
 import com.aquilabuddy.domain.analysis.IssueGuide;
 import com.aquilabuddy.domain.issue.RecommendedIssue;
 import com.aquilabuddy.domain.prdraft.PullRequestDraft;
@@ -11,7 +12,9 @@ import com.aquilabuddy.domain.prdraft.PullRequestDraftAnalysisContext;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftIssueContext;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftRepositoryGuideContext;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftRequest;
+import com.aquilabuddy.domain.prdraft.StoredPullRequestDraft;
 import java.io.IOException;
+import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import okhttp3.mockwebserver.MockResponse;
@@ -38,6 +41,9 @@ class AiOperationalModeIntegrationTest {
 
     @Autowired
     private GeneratePullRequestDraftPort generatePullRequestDraftPort;
+
+    @Autowired
+    private TranslatePullRequestDraftPort translatePullRequestDraftPort;
 
     @Autowired
     private Environment environment;
@@ -110,6 +116,27 @@ class AiOperationalModeIntegrationTest {
         assertThat(body).contains("Analysis context");
     }
 
+    @Test
+    void pullRequestDraftTranslationUsesOpenAiCompatibleChatProvider() throws Exception {
+        enqueueChat("""
+            TITLE: docs: prepare validation guide update
+            BODY: ## Summary
+            - Translate the source draft.
+            """);
+
+        PullRequestDraft draft = translatePullRequestDraftPort.translate(storedDraft(), "en");
+
+        RecordedRequest request = takeRequest();
+        assertThat(draft.title()).isEqualTo("docs: prepare validation guide update");
+        assertThat(request.getPath()).isEqualTo("/chat/completions");
+        assertThat(request.getHeader("Authorization")).isEqualTo("Bearer test-key");
+        String body = request.getBody().readUtf8();
+        assertThat(body).contains("\"model\":\"ops-chat-model\"");
+        assertThat(body).contains("Target language: en");
+        assertThat(body).contains("Source title: [Docs] README 기여 안내 보완");
+        assertThat(body).contains("Source body:");
+    }
+
     private static RecommendedIssue issue() {
         return new RecommendedIssue(
             "demo-2",
@@ -146,6 +173,19 @@ class AiOperationalModeIntegrationTest {
                 "if invalid then return helpful message",
                 List.of("Update documentation examples.")
             )
+        );
+    }
+
+    private static StoredPullRequestDraft storedDraft() {
+        return new StoredPullRequestDraft(
+            "draft-1",
+            "spring-projects/spring-boot",
+            123,
+            "main",
+            "feat/readme-fix",
+            "[Docs] README 기여 안내 보완",
+            "## 변경 사항\n- README 안내를 보완합니다.",
+            Instant.parse("2026-05-15T01:00:00Z")
         );
     }
 
