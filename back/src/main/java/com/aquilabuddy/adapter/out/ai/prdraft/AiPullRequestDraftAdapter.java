@@ -25,6 +25,7 @@ public class AiPullRequestDraftAdapter implements GeneratePullRequestDraftPort, 
     private static final String DRAFT_SYSTEM_PROMPT = """
         너는 오픈소스 기여자를 돕는 PR 초안 작성자다.
         입력된 저장소, 이슈, 브랜치, diff, 가이드 맥락만 사용해 PR 초안을 작성한다.
+        CONTRIBUTING, PR template, merged PR sample이 있으면 저장소별 작성 관례로 우선 반영한다.
         응답은 반드시 다음 형식만 사용한다.
         TITLE: <한 줄 PR 제목>
         BODY: <마크다운 PR 본문>
@@ -75,6 +76,7 @@ public class AiPullRequestDraftAdapter implements GeneratePullRequestDraftPort, 
 
         appendSection(lines, "Repository guide summary", request.repositoryGuideContext().guideSummaryLines());
         appendSection(lines, "Repository guide context", request.repositoryGuideContext().guidePromptLines());
+        appendRepositoryGuideQualityRules(lines, request);
         appendSection(lines, "Issue context", request.issueContext().contextSummaryLines());
         appendSection(lines, "Analysis context", request.analysisContext().contextSummaryLines());
         return String.join("\n", lines);
@@ -102,6 +104,18 @@ public class AiPullRequestDraftAdapter implements GeneratePullRequestDraftPort, 
         lines.add("");
         lines.add(title + ":");
         lines.addAll(values);
+    }
+
+    private static void appendRepositoryGuideQualityRules(List<String> lines, PullRequestDraftRequest request) {
+        if (!request.repositoryGuideContext().hasAnyGuide()) {
+            return;
+        }
+
+        lines.add("");
+        lines.add("Repository guide quality rules:");
+        lines.add("- Preserve PR template headings when a PR template is present.");
+        lines.add("- Follow CONTRIBUTING instructions without inventing repository rules.");
+        lines.add("- Use merged PR samples only as tone and structure references.");
     }
 
     private static PullRequestDraft parseDraft(String response) {

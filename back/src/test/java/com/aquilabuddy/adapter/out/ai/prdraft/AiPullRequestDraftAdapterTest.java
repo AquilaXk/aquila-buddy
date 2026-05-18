@@ -47,6 +47,26 @@ class AiPullRequestDraftAdapterTest {
     }
 
     @Test
+    void draftPromptIncludesRepositoryGuideQualityRules() {
+        CapturingAiClient aiClient = new CapturingAiClient("""
+            TITLE: docs: improve validation guide
+            BODY: ## Summary
+            - Improve the validation guide.
+            """);
+        AiPullRequestDraftAdapter adapter = new AiPullRequestDraftAdapter(aiClient);
+
+        adapter.generate(request());
+
+        assertThat(aiClient.systemPrompt)
+            .contains("CONTRIBUTING, PR template, merged PR sample");
+        assertThat(aiClient.userPrompt)
+            .contains("Repository guide quality rules:")
+            .contains("- Preserve PR template headings when a PR template is present.")
+            .contains("- Follow CONTRIBUTING instructions without inventing repository rules.")
+            .contains("- Use merged PR samples only as tone and structure references.");
+    }
+
+    @Test
     void addsClosingIssueLineWhenGeneratedDraftBodyOmitsIt() {
         CapturingAiClient aiClient = new CapturingAiClient("""
             TITLE: docs: improve validation guide
