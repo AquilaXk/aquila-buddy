@@ -62,6 +62,8 @@ class AiIssueGuideGenerationAdapterTest {
 
         adapter.generateIssueGuide(issue(), codeContext);
 
+        assertThat(aiClient.systemPrompt)
+            .contains("Base GUIDELINE, PSEUDO_CODE, and SIDE_EFFECTS on repository code context when it is present.");
         assertThat(aiClient.userPrompt)
             .contains("Repository code context: spring-projects/spring-boot@main")
             .contains("File: src/main/java/ValidationController.java")
