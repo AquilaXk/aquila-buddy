@@ -101,6 +101,9 @@ jobs:
           DB_PASSWORD: aquila
         run: bash tools/smoke/validate-ai-runtime-env.sh
 
+      - name: Validate release readiness records
+        run: bash tools/smoke/validate-release-readiness-record.sh
+
   frontend:
     name: Frontend
     runs-on: ubuntu-latest
