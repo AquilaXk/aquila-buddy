@@ -18,7 +18,7 @@ try {
           issueNumber: 42,
           title: "Improve onboarding copy",
           labels: ["good first issue"],
-          summary: "문서 기여로 시작하기 좋습니다.",
+          summary: '문서 기여로 시작하기 좋습니다. <img src=x onerror="window.__omosXss=true">',
         },
       ],
     },
@@ -68,7 +68,7 @@ try {
           issueNumber: 42,
           title: "Improve onboarding copy",
           labels: ["good first issue"],
-          summary: "문서 기여로 시작하기 좋습니다.",
+          summary: '문서 기여로 시작하기 좋습니다. <img src=x onerror="window.__omosXss=true">',
         },
       ],
     },
@@ -87,6 +87,12 @@ try {
     },
   });
   await detailPage.click("#omos-toggle");
+  const reasonText = await detailPage.textContent("#omos-rec-reason .omos-reason-text");
+  assertIncludes(reasonText, "문서 기여로 시작하기 좋습니다.", "escaped recommendation reason text");
+  const reasonInjectedNodeCount = await detailPage.evaluate(
+    `document.querySelectorAll("#omos-rec-reason img, #omos-rec-reason script").length`
+  );
+  assertEqual(reasonInjectedNodeCount, 0, "recommendation reason injected node count");
   await detailPage.click("#omos-guide-btn");
   const guideline = await detailPage.textContent("#omos-analysis-result .omos-result-text");
   assertIncludes(guideline, "첫 기여 흐름", "issue guide result");
@@ -117,8 +123,8 @@ try {
     prDraft: {
       data: {
         id: 901,
-        title: "[Test] Chrome extension live 검증 추가",
-        body: "## 관련 이슈\nclose #219\n\n## 요약\nExtension live 검증을 추가합니다.",
+        title: '[Test] Chrome extension live 검증 추가 <img src=x onerror="window.__omosXss=true">',
+        body: "## 관련 이슈\nclose #219\n\n## 요약\nExtension live 검증을 추가합니다.\n<script>window.__omosXss=true</script>",
       },
     },
     prTranslation: {
@@ -133,6 +139,10 @@ try {
   await prPage.click("#omos-draft-btn");
   const draftTitle = await prPage.textContent(".omos-draft-title");
   assertIncludes(draftTitle, "live 검증", "draft title preview");
+  const draftInjectedNodeCount = await prPage.evaluate(
+    `document.querySelectorAll(".omos-draft-title img, #omos-draft-result script").length`
+  );
+  assertEqual(draftInjectedNodeCount, 0, "draft preview injected node count");
 
   await prPage.click("#omos-apply-btn");
   const appliedTitle = await prPage.inputValue("#pull_request_title");
