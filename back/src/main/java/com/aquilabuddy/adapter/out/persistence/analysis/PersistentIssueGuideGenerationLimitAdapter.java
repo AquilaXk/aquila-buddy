@@ -8,6 +8,7 @@ import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
@@ -31,6 +32,7 @@ public class PersistentIssueGuideGenerationLimitAdapter implements IssueGuideGen
     private final Clock clock;
     private final int dailyLimit;
 
+    @Autowired
     public PersistentIssueGuideGenerationLimitAdapter(
         IssueGuideGenerationRequestJpaRepository repository,
         CurrentUserGithubIdPort currentUserGithubIdPort,
