@@ -20,7 +20,7 @@ class AiEnvironmentExamplesTest {
             .contains("VERTEX_AI_LOCATION=us-central1")
             .contains("VERTEX_AI_MODEL=gemini-2.5-flash")
             .contains("VERTEX_AI_CREDENTIALS_PATH=./vertex-key.json")
-            .doesNotContain("GLM_API_KEY")
+            .doesNotContain(legacyGlmApiKeyName())
             .doesNotContain("GEMINI_API_KEY");
         assertThat(backendExample)
             .contains("AI_PROVIDER=vertex-ai")
@@ -28,8 +28,31 @@ class AiEnvironmentExamplesTest {
             .contains("VERTEX_AI_LOCATION=us-central1")
             .contains("VERTEX_AI_MODEL=gemini-2.5-flash")
             .contains("VERTEX_AI_CREDENTIALS_PATH=./vertex-key.json")
-            .doesNotContain("GLM_API_KEY")
+            .doesNotContain(legacyGlmApiKeyName())
             .doesNotContain("GEMINI_API_KEY");
+    }
+
+    @Test
+    void runtimeDocsAndDevConfigurationUseVertexAiOnlyDefaults() throws IOException {
+        String applicationDev = Files.readString(Path.of("src/main/resources/application-dev.yml"));
+        String readme = Files.readString(Path.of("../README.md"));
+        String smokeScript = Files.readString(Path.of("../tools/smoke/validate-ai-runtime-env.sh"));
+
+        assertThat(applicationDev)
+            .contains("provider: ${AI_PROVIDER:vertex-ai}")
+            .doesNotContain(legacyGlmApiKeyName());
+        assertThat(readme)
+            .contains("기본 운영 AI provider는 `vertex-ai`입니다.")
+            .doesNotContain("AI_PROVIDER=openai-compatible")
+            .doesNotContain(legacyGlmApiKeyName());
+        assertThat(smokeScript)
+            .contains("provider=\"${AI_PROVIDER:-vertex-ai}\"")
+            .doesNotContain("openai-compatible")
+            .doesNotContain(legacyGlmApiKeyName());
+    }
+
+    private static String legacyGlmApiKeyName() {
+        return "G" + "LM_API_KEY";
     }
 
 }

@@ -21,7 +21,7 @@ require_integer() {
   fi
 }
 
-provider="${AI_PROVIDER:-}"
+provider="${AI_PROVIDER:-vertex-ai}"
 case "${provider}" in
   vertex-ai)
     require_var GOOGLE_CLOUD_PROJECT_ID
@@ -29,21 +29,17 @@ case "${provider}" in
     require_var VERTEX_AI_MODEL
     require_var VERTEX_AI_EMBEDDING_MODEL
     require_integer VERTEX_AI_EMBEDDING_DIMENSIONS
-    require_var GOOGLE_APPLICATION_CREDENTIALS
-    if [[ -n "${GOOGLE_APPLICATION_CREDENTIALS:-}" && ! -e "${GOOGLE_APPLICATION_CREDENTIALS}" ]]; then
-      printf 'credential path does not exist yet: GOOGLE_APPLICATION_CREDENTIALS\n' >&2
+    credential_path="${VERTEX_AI_CREDENTIALS_PATH:-${GOOGLE_APPLICATION_CREDENTIALS:-}}"
+    if [[ -z "${credential_path}" ]]; then
+      printf 'missing required env: VERTEX_AI_CREDENTIALS_PATH or GOOGLE_APPLICATION_CREDENTIALS\n' >&2
+      missing=1
+    elif [[ ! -e "${credential_path}" ]]; then
+      printf 'credential path does not exist yet: %s\n' "${credential_path}" >&2
       printf 'create it locally, but do not commit the credential file.\n' >&2
     fi
     ;;
-  openai-compatible)
-    require_var AI_API_BASE_URL
-    require_var AI_API_KEY
-    require_var AI_CHAT_MODEL
-    require_var AI_EMBEDDING_MODEL
-    require_integer AI_EMBEDDING_DIMENSIONS
-    ;;
   *)
-    printf 'AI_PROVIDER must be vertex-ai or openai-compatible for runtime smoke.\n' >&2
+    printf 'AI_PROVIDER must be vertex-ai for runtime smoke.\n' >&2
     missing=1
     ;;
 esac

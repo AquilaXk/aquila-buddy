@@ -30,10 +30,9 @@ npm run dev
 
 ## Runtime Configuration
 
-운영 AI 경로를 확인할 때는 `fixture` 기본값을 명시적으로 바꿉니다.
+기본 운영 AI provider는 `vertex-ai`입니다.
 
 - `AI_PROVIDER=vertex-ai`: Google Vertex AI Gemini completion/embedding provider를 사용합니다.
-- `AI_PROVIDER=openai-compatible`: OpenAI Chat Completions 호환 `/chat/completions`, `/embeddings` provider를 사용합니다.
 - `RECOMMENDATION_SIMILARITY_PROVIDER=pgvector`: 사용자 profile embedding과 issue embedding의 pgvector similarity ranking을 사용합니다.
 
 Vertex AI smoke에 필요한 기본 env:
@@ -44,7 +43,8 @@ VERTEX_AI_LOCATION=us-central1
 VERTEX_AI_MODEL=gemini-2.5-flash
 VERTEX_AI_EMBEDDING_MODEL=gemini-embedding-001
 VERTEX_AI_EMBEDDING_DIMENSIONS=1536
-GOOGLE_APPLICATION_CREDENTIALS=/absolute/path/to/vertex-key.json
+VERTEX_AI_CREDENTIALS_PATH=./vertex-key.json
+GOOGLE_APPLICATION_CREDENTIALS=./vertex-key.json
 ```
 
 `vertex-key.json` 같은 credential 파일은 로컬에만 두고 git에 추가하지 않습니다.
@@ -78,7 +78,8 @@ VERTEX_AI_LOCATION=us-central1 \
 VERTEX_AI_MODEL=gemini-2.5-flash \
 VERTEX_AI_EMBEDDING_MODEL=gemini-embedding-001 \
 VERTEX_AI_EMBEDDING_DIMENSIONS=1536 \
-GOOGLE_APPLICATION_CREDENTIALS=/absolute/path/to/vertex-key.json \
+VERTEX_AI_CREDENTIALS_PATH=./vertex-key.json \
+GOOGLE_APPLICATION_CREDENTIALS=./vertex-key.json \
 RECOMMENDATION_SIMILARITY_PROVIDER=pgvector \
 RECOMMENDATION_SIMILARITY_LIMIT=20 \
 DB_URL=jdbc:postgresql://localhost:5432/aquila_buddy \
