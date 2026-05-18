@@ -34,6 +34,10 @@ class AiPullRequestDraftAdapterTest {
         assertThat(aiClient.userPrompt).contains("Issue: #2");
         assertThat(aiClient.userPrompt).contains("Add validation example");
         assertThat(aiClient.userPrompt).contains("CONTRIBUTING: Run tests before PR.");
+        assertThat(aiClient.userPrompt).contains("PR template:");
+        assertThat(aiClient.userPrompt).contains("## Summary\n- Describe changes");
+        assertThat(aiClient.userPrompt).contains("Merged PR sample #1:");
+        assertThat(aiClient.userPrompt).contains("## Summary\n- Improve docs");
         assertThat(aiClient.userPrompt).contains("Issue title: Fix validation message");
         assertThat(aiClient.userPrompt).contains("Guideline: Follow validation guide.");
     }
