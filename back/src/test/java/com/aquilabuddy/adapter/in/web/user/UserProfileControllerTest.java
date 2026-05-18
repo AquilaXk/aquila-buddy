@@ -7,10 +7,15 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.aquilabuddy.application.port.out.ai.EmbeddingClient;
+import com.aquilabuddy.domain.embedding.EmbeddingVector;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.annotation.DirtiesContext;
@@ -111,6 +116,13 @@ class UserProfileControllerTest {
             .andExpect(jsonPath("$.success").value(true))
             .andExpect(jsonPath("$.data.profileReady").value(true))
             .andExpect(jsonPath("$.data.vectorUpdatedAt").value("2026-05-16T00:00:00Z"));
+
+        String storedEmbedding = jdbcTemplate.queryForObject(
+            "SELECT profile_embedding FROM user_profiles WHERE github_id = ?",
+            String.class,
+            10001L
+        );
+        assertThat(storedEmbedding).isEqualTo("[0.4,0.5,0.6]");
     }
 
     @Test
@@ -126,5 +138,14 @@ class UserProfileControllerTest {
                     }
                     """))
             .andExpect(status().isBadRequest());
+    }
+
+    @TestConfiguration
+    static class EmbeddingTestConfiguration {
+
+        @Bean
+        EmbeddingClient embeddingClient() {
+            return input -> new EmbeddingVector(List.of(0.4, 0.5, 0.6));
+        }
     }
 }

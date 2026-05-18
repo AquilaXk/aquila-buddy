@@ -2,6 +2,8 @@ package com.aquilabuddy.adapter.out.persistence.issue;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.aquilabuddy.application.port.out.ai.EmbeddingClient;
+import com.aquilabuddy.domain.embedding.EmbeddingVector;
 import com.aquilabuddy.domain.issue.RecommendedIssue;
 import java.util.List;
 import java.util.Optional;
@@ -9,7 +11,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 /**
  * 추천 이슈 persistence adapter가 JPA entity를 도메인 모델로 변환하고 정렬하는지 검증합니다.
@@ -23,6 +28,9 @@ class RecommendedIssuePersistenceAdapterTest {
 
     @Autowired
     private RecommendedIssueJpaRepository repository;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
     @BeforeEach
     void setUp() {
@@ -124,6 +132,31 @@ class RecommendedIssuePersistenceAdapterTest {
     }
 
     @Test
+    void savesIssueEmbeddingWhenEmbeddingClientIsAvailable() {
+        RecommendedIssue searched = new RecommendedIssue(
+            "embedded-issue",
+            "spring-projects/spring-boot",
+            101,
+            "Improve contributor guide",
+            "GitHub에서 수집한 Good First Issue 후보입니다.",
+            1.0,
+            List.of("good first issue", "documentation"),
+            "OPEN",
+            "GitHub Search 후보입니다."
+        );
+
+        adapter.saveRecommendedIssues(List.of(searched));
+        repository.flush();
+
+        String storedEmbedding = jdbcTemplate.queryForObject(
+            "SELECT issue_embedding FROM recommended_issues WHERE issue_id = ?",
+            String.class,
+            "embedded-issue"
+        );
+        assertThat(storedEmbedding).isEqualTo("[0.1,0.2,0.3]");
+    }
+
+    @Test
     void findsRecommendedIssueByRepositoryAndIssueNumber() {
         repository.save(new RecommendedIssueJpaEntity(
             "lookup-target",
@@ -165,5 +198,14 @@ class RecommendedIssuePersistenceAdapterTest {
         assertThat(issue.get().id()).isEqualTo("detail-target");
         assertThat(issue.get().repoFullName()).isEqualTo("vercel/next.js");
         assertThat(issue.get().issueNumber()).isEqualTo(1);
+    }
+
+    @TestConfiguration
+    static class EmbeddingTestConfiguration {
+
+        @Bean
+        EmbeddingClient embeddingClient() {
+            return input -> new EmbeddingVector(List.of(0.1, 0.2, 0.3));
+        }
     }
 }

@@ -1,12 +1,15 @@
 package com.aquilabuddy.adapter.out.persistence.issue;
 
+import com.aquilabuddy.application.port.out.ai.EmbeddingClient;
 import com.aquilabuddy.application.port.out.issue.FindRecommendedIssuePort;
 import com.aquilabuddy.application.port.out.issue.LoadCollectedIssuesPort;
 import com.aquilabuddy.application.port.out.issue.LoadRecommendedIssuesPort;
 import com.aquilabuddy.application.port.out.issue.SaveRecommendedIssuesPort;
+import com.aquilabuddy.domain.embedding.EmbeddingVector;
 import com.aquilabuddy.domain.issue.RecommendedIssue;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Component;
 
 /**
@@ -23,9 +26,14 @@ public class RecommendedIssuePersistenceAdapter implements
     SaveRecommendedIssuesPort {
 
     private final RecommendedIssueJpaRepository repository;
+    private final ObjectProvider<EmbeddingClient> embeddingClientProvider;
 
-    public RecommendedIssuePersistenceAdapter(RecommendedIssueJpaRepository repository) {
+    public RecommendedIssuePersistenceAdapter(
+        RecommendedIssueJpaRepository repository,
+        ObjectProvider<EmbeddingClient> embeddingClientProvider
+    ) {
         this.repository = repository;
+        this.embeddingClientProvider = embeddingClientProvider;
     }
 
     /**
@@ -74,9 +82,39 @@ public class RecommendedIssuePersistenceAdapter implements
     @Override
     public void saveRecommendedIssues(List<RecommendedIssue> issues) {
         List<RecommendedIssueJpaEntity> entities = issues.stream()
-            .map(RecommendedIssuePersistenceMapper::toEntity)
+            .map(issue -> {
+                RecommendedIssueJpaEntity entity = RecommendedIssuePersistenceMapper.toEntity(issue);
+                entity.updateIssueEmbedding(createIssueEmbedding(issue));
+                return entity;
+            })
             .toList();
 
         repository.saveAll(entities);
+    }
+
+    private String createIssueEmbedding(RecommendedIssue issue) {
+        EmbeddingClient embeddingClient = embeddingClientProvider.getIfAvailable();
+        if (embeddingClient == null) {
+            return null;
+        }
+
+        try {
+            EmbeddingVector vector = embeddingClient.embed(buildIssueEmbeddingInput(issue));
+            return vector.toPgvectorLiteral();
+        } catch (RuntimeException exception) {
+            return null;
+        }
+    }
+
+    private static String buildIssueEmbeddingInput(RecommendedIssue issue) {
+        return String.join("\n",
+            "Repository: " + issue.repoFullName(),
+            "Issue number: #" + issue.issueNumber(),
+            "Title: " + issue.title(),
+            "Summary: " + issue.summary(),
+            "Labels: " + String.join(", ", issue.labels()),
+            "Status: " + issue.status(),
+            "Reason: " + issue.reason()
+        ).trim();
     }
 }

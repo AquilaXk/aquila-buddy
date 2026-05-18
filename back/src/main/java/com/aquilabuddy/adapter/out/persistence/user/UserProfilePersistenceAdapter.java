@@ -1,15 +1,18 @@
 package com.aquilabuddy.adapter.out.persistence.user;
 
+import com.aquilabuddy.application.port.out.ai.EmbeddingClient;
 import com.aquilabuddy.application.port.out.user.LoadUserProfilePort;
 import com.aquilabuddy.application.port.out.user.CurrentUserGithubIdPort;
 import com.aquilabuddy.application.port.out.user.RefreshUserProfileVectorPort;
 import com.aquilabuddy.application.port.out.user.SaveUserProfilePort;
+import com.aquilabuddy.domain.embedding.EmbeddingVector;
 import com.aquilabuddy.domain.user.UserProfile;
 import com.aquilabuddy.domain.user.UserProfileUpdateRequest;
 import com.aquilabuddy.global.github.GitHubApiClient;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,17 +32,20 @@ public class UserProfilePersistenceAdapter implements
     private final UserProfileJpaRepository repository;
     private final CurrentUserGithubIdPort currentUserGithubIdPort;
     private final GitHubApiClient gitHubApiClient;
+    private final ObjectProvider<EmbeddingClient> embeddingClientProvider;
     private final boolean userContextEnabled;
 
     public UserProfilePersistenceAdapter(
         UserProfileJpaRepository repository,
         CurrentUserGithubIdPort currentUserGithubIdPort,
         GitHubApiClient gitHubApiClient,
+        ObjectProvider<EmbeddingClient> embeddingClientProvider,
         @Value("${app.github.user-context.enabled:false}") boolean userContextEnabled
     ) {
         this.repository = repository;
         this.currentUserGithubIdPort = currentUserGithubIdPort;
         this.gitHubApiClient = gitHubApiClient;
+        this.embeddingClientProvider = embeddingClientProvider;
         this.userContextEnabled = userContextEnabled;
     }
 
@@ -85,8 +91,33 @@ public class UserProfilePersistenceAdapter implements
         } else {
             entity.refreshVector(REFRESHED_VECTOR_UPDATED_AT);
         }
+        entity.updateProfileEmbedding(createProfileEmbedding(entity));
 
         return UserProfilePersistenceMapper.toDomain(repository.save(entity));
+    }
+
+    private String createProfileEmbedding(UserProfileJpaEntity entity) {
+        EmbeddingClient embeddingClient = embeddingClientProvider.getIfAvailable();
+        if (embeddingClient == null) {
+            return null;
+        }
+
+        try {
+            EmbeddingVector vector = embeddingClient.embed(buildProfileEmbeddingInput(entity));
+            return vector.toPgvectorLiteral();
+        } catch (RuntimeException exception) {
+            return null;
+        }
+    }
+
+    private static String buildProfileEmbeddingInput(UserProfileJpaEntity entity) {
+        return String.join("\n",
+            "Login: " + entity.getLogin(),
+            "Name: " + entity.getName(),
+            "Email: " + entity.getEmail(),
+            "Primary languages: " + String.join(", ", entity.getPrimaryLanguages()),
+            "Topics: " + String.join(", ", entity.getTopics())
+        ).trim();
     }
 
     private List<String> nonEmptyOrCurrent(List<String> items, List<String> currentItems) {

@@ -14,7 +14,8 @@ CREATE TABLE user_profiles (
     name VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL,
     profile_ready BOOLEAN NOT NULL,
-    vector_updated_at VARCHAR(40) NOT NULL
+    vector_updated_at VARCHAR(40) NOT NULL,
+    profile_embedding VARCHAR(12000)
 );
 
 CREATE TABLE user_profile_primary_languages (
@@ -47,7 +48,8 @@ CREATE TABLE recommended_issues (
     summary VARCHAR(1000) NOT NULL,
     score DOUBLE PRECISION NOT NULL,
     status VARCHAR(50) NOT NULL,
-    reason VARCHAR(1000) NOT NULL
+    reason VARCHAR(1000) NOT NULL,
+    issue_embedding VARCHAR(12000)
 );
 
 CREATE TABLE recommended_issue_labels (

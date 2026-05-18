@@ -56,6 +56,9 @@ public class UserProfileJpaEntity {
     @Column(name = "vector_updated_at", nullable = false, length = 40)
     private String vectorUpdatedAt;
 
+    @Column(name = "profile_embedding", length = 12_000)
+    private String profileEmbedding;
+
     protected UserProfileJpaEntity() {
     }
 
@@ -111,6 +114,10 @@ public class UserProfileJpaEntity {
         return vectorUpdatedAt;
     }
 
+    String getProfileEmbedding() {
+        return profileEmbedding;
+    }
+
     void updateProfile(String name, String email, List<String> primaryLanguages, List<String> topics) {
         this.name = name;
         this.email = email;
@@ -127,5 +134,9 @@ public class UserProfileJpaEntity {
         refreshVector(vectorUpdatedAt);
         this.primaryLanguages = new ArrayList<>(primaryLanguages);
         this.topics = new ArrayList<>(topics);
+    }
+
+    void updateProfileEmbedding(String profileEmbedding) {
+        this.profileEmbedding = profileEmbedding;
     }
 }
