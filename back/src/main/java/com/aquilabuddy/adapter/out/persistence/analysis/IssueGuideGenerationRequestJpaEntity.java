@@ -74,6 +74,27 @@ public class IssueGuideGenerationRequestJpaEntity {
         );
     }
 
+    void markSucceeded() {
+        status = IssueGuideGenerationStatus.SUCCEEDED;
+        failureReason = null;
+    }
+
+    void markFailed(String reason) {
+        status = IssueGuideGenerationStatus.FAILED;
+        failureReason = truncateReason(reason);
+    }
+
+    private static String truncateReason(String reason) {
+        if (reason == null || reason.isBlank()) {
+            return null;
+        }
+        String normalized = reason.strip();
+        if (normalized.length() <= 500) {
+            return normalized;
+        }
+        return normalized.substring(0, 500);
+    }
+
     Long getRequestId() {
         return requestId;
     }

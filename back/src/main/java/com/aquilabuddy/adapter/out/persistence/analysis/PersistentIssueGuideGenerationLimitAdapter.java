@@ -7,6 +7,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
@@ -71,5 +72,25 @@ public class PersistentIssueGuideGenerationLimitAdapter implements IssueGuideGen
             requestedOn,
             requestedAt
         ));
+    }
+
+    @Override
+    @Transactional
+    public void recordGenerationSucceeded(String issueId) {
+        loadLatestAcquiredRequest(issueId).ifPresent(IssueGuideGenerationRequestJpaEntity::markSucceeded);
+    }
+
+    @Override
+    @Transactional
+    public void recordGenerationFailed(String issueId, String reason) {
+        loadLatestAcquiredRequest(issueId).ifPresent(request -> request.markFailed(reason));
+    }
+
+    private Optional<IssueGuideGenerationRequestJpaEntity> loadLatestAcquiredRequest(String issueId) {
+        return repository.findFirstByUserGithubIdAndIssueIdAndStatusOrderByRequestedAtDescRequestIdDesc(
+            currentUserGithubIdPort.currentGithubId(),
+            issueId,
+            IssueGuideGenerationStatus.ACQUIRED
+        );
     }
 }

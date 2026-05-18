@@ -77,6 +77,26 @@ class PersistentIssueGuideGenerationLimitAdapterTest {
         assertThat(repository.findAllByOrderByRequestIdAsc()).hasSize(4);
     }
 
+    @Test
+    void recordsGenerationResultOnLatestAcquiredRequest() {
+        adapter.acquireGenerationSlot("issue-1");
+        adapter.acquireGenerationSlot("issue-2");
+
+        adapter.recordGenerationSucceeded("issue-1");
+        adapter.recordGenerationFailed("issue-2", "AI generation failed");
+
+        assertThat(repository.findAllByOrderByRequestIdAsc())
+            .extracting(
+                IssueGuideGenerationRequestJpaEntity::getIssueId,
+                IssueGuideGenerationRequestJpaEntity::getStatus,
+                IssueGuideGenerationRequestJpaEntity::getFailureReason
+            )
+            .containsExactly(
+                org.assertj.core.groups.Tuple.tuple("issue-1", IssueGuideGenerationStatus.SUCCEEDED, null),
+                org.assertj.core.groups.Tuple.tuple("issue-2", IssueGuideGenerationStatus.FAILED, "AI generation failed")
+            );
+    }
+
     private static class MutableCurrentUserGithubIdPort implements CurrentUserGithubIdPort {
 
         private long githubId;
