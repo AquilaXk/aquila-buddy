@@ -52,6 +52,7 @@ export type RecommendedIssueHistory = Omit<RecommendedIssue, "reason"> & {
 
 export type IssueGuide = {
   issueKey: string;
+  filePaths: string[];
   guideline: string;
   pseudoCode: string;
   sideEffects: string[];
@@ -59,6 +60,7 @@ export type IssueGuide = {
 
 export type IssuePseudoCode = {
   issueKey: string;
+  filePaths: string[];
   pseudoCode: string;
 };
 

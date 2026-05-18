@@ -212,6 +212,7 @@ export default function IssueDetailPage() {
 
         {guide ? (
           <div className="space-y-4">
+            <FilePathList filePaths={guide.filePaths} />
             <div>
               <p className="mb-2 text-xs font-semibold text-github-muted">가이드라인</p>
               <p className="whitespace-pre-wrap text-sm leading-6 text-github-text">
@@ -257,9 +258,12 @@ export default function IssueDetailPage() {
         ) : null}
 
         {pseudo ? (
-          <pre className="max-h-96 overflow-auto whitespace-pre-wrap rounded-md bg-github-bg p-4 text-xs leading-6 text-github-text">
-            {pseudo.pseudoCode}
-          </pre>
+          <div className="space-y-4">
+            <FilePathList filePaths={pseudo.filePaths} />
+            <pre className="max-h-96 overflow-auto whitespace-pre-wrap rounded-md bg-github-bg p-4 text-xs leading-6 text-github-text">
+              {pseudo.pseudoCode}
+            </pre>
+          </div>
         ) : null}
       </section>
 
@@ -276,6 +280,28 @@ export default function IssueDetailPage() {
         </Link>
       </section>
     </ProtectedLayout>
+  );
+}
+
+function FilePathList({ filePaths }: { filePaths: string[] }) {
+  if (filePaths.length === 0) {
+    return null;
+  }
+
+  return (
+    <div>
+      <p className="mb-2 text-xs font-semibold text-github-muted">수정 대상 파일</p>
+      <div className="space-y-1">
+        {filePaths.map((filePath) => (
+          <code
+            className="block rounded-md bg-github-bg px-3 py-1.5 text-xs font-semibold text-github-accent"
+            key={filePath}
+          >
+            {filePath}
+          </code>
+        ))}
+      </div>
+    </div>
   );
 }
 
