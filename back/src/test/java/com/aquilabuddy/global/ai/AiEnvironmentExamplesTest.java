@@ -70,6 +70,30 @@ class AiEnvironmentExamplesTest {
     }
 
     @Test
+    void operationalSmokeRunbookDocumentsAiGithubAndPgvectorReadiness() throws IOException {
+        String readme = Files.readString(Path.of("../README.md"));
+        String runbook = Files.readString(Path.of("../tools/smoke/AI_RUNTIME_SMOKE.md"));
+
+        assertThat(readme)
+            .contains("[AI 운영 smoke runbook](tools/smoke/AI_RUNTIME_SMOKE.md)")
+            .contains("GITHUB_TOKEN_PERMISSIONS=metadata:read,contents:read,pull-requests:read,issues:read");
+        assertThat(runbook)
+            .contains("# AI 운영 smoke runbook")
+            .contains("AI_PROVIDER=openai-compatible")
+            .contains("AI_EMBEDDING_DIMENSIONS=1536")
+            .contains("GITHUB_TOKEN_PERMISSIONS=metadata:read,contents:read,pull-requests:read,issues:read")
+            .contains("Metadata")
+            .contains("Contents")
+            .contains("Pull requests")
+            .contains("Issues")
+            .contains("X-Accepted-GitHub-Permissions")
+            .contains("RECOMMENDATION_SIMILARITY_PROVIDER=pgvector")
+            .contains("schema-postgres-pgvector.sql")
+            .contains("LANGFUSE_ENABLED=false")
+            .doesNotContain(legacyGlmApiKeyName());
+    }
+
+    @Test
     void rootEnvExampleDocumentsOpenAiCompatibleRuntimeSettings() throws IOException {
         String rootExample = Files.readString(Path.of("../.env.example"));
 
