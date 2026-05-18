@@ -249,6 +249,16 @@ npm --prefix front run typecheck
 npm --prefix front run build
 ```
 
+Extension live E2E는 headless Chrome DevTools endpoint를 사용합니다. CI runner에서 Chrome startup이 느릴 수 있으므로 다음 env로 대기 시간과 stderr logging을 고정합니다.
+
+```bash
+EXTENSION_E2E_CHROME_STARTUP_TIMEOUT_MS=30000 \
+EXTENSION_E2E_CHROME_EXTRA_FLAGS="--enable-logging=stderr --v=1" \
+npm --prefix extension run test:e2e
+```
+
+`Chrome DevTools endpoint did not open`이 발생하면 로그의 `exitCode`, `signal`, `stderr`를 먼저 확인합니다. 로컬 sandbox에서 loopback listen이 막히면 승인된 환경에서 같은 명령을 재실행해야 합니다.
+
 ## Agent Docs
 
 Machine-facing agent settings are local-only and ignored by git:

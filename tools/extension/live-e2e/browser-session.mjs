@@ -16,29 +16,40 @@ export async function launchChromeSession() {
   const remoteDebuggingPort = await getAvailablePort();
   const userDataDir = await mkdtemp(join(tmpdir(), "aquila-extension-e2e-"));
   const stderr = [];
+  const exitState = { exited: false, code: null, signal: null };
 
-  const chrome = spawn(executable, [
-    "--headless=new",
-    "--disable-gpu",
-    "--disable-dev-shm-usage",
-    "--no-first-run",
-    "--no-default-browser-check",
-    "--no-sandbox",
-    `--remote-debugging-port=${remoteDebuggingPort}`,
-    `--user-data-dir=${userDataDir}`,
-    "about:blank",
-  ], {
+  const chrome = spawn(executable, buildChromeArgs({
+    remoteDebuggingPort,
+    userDataDir,
+    extraFlags: resolveChromeExtraFlags(),
+  }), {
     stdio: ["ignore", "ignore", "pipe"],
   });
 
   chrome.stderr.on("data", (chunk) => {
     stderr.push(chunk.toString());
   });
+  chrome.once("exit", (code, signal) => {
+    exitState.exited = true;
+    exitState.code = code;
+    exitState.signal = signal;
+  });
 
-  await waitFor(async () => {
-    const response = await fetch(`http://127.0.0.1:${remoteDebuggingPort}/json/version`);
-    return response.ok;
-  }, `Chrome DevTools endpoint did not open: ${stderr.join("")}`);
+  try {
+    await waitFor(async () => {
+      const response = await fetch(`http://127.0.0.1:${remoteDebuggingPort}/json/version`);
+      return response.ok;
+    }, (lastError) => formatChromeStartupError({
+      timeoutMessage: "Chrome DevTools endpoint did not open",
+      lastError,
+      exitState,
+      stderr,
+    }), resolveChromeStartupTimeoutMs());
+  } catch (error) {
+    await closeChromeProcess(chrome, exitState);
+    await rm(userDataDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+    throw error;
+  }
 
   return {
     async newPage(url) {
@@ -50,11 +61,57 @@ export async function launchChromeSession() {
       return createPage(client);
     },
     async close() {
-      chrome.kill("SIGTERM");
-      await new Promise((resolve) => chrome.once("exit", resolve));
+      await closeChromeProcess(chrome, exitState);
       await rm(userDataDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
     },
   };
+}
+
+export function buildChromeArgs({ remoteDebuggingPort, userDataDir, extraFlags = [] }) {
+  return [
+    "--headless=new",
+    "--disable-gpu",
+    "--disable-dev-shm-usage",
+    "--no-first-run",
+    "--no-default-browser-check",
+    "--no-sandbox",
+    "--remote-debugging-address=127.0.0.1",
+    `--remote-debugging-port=${remoteDebuggingPort}`,
+    `--user-data-dir=${userDataDir}`,
+    ...extraFlags,
+    "about:blank",
+  ];
+}
+
+export function resolveChromeStartupTimeoutMs(env = process.env) {
+  const value = Number.parseInt(env.EXTENSION_E2E_CHROME_STARTUP_TIMEOUT_MS ?? "", 10);
+  return Number.isInteger(value) && value > 0 ? value : 30_000;
+}
+
+export function resolveChromeExtraFlags(env = process.env) {
+  return (env.EXTENSION_E2E_CHROME_EXTRA_FLAGS ?? "")
+    .split(/\s+/)
+    .map((flag) => flag.trim())
+    .filter(Boolean);
+}
+
+export function formatChromeStartupError({ timeoutMessage, lastError, exitState, stderr }) {
+  const diagnostics = [
+    timeoutMessage,
+    lastError ? `lastError=${lastError.message}` : "",
+    exitState?.exited ? `exitCode=${exitState.code ?? "null"}` : "exitCode=running",
+    exitState?.signal ? `signal=${exitState.signal}` : "",
+    stderr?.length ? `stderr=${stderr.join("").trim()}` : "",
+  ].filter(Boolean);
+  return diagnostics.join(" ");
+}
+
+async function closeChromeProcess(chrome, exitState) {
+  if (exitState.exited) {
+    return;
+  }
+  chrome.kill("SIGTERM");
+  await new Promise((resolve) => chrome.once("exit", resolve));
 }
 
 function findChromeExecutable() {
@@ -264,5 +321,8 @@ async function waitFor(check, timeoutMessage, timeoutMs = 10_000) {
     }
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
-  throw new Error(`${timeoutMessage}${lastError ? ` (${lastError.message})` : ""}`);
+  const message = typeof timeoutMessage === "function"
+    ? timeoutMessage(lastError)
+    : `${timeoutMessage}${lastError ? ` (${lastError.message})` : ""}`;
+  throw new Error(message);
 }

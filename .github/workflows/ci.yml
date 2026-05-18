@@ -146,4 +146,7 @@ jobs:
         run: npm --prefix extension run validate
 
       - name: Run extension live E2E
+        env:
+          EXTENSION_E2E_CHROME_STARTUP_TIMEOUT_MS: "30000"
+          EXTENSION_E2E_CHROME_EXTRA_FLAGS: "--enable-logging=stderr --v=1"
         run: npm --prefix extension run test:e2e
