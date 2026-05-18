@@ -14,7 +14,8 @@ CREATE TABLE user_profiles (
     name VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL,
     profile_ready BOOLEAN NOT NULL,
-    vector_updated_at VARCHAR(40) NOT NULL
+    vector_updated_at VARCHAR(40) NOT NULL,
+    profile_embedding VARCHAR(12000)
 );
 
 CREATE TABLE user_profile_primary_languages (
