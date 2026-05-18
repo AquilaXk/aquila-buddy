@@ -3,6 +3,7 @@ import { test } from "node:test";
 import {
   buildChromeArgs,
   formatChromeStartupError,
+  resolveChromeExtraFlags,
   resolveChromeStartupTimeoutMs,
 } from "./browser-session.mjs";
 
@@ -24,6 +25,14 @@ test("builds Chrome arguments with an explicit loopback DevTools address", () =>
   assert.ok(args.includes("--remote-debugging-port=9222"));
   assert.ok(args.includes("--user-data-dir=/tmp/aquila-profile"));
   assert.ok(args.includes("--enable-logging=stderr"));
+});
+
+test("reads optional Chrome diagnostic flags from env", () => {
+  assert.deepEqual(resolveChromeExtraFlags({}), []);
+  assert.deepEqual(resolveChromeExtraFlags({ EXTENSION_E2E_CHROME_EXTRA_FLAGS: " --enable-logging=stderr   --v=1 " }), [
+    "--enable-logging=stderr",
+    "--v=1",
+  ]);
 });
 
 test("formats Chrome startup failures with process and stderr diagnostics", () => {

@@ -18,7 +18,11 @@ export async function launchChromeSession() {
   const stderr = [];
   const exitState = { exited: false, code: null, signal: null };
 
-  const chrome = spawn(executable, buildChromeArgs({ remoteDebuggingPort, userDataDir }), {
+  const chrome = spawn(executable, buildChromeArgs({
+    remoteDebuggingPort,
+    userDataDir,
+    extraFlags: resolveChromeExtraFlags(),
+  }), {
     stdio: ["ignore", "ignore", "pipe"],
   });
 
@@ -31,15 +35,21 @@ export async function launchChromeSession() {
     exitState.signal = signal;
   });
 
-  await waitFor(async () => {
-    const response = await fetch(`http://127.0.0.1:${remoteDebuggingPort}/json/version`);
-    return response.ok;
-  }, (lastError) => formatChromeStartupError({
-    timeoutMessage: "Chrome DevTools endpoint did not open",
-    lastError,
-    exitState,
-    stderr,
-  }), resolveChromeStartupTimeoutMs());
+  try {
+    await waitFor(async () => {
+      const response = await fetch(`http://127.0.0.1:${remoteDebuggingPort}/json/version`);
+      return response.ok;
+    }, (lastError) => formatChromeStartupError({
+      timeoutMessage: "Chrome DevTools endpoint did not open",
+      lastError,
+      exitState,
+      stderr,
+    }), resolveChromeStartupTimeoutMs());
+  } catch (error) {
+    await closeChromeProcess(chrome, exitState);
+    await rm(userDataDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+    throw error;
+  }
 
   return {
     async newPage(url) {
@@ -51,8 +61,7 @@ export async function launchChromeSession() {
       return createPage(client);
     },
     async close() {
-      chrome.kill("SIGTERM");
-      await new Promise((resolve) => chrome.once("exit", resolve));
+      await closeChromeProcess(chrome, exitState);
       await rm(userDataDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
     },
   };
@@ -79,6 +88,13 @@ export function resolveChromeStartupTimeoutMs(env = process.env) {
   return Number.isInteger(value) && value > 0 ? value : 30_000;
 }
 
+export function resolveChromeExtraFlags(env = process.env) {
+  return (env.EXTENSION_E2E_CHROME_EXTRA_FLAGS ?? "")
+    .split(/\s+/)
+    .map((flag) => flag.trim())
+    .filter(Boolean);
+}
+
 export function formatChromeStartupError({ timeoutMessage, lastError, exitState, stderr }) {
   const diagnostics = [
     timeoutMessage,
@@ -88,6 +104,14 @@ export function formatChromeStartupError({ timeoutMessage, lastError, exitState,
     stderr?.length ? `stderr=${stderr.join("").trim()}` : "",
   ].filter(Boolean);
   return diagnostics.join(" ");
+}
+
+async function closeChromeProcess(chrome, exitState) {
+  if (exitState.exited) {
+    return;
+  }
+  chrome.kill("SIGTERM");
+  await new Promise((resolve) => chrome.once("exit", resolve));
 }
 
 function findChromeExecutable() {
