@@ -47,6 +47,19 @@ test("integration smoke runner supports release start mode", async () => {
   assert.match(runner, /"dev"/);
 });
 
+test("integration smoke pins fixture backend for production build", async () => {
+  const runner = await readFile(
+    resolve(repoRoot, "tools/frontend/integration-smoke/run-integration-smoke.mjs"),
+    "utf8"
+  );
+  const workflow = await readFile(resolve(repoRoot, ".github/workflows/ci.yml"), "utf8");
+
+  assert.match(runner, /FRONTEND_INTEGRATION_FIXTURE_BACKEND_PORT/);
+  assert.match(runner, /createFrontendFixtureBackend\(\{ port: fixtureBackendPort/);
+  assert.match(workflow, /NEXT_PUBLIC_API_URL: http:\/\/127\.0\.0\.1:18080/);
+  assert.match(workflow, /FRONTEND_INTEGRATION_FIXTURE_BACKEND_PORT: "18080"/);
+});
+
 test("integration smoke runner applies route wait timeout", async () => {
   const runner = await readFile(
     resolve(repoRoot, "tools/frontend/integration-smoke/run-integration-smoke.mjs"),

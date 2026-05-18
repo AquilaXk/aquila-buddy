@@ -7,12 +7,13 @@ import { launchChromeSession } from "../../extension/live-e2e/browser-session.mj
 const repoRoot = resolve(import.meta.dirname, "..", "..", "..");
 const timeoutMs = positiveInteger(process.env.FRONTEND_INTEGRATION_SMOKE_TIMEOUT_MS, 90_000);
 const routeTimeoutMs = positiveInteger(process.env.FRONTEND_INTEGRATION_ROUTE_TIMEOUT_MS, 20_000);
+const fixtureBackendPort = optionalPositiveInteger(process.env.FRONTEND_INTEGRATION_FIXTURE_BACKEND_PORT);
 const serverMode = resolveServerMode();
 const useLiveBackend = process.env.FRONTEND_INTEGRATION_USE_LIVE_BACKEND === "true";
 
 const backend = useLiveBackend
   ? liveBackend()
-  : await createFrontendFixtureBackend();
+  : await createFrontendFixtureBackend({ port: fixtureBackendPort });
 const frontendPort = await getAvailablePort();
 const frontendOrigin = `http://127.0.0.1:${frontendPort}`;
 const next = startNextServer(frontendPort, backend.origin, serverMode);
@@ -199,4 +200,15 @@ async function waitFor(check, timeoutMessage, timeout = timeoutMs) {
 function positiveInteger(value, fallback) {
   const parsed = Number.parseInt(value ?? "", 10);
   return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function optionalPositiveInteger(value) {
+  if (!value) {
+    return undefined;
+  }
+  const parsed = Number.parseInt(value, 10);
+  if (Number.isInteger(parsed) && parsed > 0) {
+    return parsed;
+  }
+  throw new Error("FRONTEND_INTEGRATION_FIXTURE_BACKEND_PORT must be a positive integer.");
 }
