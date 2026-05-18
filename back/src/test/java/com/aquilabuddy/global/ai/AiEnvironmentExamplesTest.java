@@ -496,6 +496,21 @@ class AiEnvironmentExamplesTest {
     }
 
     @Test
+    void langfuseObservabilitySmokeRunnerDryRunDocumentsTraceChecks()
+        throws IOException, InterruptedException {
+        SmokeResult result = runLangfuseObservabilitySmokeRunnerDryRun();
+
+        assertThat(result.exitCode()).isZero();
+        assertThat(result.output())
+            .contains("Langfuse observability smoke path:")
+            .contains("01 validate Langfuse env")
+            .contains("02 send success generation payload")
+            .contains("03 send failure generation payload")
+            .contains("04 verify prompt version, model, latency, usage, and failure metadata")
+            .contains("Langfuse observability smoke dry-run completed.");
+    }
+
+    @Test
     void ciWorkflowRunsOperationalSmokeEnvValidation() throws IOException {
         String workflow = Files.readString(Path.of("../.github/workflows/ci.yml"));
 
@@ -539,6 +554,23 @@ class AiEnvironmentExamplesTest {
             .contains("AI_REQUEST_TIMEOUT_MILLIS: ${{ vars.AI_REQUEST_TIMEOUT_MILLIS || '30000' }}")
             .contains("bash tools/smoke/validate-ai-provider-smoke-env.sh")
             .contains("bash tools/smoke/run-ai-provider-smoke.sh");
+    }
+
+    @Test
+    void langfuseObservabilitySmokeWorkflowIsManualAndOptIn() throws IOException {
+        String workflow = Files.readString(Path.of("../.github/workflows/langfuse-observability-smoke.yml"));
+
+        assertThat(workflow)
+            .contains("workflow_dispatch:")
+            .doesNotContain("\n  pull_request:")
+            .doesNotContain("\n  push:")
+            .contains("LANGFUSE_SMOKE_ENABLED: ${{ inputs.enabled }}")
+            .contains("LANGFUSE_SMOKE_MODE: ${{ inputs.mode }}")
+            .contains("LANGFUSE_BASE_URL: ${{ vars.LANGFUSE_BASE_URL || 'https://cloud.langfuse.com' }}")
+            .contains("LANGFUSE_PUBLIC_KEY: ${{ secrets.LANGFUSE_PUBLIC_KEY }}")
+            .contains("LANGFUSE_SECRET_KEY: ${{ secrets.LANGFUSE_SECRET_KEY }}")
+            .contains("bash tools/smoke/validate-langfuse-observability-env.sh")
+            .contains("bash tools/smoke/run-langfuse-observability-smoke.sh");
     }
 
     private static String legacyGlmApiKeyName() {
@@ -618,6 +650,20 @@ class AiEnvironmentExamplesTest {
         Map<String, String> processEnv = builder.environment();
         processEnv.clear();
         processEnv.putAll(env);
+        builder.redirectErrorStream(true);
+        Process process = builder.start();
+        String output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+        boolean exited = process.waitFor(10, TimeUnit.SECONDS);
+        assertThat(exited).isTrue();
+        return new SmokeResult(process.exitValue(), output);
+    }
+
+    private static SmokeResult runLangfuseObservabilitySmokeRunnerDryRun()
+        throws IOException, InterruptedException {
+        ProcessBuilder builder =
+            new ProcessBuilder("/bin/bash", "../tools/smoke/run-langfuse-observability-smoke.sh", "--dry-run");
+        Map<String, String> processEnv = builder.environment();
+        processEnv.clear();
         builder.redirectErrorStream(true);
         Process process = builder.start();
         String output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
