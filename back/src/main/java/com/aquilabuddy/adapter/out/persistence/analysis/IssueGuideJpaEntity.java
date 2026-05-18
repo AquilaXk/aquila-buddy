@@ -8,7 +8,9 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OrderColumn;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -31,6 +33,9 @@ public class IssueGuideJpaEntity {
 
     @Column(name = "pseudo_code", nullable = false, length = 4_000)
     private String pseudoCode;
+
+    @Column(name = "generated_at", nullable = false)
+    private Instant generatedAt;
 
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(
@@ -59,7 +64,7 @@ public class IssueGuideJpaEntity {
         String pseudoCode,
         List<String> sideEffects
     ) {
-        this(issueId, guideline, pseudoCode, List.of(), sideEffects);
+        this(issueId, guideline, pseudoCode, List.of(), sideEffects, Instant.now());
     }
 
     IssueGuideJpaEntity(
@@ -69,11 +74,30 @@ public class IssueGuideJpaEntity {
         List<String> filePaths,
         List<String> sideEffects
     ) {
+        this(issueId, guideline, pseudoCode, filePaths, sideEffects, Instant.now());
+    }
+
+    IssueGuideJpaEntity(
+        String issueId,
+        String guideline,
+        String pseudoCode,
+        List<String> filePaths,
+        List<String> sideEffects,
+        Instant generatedAt
+    ) {
         this.issueId = issueId;
         this.guideline = guideline;
         this.pseudoCode = pseudoCode;
         this.filePaths = new ArrayList<>(filePaths == null ? List.of() : filePaths);
         this.sideEffects = new ArrayList<>(sideEffects);
+        this.generatedAt = generatedAt == null ? Instant.now() : generatedAt;
+    }
+
+    @PrePersist
+    void prePersist() {
+        if (generatedAt == null) {
+            generatedAt = Instant.now();
+        }
     }
 
     String getIssueId() {
@@ -86,6 +110,10 @@ public class IssueGuideJpaEntity {
 
     String getPseudoCode() {
         return pseudoCode;
+    }
+
+    Instant getGeneratedAt() {
+        return generatedAt;
     }
 
     List<String> getFilePaths() {

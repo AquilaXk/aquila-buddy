@@ -2,6 +2,7 @@ package com.aquilabuddy.adapter.out.persistence.analysis;
 
 import com.aquilabuddy.application.port.out.analysis.LoadIssueGuidePort;
 import com.aquilabuddy.application.port.out.analysis.SaveIssueGuidePort;
+import com.aquilabuddy.domain.analysis.CachedIssueGuide;
 import com.aquilabuddy.domain.analysis.IssueGuide;
 import java.util.NoSuchElementException;
 import org.springframework.stereotype.Component;
@@ -25,6 +26,13 @@ public class IssueGuidePersistenceAdapter implements LoadIssueGuidePort, SaveIss
     public IssueGuide loadIssueGuide(String issueId) {
         return repository.findByIssueId(issueId)
             .map(IssueGuidePersistenceMapper::toDomain)
+            .orElseThrow(() -> new NoSuchElementException("Issue guide not found: " + issueId));
+    }
+
+    @Override
+    public CachedIssueGuide loadCachedIssueGuide(String issueId) {
+        return repository.findByIssueId(issueId)
+            .map(IssueGuidePersistenceMapper::toCachedDomain)
             .orElseThrow(() -> new NoSuchElementException("Issue guide not found: " + issueId));
     }
 

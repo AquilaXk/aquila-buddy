@@ -2,6 +2,7 @@ package com.aquilabuddy.global.github;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
@@ -241,6 +242,29 @@ public class GitHubApiClient {
             topics,
             text
         );
+    }
+
+    /**
+     * 이슈 분석 캐시 만료 후 원격 이슈가 수정되었는지 확인할 때 사용합니다.
+     */
+    public Optional<Instant> loadIssueUpdatedAt(String repoFullName, long issueNumber) {
+        if (!hasText(repoFullName) || issueNumber <= 0 || !repoFullName.contains("/")) {
+            return Optional.empty();
+        }
+
+        String[] parts = repoFullName.split("/", 2);
+        try {
+            GitHubIssueMetadataResponse response = restClient.get()
+                .uri("/repos/{owner}/{repo}/issues/{issueNumber}", parts[0], parts[1], issueNumber)
+                .headers(this::applyAuthorization)
+                .retrieve()
+                .body(GitHubIssueMetadataResponse.class);
+
+            return Optional.ofNullable(response)
+                .map(GitHubIssueMetadataResponse::updatedAt);
+        } catch (RestClientException exception) {
+            return Optional.empty();
+        }
     }
 
     /**
@@ -665,6 +689,11 @@ public class GitHubApiClient {
     private record GitHubPullRequestResponse(
         String body,
         @JsonProperty("merged_at") String mergedAt
+    ) {
+    }
+
+    private record GitHubIssueMetadataResponse(
+        @JsonProperty("updated_at") Instant updatedAt
     ) {
     }
 }
