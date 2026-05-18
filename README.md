@@ -215,6 +215,17 @@ AI_EMBEDDING_DIMENSIONS=1536 \
 bash tools/smoke/run-ai-provider-smoke.sh
 ```
 
+AI prompt evaluation smoke는 같은 workflow에서 opt-in으로 실행됩니다. dry-run은 `tools/smoke/ai-prompt-evaluation-fixtures.json`의 이슈 가이드, PR 초안, 번역, parser fallback, provider failure 샘플을 evidence로 남기고, live mode는 OpenAI-compatible chat completion 응답의 required/forbidden token, latency, token usage, parser result, failure reason을 기록합니다.
+
+```bash
+AI_PROMPT_EVAL_ENABLED=true \
+AI_PROMPT_EVAL_MODE=dry-run \
+AI_PROVIDER=openai-compatible \
+AI_CHAT_MODEL=gpt-4o-mini \
+AI_PROMPT_EVAL_EVIDENCE_FILE=tools/smoke/release-readiness/ai-prompt-evaluation-local.md \
+node tools/smoke/run-ai-prompt-evaluation-smoke.mjs
+```
+
 Langfuse trace 전송 경로는 기본 CI에서 외부 endpoint를 호출하지 않습니다. 수동으로 점검할 때는 다음처럼 dry-run으로 payload 항목을 먼저 확인한 뒤 live mode로 전환합니다.
 
 ```bash

@@ -1,0 +1,45 @@
+{
+  "promptVersion": "ai-output-quality-v2026-05-18",
+  "samples": [
+    {
+      "fixture": "issue-guide-code-context",
+      "operation": "issue-guide",
+      "systemPrompt": "Generate an issue guide with GUIDELINE, PSEUDO_CODE, and SIDE_EFFECTS markers.",
+      "userPrompt": "Issue: Refine validation error example. Repository code context: src/main/java/demo/ValidationController.java",
+      "requires": ["GUIDELINE", "PSEUDO_CODE", "SIDE_EFFECTS"],
+      "forbids": []
+    },
+    {
+      "fixture": "pr-draft-markdown-close",
+      "operation": "pr-draft",
+      "systemPrompt": "Generate a pull request draft with TITLE and BODY markers.",
+      "userPrompt": "Issue #2: Fix validation message. Diff: +Add validation example. Body must include close #2 and markdown sections.",
+      "requires": ["TITLE", "BODY", "close #2", "## Summary"],
+      "forbids": []
+    },
+    {
+      "fixture": "pr-translation-english",
+      "operation": "translation",
+      "systemPrompt": "Translate the PR title and body to English while preserving markdown structure.",
+      "userPrompt": "TITLE: [Docs] README 기여 안내 보완\nBODY: close #123\n\n## 변경 사항\n- README 안내를 보완합니다.",
+      "requires": ["TITLE", "BODY", "## Summary"],
+      "forbids": ["README 안내를 보완합니다"]
+    },
+    {
+      "fixture": "pr-draft-parser-fallback",
+      "operation": "parser-fallback",
+      "systemPrompt": "Return malformed content so parser fallback can be distinguished in mock tests.",
+      "userPrompt": "plain text fallback fixture",
+      "requires": ["fallback"],
+      "forbids": []
+    },
+    {
+      "fixture": "provider-failure-observation",
+      "operation": "provider-failure",
+      "systemPrompt": "The live runner records provider failures separately from fixture fallback.",
+      "userPrompt": "provider failure observation fixture",
+      "requires": ["failure_reason"],
+      "forbids": []
+    }
+  ]
+}
