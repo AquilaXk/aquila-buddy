@@ -63,6 +63,31 @@ bash tools/smoke/validate-ai-runtime-env.sh
 SPRING_PROFILES_ACTIVE=dev ./back/gradlew -p back bootRun
 ```
 
+필수 env가 빠진 상태에서는 validation script가 실패해야 합니다.
+
+```bash
+bash tools/smoke/validate-ai-runtime-env.sh
+```
+
+Vertex AI + pgvector smoke env 예시:
+
+```bash
+AI_PROVIDER=vertex-ai \
+GOOGLE_CLOUD_PROJECT_ID=grepp-ai-project \
+VERTEX_AI_LOCATION=us-central1 \
+VERTEX_AI_MODEL=gemini-2.5-flash \
+VERTEX_AI_EMBEDDING_MODEL=gemini-embedding-001 \
+VERTEX_AI_EMBEDDING_DIMENSIONS=1536 \
+GOOGLE_APPLICATION_CREDENTIALS=/absolute/path/to/vertex-key.json \
+RECOMMENDATION_SIMILARITY_PROVIDER=pgvector \
+RECOMMENDATION_SIMILARITY_LIMIT=20 \
+DB_URL=jdbc:postgresql://localhost:5432/aquila_buddy \
+DB_USER=aquila \
+DB_PASSWORD=aquila \
+GITHUB_TOKEN=github_pat_or_fine_grained_token \
+bash tools/smoke/validate-ai-runtime-env.sh
+```
+
 수동 smoke 흐름:
 
 1. OAuth 로그인 또는 `DEFAULT_GITHUB_ID` fallback 사용자로 profile을 준비합니다.
