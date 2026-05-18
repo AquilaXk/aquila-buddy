@@ -79,9 +79,8 @@ class OpenAiCompatibleAiClientTest {
               }
             }
             """);
-        OpenAiCompatibleAiClient client = client("test-key");
         RecordingAiCallObserver observer = new RecordingAiCallObserver();
-        client = client("test-key", observer);
+        OpenAiCompatibleAiClient client = client("test-key", observer);
 
         assertThatThrownBy(() -> client.complete("system", "user"))
             .isInstanceOf(IllegalStateException.class)
