@@ -34,19 +34,22 @@ public class UserProfilePersistenceAdapter implements
     private final GitHubApiClient gitHubApiClient;
     private final ObjectProvider<EmbeddingClient> embeddingClientProvider;
     private final boolean userContextEnabled;
+    private final int expectedEmbeddingDimensions;
 
     public UserProfilePersistenceAdapter(
         UserProfileJpaRepository repository,
         CurrentUserGithubIdPort currentUserGithubIdPort,
         GitHubApiClient gitHubApiClient,
         ObjectProvider<EmbeddingClient> embeddingClientProvider,
-        @Value("${app.github.user-context.enabled:false}") boolean userContextEnabled
+        @Value("${app.github.user-context.enabled:false}") boolean userContextEnabled,
+        @Value("${app.embedding.expected-dimensions:1536}") int expectedEmbeddingDimensions
     ) {
         this.repository = repository;
         this.currentUserGithubIdPort = currentUserGithubIdPort;
         this.gitHubApiClient = gitHubApiClient;
         this.embeddingClientProvider = embeddingClientProvider;
         this.userContextEnabled = userContextEnabled;
+        this.expectedEmbeddingDimensions = expectedEmbeddingDimensions;
     }
 
     @Override
@@ -104,6 +107,9 @@ public class UserProfilePersistenceAdapter implements
 
         try {
             EmbeddingVector vector = embeddingClient.embed(buildProfileEmbeddingInput(entity));
+            if (vector.dimension() != expectedEmbeddingDimensions) {
+                return null;
+            }
             return vector.toPgvectorLiteral();
         } catch (RuntimeException exception) {
             return null;
