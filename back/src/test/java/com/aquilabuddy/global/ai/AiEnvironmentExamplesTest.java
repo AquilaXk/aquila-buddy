@@ -202,6 +202,19 @@ class AiEnvironmentExamplesTest {
             .contains("AI runtime smoke env validation failed.");
     }
 
+    @Test
+    void ciWorkflowRunsOperationalSmokeEnvValidation() throws IOException {
+        String workflow = Files.readString(Path.of("../.github/workflows/ci.yml"));
+
+        assertThat(workflow)
+            .contains("operations-smoke:")
+            .contains("name: Operations Smoke")
+            .contains("AI_PROVIDER: openai-compatible")
+            .contains("GITHUB_TOKEN_PERMISSIONS: metadata:read,contents:read,pull-requests:read,issues:read")
+            .contains("RECOMMENDATION_SIMILARITY_PROVIDER: pgvector")
+            .contains("bash tools/smoke/validate-ai-runtime-env.sh");
+    }
+
     private static String legacyGlmApiKeyName() {
         return "G" + "LM_API_KEY";
     }
