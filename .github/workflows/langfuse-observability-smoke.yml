@@ -1,0 +1,44 @@
+name: Langfuse Observability Smoke
+
+on:
+  workflow_dispatch:
+    inputs:
+      enabled:
+        description: "Run Langfuse observability smoke"
+        required: true
+        type: boolean
+        default: false
+      mode:
+        description: "Validate the path without calls or send synthetic trace events"
+        required: true
+        type: choice
+        default: dry-run
+        options:
+          - dry-run
+          - live
+
+permissions:
+  contents: read
+
+jobs:
+  langfuse-observability-smoke:
+    name: Langfuse Observability Smoke
+    runs-on: ubuntu-latest
+    env:
+      LANGFUSE_SMOKE_ENABLED: ${{ inputs.enabled }}
+      LANGFUSE_SMOKE_MODE: ${{ inputs.mode }}
+      LANGFUSE_SMOKE_TIMEOUT_SECONDS: ${{ vars.LANGFUSE_SMOKE_TIMEOUT_SECONDS || '30' }}
+      LANGFUSE_BASE_URL: ${{ vars.LANGFUSE_BASE_URL || 'https://cloud.langfuse.com' }}
+      LANGFUSE_PUBLIC_KEY: ${{ secrets.LANGFUSE_PUBLIC_KEY }}
+      LANGFUSE_SECRET_KEY: ${{ secrets.LANGFUSE_SECRET_KEY }}
+      LANGFUSE_ENVIRONMENT: ${{ vars.LANGFUSE_ENVIRONMENT || 'ci-smoke' }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Validate Langfuse observability smoke env
+        run: bash tools/smoke/validate-langfuse-observability-env.sh
+
+      - name: Run Langfuse observability smoke
+        run: bash tools/smoke/run-langfuse-observability-smoke.sh

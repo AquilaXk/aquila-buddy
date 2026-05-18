@@ -74,7 +74,12 @@ LANGFUSE_BASE_URL=https://cloud.langfuse.com
 LANGFUSE_PUBLIC_KEY=
 LANGFUSE_SECRET_KEY=
 LANGFUSE_ENVIRONMENT=local
+LANGFUSE_SMOKE_ENABLED=false
+LANGFUSE_SMOKE_MODE=dry-run
+LANGFUSE_SMOKE_TIMEOUT_SECONDS=30
 ```
+
+Langfuse 실연동 smoke는 opt-in입니다. `LANGFUSE_SMOKE_MODE=dry-run`은 전송 없이 성공/실패 generation payload의 prompt version, model, latency, usage, 실패 사유 점검 순서를 출력하고, `live`는 synthetic trace event를 Langfuse ingestion endpoint로 보냅니다.
 
 GitHub 연동 smoke에는 repository/issue 조회가 가능한 token이 필요합니다.
 OAuth 로그인을 함께 확인할 때는 `read:user`, `user:email` scope의 GitHub OAuth app 설정도 필요합니다.
@@ -99,6 +104,8 @@ SPRING_PROFILES_ACTIVE=dev ./back/gradlew -p back bootRun
 bash tools/smoke/validate-ai-runtime-env.sh
 bash tools/smoke/validate-ai-provider-smoke-env.sh
 bash tools/smoke/run-ai-provider-smoke.sh
+bash tools/smoke/validate-langfuse-observability-env.sh
+bash tools/smoke/run-langfuse-observability-smoke.sh --dry-run
 bash tools/smoke/validate-provider-e2e-env.sh
 ```
 
@@ -205,6 +212,30 @@ AI_CHAT_MODEL=gpt-4o-mini \
 AI_EMBEDDING_MODEL=text-embedding-3-small \
 AI_EMBEDDING_DIMENSIONS=1536 \
 bash tools/smoke/run-ai-provider-smoke.sh
+```
+
+Langfuse trace 전송 경로는 기본 CI에서 외부 endpoint를 호출하지 않습니다. 수동으로 점검할 때는 다음처럼 dry-run으로 payload 항목을 먼저 확인한 뒤 live mode로 전환합니다.
+
+```bash
+bash tools/smoke/run-langfuse-observability-smoke.sh --dry-run
+
+LANGFUSE_SMOKE_ENABLED=true \
+LANGFUSE_SMOKE_MODE=live \
+LANGFUSE_SMOKE_TIMEOUT_SECONDS=30 \
+LANGFUSE_BASE_URL=https://cloud.langfuse.com \
+LANGFUSE_PUBLIC_KEY=pk_langfuse \
+LANGFUSE_SECRET_KEY=sk_langfuse \
+LANGFUSE_ENVIRONMENT=staging \
+bash tools/smoke/validate-langfuse-observability-env.sh
+
+LANGFUSE_SMOKE_ENABLED=true \
+LANGFUSE_SMOKE_MODE=live \
+LANGFUSE_SMOKE_TIMEOUT_SECONDS=30 \
+LANGFUSE_BASE_URL=https://cloud.langfuse.com \
+LANGFUSE_PUBLIC_KEY=pk_langfuse \
+LANGFUSE_SECRET_KEY=sk_langfuse \
+LANGFUSE_ENVIRONMENT=staging \
+bash tools/smoke/run-langfuse-observability-smoke.sh
 ```
 
 ## OCI Always Free Terraform

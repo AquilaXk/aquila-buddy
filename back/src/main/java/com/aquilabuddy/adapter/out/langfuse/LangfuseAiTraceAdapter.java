@@ -82,10 +82,14 @@ public class LangfuseAiTraceAdapter implements AiCallObserver {
         metadata.put("provider", observation.provider());
         metadata.put("operation", observation.operation().name());
         metadata.put("promptVersion", observation.promptVersion());
+        metadata.put("latencyMillis", observation.latencyMillis());
         metadata.put("success", observation.success());
         metadata.put("environment", properties.environmentOrDefault());
         if (observation.errorType() != null) {
             metadata.put("errorType", observation.errorType());
+        }
+        if (observation.failureReason() != null) {
+            metadata.put("failureReason", observation.failureReason());
         }
         return metadata;
     }
