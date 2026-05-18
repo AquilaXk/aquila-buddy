@@ -1,21 +1,24 @@
-## Related Issue
+> 제목은 `[Type] 한국어 작업 요약` 형식으로 작성합니다.
+> 본문은 한국어 중심으로 작성하고 API, OAuth, SQL, CI처럼 현업 공통 용어만 영어를 유지합니다.
+
+## 관련 이슈
 - close #
 
-## Summary
+## 요약
 - 이 PR이 어떤 문제를 해결하고 어떤 결과를 남기는지 2~3줄로 설명해 주세요.
 
-## Changes
+## 변경 사항
 - 주요 변경 사항을 사용자/운영 관점에서 적어 주세요.
 
-## Scope
-- [ ] Frontend
-- [ ] Backend
-- [ ] AI / GitHub Integration
-- [ ] Performance / Runtime
-- [ ] Infra / CI / Ops
-- [ ] Docs
+## 범위
+- [ ] 프론트엔드
+- [ ] 백엔드
+- [ ] AI / GitHub 연동
+- [ ] 성능 / 런타임
+- [ ] 인프라 / CI / 운영
+- [ ] 문서
 
-## Validation
+## 검증
 - [ ] 자동화 테스트를 수행했는가?
 - [ ] 필요한 수동 확인을 마쳤는가?
 - [ ] 로그/메트릭/운영 지표를 확인했는가?
@@ -25,14 +28,14 @@
 - 예) `./back/gradlew -p back check`
 - 예) `npm --prefix front run build`
 
-## Screenshot / API Example
+## 화면 / API 예시
 - UI 변경이나 응답 예시가 있으면 이해에 필요한 최소 자료만 첨부해 주세요.
 
-## Risk & Rollback
+## 리스크와 롤백
 - 예상 리스크:
 - 롤백 방법:
 
-## Checklist
+## 체크리스트
 - [ ] 관련 이슈를 정확히 연결했는가?
 - [ ] base branch가 `main`인지 다시 확인했는가?
 - [ ] PR 범위 밖 변경을 제외했는가?
