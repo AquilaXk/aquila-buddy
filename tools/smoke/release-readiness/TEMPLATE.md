@@ -16,7 +16,9 @@
 | pgvector | pending-manual | `<run-or-command>` | `<note>` |
 | operations | pending-manual | `<run-or-command>` | `<note>` |
 | ai-provider | pending-manual | `<run-or-command>` | `<note>` |
+| ai-prompt-evaluation | pending-manual | `<run-or-command>` | `<note>` |
 | langfuse | pending-manual | `<run-or-command>` | `<note>` |
+| extension-github-live | pending-manual | `<run-or-command>` | `<note>` |
 | provider-e2e | pending-manual | `<run-or-command>` | `<note>` |
 | profile-vector | pending-manual | `<run-or-command>` | OAuth 또는 JWT 인증 후 `/api/v1/users/me/vector` |
 | issue-crawl | pending-manual | `<run-or-command>` | GitHub token으로 `/api/v1/issues/crawl/search` |
@@ -42,6 +44,8 @@
 
 ## 재실행 체크리스트
 - [ ] backfill 실행 후 pgvector 추천 smoke 재실행
+- [ ] AI prompt evaluation live evidence 기록
+- [ ] Chrome profile 준비 후 extension GitHub live smoke 재실행
 - [ ] Langfuse live secret 주입 후 observability smoke 재실행
 - [ ] provider E2E OAuth/JWT 준비 후 E2E smoke 재실행
 - [ ] 실패한 smoke가 있으면 rollback 기준 적용 여부 기록
