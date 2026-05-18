@@ -51,6 +51,14 @@ validate_record() {
     ai-provider
     langfuse
     provider-e2e
+    profile-vector
+    issue-crawl
+    embedding-backfill
+    pgvector-recommendation
+    issue-guide
+    pr-draft
+    translation
+    observability-trace
   )
 
   for area in "${areas[@]}"; do
