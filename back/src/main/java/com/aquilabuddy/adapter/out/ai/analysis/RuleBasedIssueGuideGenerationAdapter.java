@@ -2,6 +2,7 @@ package com.aquilabuddy.adapter.out.ai.analysis;
 
 import com.aquilabuddy.application.port.out.analysis.GenerateIssueGuidePort;
 import com.aquilabuddy.domain.analysis.IssueGuide;
+import com.aquilabuddy.domain.analysis.RepositoryCodeContext;
 import com.aquilabuddy.domain.issue.RecommendedIssue;
 import java.util.List;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -16,9 +17,15 @@ public class RuleBasedIssueGuideGenerationAdapter implements GenerateIssueGuideP
 
     @Override
     public IssueGuide generateIssueGuide(RecommendedIssue issue) {
+        return generateIssueGuide(issue, RepositoryCodeContext.empty());
+    }
+
+    @Override
+    public IssueGuide generateIssueGuide(RecommendedIssue issue, RepositoryCodeContext codeContext) {
         String firstLabel = issue.labels().isEmpty() ? "general" : issue.labels().get(0);
         return new IssueGuide(
             issue.id(),
+            selectedFilePaths(codeContext),
             issue.repoFullName() + " #" + issue.issueNumber() + "의 " + firstLabel
                 + " 범위를 작게 나누고 현재 테스트 계약을 먼저 고정합니다.",
             String.join("\n",
@@ -32,5 +39,17 @@ public class RuleBasedIssueGuideGenerationAdapter implements GenerateIssueGuideP
                 "기존 추천 점수와 생성 guide의 설명이 어긋나지 않는지 확인해야 합니다."
             )
         );
+    }
+
+    private static List<String> selectedFilePaths(RepositoryCodeContext codeContext) {
+        if (codeContext == null || !codeContext.hasFiles()) {
+            return List.of();
+        }
+
+        return codeContext.files().stream()
+            .map(file -> file.path())
+            .filter(path -> path != null && !path.isBlank())
+            .distinct()
+            .toList();
     }
 }

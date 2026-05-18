@@ -44,7 +44,8 @@ public class AiIssueGuideGenerationAdapter implements GenerateIssueGuidePort {
 
     @Override
     public IssueGuide generateIssueGuide(RecommendedIssue issue, RepositoryCodeContext codeContext) {
-        return parseGuide(issue.id(), aiClient.complete(SYSTEM_PROMPT, buildPrompt(issue, codeContext)));
+        RepositoryCodeContext safeContext = codeContext == null ? RepositoryCodeContext.empty() : codeContext;
+        return parseGuide(issue.id(), selectedFilePaths(safeContext), aiClient.complete(SYSTEM_PROMPT, buildPrompt(issue, safeContext)));
     }
 
     private static String buildPrompt(RecommendedIssue issue, RepositoryCodeContext codeContext) {
@@ -63,7 +64,7 @@ public class AiIssueGuideGenerationAdapter implements GenerateIssueGuidePort {
         return String.join("\n", lines);
     }
 
-    private static IssueGuide parseGuide(String issueId, String response) {
+    private static IssueGuide parseGuide(String issueId, List<String> filePaths, String response) {
         String normalized = Objects.requireNonNull(response, "AI response must not be null.").trim();
         int guidelineIndex = normalized.indexOf("GUIDELINE:");
         int pseudoCodeIndex = normalized.indexOf("PSEUDO_CODE:");
@@ -80,7 +81,19 @@ public class AiIssueGuideGenerationAdapter implements GenerateIssueGuidePort {
             throw new IllegalStateException("AI issue guide response sections must not be blank.");
         }
 
-        return new IssueGuide(issueId, guideline, pseudoCode, sideEffects);
+        return new IssueGuide(issueId, filePaths, guideline, pseudoCode, sideEffects);
+    }
+
+    private static List<String> selectedFilePaths(RepositoryCodeContext codeContext) {
+        if (codeContext == null || !codeContext.hasFiles()) {
+            return List.of();
+        }
+
+        return codeContext.files().stream()
+            .map(file -> file.path())
+            .filter(path -> path != null && !path.isBlank())
+            .distinct()
+            .toList();
     }
 
     private static List<String> parseSideEffects(String sideEffectBlock) {

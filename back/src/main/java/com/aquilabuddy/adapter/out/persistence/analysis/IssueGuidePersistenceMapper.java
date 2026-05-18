@@ -16,6 +16,7 @@ final class IssueGuidePersistenceMapper {
     static IssueGuide toDomain(IssueGuideJpaEntity entity) {
         return new IssueGuide(
             entity.getIssueId(),
+            entity.getFilePaths(),
             entity.getGuideline(),
             entity.getPseudoCode(),
             entity.getSideEffects()
@@ -27,6 +28,7 @@ final class IssueGuidePersistenceMapper {
             guide.issueKey(),
             guide.guideline(),
             guide.pseudoCode(),
+            guide.filePaths(),
             guide.sideEffects()
         );
     }
