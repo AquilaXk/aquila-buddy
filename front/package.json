@@ -7,6 +7,7 @@
     "build": "next build --webpack",
     "start": "next start",
     "typecheck": "tsc --noEmit",
+    "test:e2e": "node ../tools/frontend/validate-ui-ux-flow-parity.mjs",
     "validate:shell": "node ../tools/frontend/validate-shell-parity.mjs",
     "validate:login": "node ../tools/frontend/validate-login-parity.mjs",
     "validate:profile": "node ../tools/frontend/validate-profile-parity.mjs",
