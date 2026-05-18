@@ -64,6 +64,12 @@ app:
       embedding-model: ${VERTEX_AI_EMBEDDING_MODEL:gemini-embedding-001}
       embedding-dimensions: ${VERTEX_AI_EMBEDDING_DIMENSIONS:1536}
       credentials-path: ${VERTEX_AI_CREDENTIALS_PATH:${GOOGLE_APPLICATION_CREDENTIALS:./vertex-key.json}}
+    langfuse:
+      enabled: ${LANGFUSE_ENABLED:false}
+      base-url: ${LANGFUSE_BASE_URL:https://cloud.langfuse.com}
+      public-key: ${LANGFUSE_PUBLIC_KEY:}
+      secret-key: ${LANGFUSE_SECRET_KEY:}
+      environment: ${LANGFUSE_ENVIRONMENT:local}
   recommendation:
     similarity:
       provider: ${RECOMMENDATION_SIMILARITY_PROVIDER:score}
