@@ -164,6 +164,9 @@ jobs:
       - name: Run extension validation
         run: npm --prefix extension run validate
 
+      - name: Run extension live E2E contracts
+        run: npm --prefix extension run test:e2e:contracts
+
       - name: Run extension live E2E
         env:
           EXTENSION_E2E_CHROME_STARTUP_TIMEOUT_MS: "30000"

@@ -1,0 +1,71 @@
+name: Extension GitHub Live Smoke
+
+on:
+  workflow_dispatch:
+    inputs:
+      enabled:
+        description: "Run live GitHub DOM smoke"
+        required: true
+        type: boolean
+        default: false
+      github_base_url:
+        description: "GitHub base URL"
+        required: true
+        type: string
+        default: "https://github.com"
+      repo:
+        description: "Repository full name"
+        required: true
+        type: string
+      issue_number:
+        description: "Issue number used for badge/sidebar checks"
+        required: true
+        type: string
+      compare_url:
+        description: "GitHub compare/PR creation URL"
+        required: true
+        type: string
+      backend_base_url:
+        description: "Live backend base URL"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  extension-github-live-smoke:
+    name: Extension GitHub Live Smoke
+    runs-on: ubuntu-latest
+    env:
+      EXTENSION_GITHUB_LIVE_SMOKE_ENABLED: ${{ inputs.enabled }}
+      EXTENSION_GITHUB_LIVE_SKIP_ON_MISSING_SECRETS: "true"
+      EXTENSION_GITHUB_LIVE_EVIDENCE_FILE: tools/smoke/release-readiness/extension-github-live-${{ github.run_id }}.md
+      EXTENSION_GITHUB_LIVE_BASE_URL: ${{ inputs.github_base_url }}
+      EXTENSION_GITHUB_LIVE_REPO: ${{ inputs.repo }}
+      EXTENSION_GITHUB_LIVE_ISSUE_NUMBER: ${{ inputs.issue_number }}
+      EXTENSION_GITHUB_LIVE_COMPARE_URL: ${{ inputs.compare_url }}
+      EXTENSION_GITHUB_LIVE_BACKEND_BASE_URL: ${{ inputs.backend_base_url }}
+      EXTENSION_GITHUB_LIVE_AUTH_HEADER: ${{ secrets.EXTENSION_GITHUB_LIVE_AUTH_HEADER }}
+      EXTENSION_E2E_CHROME_USER_DATA_DIR: ${{ vars.EXTENSION_GITHUB_LIVE_PROFILE_DIR }}
+      CHROME_BIN: ${{ vars.CHROME_BIN }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+
+      - name: Run extension GitHub live smoke
+        run: npm --prefix extension run test:e2e:github-live
+
+      - name: Upload extension GitHub live smoke evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: extension-github-live-smoke-evidence
+          path: tools/smoke/release-readiness/extension-github-live-${{ github.run_id }}.md
+          if-no-files-found: warn

@@ -2,6 +2,8 @@
   "private": true,
   "scripts": {
     "validate": "node ../tools/extension/validate-extension.mjs",
-    "test:e2e": "node ../tools/extension/live-e2e/run-live-e2e.mjs"
+    "test:e2e": "node ../tools/extension/live-e2e/run-live-e2e.mjs",
+    "test:e2e:contracts": "node --test ../tools/extension/live-e2e/*.test.mjs",
+    "test:e2e:github-live": "node ../tools/extension/live-e2e/run-github-live-smoke.mjs"
   }
 }
