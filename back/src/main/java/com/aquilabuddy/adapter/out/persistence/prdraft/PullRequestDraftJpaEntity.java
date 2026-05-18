@@ -26,6 +26,9 @@ public class PullRequestDraftJpaEntity {
     @Column(name = "source_issue_id", length = 100)
     private String sourceIssueId;
 
+    @Column(name = "issue_title", length = 500)
+    private String issueTitle;
+
     @Column(name = "base_branch", nullable = false, length = 255)
     private String baseBranch;
 
@@ -37,6 +40,9 @@ public class PullRequestDraftJpaEntity {
 
     @Column(name = "body", nullable = false, length = 8_000)
     private String body;
+
+    @Column(name = "diff_content", length = 12_000)
+    private String diffContent;
 
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
@@ -54,7 +60,7 @@ public class PullRequestDraftJpaEntity {
         String body,
         Instant createdAt
     ) {
-        this(id, upstreamRepo, githubIssueNumber, null, baseBranch, headBranch, title, body, createdAt);
+        this(id, upstreamRepo, githubIssueNumber, null, null, baseBranch, headBranch, title, body, null, createdAt);
     }
 
     PullRequestDraftJpaEntity(
@@ -62,20 +68,24 @@ public class PullRequestDraftJpaEntity {
         String upstreamRepo,
         long githubIssueNumber,
         String sourceIssueId,
+        String issueTitle,
         String baseBranch,
         String headBranch,
         String title,
         String body,
+        String diffContent,
         Instant createdAt
     ) {
         this.id = id;
         this.upstreamRepo = upstreamRepo;
         this.githubIssueNumber = githubIssueNumber;
         this.sourceIssueId = sourceIssueId;
+        this.issueTitle = issueTitle;
         this.baseBranch = baseBranch;
         this.headBranch = headBranch;
         this.title = title;
         this.body = body;
+        this.diffContent = diffContent;
         this.createdAt = createdAt;
     }
 
@@ -95,6 +105,10 @@ public class PullRequestDraftJpaEntity {
         return sourceIssueId;
     }
 
+    String getIssueTitle() {
+        return issueTitle;
+    }
+
     String getBaseBranch() {
         return baseBranch;
     }
@@ -109,6 +123,10 @@ public class PullRequestDraftJpaEntity {
 
     String getBody() {
         return body;
+    }
+
+    String getDiffContent() {
+        return diffContent;
     }
 
     Instant getCreatedAt() {

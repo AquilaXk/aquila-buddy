@@ -1,5 +1,6 @@
 package com.aquilabuddy.domain.prdraft;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.Instant;
 import java.util.Objects;
 
@@ -15,6 +16,8 @@ public record StoredPullRequestDraft(
     String title,
     String body,
     String sourceIssueId,
+    String issueTitle,
+    String diffContent,
     Instant createdAt
 ) {
 
@@ -28,7 +31,21 @@ public record StoredPullRequestDraft(
         String body,
         Instant createdAt
     ) {
-        this(id, upstreamRepo, githubIssueNumber, baseBranch, headBranch, title, body, null, createdAt);
+        this(id, upstreamRepo, githubIssueNumber, baseBranch, headBranch, title, body, null, null, null, createdAt);
+    }
+
+    public StoredPullRequestDraft(
+        String id,
+        String upstreamRepo,
+        long githubIssueNumber,
+        String baseBranch,
+        String headBranch,
+        String title,
+        String body,
+        String sourceIssueId,
+        Instant createdAt
+    ) {
+        this(id, upstreamRepo, githubIssueNumber, baseBranch, headBranch, title, body, sourceIssueId, null, null, createdAt);
     }
 
     public StoredPullRequestDraft {
@@ -39,11 +56,26 @@ public record StoredPullRequestDraft(
         title = requireText(title, "title");
         body = requireText(body, "body");
         sourceIssueId = optionalText(sourceIssueId);
+        issueTitle = optionalText(issueTitle);
+        diffContent = optionalText(diffContent);
         createdAt = Objects.requireNonNull(createdAt, "createdAt must not be null.");
 
         if (githubIssueNumber < 1) {
             throw new IllegalArgumentException("githubIssueNumber must be positive.");
         }
+    }
+
+    @JsonProperty("repoFullName")
+    public String repoFullName() {
+        return upstreamRepo;
+    }
+
+    public String issueTitle() {
+        return issueTitle == null ? "Issue #" + githubIssueNumber : issueTitle;
+    }
+
+    public String diffContent() {
+        return diffContent == null ? "" : diffContent;
     }
 
     private static String requireText(String value, String fieldName) {

@@ -102,10 +102,12 @@ CREATE TABLE pr_drafts (
     upstream_repo VARCHAR(255) NOT NULL,
     github_issue_number BIGINT NOT NULL,
     source_issue_id VARCHAR(100),
+    issue_title VARCHAR(500),
     base_branch VARCHAR(255) NOT NULL,
     head_branch VARCHAR(255) NOT NULL,
     title VARCHAR(500) NOT NULL,
     body VARCHAR(8000) NOT NULL,
+    diff_content VARCHAR(12000),
     created_at TIMESTAMP NOT NULL
 );
 
