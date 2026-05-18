@@ -21,4 +21,13 @@ final class IssueGuidePersistenceMapper {
             entity.getSideEffects()
         );
     }
+
+    static IssueGuideJpaEntity toEntity(IssueGuide guide) {
+        return new IssueGuideJpaEntity(
+            guide.issueKey(),
+            guide.guideline(),
+            guide.pseudoCode(),
+            guide.sideEffects()
+        );
+    }
 }
