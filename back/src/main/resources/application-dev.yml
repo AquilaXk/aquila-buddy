@@ -28,3 +28,7 @@ app:
       temperature: ${AI_TEMPERATURE:0.2}
       embedding-model: ${AI_EMBEDDING_MODEL:text-embedding-3-small}
       embedding-dimensions: ${AI_EMBEDDING_DIMENSIONS:1536}
+  recommendation:
+    similarity:
+      provider: ${RECOMMENDATION_SIMILARITY_PROVIDER:score}
+      limit: ${RECOMMENDATION_SIMILARITY_LIMIT:20}
