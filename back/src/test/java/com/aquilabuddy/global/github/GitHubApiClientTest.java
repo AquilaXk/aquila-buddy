@@ -433,6 +433,59 @@ class GitHubApiClientTest {
     }
 
     @Test
+    void ranksTreeCodeContextCandidatesByIssueQueryTokensAndAppliesMaxFiles() {
+        route("/search/code", 200, """
+            {
+              "items": []
+            }
+            """);
+        route("/repos/spring-projects/spring-boot/git/trees/HEAD", 200, """
+            {
+              "tree": [
+                {
+                  "path": "src/main/java/HealthCheckEndpoint.java",
+                  "type": "blob"
+                },
+                {
+                  "path": "src/main/java/ValidationController.java",
+                  "type": "blob"
+                },
+                {
+                  "path": "src/main/java/ValidationService.java",
+                  "type": "blob"
+                }
+              ]
+            }
+            """);
+        route(
+            "/repos/spring-projects/spring-boot/contents/src/main/java/HealthCheckEndpoint.java",
+            200,
+            contentBody("class HealthCheckEndpoint {}")
+        );
+        route(
+            "/repos/spring-projects/spring-boot/contents/src/main/java/ValidationController.java",
+            200,
+            contentBody("class ValidationController { void validate() {} }")
+        );
+        route(
+            "/repos/spring-projects/spring-boot/contents/src/main/java/ValidationService.java",
+            200,
+            contentBody("class ValidationService { void validate() {} }")
+        );
+        GitHubApiClient client = client();
+
+        GitHubApiClient.GitHubRepositoryCodeContext context =
+            client.loadRepositoryCodeContext("spring-projects/spring-boot", "validation controller", 2, 100);
+
+        assertThat(context.files())
+            .extracting(GitHubApiClient.GitHubRepositoryCodeContextFile::path)
+            .containsExactly(
+                "src/main/java/ValidationController.java",
+                "src/main/java/ValidationService.java"
+            );
+    }
+
+    @Test
     void returnsEmptyRepositoryCodeContextWhenCodeSearchFails() {
         route("/search/code", 403, """
             {"message": "API rate limit exceeded"}

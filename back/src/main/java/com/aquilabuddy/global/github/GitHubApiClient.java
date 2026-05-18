@@ -62,6 +62,13 @@ public class GitHubApiClient {
         ".webp",
         ".zip"
     );
+    private static final List<String> TREE_QUERY_STOP_WORDS = List.of(
+        "and",
+        "first",
+        "good",
+        "issue",
+        "the"
+    );
 
     private final RestClient restClient;
     private final String token;
@@ -312,7 +319,7 @@ public class GitHubApiClient {
                     .ifPresent(files::add);
             }
             if (files.isEmpty()) {
-                files.addAll(loadRepositoryTreeCodeContextFiles(upstreamRepo, maxFiles, maxContentChars));
+                files.addAll(loadRepositoryTreeCodeContextFiles(upstreamRepo, query, maxFiles, maxContentChars));
             }
             return new GitHubRepositoryCodeContext(upstreamRepo, "default", files);
         } catch (RestClientException exception) {
@@ -322,6 +329,7 @@ public class GitHubApiClient {
 
     private List<GitHubRepositoryCodeContextFile> loadRepositoryTreeCodeContextFiles(
         String upstreamRepo,
+        String query,
         int maxFiles,
         int maxContentChars
     ) {
@@ -337,23 +345,62 @@ public class GitHubApiClient {
             List<GitHubRepositoryTreeItemResponse> tree = response == null || response.tree() == null
                 ? List.of()
                 : response.tree();
+            List<String> queryTokens = codeContextQueryTokens(query);
+            List<GitHubRepositoryTreeCandidate> candidates = tree.stream()
+                .filter(item -> item != null && "blob".equals(item.type()))
+                .filter(item -> isRepositoryTreeCodeCandidate(item.path()))
+                .map(item -> new GitHubRepositoryTreeCandidate(
+                    item.path(),
+                    treeCandidateScore(item.path(), queryTokens)
+                ))
+                .filter(candidate -> queryTokens.isEmpty() || candidate.score() > 0)
+                .sorted(Comparator
+                    .comparingInt(GitHubRepositoryTreeCandidate::score)
+                    .reversed()
+                    .thenComparing(GitHubRepositoryTreeCandidate::path))
+                .toList();
 
             List<GitHubRepositoryCodeContextFile> files = new ArrayList<>();
-            for (GitHubRepositoryTreeItemResponse item : tree) {
+            for (GitHubRepositoryTreeCandidate candidate : candidates) {
                 if (files.size() >= maxFiles) {
                     break;
                 }
-                if (item == null || !"blob".equals(item.type()) || !isRepositoryTreeCodeCandidate(item.path())) {
-                    continue;
-                }
-                getContentFile(upstreamRepo, item.path())
-                    .map(content -> toRepositoryCodeContextFile(item.path(), content, maxContentChars))
+                getContentFile(upstreamRepo, candidate.path())
+                    .map(content -> toRepositoryCodeContextFile(candidate.path(), content, maxContentChars))
                     .ifPresent(files::add);
             }
             return files;
         } catch (RestClientException exception) {
             return List.of();
         }
+    }
+
+    private List<String> codeContextQueryTokens(String query) {
+        if (!hasText(query)) {
+            return List.of();
+        }
+
+        return Arrays.stream(query.toLowerCase(Locale.ROOT).split("[^a-z0-9]+"))
+            .map(String::strip)
+            .filter(token -> token.length() >= 3)
+            .filter(token -> !TREE_QUERY_STOP_WORDS.contains(token))
+            .distinct()
+            .toList();
+    }
+
+    private int treeCandidateScore(String path, List<String> queryTokens) {
+        if (!hasText(path) || queryTokens.isEmpty()) {
+            return 0;
+        }
+
+        String normalized = path.toLowerCase(Locale.ROOT);
+        int score = 0;
+        for (String token : queryTokens) {
+            if (normalized.contains(token)) {
+                score++;
+            }
+        }
+        return score;
     }
 
     private boolean isRepositoryTreeCodeCandidate(String path) {
@@ -583,6 +630,12 @@ public class GitHubApiClient {
     private record GitHubRepositoryTreeItemResponse(
         String path,
         String type
+    ) {
+    }
+
+    private record GitHubRepositoryTreeCandidate(
+        String path,
+        int score
     ) {
     }
 
