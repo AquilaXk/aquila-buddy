@@ -47,6 +47,7 @@ class AiCallObservabilityPersistenceAdapterTest {
             "ai-client.embed.v1",
             Duration.ofMillis(90),
             "IllegalStateException",
+            "Vertex embedding timeout",
             BASE_TIME.plusSeconds(1)
         ));
         observer.record(AiCallObservation.success(
@@ -73,5 +74,6 @@ class AiCallObservabilityPersistenceAdapterTest {
         assertThat(report.recentCalls())
             .extracting(AiCallObservation::model)
             .containsExactly("text-embedding-3-small", "gemini-embedding-001");
+        assertThat(report.recentCalls().get(1).failureReason()).isEqualTo("Vertex embedding timeout");
     }
 }

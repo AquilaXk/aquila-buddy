@@ -46,6 +46,9 @@ public class AiCallObservationJpaEntity {
     @Column(name = "error_type", length = 255)
     private String errorType;
 
+    @Column(name = "failure_reason", length = 1000)
+    private String failureReason;
+
     @Column(name = "input_tokens")
     private Integer inputTokens;
 
@@ -66,6 +69,7 @@ public class AiCallObservationJpaEntity {
         this.latencyMillis = observation.latencyMillis();
         this.success = observation.success();
         this.errorType = truncate(observation.errorType(), 255);
+        this.failureReason = truncate(observation.failureReason(), 1000);
         this.inputTokens = observation.inputTokens();
         this.outputTokens = observation.outputTokens();
         this.observedAt = observation.observedAt();
@@ -113,6 +117,10 @@ public class AiCallObservationJpaEntity {
 
     String getErrorType() {
         return errorType;
+    }
+
+    String getFailureReason() {
+        return failureReason;
     }
 
     Integer getInputTokens() {
