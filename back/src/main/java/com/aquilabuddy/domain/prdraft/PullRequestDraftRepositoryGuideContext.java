@@ -44,6 +44,23 @@ public record PullRequestDraftRepositoryGuideContext(
             .toList();
     }
 
+    public List<String> guidePromptLines() {
+        List<String> lines = new java.util.ArrayList<>();
+        if (contributing != null) {
+            lines.add("CONTRIBUTING:");
+            lines.add(contributing);
+        }
+        if (pullRequestTemplate != null) {
+            lines.add("PR template:");
+            lines.add(pullRequestTemplate);
+        }
+        for (int index = 0; index < mergedPullRequestSamples.size(); index++) {
+            lines.add("Merged PR sample #" + (index + 1) + ":");
+            lines.add(mergedPullRequestSamples.get(index));
+        }
+        return List.copyOf(lines);
+    }
+
     private static String firstLine(String value) {
         return value.lines()
             .map(String::trim)

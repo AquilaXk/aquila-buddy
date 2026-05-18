@@ -63,7 +63,8 @@ public class AiPullRequestDraftAdapter implements GeneratePullRequestDraftPort, 
             request.diffContent() == null ? "(no diff content)" : request.diffContent()
         ));
 
-        appendSection(lines, "Repository guide context", request.repositoryGuideContext().guideSummaryLines());
+        appendSection(lines, "Repository guide summary", request.repositoryGuideContext().guideSummaryLines());
+        appendSection(lines, "Repository guide context", request.repositoryGuideContext().guidePromptLines());
         appendSection(lines, "Issue context", request.issueContext().contextSummaryLines());
         appendSection(lines, "Analysis context", request.analysisContext().contextSummaryLines());
         return String.join("\n", lines);
