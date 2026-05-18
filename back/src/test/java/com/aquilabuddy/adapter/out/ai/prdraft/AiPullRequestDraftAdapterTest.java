@@ -131,6 +131,7 @@ class AiPullRequestDraftAdapterTest {
 
         assertThat(draft.title()).isEqualTo("docs: translate pull request draft");
         assertThat(draft.body())
+            .startsWith("close #123")
             .contains("## Summary")
             .contains("Translation could not be generated automatically.")
             .contains("## Source title")

@@ -163,6 +163,8 @@ public class AiPullRequestDraftAdapter implements GeneratePullRequestDraftPort, 
 
     private static PullRequestDraft fallbackTranslation(StoredPullRequestDraft draft) {
         String body = String.join("\n",
+            "close #" + draft.githubIssueNumber(),
+            "",
             "## Summary",
             "- Translation could not be generated automatically.",
             "",
