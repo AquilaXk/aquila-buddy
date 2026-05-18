@@ -129,6 +129,7 @@ export type PullRequestDraftReadinessItem = {
 
 export type PullRequestDraftReadiness = {
   draftId: string;
+  sourceIssueId: string | null;
   items: PullRequestDraftReadinessItem[];
   readyCount: number;
 };
