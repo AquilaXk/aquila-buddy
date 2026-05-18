@@ -238,6 +238,20 @@ LANGFUSE_ENVIRONMENT=staging \
 bash tools/smoke/run-langfuse-observability-smoke.sh
 ```
 
+프론트/백엔드 통합 smoke는 기본 CI에서 fixture backend를 띄워 보호 라우트, success envelope, failure envelope를 브라우저로 확인합니다. 로컬에서도 외부 서비스 없이 같은 검증을 실행할 수 있습니다.
+
+```bash
+npm --prefix front run smoke:integration
+```
+
+실제 backend와 연결해 수동으로 확인할 때는 OAuth/JWT 토큰을 브라우저에 준비한 환경에서 live backend URL을 지정합니다. 이 경로는 외부 인증 상태와 운영 데이터에 의존하므로 기본 CI에서는 실행하지 않습니다.
+
+```bash
+FRONTEND_INTEGRATION_USE_LIVE_BACKEND=true \
+NEXT_PUBLIC_API_URL=http://localhost:8080 \
+npm --prefix front run smoke:integration
+```
+
 ## OCI Always Free Terraform
 
 OCI Always Free A1 Flex 배포 baseline은 `infra/terraform/oci/always-free-a1-flex`에 둡니다.

@@ -44,6 +44,18 @@ test("ci workflow runs frontend integration smoke", async () => {
   assert.match(workflow, /npm run smoke:integration/);
 });
 
+test("operations docs describe frontend integration smoke", async () => {
+  const readme = await readFile(resolve(repoRoot, "README.md"), "utf8");
+  const runbook = await readFile(resolve(repoRoot, "tools/smoke/AI_RUNTIME_SMOKE.md"), "utf8");
+
+  for (const source of [readme, runbook]) {
+    assert.match(source, /npm --prefix front run smoke:integration/);
+    assert.match(source, /FRONTEND_INTEGRATION_USE_LIVE_BACKEND=true/);
+    assert.match(source, /NEXT_PUBLIC_API_URL=http:\/\/localhost:8080/);
+    assert.match(source, /fixture backend/);
+  }
+});
+
 function escapeRegExp(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
