@@ -21,7 +21,10 @@ import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(EmbeddingBackfillController.class)
 @AutoConfigureMockMvc(addFilters = false)
-@TestPropertySource(properties = "app.embedding.backfill.operation-token=test-operation-token")
+@TestPropertySource(properties = {
+    "app.embedding.backfill.operation-token=test-operation-token",
+    "app.embedding.backfill.max-limit=100"
+})
 class EmbeddingBackfillControllerTest {
 
     @Autowired
@@ -73,6 +76,24 @@ class EmbeddingBackfillControllerTest {
             .andExpect(jsonPath("$.data.issues.failureReasons[0]").value("issue-1: IllegalStateException"));
 
         then(backfillEmbeddingsUseCase).should().backfillEmbeddings(25);
+    }
+
+    @Test
+    void capsBackfillLimitAtConfiguredMaximum() throws Exception {
+        given(backfillEmbeddingsUseCase.backfillEmbeddings(100))
+            .willReturn(new EmbeddingBackfillSummary(
+                new EmbeddingBackfillResult("profiles", 100, 0, 0, 0, 0, 0, 0, 0, List.of()),
+                new EmbeddingBackfillResult("issues", 100, 0, 0, 0, 0, 0, 0, 0, List.of())
+            ));
+
+        mockMvc.perform(post("/api/v1/embeddings/backfill")
+                .header("X-Aquila-Operation-Token", "test-operation-token")
+                .param("limit", "5000"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.profiles.requestedLimit").value(100))
+            .andExpect(jsonPath("$.data.issues.requestedLimit").value(100));
+
+        then(backfillEmbeddingsUseCase).should().backfillEmbeddings(100);
     }
 
     @Test

@@ -21,13 +21,16 @@ public class EmbeddingBackfillController {
 
     private final BackfillEmbeddingsUseCase backfillEmbeddingsUseCase;
     private final String operationToken;
+    private final int maxLimit;
 
     public EmbeddingBackfillController(
         BackfillEmbeddingsUseCase backfillEmbeddingsUseCase,
-        @Value("${app.embedding.backfill.operation-token:}") String operationToken
+        @Value("${app.embedding.backfill.operation-token:}") String operationToken,
+        @Value("${app.embedding.backfill.max-limit:200}") int maxLimit
     ) {
         this.backfillEmbeddingsUseCase = backfillEmbeddingsUseCase;
         this.operationToken = operationToken == null ? "" : operationToken.trim();
+        this.maxLimit = maxLimit > 0 ? maxLimit : 200;
     }
 
     /**
@@ -39,7 +42,7 @@ public class EmbeddingBackfillController {
         @RequestParam(defaultValue = "50") int limit
     ) {
         requireOperationToken(requestedOperationToken);
-        return ApiResponse.success(backfillEmbeddingsUseCase.backfillEmbeddings(limit));
+        return ApiResponse.success(backfillEmbeddingsUseCase.backfillEmbeddings(normalizeLimit(limit)));
     }
 
     private void requireOperationToken(String requestedOperationToken) {
@@ -56,5 +59,12 @@ public class EmbeddingBackfillController {
 
     private static String normalize(String value) {
         return value == null ? "" : value.trim();
+    }
+
+    private int normalizeLimit(int requestedLimit) {
+        if (requestedLimit < 1) {
+            return 1;
+        }
+        return Math.min(requestedLimit, maxLimit);
     }
 }
