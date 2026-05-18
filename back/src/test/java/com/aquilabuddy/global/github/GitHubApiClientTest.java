@@ -486,6 +486,47 @@ class GitHubApiClientTest {
     }
 
     @Test
+    void continuesTreeCodeContextSelectionWhenHigherRankedContentIsMissing() {
+        route("/search/code", 200, """
+            {
+              "items": []
+            }
+            """);
+        route("/repos/spring-projects/spring-boot/git/trees/HEAD", 200, """
+            {
+              "tree": [
+                {
+                  "path": "src/main/java/ValidationController.java",
+                  "type": "blob"
+                },
+                {
+                  "path": "src/main/java/ValidationService.java",
+                  "type": "blob"
+                }
+              ]
+            }
+            """);
+        route(
+            "/repos/spring-projects/spring-boot/contents/src/main/java/ValidationController.java",
+            404,
+            "{\"message\":\"Not Found\"}"
+        );
+        route(
+            "/repos/spring-projects/spring-boot/contents/src/main/java/ValidationService.java",
+            200,
+            contentBody("class ValidationService { void validate() {} }")
+        );
+        GitHubApiClient client = client();
+
+        GitHubApiClient.GitHubRepositoryCodeContext context =
+            client.loadRepositoryCodeContext("spring-projects/spring-boot", "validation service", 1, 100);
+
+        assertThat(context.files())
+            .extracting(GitHubApiClient.GitHubRepositoryCodeContextFile::path)
+            .containsExactly("src/main/java/ValidationService.java");
+    }
+
+    @Test
     void fallsBackToTreeRepositoryCodeContextWhenCodeSearchFails() {
         route("/search/code", 403, """
             {"message": "API rate limit exceeded"}
