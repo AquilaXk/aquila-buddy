@@ -23,6 +23,12 @@ build/
 !.env.example
 compose.override.yml
 
+# Local cloud credentials
+vertex-key.json
+**/vertex-key.json
+**/*credential*.json
+**/*service-account*.json
+
 # Backend local files
 /back/.gradle/
 /back/.gradle-user/
