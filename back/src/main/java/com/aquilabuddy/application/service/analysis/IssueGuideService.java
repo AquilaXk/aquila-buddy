@@ -102,9 +102,15 @@ public class IssueGuideService implements GetIssueGuideUseCase, GetIssuePseudoCo
             .orElseThrow(() -> new NoSuchElementException("Recommended issue not found: " + issueId));
 
         issueGuideGenerationLimitPort.acquireGenerationSlot(issueId);
-        IssueGuide generatedGuide = generateIssueGuidePort.generateIssueGuide(issue, loadRepositoryCodeContext(issue));
-        saveIssueGuidePort.saveIssueGuide(generatedGuide);
-        return generatedGuide;
+        try {
+            IssueGuide generatedGuide = generateIssueGuidePort.generateIssueGuide(issue, loadRepositoryCodeContext(issue));
+            saveIssueGuidePort.saveIssueGuide(generatedGuide);
+            issueGuideGenerationLimitPort.recordGenerationSucceeded(issueId);
+            return generatedGuide;
+        } catch (RuntimeException exception) {
+            issueGuideGenerationLimitPort.recordGenerationFailed(issueId, exception.getMessage());
+            throw exception;
+        }
     }
 
     private RepositoryCodeContext loadRepositoryCodeContext(RecommendedIssue issue) {

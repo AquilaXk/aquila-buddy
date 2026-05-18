@@ -1,6 +1,7 @@
 package com.aquilabuddy.application.service.analysis;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.aquilabuddy.application.port.out.analysis.GenerateIssueGuidePort;
 import com.aquilabuddy.application.port.out.analysis.IssueGuideGenerationLimitPort;
@@ -49,6 +50,8 @@ class IssueGuideServiceTest {
         assertThat(generatePort.generateCount).isZero();
         assertThat(savePort.savedGuide).isNull();
         assertThat(limitPort.checkedIssueId).isNull();
+        assertThat(limitPort.succeededIssueId).isNull();
+        assertThat(limitPort.failedIssueId).isNull();
     }
 
     @Test
@@ -71,8 +74,35 @@ class IssueGuideServiceTest {
 
         assertThat(guide).isEqualTo(generatedGuide);
         assertThat(limitPort.checkedIssueId).isEqualTo("demo-3");
+        assertThat(limitPort.succeededIssueId).isEqualTo("demo-3");
+        assertThat(limitPort.failedIssueId).isNull();
         assertThat(generatePort.generatedIssue.id()).isEqualTo("demo-3");
         assertThat(savePort.savedGuide).isEqualTo(generatedGuide);
+    }
+
+    @Test
+    void recordsGenerationFailureWhenGuideGenerationFails() {
+        RecordingSaveIssueGuidePort savePort = new RecordingSaveIssueGuidePort();
+        RecordingIssueGuideGenerationLimitPort limitPort = new RecordingIssueGuideGenerationLimitPort();
+        IssueGuideService service = new IssueGuideService(
+            issueId -> {
+                throw new NoSuchElementException("Issue guide not found: " + issueId);
+            },
+            new FailingGenerateIssueGuidePort(),
+            savePort,
+            limitPort,
+            new StubFindRecommendedIssuePort()
+        );
+
+        assertThatThrownBy(() -> service.findByIssueId("demo-4"))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("AI generation failed");
+
+        assertThat(limitPort.checkedIssueId).isEqualTo("demo-4");
+        assertThat(limitPort.succeededIssueId).isNull();
+        assertThat(limitPort.failedIssueId).isEqualTo("demo-4");
+        assertThat(limitPort.failureReason).contains("AI generation failed");
+        assertThat(savePort.savedGuide).isNull();
     }
 
     @Test
@@ -151,6 +181,14 @@ class IssueGuideServiceTest {
         }
     }
 
+    private static class FailingGenerateIssueGuidePort implements GenerateIssueGuidePort {
+
+        @Override
+        public IssueGuide generateIssueGuide(RecommendedIssue issue) {
+            throw new IllegalStateException("AI generation failed");
+        }
+    }
+
     private static class RecordingSaveIssueGuidePort implements SaveIssueGuidePort {
 
         private IssueGuide savedGuide;
@@ -164,10 +202,24 @@ class IssueGuideServiceTest {
     private static class RecordingIssueGuideGenerationLimitPort implements IssueGuideGenerationLimitPort {
 
         private String checkedIssueId;
+        private String succeededIssueId;
+        private String failedIssueId;
+        private String failureReason;
 
         @Override
         public void acquireGenerationSlot(String issueId) {
             checkedIssueId = issueId;
+        }
+
+        @Override
+        public void recordGenerationSucceeded(String issueId) {
+            succeededIssueId = issueId;
+        }
+
+        @Override
+        public void recordGenerationFailed(String issueId, String reason) {
+            failedIssueId = issueId;
+            failureReason = reason;
         }
     }
 

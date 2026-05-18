@@ -9,4 +9,16 @@ public interface IssueGuideGenerationLimitPort {
      * 이슈 guide 생성 슬롯을 획득하거나 제한 초과 시 예외를 던집니다.
      */
     void acquireGenerationSlot(String issueId);
+
+    /**
+     * 생성과 저장이 완료된 요청 이력을 성공으로 표시합니다.
+     */
+    default void recordGenerationSucceeded(String issueId) {
+    }
+
+    /**
+     * 생성 또는 저장 실패 요청 이력을 실패로 표시합니다.
+     */
+    default void recordGenerationFailed(String issueId, String reason) {
+    }
 }
