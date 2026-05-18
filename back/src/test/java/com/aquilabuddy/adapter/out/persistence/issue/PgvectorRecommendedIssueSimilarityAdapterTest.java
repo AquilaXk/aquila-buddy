@@ -1,10 +1,13 @@
 package com.aquilabuddy.adapter.out.persistence.issue;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
 import com.aquilabuddy.domain.issue.RecommendedIssue;
+import com.aquilabuddy.domain.user.UserProfile;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.springframework.jdbc.core.simple.JdbcClient;
 
 class PgvectorRecommendedIssueSimilarityAdapterTest {
 
@@ -38,6 +41,35 @@ class PgvectorRecommendedIssueSimilarityAdapterTest {
         assertThat(result)
             .extracting(RecommendedIssue::id)
             .containsExactly("ranked", "fallback-one", "fallback-two");
+    }
+
+    @Test
+    void fallsBackToScoreCandidatesWhenEmbeddingProviderFails() {
+        RecommendedIssue scoreFirst = issue("score-first", 0.91);
+        RecommendedIssue scoreSecond = issue("score-second", 0.80);
+        PgvectorRecommendedIssueSimilarityAdapter adapter = new PgvectorRecommendedIssueSimilarityAdapter(
+            mock(JdbcClient.class),
+            input -> {
+                throw new IllegalStateException("embedding provider unavailable");
+            },
+            () -> new UserProfile(
+                10001L,
+                "aquila-dev",
+                "Aquila Developer",
+                "aquila@example.com",
+                List.of("Java"),
+                List.of("spring"),
+                true,
+                "2026-05-18T00:00:00Z"
+            ),
+            1
+        );
+
+        List<RecommendedIssue> result = adapter.rankRecommendedIssues(List.of(scoreFirst, scoreSecond));
+
+        assertThat(result)
+            .extracting(RecommendedIssue::id)
+            .containsExactly("score-first", "score-second");
     }
 
     private static RecommendedIssue issue(String id, double score) {
