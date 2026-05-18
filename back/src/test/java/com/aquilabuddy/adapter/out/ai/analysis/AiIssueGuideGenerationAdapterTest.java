@@ -5,6 +5,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.aquilabuddy.application.port.out.ai.AiClient;
 import com.aquilabuddy.domain.analysis.IssueGuide;
+import com.aquilabuddy.domain.analysis.RepositoryCodeContext;
+import com.aquilabuddy.domain.analysis.RepositoryCodeContextFile;
 import com.aquilabuddy.domain.issue.RecommendedIssue;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -38,6 +40,32 @@ class AiIssueGuideGenerationAdapterTest {
             .contains("spring-projects/spring-boot")
             .contains("Refine validation error example")
             .contains("good first issue, validation");
+    }
+
+    @Test
+    void includesRepositoryCodeContextInPromptWhenAvailable() {
+        CapturingAiClient aiClient = new CapturingAiClient(String.join("\n",
+            "GUIDELINE: Update validation handling near the controller.",
+            "PSEUDO_CODE:",
+            "1. Inspect ValidationController",
+            "SIDE_EFFECTS:",
+            "- Controller response wording can change"
+        ));
+        AiIssueGuideGenerationAdapter adapter = new AiIssueGuideGenerationAdapter(aiClient);
+        RepositoryCodeContext codeContext = RepositoryCodeContext.fromFiles(
+            "spring-projects/spring-boot",
+            "main",
+            List.of(new RepositoryCodeContextFile("src/main/java/ValidationController.java", "class ValidationController {}")),
+            3,
+            200
+        );
+
+        adapter.generateIssueGuide(issue(), codeContext);
+
+        assertThat(aiClient.userPrompt)
+            .contains("Repository code context: spring-projects/spring-boot@main")
+            .contains("File: src/main/java/ValidationController.java")
+            .contains("class ValidationController {}");
     }
 
     @Test
