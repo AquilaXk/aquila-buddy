@@ -55,4 +55,19 @@ class IssueGuidePersistenceAdapterTest {
             "기존 안내와 중복되는 설명이 생기지 않도록 주변 문맥을 확인해야 합니다."
         );
     }
+
+    @Test
+    void loadsEmptyFilePathsForLegacyIssueGuideRows() {
+        repository.save(new IssueGuideJpaEntity(
+            "legacy-1",
+            "기존 저장 데이터는 파일 경로가 없어도 조회되어야 합니다.",
+            "1. 기존 행을 읽는다.\n2. 파일 경로를 빈 배열로 응답한다.",
+            List.of("기존 데이터 마이그레이션 전에도 API 응답이 깨지면 안 됩니다.")
+        ));
+
+        IssueGuide guide = adapter.loadIssueGuide("legacy-1");
+
+        assertThat(guide.filePaths()).isEmpty();
+        assertThat(guide.guideline()).contains("기존 저장 데이터");
+    }
 }
