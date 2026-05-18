@@ -3,11 +3,9 @@ package com.aquilabuddy.global.ai;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.sun.net.httpserver.HttpExchange;
-import com.sun.net.httpserver.HttpServer;
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.nio.charset.StandardCharsets;
+import okhttp3.mockwebserver.MockResponse;
+import okhttp3.mockwebserver.MockWebServer;
+import okhttp3.mockwebserver.RecordedRequest;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -15,24 +13,22 @@ import org.springframework.web.client.RestClient;
 
 class OpenAiCompatibleAiClientTest {
 
-    private HttpServer server;
-    private String capturedAuthorization;
-    private String capturedBody;
+    private MockWebServer server;
 
     @BeforeEach
-    void startServer() throws IOException {
-        server = HttpServer.create(new InetSocketAddress(0), 0);
+    void startServer() throws Exception {
+        server = new MockWebServer();
         server.start();
     }
 
     @AfterEach
-    void stopServer() {
-        server.stop(0);
+    void stopServer() throws Exception {
+        server.shutdown();
     }
 
     @Test
-    void sendsChatCompletionRequestAndReturnsFirstChoiceContent() {
-        route("/chat/completions", 200, """
+    void sendsChatCompletionRequestAndReturnsFirstChoiceContent() throws Exception {
+        enqueueJson(200, """
             {
               "choices": [
                 {
@@ -47,14 +43,68 @@ class OpenAiCompatibleAiClientTest {
 
         String content = client.complete("You write concise PR drafts.", "Create a PR draft.");
 
+        RecordedRequest request = server.takeRequest();
         assertThat(content).isEqualTo("TITLE: docs: update guide\nBODY: ## Summary\n- Update the guide.");
-        assertThat(capturedAuthorization).isEqualTo("Bearer test-key");
-        assertThat(capturedBody).contains("\"model\":\"gpt-4o-mini\"");
-        assertThat(capturedBody).contains("\"temperature\":0.2");
-        assertThat(capturedBody).contains("\"role\":\"system\"");
-        assertThat(capturedBody).contains("\"content\":\"You write concise PR drafts.\"");
-        assertThat(capturedBody).contains("\"role\":\"user\"");
-        assertThat(capturedBody).contains("\"content\":\"Create a PR draft.\"");
+        assertThat(request.getPath()).isEqualTo("/chat/completions");
+        assertThat(request.getHeader("Authorization")).isEqualTo("Bearer test-key");
+        String body = request.getBody().readUtf8();
+        assertThat(body).contains("\"model\":\"gpt-4o-mini\"");
+        assertThat(body).contains("\"temperature\":0.2");
+        assertThat(body).contains("\"role\":\"system\"");
+        assertThat(body).contains("\"content\":\"You write concise PR drafts.\"");
+        assertThat(body).contains("\"role\":\"user\"");
+        assertThat(body).contains("\"content\":\"Create a PR draft.\"");
+    }
+
+    @Test
+    void wrapsChatCompletionHttpFailureWithStatus() {
+        enqueueJson(502, """
+            {
+              "error": {
+                "message": "upstream unavailable"
+              }
+            }
+            """);
+        OpenAiCompatibleAiClient client = client("test-key");
+
+        assertThatThrownBy(() -> client.complete("system", "user"))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("AI completion request failed")
+            .hasMessageContaining("502");
+    }
+
+    @Test
+    void rejectsChatCompletionResponseWithoutChoices() {
+        enqueueJson(200, """
+            {
+              "choices": []
+            }
+            """);
+        OpenAiCompatibleAiClient client = client("test-key");
+
+        assertThatThrownBy(() -> client.complete("system", "user"))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("choices");
+    }
+
+    @Test
+    void rejectsChatCompletionResponseWithBlankContent() {
+        enqueueJson(200, """
+            {
+              "choices": [
+                {
+                  "message": {
+                    "content": " "
+                  }
+                }
+              ]
+            }
+            """);
+        OpenAiCompatibleAiClient client = client("test-key");
+
+        assertThatThrownBy(() -> client.complete("system", "user"))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("AI completion content");
     }
 
     @Test
@@ -72,7 +122,7 @@ class OpenAiCompatibleAiClientTest {
             new AiProperties(
                 "openai-compatible",
                 new AiProperties.OpenAiCompatible(
-                    "http://localhost:" + server.getAddress().getPort(),
+                    server.url("/").toString(),
                     apiKey,
                     "gpt-4o-mini",
                     0.2
@@ -81,19 +131,10 @@ class OpenAiCompatibleAiClientTest {
         );
     }
 
-    private void route(String path, int statusCode, String body) {
-        server.createContext(path, exchange -> {
-            capturedAuthorization = exchange.getRequestHeaders().getFirst("Authorization");
-            capturedBody = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
-            respond(exchange, statusCode, body);
-        });
-    }
-
-    private static void respond(HttpExchange exchange, int statusCode, String body) throws IOException {
-        byte[] response = body.getBytes(StandardCharsets.UTF_8);
-        exchange.getResponseHeaders().add("Content-Type", "application/json");
-        exchange.sendResponseHeaders(statusCode, response.length);
-        exchange.getResponseBody().write(response);
-        exchange.close();
+    private void enqueueJson(int statusCode, String body) {
+        server.enqueue(new MockResponse()
+            .setResponseCode(statusCode)
+            .addHeader("Content-Type", "application/json")
+            .setBody(body));
     }
 }
