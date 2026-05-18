@@ -167,6 +167,25 @@ class AiPullRequestDraftAdapterTest {
     }
 
     @Test
+    void fallbackDraftPreservesTemplateAndContextWhenAiResponseIsMalformed() {
+        CapturingAiClient aiClient = new CapturingAiClient("plain response without markers");
+        AiPullRequestDraftAdapter adapter = new AiPullRequestDraftAdapter(aiClient);
+
+        PullRequestDraft draft = adapter.generate(request());
+
+        assertThat(draft.body())
+            .contains("## Summary")
+            .contains("## Changes")
+            .contains("## Tests")
+            .contains("## Issue Context")
+            .contains("Fix validation message")
+            .contains("## Implementation Notes")
+            .contains("Follow validation guide.")
+            .contains("if invalid then return helpful message")
+            .contains("Update documentation examples.");
+    }
+
+    @Test
     void fallsBackToDeterministicDraftWhenAiResponseHasBlankTitleMarker() {
         CapturingAiClient aiClient = new CapturingAiClient("""
             TITLE:

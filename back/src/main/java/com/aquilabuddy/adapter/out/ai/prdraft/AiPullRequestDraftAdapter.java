@@ -170,7 +170,7 @@ public class AiPullRequestDraftAdapter implements GeneratePullRequestDraftPort, 
 
     private static PullRequestDraft fallbackDraft(PullRequestDraftRequest request) {
         String title = "docs: " + request.upstreamRepo() + "#" + request.githubIssueNumber() + " 변경 초안";
-        String body = String.join("\n",
+        List<String> lines = new ArrayList<>(List.of(
             "close #" + request.githubIssueNumber(),
             "",
             "## Summary",
@@ -181,8 +181,10 @@ public class AiPullRequestDraftAdapter implements GeneratePullRequestDraftPort, 
             "",
             "## Tests",
             "- 변경 후 관련 검증을 실행합니다."
-        );
-        return new PullRequestDraft(title, body);
+        ));
+        appendFallbackIssueContext(lines, request);
+        appendFallbackAnalysisContext(lines, request);
+        return new PullRequestDraft(title, String.join("\n", lines));
     }
 
     private static PullRequestDraft fallbackTranslation(StoredPullRequestDraft draft) {
@@ -211,6 +213,38 @@ public class AiPullRequestDraftAdapter implements GeneratePullRequestDraftPort, 
             .filter(line -> !line.startsWith("diff --git"))
             .findFirst()
             .orElse(fallback);
+    }
+
+    private static void appendFallbackIssueContext(List<String> lines, PullRequestDraftRequest request) {
+        if (!request.issueContext().hasIssue()) {
+            return;
+        }
+
+        lines.add("");
+        lines.add("## Issue Context");
+        appendFallbackBullet(lines, request.issueContext().title());
+        appendFallbackBullet(lines, request.issueContext().summary());
+        appendFallbackBullet(lines, request.issueContext().reason());
+    }
+
+    private static void appendFallbackAnalysisContext(List<String> lines, PullRequestDraftRequest request) {
+        if (!request.analysisContext().hasAnalysis()) {
+            return;
+        }
+
+        lines.add("");
+        lines.add("## Implementation Notes");
+        appendFallbackBullet(lines, request.analysisContext().guideline());
+        appendFallbackBullet(lines, request.analysisContext().pseudoCode());
+        request.analysisContext().sideEffects().forEach(sideEffect -> appendFallbackBullet(lines, sideEffect));
+    }
+
+    private static void appendFallbackBullet(List<String> lines, String value) {
+        if (value == null || value.isBlank()) {
+            return;
+        }
+
+        lines.add("- " + value.strip());
     }
 
     private static String normalizeTargetLanguage(String targetLanguage) {
