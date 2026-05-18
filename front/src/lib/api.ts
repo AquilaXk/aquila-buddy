@@ -16,6 +16,7 @@ function hasApiData<T>(payload: ApiResponse<T>): payload is ApiResponse<T> & { d
 }
 
 export type UserProfile = {
+  id: string;
   githubId: number;
   login: string;
   name: string;
@@ -102,10 +103,13 @@ export type PullRequestDraft = {
 export type StoredPullRequestDraft = PullRequestDraft & {
   id: string;
   upstreamRepo: string;
+  repoFullName: string;
   githubIssueNumber: number;
+  issueTitle: string;
   sourceIssueId: string | null;
   baseBranch: string;
   headBranch: string;
+  diffContent: string;
   createdAt: string;
 };
 
