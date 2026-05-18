@@ -55,3 +55,5 @@ app:
       api-key: ${AI_API_KEY:${OPENAI_API_KEY:}}
       chat-model: ${AI_CHAT_MODEL:gpt-4o-mini}
       temperature: ${AI_TEMPERATURE:0.2}
+      embedding-model: ${AI_EMBEDDING_MODEL:text-embedding-3-small}
+      embedding-dimensions: ${AI_EMBEDDING_DIMENSIONS:1536}
