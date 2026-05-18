@@ -80,6 +80,8 @@ OAuth 로그인을 함께 확인할 때는 `read:user`, `user:email` scope의 Gi
 
 ## Runtime Smoke
 
+운영 배포 전 상세 점검 절차는 [AI 운영 smoke runbook](tools/smoke/AI_RUNTIME_SMOKE.md)을 기준으로 확인합니다.
+
 PostgreSQL/pgvector와 실제 AI provider를 함께 확인하는 최소 순서:
 
 ```bash
@@ -111,6 +113,7 @@ DB_URL=jdbc:postgresql://localhost:5432/aquila_buddy \
 DB_USER=aquila \
 DB_PASSWORD=aquila \
 GITHUB_TOKEN=github_pat_or_fine_grained_token \
+GITHUB_TOKEN_PERMISSIONS=metadata:read,contents:read,pull-requests:read,issues:read \
 bash tools/smoke/validate-ai-runtime-env.sh
 ```
 
@@ -130,6 +133,7 @@ DB_URL=jdbc:postgresql://localhost:5432/aquila_buddy \
 DB_USER=aquila \
 DB_PASSWORD=aquila \
 GITHUB_TOKEN=github_pat_or_fine_grained_token \
+GITHUB_TOKEN_PERMISSIONS=metadata:read,contents:read,pull-requests:read,issues:read \
 bash tools/smoke/validate-ai-runtime-env.sh
 ```
 
