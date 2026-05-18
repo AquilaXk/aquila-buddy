@@ -44,6 +44,8 @@ assertIncludes("생성된 PR 초안", "PR draft page must show the generated res
 assertIncludes("PR 제목", "PR draft page must show the draft title section.");
 assertIncludes("PR 본문", "PR draft page must show the draft body section.");
 assertIncludes("영어로 번역하기", "PR draft page must expose translation CTA.");
+assertIncludes("PR 초안 작업 오류", "PR draft page must show draft/translation errors near the result panel.");
+assertIncludes("draft && error", "PR draft page must keep translation failure feedback in the result context.");
 assertIncludes("GitHub에서 PR 올리기 ↗", "PR draft page must expose GitHub submission link after translation.");
 assertIncludes("상세 보기 (수정·삭제) →", "PR draft page must link to draft detail.");
 assertIncludes("PR 초안 이력", "PR draft page must show draft history.");

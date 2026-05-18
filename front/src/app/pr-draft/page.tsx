@@ -267,7 +267,7 @@ function PrDraftContent() {
                 </span>
               </label>
 
-              {error ? (
+              {!draft && error ? (
                 <div className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm font-semibold text-red-400">
                   {error}
                 </div>
@@ -285,6 +285,13 @@ function PrDraftContent() {
         </div>
 
         <section className="surface min-h-80 p-5">
+          {draft && error ? (
+            <div className="mb-4 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm font-semibold text-red-400">
+              <p className="text-xs uppercase tracking-wide text-red-300">PR 초안 작업 오류</p>
+              <p className="mt-1">{error}</p>
+            </div>
+          ) : null}
+
           {draft ? (
             <div className="space-y-4">
               <h2 className="text-base font-semibold text-github-text">생성된 PR 초안</h2>

@@ -100,7 +100,7 @@ export default function PrDetailPage() {
 
     try {
       await deletePullRequestDraft(prId);
-      router.push("/pr-draft");
+      router.replace("/pr-draft");
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "삭제에 실패했습니다.");
       setDeleting(false);
