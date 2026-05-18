@@ -87,7 +87,7 @@ export type CreatePullRequestDraftRequest = {
   sourceIssueId?: string;
   baseBranch: string;
   headBranch: string;
-  diffContent: string;
+  diffContent?: string;
 };
 
 export type UpdatePullRequestDraftRequest = {
