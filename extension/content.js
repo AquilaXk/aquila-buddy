@@ -212,7 +212,7 @@ function renderAnalysisResult(data) {
     ? `<div class="omos-result-section">
         <p class="omos-result-label">수정 대상 파일</p>
         <ul class="omos-file-list">
-          ${data.filePaths.map((p) => `<li class="omos-file-item">${p}</li>`).join('')}
+          ${data.filePaths.map((p) => `<li class="omos-file-item">${escapeHtml(p)}</li>`).join('')}
         </ul>
        </div>`
     : '';
@@ -223,11 +223,11 @@ function renderAnalysisResult(data) {
         ${filePathsHtml}
         <div class="omos-result-section">
           <p class="omos-result-label">수정 방향</p>
-          <p class="omos-result-text">${data.guideline}</p>
+          <p class="omos-result-text">${escapeHtml(data.guideline)}</p>
         </div>
         <div class="omos-result-section">
           <p class="omos-result-label">주의 사항</p>
-          <p class="omos-result-text omos-result-warning">${data.sideEffects}</p>
+          <p class="omos-result-text omos-result-warning">${escapeHtml(formatSideEffects(data.sideEffects))}</p>
         </div>
       </div>`;
   }
@@ -238,12 +238,29 @@ function renderAnalysisResult(data) {
         ${filePathsHtml}
         <div class="omos-result-section">
           <p class="omos-result-label">의사 코드</p>
-          <pre class="omos-code-block">${data.pseudoCode}</pre>
+          <pre class="omos-code-block">${escapeHtml(data.pseudoCode)}</pre>
         </div>
       </div>`;
   }
 
   return `<p class="omos-empty">결과가 없습니다.</p>`;
+}
+
+function formatSideEffects(sideEffects) {
+  if (Array.isArray(sideEffects)) {
+    return sideEffects.join('\n');
+  }
+
+  return sideEffects ?? '';
+}
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
 }
 
 // ── PR 생성: PR 초안 자동 생성 ──────────────────────────────────────────────
