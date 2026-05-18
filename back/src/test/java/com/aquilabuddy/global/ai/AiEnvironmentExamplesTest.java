@@ -28,6 +28,9 @@ class AiEnvironmentExamplesTest {
             .contains("LANGFUSE_BASE_URL=https://cloud.langfuse.com")
             .contains("LANGFUSE_PUBLIC_KEY=")
             .contains("LANGFUSE_SECRET_KEY=")
+            .contains("LANGFUSE_SMOKE_ENABLED=false")
+            .contains("LANGFUSE_SMOKE_MODE=dry-run")
+            .contains("LANGFUSE_SMOKE_TIMEOUT_SECONDS=30")
             .doesNotContain(legacyGlmApiKeyName())
             .doesNotContain("GEMINI_API_KEY");
         assertThat(backendExample)
@@ -40,6 +43,9 @@ class AiEnvironmentExamplesTest {
             .contains("LANGFUSE_BASE_URL=https://cloud.langfuse.com")
             .contains("LANGFUSE_PUBLIC_KEY=")
             .contains("LANGFUSE_SECRET_KEY=")
+            .contains("LANGFUSE_SMOKE_ENABLED=false")
+            .contains("LANGFUSE_SMOKE_MODE=dry-run")
+            .contains("LANGFUSE_SMOKE_TIMEOUT_SECONDS=30")
             .doesNotContain(legacyGlmApiKeyName())
             .doesNotContain("GEMINI_API_KEY");
     }
@@ -81,7 +87,9 @@ class AiEnvironmentExamplesTest {
             .contains("bash tools/smoke/validate-provider-e2e-env.sh")
             .contains("bash tools/smoke/run-provider-e2e-smoke.sh")
             .contains("bash tools/smoke/validate-ai-provider-smoke-env.sh")
-            .contains("bash tools/smoke/run-ai-provider-smoke.sh");
+            .contains("bash tools/smoke/run-ai-provider-smoke.sh")
+            .contains("bash tools/smoke/validate-langfuse-observability-env.sh")
+            .contains("bash tools/smoke/run-langfuse-observability-smoke.sh");
         assertThat(runbook)
             .contains("# AI 운영 smoke runbook")
             .contains("AI_PROVIDER=openai-compatible")
@@ -107,6 +115,9 @@ class AiEnvironmentExamplesTest {
             .contains("bash tools/smoke/run-provider-e2e-smoke.sh")
             .contains("bash tools/smoke/validate-ai-provider-smoke-env.sh")
             .contains("bash tools/smoke/run-ai-provider-smoke.sh")
+            .contains("LANGFUSE_SMOKE_ENABLED=true")
+            .contains("bash tools/smoke/validate-langfuse-observability-env.sh")
+            .contains("bash tools/smoke/run-langfuse-observability-smoke.sh")
             .doesNotContain(legacyGlmApiKeyName());
     }
 
@@ -136,6 +147,9 @@ class AiEnvironmentExamplesTest {
             .contains("AI_PROVIDER_SMOKE_ENABLED=false")
             .contains("AI_PROVIDER_SMOKE_MODE=dry-run")
             .contains("AI_PROVIDER_SMOKE_TIMEOUT_SECONDS=30")
+            .contains("LANGFUSE_SMOKE_ENABLED=false")
+            .contains("LANGFUSE_SMOKE_MODE=dry-run")
+            .contains("LANGFUSE_SMOKE_TIMEOUT_SECONDS=30")
             .contains("AI_REQUEST_TIMEOUT_MILLIS=30000")
             .doesNotContain(legacyGlmApiKeyName());
     }
@@ -166,6 +180,9 @@ class AiEnvironmentExamplesTest {
             .contains("AI_PROVIDER_SMOKE_ENABLED=false")
             .contains("AI_PROVIDER_SMOKE_MODE=dry-run")
             .contains("AI_PROVIDER_SMOKE_TIMEOUT_SECONDS=30")
+            .contains("LANGFUSE_SMOKE_ENABLED=false")
+            .contains("LANGFUSE_SMOKE_MODE=dry-run")
+            .contains("LANGFUSE_SMOKE_TIMEOUT_SECONDS=30")
             .contains("AI_REQUEST_TIMEOUT_MILLIS=30000")
             .doesNotContain(legacyGlmApiKeyName());
     }
