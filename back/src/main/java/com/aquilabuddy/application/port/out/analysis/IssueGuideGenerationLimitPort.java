@@ -11,6 +11,12 @@ public interface IssueGuideGenerationLimitPort {
     void acquireGenerationSlot(String issueId);
 
     /**
+     * 저장된 guide를 재사용한 요청 이력을 기록합니다.
+     */
+    default void recordCacheHit(String issueId) {
+    }
+
+    /**
      * 생성과 저장이 완료된 요청 이력을 성공으로 표시합니다.
      */
     default void recordGenerationSucceeded(String issueId) {

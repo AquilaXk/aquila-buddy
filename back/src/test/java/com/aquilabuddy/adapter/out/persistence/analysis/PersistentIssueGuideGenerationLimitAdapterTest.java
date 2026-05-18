@@ -56,6 +56,28 @@ class PersistentIssueGuideGenerationLimitAdapterTest {
     }
 
     @Test
+    void recordsCacheHitWithoutUsingDailyGenerationQuota() {
+        adapter.recordCacheHit("cached-issue");
+        adapter.acquireGenerationSlot("issue-1");
+        adapter.acquireGenerationSlot("issue-2");
+
+        assertThatThrownBy(() -> adapter.acquireGenerationSlot("issue-3"))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("daily limit");
+
+        assertThat(repository.findAllByOrderByRequestIdAsc())
+            .extracting(
+                IssueGuideGenerationRequestJpaEntity::getIssueId,
+                IssueGuideGenerationRequestJpaEntity::getStatus
+            )
+            .containsExactly(
+                org.assertj.core.groups.Tuple.tuple("cached-issue", IssueGuideGenerationStatus.CACHE_HIT),
+                org.assertj.core.groups.Tuple.tuple("issue-1", IssueGuideGenerationStatus.ACQUIRED),
+                org.assertj.core.groups.Tuple.tuple("issue-2", IssueGuideGenerationStatus.ACQUIRED)
+            );
+    }
+
+    @Test
     void quotaIsSeparatedByUserAndRequestDate() {
         adapter.acquireGenerationSlot("issue-1");
         adapter.acquireGenerationSlot("issue-2");

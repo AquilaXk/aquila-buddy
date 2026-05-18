@@ -78,6 +78,21 @@ public class PersistentIssueGuideGenerationLimitAdapter implements IssueGuideGen
 
     @Override
     @Transactional
+    public void recordCacheHit(String issueId) {
+        long userGithubId = currentUserGithubIdPort.currentGithubId();
+        Instant requestedAt = clock.instant();
+        LocalDate requestedOn = requestedAt.atZone(ZoneOffset.UTC).toLocalDate();
+
+        repository.save(IssueGuideGenerationRequestJpaEntity.cacheHit(
+            userGithubId,
+            issueId,
+            requestedOn,
+            requestedAt
+        ));
+    }
+
+    @Override
+    @Transactional
     public void recordGenerationSucceeded(String issueId) {
         loadLatestAcquiredRequest(issueId).ifPresent(IssueGuideGenerationRequestJpaEntity::markSucceeded);
     }
