@@ -74,6 +74,21 @@ public class IssueGuideGenerationRequestJpaEntity {
         );
     }
 
+    static IssueGuideGenerationRequestJpaEntity cacheHit(
+        long userGithubId,
+        String issueId,
+        LocalDate requestedOn,
+        Instant requestedAt
+    ) {
+        return new IssueGuideGenerationRequestJpaEntity(
+            userGithubId,
+            issueId,
+            requestedOn,
+            requestedAt,
+            IssueGuideGenerationStatus.CACHE_HIT
+        );
+    }
+
     void markSucceeded() {
         status = IssueGuideGenerationStatus.SUCCEEDED;
         failureReason = null;
