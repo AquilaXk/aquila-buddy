@@ -123,6 +123,34 @@ class OpenAiCompatibleEmbeddingClientTest {
     }
 
     @Test
+    void rejectsEmbeddingResponseWhenDimensionDoesNotMatchRequest() {
+        enqueueJson(200, """
+            {
+              "data": [
+                {
+                  "embedding": [0.1, 0.2],
+                  "index": 0
+                }
+              ],
+              "model": "text-embedding-3-small",
+              "usage": {
+                "prompt_tokens": 8,
+                "total_tokens": 8
+              }
+            }
+            """);
+        RecordingAiCallObserver observer = new RecordingAiCallObserver();
+        OpenAiCompatibleAiClient client = client("test-key", observer);
+
+        assertThatThrownBy(() -> client.embed("Java Spring"))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("dimension");
+        assertThat(observer.firstObservation().success()).isFalse();
+        assertThat(observer.firstObservation().operation()).isEqualTo(AiCallOperation.EMBEDDING);
+        assertThat(observer.firstObservation().errorType()).isEqualTo("IllegalStateException");
+    }
+
+    @Test
     void rejectsBlankEmbeddingInputBeforeCallingProvider() {
         OpenAiCompatibleAiClient client = client("test-key");
 
