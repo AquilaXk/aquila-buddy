@@ -3,6 +3,7 @@ package com.aquilabuddy.adapter.out.persistence.user;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.aquilabuddy.application.port.out.ai.EmbeddingClient;
+import com.aquilabuddy.domain.embedding.EmbeddingBackfillResult;
 import com.aquilabuddy.domain.embedding.EmbeddingVector;
 import com.aquilabuddy.domain.user.UserProfile;
 import com.aquilabuddy.domain.user.UserProfileUpdateRequest;
@@ -36,6 +37,7 @@ class UserProfilePersistenceAdapterTest {
 
     private static final List<Double> DEFAULT_EMBEDDING_VALUES = List.of(0.4, 0.5, 0.6);
     private static List<Double> embeddingValues = DEFAULT_EMBEDDING_VALUES;
+    private static boolean embeddingFails;
 
     @Autowired
     private UserProfilePersistenceAdapter adapter;
@@ -49,6 +51,7 @@ class UserProfilePersistenceAdapterTest {
     @BeforeEach
     void setUp() {
         embeddingValues = DEFAULT_EMBEDDING_VALUES;
+        embeddingFails = false;
     }
 
     @Test
@@ -149,6 +152,75 @@ class UserProfilePersistenceAdapterTest {
         assertThat(storedEmbedding).isNull();
     }
 
+    @Test
+    void backfillsMissingProfileEmbeddingsWithLimitAndResultCounts() {
+        UserProfileJpaEntity existing = new UserProfileJpaEntity(
+            20002L,
+            "embedded-user",
+            "Embedded User",
+            "embedded@example.com",
+            List.of("Java"),
+            List.of("spring"),
+            true,
+            "2026-05-15T09:00:00Z"
+        );
+        existing.updateProfileEmbedding("[0.9,0.8,0.7]");
+        repository.save(existing);
+
+        EmbeddingBackfillResult result = adapter.backfillMissingProfileEmbeddings(10);
+        repository.flush();
+
+        String storedEmbedding = jdbcTemplate.queryForObject(
+            "SELECT profile_embedding FROM user_profiles WHERE github_id = ?",
+            String.class,
+            10001L
+        );
+        String existingEmbedding = jdbcTemplate.queryForObject(
+            "SELECT profile_embedding FROM user_profiles WHERE github_id = ?",
+            String.class,
+            20002L
+        );
+        assertThat(storedEmbedding).isEqualTo("[0.4,0.5,0.6]");
+        assertThat(existingEmbedding).isEqualTo("[0.9,0.8,0.7]");
+        assertThat(result).isEqualTo(new EmbeddingBackfillResult(
+            "profiles",
+            10,
+            1,
+            1,
+            1,
+            0,
+            0,
+            0,
+            0
+        ));
+    }
+
+    @Test
+    void reportsProfileBackfillProviderFailureWithoutStoppingBatch() {
+        embeddingFails = true;
+
+        EmbeddingBackfillResult result = adapter.backfillMissingProfileEmbeddings(10);
+        repository.flush();
+
+        String storedEmbedding = jdbcTemplate.queryForObject(
+            "SELECT profile_embedding FROM user_profiles WHERE github_id = ?",
+            String.class,
+            10001L
+        );
+        assertThat(storedEmbedding).isNull();
+        assertThat(result).isEqualTo(new EmbeddingBackfillResult(
+            "profiles",
+            10,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1
+        ));
+    }
+
     @TestConfiguration
     static class GitHubClientTestConfig {
 
@@ -159,7 +231,12 @@ class UserProfilePersistenceAdapterTest {
 
         @Bean
         EmbeddingClient embeddingClient() {
-            return input -> new EmbeddingVector(embeddingValues);
+            return input -> {
+                if (embeddingFails) {
+                    throw new IllegalStateException("provider unavailable");
+                }
+                return new EmbeddingVector(embeddingValues);
+            };
         }
     }
 
