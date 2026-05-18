@@ -1,11 +1,17 @@
-name: "Feature"
+name: "기능"
 description: "신규 기능이나 사용자 가치가 커지는 개선 작업을 정리합니다."
 labels: ["feature"]
 body:
+  - type: markdown
+    attributes:
+      value: |
+        제목은 `[Feat] 한국어 작업 요약` 형식으로 작성합니다.
+        본문은 한국어 중심으로 작성하고 API, OAuth, SQL, CI처럼 현업 공통 용어만 영어를 유지합니다.
+
   - type: input
     id: goal
     attributes:
-      label: Goal
+      label: 목표
       description: 이 작업으로 어떤 결과를 만들고 싶은지 한 문장으로 적어 주세요.
       placeholder: 예) GitHub 프로필 분석 결과를 대시보드에 표시한다.
     validations:
@@ -14,7 +20,7 @@ body:
   - type: input
     id: domain
     attributes:
-      label: Domain
+      label: 영역
       description: 관련 도메인, 화면, API 경로를 적어 주세요.
       placeholder: 예) back/user, front/dashboard, api/v1/issues
     validations:
@@ -23,7 +29,7 @@ body:
   - type: textarea
     id: background
     attributes:
-      label: Background
+      label: 배경
       description: 왜 필요한지, 지금 어떤 불편이나 기회가 있는지 설명해 주세요.
       placeholder: 예) 추천 전에 사용자 기술 스택을 확인할 방법이 필요합니다.
     validations:
@@ -32,7 +38,7 @@ body:
   - type: textarea
     id: acceptance
     attributes:
-      label: Acceptance Criteria
+      label: 완료 조건
       description: 완료로 볼 기준을 체크리스트로 적어 주세요.
       placeholder: |
         - [ ] 핵심 사용자 흐름이 기대한 방식으로 동작하는지 확인했는가?
@@ -44,21 +50,21 @@ body:
   - type: textarea
     id: out_of_scope
     attributes:
-      label: Out Of Scope
+      label: 제외 범위
       description: 이번 작업에서 의도적으로 제외할 범위를 설명해 주세요.
       placeholder: 예) Chrome extension 연동은 이번 범위에서 제외
 
   - type: textarea
     id: notes
     attributes:
-      label: Notes
+      label: 참고 사항
       description: 권한, 캐시, 운영 리스크처럼 미리 공유해야 할 점을 적어 주세요.
       placeholder: 예) GitHub API rate limit 영향을 확인해야 함
 
   - type: textarea
     id: todo
     attributes:
-      label: Todo
+      label: 작업 목록
       description: 구현 순서를 체크리스트로 적어 주세요.
       placeholder: |
         - [ ] 요구사항과 제외 범위를 정리했는가?

@@ -25,6 +25,7 @@ compose.override.yml
 
 # Local cloud credentials
 vertex-key.json
+*vertex-key*.json
 **/vertex-key.json
 **/*credential*.json
 **/*service-account*.json
