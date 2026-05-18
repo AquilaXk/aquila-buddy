@@ -3,8 +3,14 @@ package com.aquilabuddy.global.ai;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.aquilabuddy.application.port.out.analysis.GenerateIssueGuidePort;
+import com.aquilabuddy.application.port.out.prdraft.GeneratePullRequestDraftPort;
 import com.aquilabuddy.domain.analysis.IssueGuide;
 import com.aquilabuddy.domain.issue.RecommendedIssue;
+import com.aquilabuddy.domain.prdraft.PullRequestDraft;
+import com.aquilabuddy.domain.prdraft.PullRequestDraftAnalysisContext;
+import com.aquilabuddy.domain.prdraft.PullRequestDraftIssueContext;
+import com.aquilabuddy.domain.prdraft.PullRequestDraftRepositoryGuideContext;
+import com.aquilabuddy.domain.prdraft.PullRequestDraftRequest;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -29,6 +35,9 @@ class AiOperationalModeIntegrationTest {
 
     @Autowired
     private GenerateIssueGuidePort generateIssueGuidePort;
+
+    @Autowired
+    private GeneratePullRequestDraftPort generatePullRequestDraftPort;
 
     @Autowired
     private Environment environment;
@@ -79,6 +88,28 @@ class AiOperationalModeIntegrationTest {
         assertThat(body).contains("Refine validation error example");
     }
 
+    @Test
+    void pullRequestDraftUsesOpenAiCompatibleChatProvider() throws Exception {
+        enqueueChat("""
+            TITLE: docs: improve validation guide
+            BODY: ## Summary
+            - Improve the validation guide.
+            """);
+
+        PullRequestDraft draft = generatePullRequestDraftPort.generate(prDraftRequest());
+
+        RecordedRequest request = takeRequest();
+        assertThat(draft.title()).isEqualTo("docs: improve validation guide");
+        assertThat(request.getPath()).isEqualTo("/chat/completions");
+        assertThat(request.getHeader("Authorization")).isEqualTo("Bearer test-key");
+        String body = request.getBody().readUtf8();
+        assertThat(body).contains("\"model\":\"ops-chat-model\"");
+        assertThat(body).contains("Diff:");
+        assertThat(body).contains("Repository guide context");
+        assertThat(body).contains("Issue context");
+        assertThat(body).contains("Analysis context");
+    }
+
     private static RecommendedIssue issue() {
         return new RecommendedIssue(
             "demo-2",
@@ -90,6 +121,31 @@ class AiOperationalModeIntegrationTest {
             List.of("good first issue", "validation"),
             "OPEN",
             "현재 Java 21 + Spring 작업 스택과 직접 맞닿아 있습니다."
+        );
+    }
+
+    private static PullRequestDraftRequest prDraftRequest() {
+        return new PullRequestDraftRequest(
+            "spring-projects/spring-boot",
+            2,
+            "main",
+            "feat/validation-docs",
+            "diff --git a/docs.adoc b/docs.adoc\n+Add validation example",
+            new PullRequestDraftRepositoryGuideContext(
+                "Run tests before PR.",
+                "## Summary\n- Describe changes",
+                List.of("## Summary\n- Improve docs")
+            ),
+            new PullRequestDraftIssueContext(
+                "Fix validation message",
+                "Error message should explain invalid input.",
+                "Matches Java validation topic"
+            ),
+            new PullRequestDraftAnalysisContext(
+                "Follow validation guide.",
+                "if invalid then return helpful message",
+                List.of("Update documentation examples.")
+            )
         );
     }
 
