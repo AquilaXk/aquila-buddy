@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.stereotype.Component;
 
@@ -32,9 +33,16 @@ public class AiIssueGuideGenerationAdapter implements GenerateIssueGuidePort {
         """;
 
     private final AiClient aiClient;
+    private final GenerateIssueGuidePort fallbackGenerator;
 
+    @Autowired
     public AiIssueGuideGenerationAdapter(AiClient aiClient) {
+        this(aiClient, new RuleBasedIssueGuideGenerationAdapter());
+    }
+
+    AiIssueGuideGenerationAdapter(AiClient aiClient, GenerateIssueGuidePort fallbackGenerator) {
         this.aiClient = Objects.requireNonNull(aiClient, "aiClient must not be null.");
+        this.fallbackGenerator = Objects.requireNonNull(fallbackGenerator, "fallbackGenerator must not be null.");
     }
 
     @Override
@@ -45,7 +53,16 @@ public class AiIssueGuideGenerationAdapter implements GenerateIssueGuidePort {
     @Override
     public IssueGuide generateIssueGuide(RecommendedIssue issue, RepositoryCodeContext codeContext) {
         RepositoryCodeContext safeContext = codeContext == null ? RepositoryCodeContext.empty() : codeContext;
-        return parseGuide(issue.id(), selectedFilePaths(safeContext), aiClient.complete(SYSTEM_PROMPT, buildPrompt(issue, safeContext)));
+        try {
+            return parseGuide(
+                issue.id(),
+                selectedFilePaths(safeContext),
+                aiClient.complete(SYSTEM_PROMPT, buildPrompt(issue, safeContext))
+            );
+        } catch (RuntimeException exception) {
+            // 운영 AI 응답 형식이 흔들려도 사용자는 제출 가능한 기본 가이드를 받아야 합니다.
+            return fallbackGenerator.generateIssueGuide(issue, safeContext);
+        }
     }
 
     private static String buildPrompt(RecommendedIssue issue, RepositoryCodeContext codeContext) {
