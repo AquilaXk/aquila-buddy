@@ -21,6 +21,7 @@ class PullRequestDraftTranslationReadinessTest {
         assertThat(readiness.draftId()).isEqualTo("draft-1");
         assertThat(readiness.translationId()).isEqualTo("translation-1");
         assertThat(readiness.targetLanguage()).isEqualTo("en");
+        assertThat(readiness.sourceIssueId()).isEqualTo("issue-123");
         assertThat(readiness.readyCount()).isEqualTo(5);
         assertThat(readiness.items())
             .extracting(PullRequestDraftReadinessItem::key)
@@ -76,6 +77,7 @@ class PullRequestDraftTranslationReadinessTest {
             "feat/readme-fix",
             "[Docs] README 기여 안내 보완",
             "## 변경 사항\n- README 안내를 보완합니다.",
+            "issue-123",
             Instant.parse("2026-05-15T01:00:00Z")
         );
     }
