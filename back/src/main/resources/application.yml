@@ -75,3 +75,8 @@ app:
     similarity:
       provider: ${RECOMMENDATION_SIMILARITY_PROVIDER:score}
       limit: ${RECOMMENDATION_SIMILARITY_LIMIT:20}
+  embedding:
+    backfill:
+      operation-token: ${APP_EMBEDDING_BACKFILL_OPERATION_TOKEN:}
+      max-limit: ${EMBEDDING_BACKFILL_MAX_LIMIT:200}
+      min-interval-seconds: ${EMBEDDING_BACKFILL_MIN_INTERVAL_SECONDS:0}

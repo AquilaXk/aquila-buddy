@@ -73,6 +73,8 @@ bash tools/test/run-pgvector-integration.sh
 `schema-postgres-pgvector.sql`은 `idx_user_profiles_profile_embedding`, `idx_recommended_issues_issue_embedding` HNSW index를 생성해야 하며, 실제 Postgres 통합 테스트는 column type과 index definition을 함께 확인합니다.
 embedding backfill 후 추천 순위가 score fallback 순서에서 pgvector similarity 순서로 바뀌는지도 `PgvectorRecommendedIssueSimilarityIntegrationTest`에서 검증합니다.
 로컬 격리 검증은 `bash tools/test/run-pgvector-integration.sh --compose`로 실행하며, 기본 포트 `54329`는 `PGVECTOR_TEST_DB_PORT`로 변경할 수 있습니다.
+`/api/v1/embeddings/backfill`은 `APP_EMBEDDING_BACKFILL_OPERATION_TOKEN`이 설정된 backend에서만 열고, 호출 시 `X-Aquila-Operation-Token`과 운영자 식별용 `X-Aquila-Operator` header를 함께 남깁니다.
+`EMBEDDING_BACKFILL_MAX_LIMIT`은 요청 limit 상한, `EMBEDDING_BACKFILL_MIN_INTERVAL_SECONDS`는 연속 실행 최소 간격입니다.
 
 ## smoke 순서
 
