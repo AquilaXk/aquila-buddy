@@ -15,13 +15,18 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.TestPropertySource;
 
 /**
  * 추천 이슈 persistence adapter가 JPA entity를 도메인 모델로 변환하고 정렬하는지 검증합니다.
  */
 @DataJpaTest
 @Import(RecommendedIssuePersistenceAdapter.class)
+@TestPropertySource(properties = "app.embedding.expected-dimensions=3")
 class RecommendedIssuePersistenceAdapterTest {
+
+    private static final List<Double> DEFAULT_EMBEDDING_VALUES = List.of(0.1, 0.2, 0.3);
+    private static List<Double> embeddingValues = DEFAULT_EMBEDDING_VALUES;
 
     @Autowired
     private RecommendedIssuePersistenceAdapter adapter;
@@ -35,6 +40,7 @@ class RecommendedIssuePersistenceAdapterTest {
     @BeforeEach
     void setUp() {
         repository.deleteAll();
+        embeddingValues = DEFAULT_EMBEDDING_VALUES;
     }
 
     @Test
@@ -157,6 +163,32 @@ class RecommendedIssuePersistenceAdapterTest {
     }
 
     @Test
+    void skipsIssueEmbeddingWhenProviderDimensionDoesNotMatchExpectedDimension() {
+        embeddingValues = List.of(0.1, 0.2);
+        RecommendedIssue searched = new RecommendedIssue(
+            "dimension-mismatch-issue",
+            "spring-projects/spring-boot",
+            101,
+            "Improve contributor guide",
+            "GitHub에서 수집한 Good First Issue 후보입니다.",
+            1.0,
+            List.of("good first issue", "documentation"),
+            "OPEN",
+            "GitHub Search 후보입니다."
+        );
+
+        adapter.saveRecommendedIssues(List.of(searched));
+        repository.flush();
+
+        String storedEmbedding = jdbcTemplate.queryForObject(
+            "SELECT issue_embedding FROM recommended_issues WHERE issue_id = ?",
+            String.class,
+            "dimension-mismatch-issue"
+        );
+        assertThat(storedEmbedding).isNull();
+    }
+
+    @Test
     void findsRecommendedIssueByRepositoryAndIssueNumber() {
         repository.save(new RecommendedIssueJpaEntity(
             "lookup-target",
@@ -205,7 +237,7 @@ class RecommendedIssuePersistenceAdapterTest {
 
         @Bean
         EmbeddingClient embeddingClient() {
-            return input -> new EmbeddingVector(List.of(0.1, 0.2, 0.3));
+            return input -> new EmbeddingVector(embeddingValues);
         }
     }
 }
