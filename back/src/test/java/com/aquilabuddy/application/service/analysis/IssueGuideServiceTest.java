@@ -49,6 +49,7 @@ class IssueGuideServiceTest {
         assertThat(guide.guideline()).isEqualTo("Validate request fields");
         assertThat(generatePort.generateCount).isZero();
         assertThat(savePort.savedGuide).isNull();
+        assertThat(limitPort.cacheHitIssueId).isEqualTo("demo-1");
         assertThat(limitPort.checkedIssueId).isNull();
         assertThat(limitPort.succeededIssueId).isNull();
         assertThat(limitPort.failedIssueId).isNull();
@@ -202,6 +203,7 @@ class IssueGuideServiceTest {
     private static class RecordingIssueGuideGenerationLimitPort implements IssueGuideGenerationLimitPort {
 
         private String checkedIssueId;
+        private String cacheHitIssueId;
         private String succeededIssueId;
         private String failedIssueId;
         private String failureReason;
@@ -209,6 +211,11 @@ class IssueGuideServiceTest {
         @Override
         public void acquireGenerationSlot(String issueId) {
             checkedIssueId = issueId;
+        }
+
+        @Override
+        public void recordCacheHit(String issueId) {
+            cacheHitIssueId = issueId;
         }
 
         @Override
