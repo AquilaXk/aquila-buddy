@@ -57,6 +57,23 @@ class AiPullRequestDraftAdapterTest {
     }
 
     @Test
+    void doesNotDuplicateExistingGeneratedDraftClosingLine() {
+        CapturingAiClient aiClient = new CapturingAiClient("""
+            TITLE: docs: improve validation guide
+            BODY: Close #2
+
+            ## Summary
+            - Improve the validation guide.
+            """);
+        AiPullRequestDraftAdapter adapter = new AiPullRequestDraftAdapter(aiClient);
+
+        PullRequestDraft draft = adapter.generate(request());
+
+        assertThat(draft.body()).doesNotStartWith("close #2\n\nClose #2");
+        assertThat(draft.body()).containsOnlyOnce("Close #2");
+    }
+
+    @Test
     void translatesStoredDraftWithAiClientPrompt() {
         CapturingAiClient aiClient = new CapturingAiClient("""
             TITLE: docs: prepare validation guide update

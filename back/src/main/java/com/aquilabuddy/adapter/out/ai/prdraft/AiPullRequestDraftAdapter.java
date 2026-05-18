@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.function.Supplier;
+import java.util.regex.Pattern;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.stereotype.Component;
 
@@ -126,10 +127,18 @@ public class AiPullRequestDraftAdapter implements GeneratePullRequestDraftPort, 
 
     private static PullRequestDraft ensureClosingIssueLine(PullRequestDraft draft, long githubIssueNumber) {
         String closingLine = "close #" + githubIssueNumber;
-        if (draft.body().contains(closingLine)) {
+        if (hasClosingIssueLine(draft.body(), githubIssueNumber)) {
             return draft;
         }
         return new PullRequestDraft(draft.title(), closingLine + "\n\n" + draft.body());
+    }
+
+    private static boolean hasClosingIssueLine(String body, long githubIssueNumber) {
+        Pattern closingPattern = Pattern.compile(
+            "(?im)^\\s*(close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved)\\s+#"
+                + githubIssueNumber + "\\b"
+        );
+        return closingPattern.matcher(body).find();
     }
 
     private static PullRequestDraft fallbackDraft(PullRequestDraftRequest request) {
