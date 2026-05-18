@@ -45,7 +45,10 @@ public class AiPullRequestDraftAdapter implements GeneratePullRequestDraftPort, 
     @Override
     public PullRequestDraft generate(PullRequestDraftRequest request) {
         String response = aiClient.complete(DRAFT_SYSTEM_PROMPT, buildDraftPrompt(request));
-        return parseDraftOrFallback(response, () -> fallbackDraft(request));
+        return ensureClosingIssueLine(
+            parseDraftOrFallback(response, () -> fallbackDraft(request)),
+            request.githubIssueNumber()
+        );
     }
 
     @Override
@@ -119,6 +122,14 @@ public class AiPullRequestDraftAdapter implements GeneratePullRequestDraftPort, 
         } catch (IllegalStateException | NullPointerException ignored) {
             return fallback.get();
         }
+    }
+
+    private static PullRequestDraft ensureClosingIssueLine(PullRequestDraft draft, long githubIssueNumber) {
+        String closingLine = "close #" + githubIssueNumber;
+        if (draft.body().contains(closingLine)) {
+            return draft;
+        }
+        return new PullRequestDraft(draft.title(), closingLine + "\n\n" + draft.body());
     }
 
     private static PullRequestDraft fallbackDraft(PullRequestDraftRequest request) {

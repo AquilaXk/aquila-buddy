@@ -43,6 +43,20 @@ class AiPullRequestDraftAdapterTest {
     }
 
     @Test
+    void addsClosingIssueLineWhenGeneratedDraftBodyOmitsIt() {
+        CapturingAiClient aiClient = new CapturingAiClient("""
+            TITLE: docs: improve validation guide
+            BODY: ## Summary
+            - Improve the validation guide.
+            """);
+        AiPullRequestDraftAdapter adapter = new AiPullRequestDraftAdapter(aiClient);
+
+        PullRequestDraft draft = adapter.generate(request());
+
+        assertThat(draft.body()).startsWith("close #2\n\n## Summary");
+    }
+
+    @Test
     void translatesStoredDraftWithAiClientPrompt() {
         CapturingAiClient aiClient = new CapturingAiClient("""
             TITLE: docs: prepare validation guide update
