@@ -1,9 +1,14 @@
 import { spawnSync } from "node:child_process";
 import { resolve } from "node:path";
+import {
+  UI_UX_FLOW_CONTRACTS,
+  validateUiUxFlowContracts,
+} from "./ui-ux-flow-contracts.mjs";
 
 const repoRoot = resolve(import.meta.dirname, "../..");
 
 const validators = [
+  ["contract", "tools/frontend/ui-ux-flow-contracts.test.mjs", ["--test"]],
   ["shell", "tools/frontend/validate-shell-parity.mjs"],
   ["login", "tools/frontend/validate-login-parity.mjs"],
   ["dashboard", "tools/frontend/validate-dashboard-parity.mjs"],
@@ -15,9 +20,20 @@ const validators = [
 ];
 
 const failures = [];
+const contractFailures = validateUiUxFlowContracts(UI_UX_FLOW_CONTRACTS);
 
-for (const [name, script] of validators) {
-  const result = spawnSync(process.execPath, [script], {
+if (contractFailures.length > 0) {
+  console.error("Frontend UI UX flow contract validation failed:");
+  for (const failure of contractFailures) {
+    console.error(`- ${failure}`);
+  }
+  process.exit(1);
+}
+
+console.log(`Frontend UI UX contract validation passed (${UI_UX_FLOW_CONTRACTS.length} routes).`);
+
+for (const [name, script, nodeArgs = []] of validators) {
+  const result = spawnSync(process.execPath, [...nodeArgs, script], {
     cwd: repoRoot,
     encoding: "utf8",
   });
