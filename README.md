@@ -36,6 +36,7 @@ npm run dev
 - `AI_PROVIDER=openai-compatible`: OpenAI-compatible chat completion/embedding provider를 사용합니다.
 - `RECOMMENDATION_SIMILARITY_PROVIDER=pgvector`: 사용자 profile embedding과 issue embedding의 pgvector similarity ranking을 사용합니다.
 - `LANGFUSE_ENABLED=true`: AI 호출을 Langfuse generation event로 함께 전송합니다. 기본값은 `false`입니다.
+- `ANALYSIS_ISSUE_GUIDE_DAILY_LIMIT=5`: 사용자별 이슈 분석 guide 생성 일일 제한입니다. 캐시 적중은 제한 카운트에 포함하지 않습니다.
 
 Vertex AI smoke에 필요한 기본 env:
 
@@ -80,6 +81,8 @@ LANGFUSE_SMOKE_TIMEOUT_SECONDS=30
 ```
 
 Langfuse 실연동 smoke는 opt-in입니다. `LANGFUSE_SMOKE_MODE=dry-run`은 전송 없이 성공/실패 generation payload의 prompt version, model, latency, usage, 실패 사유 점검 순서를 출력하고, `live`는 synthetic trace event를 Langfuse ingestion endpoint로 보냅니다.
+
+이슈 분석 guide 생성 제한은 기본 5회입니다. 초과 시 API는 HTTP 429와 `success=false`, `status=fail`, `message=이슈 분석 일일 생성 제한을 초과했습니다. 잠시 후 다시 시도해 주세요.` envelope를 반환합니다. 운영에서 값을 바꿀 때는 `ANALYSIS_ISSUE_GUIDE_DAILY_LIMIT`만 조정하고, 저장된 guide를 재사용하는 cache hit 요청은 quota에 반영하지 않습니다.
 
 GitHub 연동 smoke에는 repository/issue 조회가 가능한 token이 필요합니다.
 OAuth 로그인을 함께 확인할 때는 `read:user`, `user:email` scope의 GitHub OAuth app 설정도 필요합니다.

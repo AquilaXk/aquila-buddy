@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.aquilabuddy.application.port.out.user.CurrentUserGithubIdPort;
+import com.aquilabuddy.domain.analysis.IssueGuideGenerationDailyLimitExceededException;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -34,13 +35,34 @@ class PersistentIssueGuideGenerationLimitAdapterTest {
     }
 
     @Test
+    void defaultDailyLimitIsFiveRequestsPerUserAndDate() {
+        PersistentIssueGuideGenerationLimitAdapter defaultLimitAdapter =
+            new PersistentIssueGuideGenerationLimitAdapter(
+                repository,
+                currentUserGithubIdPort,
+                FIXED_CLOCK,
+                PersistentIssueGuideGenerationLimitAdapter.DEFAULT_DAILY_LIMIT
+            );
+
+        defaultLimitAdapter.acquireGenerationSlot("issue-1");
+        defaultLimitAdapter.acquireGenerationSlot("issue-2");
+        defaultLimitAdapter.acquireGenerationSlot("issue-3");
+        defaultLimitAdapter.acquireGenerationSlot("issue-4");
+        defaultLimitAdapter.acquireGenerationSlot("issue-5");
+
+        assertThatThrownBy(() -> defaultLimitAdapter.acquireGenerationSlot("issue-6"))
+            .isInstanceOf(IssueGuideGenerationDailyLimitExceededException.class)
+            .hasMessage("이슈 분석 일일 생성 제한을 초과했습니다. 잠시 후 다시 시도해 주세요.");
+    }
+
+    @Test
     void persistsDailyUsageAndRejectsOverQuotaForCurrentUser() {
         adapter.acquireGenerationSlot("issue-1");
         adapter.acquireGenerationSlot("issue-2");
 
         assertThatThrownBy(() -> adapter.acquireGenerationSlot("issue-3"))
-            .isInstanceOf(IllegalStateException.class)
-            .hasMessageContaining("daily limit");
+            .isInstanceOf(IssueGuideGenerationDailyLimitExceededException.class)
+            .hasMessage("이슈 분석 일일 생성 제한을 초과했습니다. 잠시 후 다시 시도해 주세요.");
 
         assertThat(repository.findAllByOrderByRequestIdAsc())
             .extracting(
@@ -62,8 +84,8 @@ class PersistentIssueGuideGenerationLimitAdapterTest {
         adapter.acquireGenerationSlot("issue-2");
 
         assertThatThrownBy(() -> adapter.acquireGenerationSlot("issue-3"))
-            .isInstanceOf(IllegalStateException.class)
-            .hasMessageContaining("daily limit");
+            .isInstanceOf(IssueGuideGenerationDailyLimitExceededException.class)
+            .hasMessage("이슈 분석 일일 생성 제한을 초과했습니다. 잠시 후 다시 시도해 주세요.");
 
         assertThat(repository.findAllByOrderByRequestIdAsc())
             .extracting(

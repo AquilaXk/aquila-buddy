@@ -71,6 +71,9 @@ app:
       public-key: ${LANGFUSE_PUBLIC_KEY:}
       secret-key: ${LANGFUSE_SECRET_KEY:}
       environment: ${LANGFUSE_ENVIRONMENT:local}
+  analysis:
+    issue-guide:
+      daily-limit: ${ANALYSIS_ISSUE_GUIDE_DAILY_LIMIT:5}
   recommendation:
     similarity:
       provider: ${RECOMMENDATION_SIMILARITY_PROVIDER:score}

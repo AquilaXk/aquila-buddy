@@ -2,6 +2,7 @@ package com.aquilabuddy.adapter.out.persistence.analysis;
 
 import com.aquilabuddy.application.port.out.analysis.IssueGuideGenerationLimitPort;
 import com.aquilabuddy.application.port.out.user.CurrentUserGithubIdPort;
+import com.aquilabuddy.domain.analysis.IssueGuideGenerationDailyLimitExceededException;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -21,6 +22,8 @@ import org.springframework.transaction.annotation.Transactional;
 @ConditionalOnProperty(prefix = "app.analysis.issue-guide", name = "limit-store", havingValue = "database", matchIfMissing = true)
 public class PersistentIssueGuideGenerationLimitAdapter implements IssueGuideGenerationLimitPort {
 
+    public static final int DEFAULT_DAILY_LIMIT = 5;
+
     private static final List<IssueGuideGenerationStatus> QUOTA_COUNTED_STATUSES = List.of(
         IssueGuideGenerationStatus.ACQUIRED,
         IssueGuideGenerationStatus.SUCCEEDED,
@@ -36,7 +39,7 @@ public class PersistentIssueGuideGenerationLimitAdapter implements IssueGuideGen
     public PersistentIssueGuideGenerationLimitAdapter(
         IssueGuideGenerationRequestJpaRepository repository,
         CurrentUserGithubIdPort currentUserGithubIdPort,
-        @Value("${app.analysis.issue-guide.daily-limit:20}") int dailyLimit
+        @Value("${app.analysis.issue-guide.daily-limit:" + DEFAULT_DAILY_LIMIT + "}") int dailyLimit
     ) {
         this(repository, currentUserGithubIdPort, Clock.systemUTC(), dailyLimit);
     }
@@ -65,7 +68,7 @@ public class PersistentIssueGuideGenerationLimitAdapter implements IssueGuideGen
             QUOTA_COUNTED_STATUSES
         );
         if (usedToday >= dailyLimit) {
-            throw new IllegalStateException("Issue guide generation daily limit exceeded: " + userGithubId);
+            throw new IssueGuideGenerationDailyLimitExceededException(userGithubId);
         }
 
         repository.save(IssueGuideGenerationRequestJpaEntity.acquired(

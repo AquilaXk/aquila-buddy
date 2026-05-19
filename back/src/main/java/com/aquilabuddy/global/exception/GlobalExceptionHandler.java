@@ -1,5 +1,6 @@
 package com.aquilabuddy.global.exception;
 
+import com.aquilabuddy.domain.analysis.IssueGuideGenerationDailyLimitExceededException;
 import com.aquilabuddy.global.response.ApiResponse;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
@@ -50,5 +51,17 @@ public class GlobalExceptionHandler {
         return ResponseEntity
             .status(exception.getStatusCode())
             .body(ApiResponse.error(exception.getReason()));
+    }
+
+    /**
+     * 사용자별 이슈 분석 일일 생성 제한을 안정적인 429 응답으로 변환합니다.
+     */
+    @ExceptionHandler(IssueGuideGenerationDailyLimitExceededException.class)
+    ResponseEntity<ApiResponse<Void>> handleIssueGuideDailyLimit(
+        IssueGuideGenerationDailyLimitExceededException exception
+    ) {
+        return ResponseEntity
+            .status(HttpStatus.TOO_MANY_REQUESTS)
+            .body(ApiResponse.error(exception.getMessage()));
     }
 }
