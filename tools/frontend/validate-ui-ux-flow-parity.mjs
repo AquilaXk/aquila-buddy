@@ -11,6 +11,7 @@ const validators = [
   ["contract", "tools/frontend/ui-ux-flow-contracts.test.mjs", ["--test"]],
   ["shell", "tools/frontend/validate-shell-parity.mjs"],
   ["login", "tools/frontend/validate-login-parity.mjs"],
+  ["oauth-callback", "tools/frontend/validate-oauth-callback-parity.mjs"],
   ["dashboard", "tools/frontend/validate-dashboard-parity.mjs"],
   ["profile", "tools/frontend/validate-profile-parity.mjs"],
   ["issues", "tools/frontend/validate-issues-parity.mjs"],
