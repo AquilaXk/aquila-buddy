@@ -11,17 +11,22 @@ const repoRoot = resolve(scriptDir, "..", "..", "..");
 const contentScriptPath = resolve(repoRoot, "extension", "content.js");
 const contentStylePath = resolve(repoRoot, "extension", "content.css");
 
-export async function launchChromeSession() {
+export async function launchChromeSession(options = {}) {
   const executable = findChromeExecutable();
   const remoteDebuggingPort = await getAvailablePort();
-  const userDataDir = await mkdtemp(join(tmpdir(), "aquila-extension-e2e-"));
+  const configuredUserDataDir = options.userDataDir ?? resolveChromeUserDataDir();
+  const userDataDir = configuredUserDataDir ?? await mkdtemp(join(tmpdir(), "aquila-extension-e2e-"));
+  const cleanupUserDataDir = configuredUserDataDir == null;
   const stderr = [];
   const exitState = { exited: false, code: null, signal: null };
 
   const chrome = spawn(executable, buildChromeArgs({
     remoteDebuggingPort,
     userDataDir,
-    extraFlags: resolveChromeExtraFlags(),
+    extraFlags: [
+      ...resolveChromeExtraFlags(),
+      ...(options.extraFlags ?? []),
+    ],
   }), {
     stdio: ["ignore", "ignore", "pipe"],
   });
@@ -47,7 +52,9 @@ export async function launchChromeSession() {
     }), resolveChromeStartupTimeoutMs());
   } catch (error) {
     await closeChromeProcess(chrome, exitState);
-    await rm(userDataDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+    if (cleanupUserDataDir) {
+      await rm(userDataDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+    }
     throw error;
   }
 
@@ -62,7 +69,9 @@ export async function launchChromeSession() {
     },
     async close() {
       await closeChromeProcess(chrome, exitState);
-      await rm(userDataDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+      if (cleanupUserDataDir) {
+        await rm(userDataDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+      }
     },
   };
 }
@@ -93,6 +102,11 @@ export function resolveChromeExtraFlags(env = process.env) {
     .split(/\s+/)
     .map((flag) => flag.trim())
     .filter(Boolean);
+}
+
+export function resolveChromeUserDataDir(env = process.env) {
+  const value = env.EXTENSION_E2E_CHROME_USER_DATA_DIR?.trim();
+  return value ? value : null;
 }
 
 export function formatChromeStartupError({ timeoutMessage, lastError, exitState, stderr }) {

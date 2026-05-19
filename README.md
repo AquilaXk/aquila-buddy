@@ -328,6 +328,21 @@ npm --prefix extension run test:e2e
 
 `Chrome DevTools endpoint did not open`이 발생하면 로그의 `exitCode`, `signal`, `stderr`를 먼저 확인합니다. 로컬 sandbox에서 loopback listen이 막히면 승인된 환경에서 같은 명령을 재실행해야 합니다.
 
+실제 GitHub DOM smoke는 수동 opt-in입니다. 로그인된 Chrome profile, live backend URL, 인증 header, 대상 issue/compare URL이 없으면 실패 대신 skip evidence를 남깁니다.
+
+```bash
+EXTENSION_GITHUB_LIVE_SMOKE_ENABLED=true \
+EXTENSION_GITHUB_LIVE_SKIP_ON_MISSING_SECRETS=true \
+EXTENSION_GITHUB_LIVE_EVIDENCE_FILE=tools/smoke/release-readiness/extension-github-live-local.md \
+EXTENSION_E2E_CHROME_USER_DATA_DIR=/path/to/chrome-profile \
+EXTENSION_GITHUB_LIVE_REPO=AquilaXk/aquila-buddy \
+EXTENSION_GITHUB_LIVE_ISSUE_NUMBER=297 \
+EXTENSION_GITHUB_LIVE_COMPARE_URL=https://github.com/AquilaXk/aquila-buddy/compare/main...test-branch \
+EXTENSION_GITHUB_LIVE_BACKEND_BASE_URL=http://localhost:8080 \
+EXTENSION_GITHUB_LIVE_AUTH_HEADER='Authorization: Bearer jwt_or_oauth_token' \
+npm --prefix extension run test:e2e:github-live
+```
+
 ## Agent Docs
 
 Machine-facing agent settings are local-only and ignored by git:

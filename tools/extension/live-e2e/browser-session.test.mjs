@@ -3,6 +3,7 @@ import { test } from "node:test";
 import {
   buildChromeArgs,
   formatChromeStartupError,
+  resolveChromeUserDataDir,
   resolveChromeExtraFlags,
   resolveChromeStartupTimeoutMs,
 } from "./browser-session.mjs";
@@ -33,6 +34,14 @@ test("reads optional Chrome diagnostic flags from env", () => {
     "--enable-logging=stderr",
     "--v=1",
   ]);
+});
+
+test("reads optional Chrome user data dir for authenticated live smoke", () => {
+  assert.equal(resolveChromeUserDataDir({}), null);
+  assert.equal(
+    resolveChromeUserDataDir({ EXTENSION_E2E_CHROME_USER_DATA_DIR: "/tmp/github-profile" }),
+    "/tmp/github-profile"
+  );
 });
 
 test("formats Chrome startup failures with process and stderr diagnostics", () => {
