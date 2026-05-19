@@ -61,4 +61,18 @@ describe("frontend UI UX flow contracts", () => {
     assert.deepEqual(prDraft?.primaryActions, ["prefill-issue", "create-draft", "translate", "open-detail"]);
     assert.deepEqual(prDetail?.primaryActions, ["load-draft", "edit", "translate", "delete"]);
   });
+
+  it("requires responsive viewport and interaction guards for every route", () => {
+    for (const contract of UI_UX_FLOW_CONTRACTS) {
+      assert.deepEqual(
+        contract.responsiveViewports,
+        ["mobile", "desktop"],
+        `${contract.route} must be checked on mobile and desktop`
+      );
+      assert.ok(
+        contract.interactionGuards?.length >= 2,
+        `${contract.route} must define interaction guards`
+      );
+    }
+  });
 });
