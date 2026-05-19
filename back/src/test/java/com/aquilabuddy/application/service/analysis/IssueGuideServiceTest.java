@@ -5,12 +5,18 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.aquilabuddy.application.port.out.analysis.GenerateIssueGuidePort;
 import com.aquilabuddy.application.port.out.analysis.IssueGuideGenerationLimitPort;
+import com.aquilabuddy.application.port.out.analysis.LoadIssueUpdatedAtPort;
 import com.aquilabuddy.application.port.out.analysis.LoadIssueGuidePort;
 import com.aquilabuddy.application.port.out.analysis.SaveIssueGuidePort;
+import com.aquilabuddy.domain.analysis.CachedIssueGuide;
 import com.aquilabuddy.application.port.out.issue.FindRecommendedIssuePort;
 import com.aquilabuddy.domain.analysis.IssueGuide;
 import com.aquilabuddy.domain.analysis.IssuePseudoCode;
 import com.aquilabuddy.domain.issue.RecommendedIssue;
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
@@ -20,6 +26,9 @@ import org.junit.jupiter.api.Test;
  * 이슈 가이드 application service가 저장된 guide를 목적별 projection으로 변환하는지 검증합니다.
  */
 class IssueGuideServiceTest {
+
+    private static final Instant NOW = Instant.parse("2026-05-19T00:00:00Z");
+    private static final Duration CACHE_TTL = Duration.ofDays(3);
 
     @Test
     void findsPseudoCodeByIssueId() {
@@ -107,6 +116,107 @@ class IssueGuideServiceTest {
     }
 
     @Test
+    void reusesCachedIssueGuideWithinCacheTtlWithoutRemoteCheck() {
+        RecordingGenerateIssueGuidePort generatePort = new RecordingGenerateIssueGuidePort(issueGuide("generated-ttl"));
+        RecordingIssueGuideGenerationLimitPort limitPort = new RecordingIssueGuideGenerationLimitPort();
+        RecordingIssueUpdatedAtPort issueUpdatedAtPort = new RecordingIssueUpdatedAtPort(
+            Optional.of(NOW.plusSeconds(60))
+        );
+        IssueGuideService service = serviceWithCache(
+            new StubCachedIssueGuidePort("demo-ttl", NOW.minus(Duration.ofDays(2))),
+            generatePort,
+            new RecordingSaveIssueGuidePort(),
+            limitPort,
+            new StubFindRecommendedIssuePort(),
+            issueUpdatedAtPort
+        );
+
+        IssueGuide guide = service.findByIssueId("demo-ttl");
+
+        assertThat(guide.issueKey()).isEqualTo("demo-ttl");
+        assertThat(generatePort.generateCount).isZero();
+        assertThat(issueUpdatedAtPort.checkedIssue).isNull();
+        assertThat(limitPort.cacheHitIssueId).isEqualTo("demo-ttl");
+        assertThat(limitPort.checkedIssueId).isNull();
+    }
+
+    @Test
+    void reusesExpiredCachedIssueGuideWhenRemoteIssueWasNotModifiedAfterGeneration() {
+        RecordingGenerateIssueGuidePort generatePort = new RecordingGenerateIssueGuidePort(issueGuide("generated-old"));
+        RecordingIssueGuideGenerationLimitPort limitPort = new RecordingIssueGuideGenerationLimitPort();
+        RecordingIssueUpdatedAtPort issueUpdatedAtPort = new RecordingIssueUpdatedAtPort(
+            Optional.of(NOW.minus(Duration.ofDays(6)))
+        );
+        IssueGuideService service = serviceWithCache(
+            new StubCachedIssueGuidePort("demo-old", NOW.minus(Duration.ofDays(5))),
+            generatePort,
+            new RecordingSaveIssueGuidePort(),
+            limitPort,
+            new StubFindRecommendedIssuePort(),
+            issueUpdatedAtPort
+        );
+
+        IssueGuide guide = service.findByIssueId("demo-old");
+
+        assertThat(guide.issueKey()).isEqualTo("demo-old");
+        assertThat(generatePort.generateCount).isZero();
+        assertThat(issueUpdatedAtPort.checkedIssue.id()).isEqualTo("demo-old");
+        assertThat(limitPort.cacheHitIssueId).isEqualTo("demo-old");
+        assertThat(limitPort.checkedIssueId).isNull();
+    }
+
+    @Test
+    void regeneratesExpiredCachedIssueGuideWhenRemoteIssueWasModifiedAfterGeneration() {
+        IssueGuide generatedGuide = issueGuide("demo-stale");
+        RecordingGenerateIssueGuidePort generatePort = new RecordingGenerateIssueGuidePort(generatedGuide);
+        RecordingSaveIssueGuidePort savePort = new RecordingSaveIssueGuidePort();
+        RecordingIssueGuideGenerationLimitPort limitPort = new RecordingIssueGuideGenerationLimitPort();
+        RecordingIssueUpdatedAtPort issueUpdatedAtPort = new RecordingIssueUpdatedAtPort(
+            Optional.of(NOW.minus(Duration.ofDays(1)))
+        );
+        IssueGuideService service = serviceWithCache(
+            new StubCachedIssueGuidePort("demo-stale", NOW.minus(Duration.ofDays(5))),
+            generatePort,
+            savePort,
+            limitPort,
+            new StubFindRecommendedIssuePort(),
+            issueUpdatedAtPort
+        );
+
+        IssueGuide guide = service.findByIssueId("demo-stale");
+
+        assertThat(guide).isEqualTo(generatedGuide);
+        assertThat(generatePort.generateCount).isOne();
+        assertThat(savePort.savedGuide).isEqualTo(generatedGuide);
+        assertThat(limitPort.checkedIssueId).isEqualTo("demo-stale");
+        assertThat(limitPort.succeededIssueId).isEqualTo("demo-stale");
+        assertThat(limitPort.cacheHitIssueId).isNull();
+    }
+
+    @Test
+    void reusesExpiredCachedIssueGuideWhenRemoteIssueUpdatedAtCannotBeLoaded() {
+        RecordingGenerateIssueGuidePort generatePort = new RecordingGenerateIssueGuidePort(issueGuide("generated-unknown"));
+        RecordingIssueGuideGenerationLimitPort limitPort = new RecordingIssueGuideGenerationLimitPort();
+        RecordingIssueUpdatedAtPort issueUpdatedAtPort = new RecordingIssueUpdatedAtPort(Optional.empty());
+        IssueGuideService service = serviceWithCache(
+            new StubCachedIssueGuidePort("demo-unknown", NOW.minus(Duration.ofDays(5))),
+            generatePort,
+            new RecordingSaveIssueGuidePort(),
+            limitPort,
+            new StubFindRecommendedIssuePort(),
+            issueUpdatedAtPort
+        );
+
+        IssueGuide guide = service.findByIssueId("demo-unknown");
+
+        assertThat(guide.issueKey()).isEqualTo("demo-unknown");
+        assertThat(generatePort.generateCount).isZero();
+        assertThat(issueUpdatedAtPort.checkedIssue.id()).isEqualTo("demo-unknown");
+        assertThat(limitPort.cacheHitIssueId).isEqualTo("demo-unknown");
+        assertThat(limitPort.checkedIssueId).isNull();
+    }
+
+    @Test
     void rejectsGenerationWhenRecommendedIssueIsMissing() {
         IssueGuideService service = new IssueGuideService(
             issueId -> {
@@ -130,6 +240,27 @@ class IssueGuideServiceTest {
             new RecordingSaveIssueGuidePort(),
             new RecordingIssueGuideGenerationLimitPort(),
             new StubFindRecommendedIssuePort()
+        );
+    }
+
+    private static IssueGuideService serviceWithCache(
+        LoadIssueGuidePort loadIssueGuidePort,
+        RecordingGenerateIssueGuidePort generatePort,
+        SaveIssueGuidePort savePort,
+        RecordingIssueGuideGenerationLimitPort limitPort,
+        FindRecommendedIssuePort findRecommendedIssuePort,
+        LoadIssueUpdatedAtPort issueUpdatedAtPort
+    ) {
+        return new IssueGuideService(
+            loadIssueGuidePort,
+            generatePort,
+            savePort,
+            limitPort,
+            findRecommendedIssuePort,
+            issue -> com.aquilabuddy.domain.analysis.RepositoryCodeContext.empty(),
+            issueUpdatedAtPort,
+            Clock.fixed(NOW, ZoneOffset.UTC),
+            CACHE_TTL
         );
     }
 
@@ -161,6 +292,27 @@ class IssueGuideServiceTest {
         @Override
         public IssueGuide loadIssueGuide(String issueId) {
             return issueGuide(issueId);
+        }
+    }
+
+    private static class StubCachedIssueGuidePort implements LoadIssueGuidePort {
+
+        private final String issueId;
+        private final Instant generatedAt;
+
+        private StubCachedIssueGuidePort(String issueId, Instant generatedAt) {
+            this.issueId = issueId;
+            this.generatedAt = generatedAt;
+        }
+
+        @Override
+        public IssueGuide loadIssueGuide(String issueId) {
+            return issueGuide(issueId);
+        }
+
+        @Override
+        public CachedIssueGuide loadCachedIssueGuide(String issueId) {
+            return new CachedIssueGuide(issueGuide(this.issueId), generatedAt);
         }
     }
 
@@ -248,6 +400,22 @@ class IssueGuideServiceTest {
         @Override
         public Optional<RecommendedIssue> findById(String id) {
             return Optional.empty();
+        }
+    }
+
+    private static class RecordingIssueUpdatedAtPort implements LoadIssueUpdatedAtPort {
+
+        private final Optional<Instant> updatedAt;
+        private RecommendedIssue checkedIssue;
+
+        private RecordingIssueUpdatedAtPort(Optional<Instant> updatedAt) {
+            this.updatedAt = updatedAt;
+        }
+
+        @Override
+        public Optional<Instant> loadIssueUpdatedAt(RecommendedIssue issue) {
+            checkedIssue = issue;
+            return updatedAt;
         }
     }
 }

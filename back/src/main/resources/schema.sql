@@ -69,7 +69,8 @@ CREATE TABLE recommended_issue_labels (
 CREATE TABLE issue_guides (
     issue_id VARCHAR(100) PRIMARY KEY,
     guideline VARCHAR(4000) NOT NULL,
-    pseudo_code VARCHAR(4000) NOT NULL
+    pseudo_code VARCHAR(4000) NOT NULL,
+    generated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE issue_guide_generation_requests (

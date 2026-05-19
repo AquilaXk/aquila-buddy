@@ -1,5 +1,6 @@
 package com.aquilabuddy.adapter.out.persistence.analysis;
 
+import com.aquilabuddy.domain.analysis.CachedIssueGuide;
 import com.aquilabuddy.domain.analysis.IssueGuide;
 
 /**
@@ -21,6 +22,10 @@ final class IssueGuidePersistenceMapper {
             entity.getPseudoCode(),
             entity.getSideEffects()
         );
+    }
+
+    static CachedIssueGuide toCachedDomain(IssueGuideJpaEntity entity) {
+        return new CachedIssueGuide(toDomain(entity), entity.getGeneratedAt());
     }
 
     static IssueGuideJpaEntity toEntity(IssueGuide guide) {
