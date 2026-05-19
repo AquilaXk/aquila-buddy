@@ -8,6 +8,7 @@ fi
 
 missing=0
 dry_run="${PROVIDER_E2E_DRY_RUN:-false}"
+skip_on_missing="${PROVIDER_E2E_SKIP_ON_MISSING_SECRETS:-false}"
 
 require_var() {
   local name="$1"
@@ -143,6 +144,15 @@ require_var PROVIDER_E2E_BASE_BRANCH
 require_var PROVIDER_E2E_HEAD_BRANCH
 
 if [[ "${missing}" -ne 0 ]]; then
+  if [[ "${dry_run}" != "true" && "${skip_on_missing}" == "true" ]]; then
+    reason="required live secret/env missing"
+    printf 'Provider E2E smoke skipped because required live secrets/env are missing.\n'
+    printf 'Provider E2E smoke skip reason: %s.\n' "${reason}"
+    if [[ -n "${PROVIDER_E2E_SKIP_FILE:-}" ]]; then
+      printf '%s\n' "${reason}" > "${PROVIDER_E2E_SKIP_FILE}"
+    fi
+    exit 0
+  fi
   printf 'Provider E2E smoke env validation failed.\n' >&2
   exit 1
 fi

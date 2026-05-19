@@ -139,10 +139,11 @@ PROVIDER_E2E_ISSUE_NUMBER=123 \
 PROVIDER_E2E_BASE_BRANCH=main \
 PROVIDER_E2E_HEAD_BRANCH=provider-e2e-smoke \
 EMBEDDING_BACKFILL_OPERATION_TOKEN=operation_token \
+PROVIDER_E2E_EVIDENCE_FILE=tools/smoke/release-readiness/provider-e2e-smoke-local.md \
 bash tools/smoke/run-provider-e2e-smoke.sh
 ```
 
-backend에는 같은 token 값을 `APP_EMBEDDING_BACKFILL_OPERATION_TOKEN`으로 주입해야 `/api/v1/embeddings/backfill`이 live smoke에서 열립니다. dry-run으로 순서만 확인하려면 `PROVIDER_E2E_DRY_RUN=true`를 사용합니다.
+backend에는 같은 token 값을 `APP_EMBEDDING_BACKFILL_OPERATION_TOKEN`으로 주입해야 `/api/v1/embeddings/backfill`이 live smoke에서 열립니다. dry-run으로 순서만 확인하려면 `PROVIDER_E2E_DRY_RUN=true`를 사용합니다. GitHub Actions 수동 workflow는 secret 누락 시 `PROVIDER_E2E_SKIP_ON_MISSING_SECRETS=true`로 실패 대신 skip evidence를 남기고, live 또는 dry-run 결과는 `PROVIDER_E2E_EVIDENCE_FILE` markdown artifact에 실행 일시, commit, provider, 결과, 실패 사유, 단계별 상태로 기록합니다.
 
 AI provider 직접 smoke env와 실행 예시:
 

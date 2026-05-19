@@ -56,6 +56,8 @@ jobs:
       BACKEND_BASE_URL: ${{ inputs.backend_base_url }}
       PROVIDER_E2E_AUTH_MODE: oauth-header
       PROVIDER_E2E_AUTH_HEADER: ${{ secrets.PROVIDER_E2E_AUTH_HEADER }}
+      PROVIDER_E2E_SKIP_ON_MISSING_SECRETS: "true"
+      PROVIDER_E2E_EVIDENCE_FILE: tools/smoke/release-readiness/provider-e2e-smoke-${{ github.run_id }}.md
       PROVIDER_E2E_REPO_FULL_NAME: ${{ inputs.repo_full_name }}
       PROVIDER_E2E_ISSUE_NUMBER: ${{ inputs.issue_number }}
       PROVIDER_E2E_BASE_BRANCH: ${{ inputs.base_branch }}
@@ -88,3 +90,11 @@ jobs:
 
       - name: Run provider E2E smoke
         run: bash tools/smoke/run-provider-e2e-smoke.sh
+
+      - name: Upload provider E2E smoke evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: provider-e2e-smoke-evidence
+          path: tools/smoke/release-readiness/provider-e2e-smoke-${{ github.run_id }}.md
+          if-no-files-found: warn
