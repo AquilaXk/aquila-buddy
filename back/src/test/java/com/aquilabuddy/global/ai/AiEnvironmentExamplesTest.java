@@ -506,6 +506,48 @@ class AiEnvironmentExamplesTest {
     }
 
     @Test
+    void aiPromptEvaluationFixturesCoverGuideDraftTranslationAndFallbacks() throws IOException {
+        String fixtures = Files.readString(Path.of("../tools/smoke/ai-prompt-evaluation-fixtures.json"));
+
+        assertThat(fixtures)
+            .contains("\"promptVersion\": \"ai-output-quality-v2026-05-18\"")
+            .contains("\"fixture\": \"issue-guide-code-context\"")
+            .contains("\"fixture\": \"pr-draft-markdown-close\"")
+            .contains("\"fixture\": \"pr-translation-english\"")
+            .contains("\"fixture\": \"pr-draft-parser-fallback\"")
+            .contains("\"fixture\": \"provider-failure-observation\"")
+            .contains("\"requires\": [\"GUIDELINE\", \"PSEUDO_CODE\", \"SIDE_EFFECTS\"]")
+            .contains("\"requires\": [\"TITLE\", \"BODY\", \"close #2\", \"## Summary\"]")
+            .contains("\"forbids\": [\"README 안내를 보완합니다\"]");
+    }
+
+    @Test
+    void aiPromptEvaluationSmokeDryRunWritesQualityEvidence() throws IOException, InterruptedException {
+        Path evidenceFile = Files.createTempFile("ai-prompt-eval", ".md");
+        SmokeResult result = runAiPromptEvaluationSmoke(Map.ofEntries(
+            entry("AI_PROMPT_EVAL_ENABLED", "true"),
+            entry("AI_PROMPT_EVAL_MODE", "dry-run"),
+            entry("AI_PROVIDER", "openai-compatible"),
+            entry("AI_CHAT_MODEL", "gpt-test"),
+            entry("AI_PROMPT_EVAL_EVIDENCE_FILE", evidenceFile.toString())
+        ));
+
+        assertThat(result.exitCode()).isZero();
+        assertThat(result.output())
+            .contains("AI prompt evaluation path:")
+            .contains("issue-guide-code-context")
+            .contains("pr-draft-markdown-close")
+            .contains("pr-translation-english");
+        assertThat(Files.readString(evidenceFile))
+            .contains("# AI Prompt Evaluation Evidence")
+            .contains("- prompt_version: ai-output-quality-v2026-05-18")
+            .contains("- model: gpt-test")
+            .contains("| issue-guide-code-context | planned |")
+            .contains("| pr-draft-parser-fallback | planned |")
+            .contains("parser_result");
+    }
+
+    @Test
     void langfuseObservabilitySmokeEnvValidationSkipsWhenDisabled() throws IOException, InterruptedException {
         SmokeResult result = runLangfuseObservabilitySmoke(Map.of());
 
@@ -615,8 +657,14 @@ class AiEnvironmentExamplesTest {
             .contains("AI_PROVIDER_SMOKE_MODE: ${{ inputs.mode }}")
             .contains("AI_PROVIDER: ${{ inputs.provider }}")
             .contains("AI_REQUEST_TIMEOUT_MILLIS: ${{ vars.AI_REQUEST_TIMEOUT_MILLIS || '30000' }}")
+            .contains("AI_PROMPT_EVAL_ENABLED: ${{ inputs.enabled }}")
+            .contains("AI_PROMPT_EVAL_MODE: ${{ inputs.mode }}")
+            .contains("AI_PROMPT_EVAL_EVIDENCE_FILE: tools/smoke/release-readiness/ai-prompt-evaluation-${{ github.run_id }}.md")
             .contains("bash tools/smoke/validate-ai-provider-smoke-env.sh")
-            .contains("bash tools/smoke/run-ai-provider-smoke.sh");
+            .contains("bash tools/smoke/run-ai-provider-smoke.sh")
+            .contains("node tools/smoke/run-ai-prompt-evaluation-smoke.mjs")
+            .contains("uses: actions/upload-artifact@v4")
+            .contains("ai-prompt-evaluation-evidence");
     }
 
     @Test
@@ -697,6 +745,22 @@ class AiEnvironmentExamplesTest {
         ProcessBuilder builder = new ProcessBuilder("/bin/bash", "../tools/smoke/run-ai-provider-smoke.sh");
         Map<String, String> processEnv = builder.environment();
         processEnv.clear();
+        processEnv.putAll(env);
+        builder.redirectErrorStream(true);
+        Process process = builder.start();
+        String output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+        boolean exited = process.waitFor(10, TimeUnit.SECONDS);
+        assertThat(exited).isTrue();
+        return new SmokeResult(process.exitValue(), output);
+    }
+
+    private static SmokeResult runAiPromptEvaluationSmoke(Map<String, String> env)
+        throws IOException, InterruptedException {
+        ProcessBuilder builder =
+            new ProcessBuilder("node", "../tools/smoke/run-ai-prompt-evaluation-smoke.mjs");
+        Map<String, String> processEnv = builder.environment();
+        processEnv.clear();
+        processEnv.put("PATH", System.getenv("PATH"));
         processEnv.putAll(env);
         builder.redirectErrorStream(true);
         Process process = builder.start();

@@ -45,6 +45,9 @@ jobs:
       AI_TEMPERATURE: ${{ vars.AI_TEMPERATURE || '0.2' }}
       AI_EMBEDDING_MODEL: ${{ vars.AI_EMBEDDING_MODEL || 'text-embedding-3-small' }}
       AI_EMBEDDING_DIMENSIONS: ${{ vars.AI_EMBEDDING_DIMENSIONS || '1536' }}
+      AI_PROMPT_EVAL_ENABLED: ${{ inputs.enabled }}
+      AI_PROMPT_EVAL_MODE: ${{ inputs.mode }}
+      AI_PROMPT_EVAL_EVIDENCE_FILE: tools/smoke/release-readiness/ai-prompt-evaluation-${{ github.run_id }}.md
       GOOGLE_CLOUD_PROJECT_ID: ${{ vars.GOOGLE_CLOUD_PROJECT_ID || 'grepp-ai-project' }}
       VERTEX_AI_LOCATION: ${{ vars.VERTEX_AI_LOCATION || 'us-central1' }}
       VERTEX_AI_MODEL: ${{ vars.VERTEX_AI_MODEL || 'gemini-2.5-flash' }}
@@ -61,3 +64,14 @@ jobs:
 
       - name: Run AI provider smoke
         run: bash tools/smoke/run-ai-provider-smoke.sh
+
+      - name: Run AI prompt evaluation smoke
+        run: node tools/smoke/run-ai-prompt-evaluation-smoke.mjs
+
+      - name: Upload AI prompt evaluation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-prompt-evaluation-evidence
+          path: tools/smoke/release-readiness/ai-prompt-evaluation-${{ github.run_id }}.md
+          if-no-files-found: warn
