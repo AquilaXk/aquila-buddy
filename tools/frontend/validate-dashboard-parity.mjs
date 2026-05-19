@@ -29,6 +29,7 @@ assertIncludes("getUserProfile", "Dashboard page must fetch the current user pro
 assertIncludes("안녕하세요", "Dashboard page must show the user greeting.");
 assertIncludes("aquila buddy", "Dashboard page must use the aquila buddy service name.");
 assertIncludes("프로필 분석이 필요합니다", "Dashboard page must show the profile analysis banner.");
+assertIncludes("const hasVector = Boolean(user?.profileReady || user?.vectorUpdatedAt);", "Dashboard must gate recommendation entry from profile vector readiness.");
 assertIncludes("이슈 추천을 받으려면 먼저 마이페이지에서 벡터 업데이트를 완료해주세요.", "Dashboard page must explain the vector update prerequisite.");
 assertIncludes("프로필로 이동", "Dashboard page must use the profile navigation CTA.");
 assertIncludes("내 계정 정보", "Dashboard page must show the account card.");
@@ -45,6 +46,9 @@ assertIncludes("이슈 추천", "Dashboard page must link issue recommendation s
 assertIncludes("나의 기술 스택에 맞는 오픈소스 이슈를 추천받고 분석 힌트를 확인합니다.", "Dashboard page must describe issue recommendation and hints.");
 assertIncludes("PR 초안 생성", "Dashboard page must link PR draft step.");
 assertIncludes("코드 작업 후 브랜치 정보를 입력하면 AI가 PR을 자동 작성합니다.", "Dashboard page must describe PR draft creation.");
+assertIncludes("action: \"프로필로 이동\"", "Dashboard profile step action changed.");
+assertIncludes("action: \"이슈 추천 보기\"", "Dashboard issue recommendation step action changed.");
+assertIncludes("action: \"초안 만들기\"", "Dashboard PR draft step action changed.");
 
 for (const text of [
   "DashboardActivityPanel",
