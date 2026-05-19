@@ -284,23 +284,25 @@ export default function IssueDetailPage() {
 }
 
 function FilePathList({ filePaths }: { filePaths: string[] }) {
-  if (filePaths.length === 0) {
-    return null;
-  }
-
   return (
     <div>
       <p className="mb-2 text-xs font-semibold text-github-muted">수정 대상 파일</p>
-      <div className="space-y-1">
-        {filePaths.map((filePath) => (
-          <code
-            className="block rounded-md bg-github-bg px-3 py-1.5 text-xs font-semibold text-github-accent"
-            key={filePath}
-          >
-            {filePath}
-          </code>
-        ))}
-      </div>
+      {filePaths.length > 0 ? (
+        <div className="space-y-1">
+          {filePaths.map((filePath) => (
+            <code
+              className="block rounded-md bg-github-bg px-3 py-1.5 text-xs font-semibold text-github-accent"
+              key={filePath}
+            >
+              {filePath}
+            </code>
+          ))}
+        </div>
+      ) : (
+        <p className="rounded-md bg-github-bg px-3 py-2 text-xs font-semibold text-github-muted">
+          수정 대상 파일 없음
+        </p>
+      )}
     </div>
   );
 }

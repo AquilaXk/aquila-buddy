@@ -31,6 +31,8 @@ assertIncludes("getUserProfile", "Recommendation flow must read the current user
 assertIncludes("crawlSearchIssues", "Recommendation flow must collect candidate issues by language.");
 assertIncludes("getRecommendedIssues", "Recommendation flow must call the recommendation API.");
 assertIncludes("getRecommendedIssueHistory", "Issues page must load saved recommendation history.");
+assertIncludes("languages.slice(0, 3)", "Recommendation crawl must keep the bounded language collection policy.");
+assertIncludes("Promise.all", "Recommendation crawl must keep parallel language collection.");
 assertIncludes("사용자 정보 확인 중...", "Recommendation flow must show the user profile step.");
 assertIncludes("GitHub에서 이슈 수집 중...", "Recommendation flow must show the crawl step.");
 assertIncludes("나에게 맞는 이슈 분석 중...", "Recommendation flow must show the analysis step.");
