@@ -91,6 +91,7 @@ OAuth 로그인을 함께 확인할 때는 `read:user`, `user:email` scope의 Gi
 
 운영 배포 전 상세 점검 절차는 [AI 운영 smoke runbook](tools/smoke/AI_RUNTIME_SMOKE.md)을 기준으로 확인합니다.
 배포 후보별 실행 결과와 rollback 판단은 [release readiness records](tools/smoke/release-readiness/README.md)에 secret 없이 남깁니다.
+100% 완료 판정은 [동등성 완료 매트릭스](tools/smoke/release-readiness/PARITY_COMPLETION_MATRIX.md)의 자동 검증 항목이 모두 pass이고, live provider/Langfuse/extension GitHub/provider E2E evidence가 `blocked` 없이 pass로 기록된 상태를 기준으로 합니다.
 
 PostgreSQL/pgvector와 실제 AI provider를 함께 확인하는 최소 순서:
 

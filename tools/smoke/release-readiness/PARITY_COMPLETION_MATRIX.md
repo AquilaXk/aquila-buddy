@@ -8,6 +8,7 @@
 | 완료 | 구현과 검증 증적이 모두 존재합니다. |
 | 자동 검증 | CI 또는 로컬 명령으로 반복 검증됩니다. |
 | 수동 검증 | secret, OAuth session, staging endpoint처럼 수동 준비가 필요한 검증입니다. |
+| blocked | 100% 완료 판정에 필요한 live evidence가 아직 없어 release readiness에서 blocker로 남깁니다. |
 | 미완료 | 구현 또는 검증 증적이 아직 없습니다. |
 
 ## 화면 UI UX
@@ -23,6 +24,15 @@
 | PR 상세 | 자동 검증 | `tools/frontend/validate-pr-detail-parity.mjs`, `tools/frontend/validate-ui-ux-flow-parity.mjs` | draft detail, diff, edit/delete, submission bundle, translation timeline |
 | shell/brand theme | 자동 검증 | `tools/frontend/validate-shell-parity.mjs`, `tools/frontend/validate-brand-gothic-parity.mjs` | aquila-buddy shell, aquila-bank/aquila-blog asset family, favicon/대표 이미지 |
 
+## UI UX 구조 동등성 PR 증적
+| 영역 | 상태 | 증거 | 완료 기준 |
+| --- | --- | --- | --- |
+| 공통 UI UX flow contract | 자동 검증 | PR #300 CI Extension/Frontend/Backend/Pgvector/Operations pass | 페이지 route, CTA, 오류 상태, protected flow가 계약 fixture에 고정됨 |
+| 로그인/OAuth navigation | 자동 검증 | PR #301 CI pass | logout redirect, OAuth callback, shell navigation 구조 유지 |
+| 대시보드/프로필/추천 진입 | 자동 검증 | PR #302 CI pass | profile 저장 오류와 recommend 진입 흐름이 기존 UI UX와 동일 |
+| 이슈 목록/상세/분석 | 자동 검증 | PR #303 CI pass | issue list, detail, guide/pseudo/file path empty state 구조 유지 |
+| PR 초안/상세 | 자동 검증 | PR #304 CI pass | draft 생성/오류/detail/delete/translation flow 구조 유지 |
+
 ## API 계약
 | 영역 | 상태 | 검증 | 확인 범위 |
 | --- | --- | --- | --- |
@@ -32,7 +42,9 @@
 | OAuth/JWT | 자동 검증 | `back/src/test/java/com/aquilabuddy/global/auth/oauth/OAuthCallbackControllerTest.java` | callback token, 실패 redirect, principal |
 | issue crawl/recommend/lookup | 자동 검증 | `back/src/test/java/com/aquilabuddy/domain/issue/IssueRecommendationControllerTest.java` | GitHub issue search, recommendation, lookup |
 | issue guide/pseudo/workflow | 자동 검증 | `back/src/test/java/com/aquilabuddy/domain/analysis/IssueGuideControllerTest.java`, `back/src/test/java/com/aquilabuddy/application/service/analysis/IssueGuideServiceTest.java` | AI guide, pseudo code, workflow, cache/limit |
-| repository code context | 자동 검증 | `back/src/test/java/com/aquilabuddy/domain/analysis/RepositoryCodeContextTest.java` | file selection, truncation, fallback |
+| issue guide cache invalidation | 자동 검증 | PR #305 CI pass | generated_at TTL, GitHub updated_at 변경 감지, cache hit 재사용 |
+| issue guide daily limit | 자동 검증 | PR #307 CI pass | 기본 5회, cache hit 제외, 429 failure envelope, 날짜별 quota |
+| repository code context | 자동 검증 | `back/src/test/java/com/aquilabuddy/domain/analysis/RepositoryCodeContextTest.java`, PR #306 CI pass | file selection, dedupe, excluded path filtering, truncation, fallback |
 | PR draft | 자동 검증 | `back/src/test/java/com/aquilabuddy/adapter/in/web/prdraft/PullRequestDraftControllerTest.java`, `back/src/test/java/com/aquilabuddy/adapter/out/ai/AiGeneratedOutputQualityRegressionTest.java` | close line, markdown, context, parser fallback |
 | PR translation | 자동 검증 | `back/src/test/java/com/aquilabuddy/application/service/prdraft/PullRequestDraftTranslationServiceTest.java`, `back/src/test/java/com/aquilabuddy/adapter/out/fixture/prdraft/RuleBasedPullRequestDraftTranslationAdapterTest.java` | English title/body, timeline/activity/submission |
 | embedding backfill | 자동 검증 | `back/src/test/java/com/aquilabuddy/adapter/in/web/embedding/EmbeddingBackfillControllerTest.java` | operation token, limit guard, audit result |
@@ -53,21 +65,23 @@
 | 영역 | 상태 | 검증 | 확인 범위 |
 | --- | --- | --- | --- |
 | AI provider 설정 | 자동 검증 | `tools/smoke/validate-ai-runtime-env.sh`, `tools/smoke/validate-ai-provider-smoke-env.sh` | `AI_PROVIDER=openai-compatible`, chat model, embedding model, dimension |
-| AI provider live 호출 | 수동 검증 | `tools/smoke/run-ai-provider-smoke.sh` | chat completion, embedding, timeout/error path |
-| OAuth/JWT 운영 인증 | 수동 검증 | `tools/smoke/run-provider-e2e-smoke.sh` | OAuth 또는 JWT 인증 header로 user context 확인 |
-| profile vector | 수동 검증 | `tools/smoke/run-provider-e2e-smoke.sh` | `/api/v1/users/me/vector` profile embedding 저장 |
-| issue crawl | 수동 검증 | `tools/smoke/run-provider-e2e-smoke.sh` | GitHub token scope, search query, collected issue 저장 |
+| AI provider live 호출 | blocked | `tools/smoke/run-ai-provider-smoke.sh` | live provider key로 chat completion, embedding, timeout/error path evidence 필요 |
+| AI prompt evaluation | blocked | `tools/smoke/run-ai-prompt-evaluation-smoke.mjs`, PR #310 CI pass | issue guide, PR draft, translation, parser result, token usage evidence 필요 |
+| OAuth/JWT 운영 인증 | blocked | `tools/smoke/run-provider-e2e-smoke.sh` | OAuth 또는 JWT 인증 header로 user context 확인 |
+| profile vector | blocked | `tools/smoke/run-provider-e2e-smoke.sh` | `/api/v1/users/me/vector` profile embedding 저장 |
+| issue crawl | blocked | `tools/smoke/run-provider-e2e-smoke.sh` | GitHub token scope, search query, collected issue 저장 |
 | embedding backfill | 자동 검증 | `back/src/test/java/com/aquilabuddy/adapter/in/web/embedding/EmbeddingBackfillControllerTest.java` | admin token, limit guard, audit log |
-| embedding backfill live | 수동 검증 | `tools/smoke/run-provider-e2e-smoke.sh` | staging DB에서 backfill 전후 결과 기록 |
+| embedding backfill live | blocked | `tools/smoke/run-provider-e2e-smoke.sh` | staging DB에서 backfill 전후 결과 기록 |
 | pgvector init | 자동 검증 | `back/src/test/java/com/aquilabuddy/adapter/out/persistence/issue/PgvectorInitContractTest.java`, `tools/smoke/release-readiness/2026-05-19-main-3f2f1d5.md` | schema 적용, vector type, HNSW index |
-| pgvector 추천 live | 수동 검증 | `tools/smoke/run-provider-e2e-smoke.sh` | vector index 기반 recommend/lookup, ranking 변화 |
-| issue guide live | 수동 검증 | `tools/smoke/run-provider-e2e-smoke.sh` | provider 응답 기반 guide 생성, fallback 없는 성공 |
-| PR draft live | 수동 검증 | `tools/smoke/run-provider-e2e-smoke.sh` | diff, issue context, analysis context 기반 draft 생성 |
-| translation live | 수동 검증 | `tools/smoke/run-provider-e2e-smoke.sh` | 생성 draft id의 영문 title/body 생성 |
+| pgvector 추천 live | blocked | `tools/smoke/run-provider-e2e-smoke.sh` | vector index 기반 recommend/lookup, ranking 변화 |
+| issue guide live | blocked | `tools/smoke/run-provider-e2e-smoke.sh` | provider 응답 기반 guide 생성, fallback 없는 성공 |
+| PR draft live | blocked | `tools/smoke/run-provider-e2e-smoke.sh` | diff, issue context, analysis context 기반 draft 생성 |
+| translation live | blocked | `tools/smoke/run-provider-e2e-smoke.sh` | 생성 draft id의 영문 title/body 생성 |
 | Langfuse 관측 | 자동 검증 | `tools/smoke/validate-langfuse-observability-env.sh`, `back/src/test/java/com/aquilabuddy/adapter/out/persistence/ai/PersistentAiCallObserverTest.java` | prompt version, model, latency, token usage, failure reason 저장 계약 |
-| Langfuse live trace | 수동 검증 | `tools/smoke/run-langfuse-observability-smoke.sh` | live endpoint trace 적재 확인 |
+| Langfuse live trace | blocked | `tools/smoke/run-langfuse-observability-smoke.sh` | live endpoint trace 적재 확인 |
+| Chrome extension GitHub live | blocked | `npm --prefix extension run test:e2e:github-live`, PR #309 CI pass | 실제 GitHub issue list/detail/compare DOM, Chrome profile, backend auth evidence 필요 |
 | secret hygiene | 자동 검증 | `tools/smoke/validate-release-readiness-record.sh` | record에 token/API key 원문이 없는지 검사 |
-| release readiness record | 자동 검증 | `tools/smoke/release-readiness/2026-05-19-main-3f2f1d5.md` | main commit, CI run, pending-manual live smoke 조건 |
+| release readiness record | 자동 검증 | `tools/smoke/release-readiness/2026-05-19-main-3f2f1d5.md` | main commit, CI run, blocked live smoke 조건 |
 
 ## 필수 검증 명령
 | 목적 | 명령 |
@@ -79,10 +93,23 @@
 | provider E2E disabled skip | `PROVIDER_E2E_SMOKE_ENABLED=false bash tools/smoke/run-provider-e2e-smoke.sh` |
 | provider E2E dry-run | `PROVIDER_E2E_SMOKE_ENABLED=true PROVIDER_E2E_DRY_RUN=true ... bash tools/smoke/run-provider-e2e-smoke.sh` |
 | provider E2E live | `PROVIDER_E2E_SMOKE_ENABLED=true PROVIDER_E2E_DRY_RUN=false ... bash tools/smoke/run-provider-e2e-smoke.sh` |
+| AI prompt evaluation dry-run | `AI_PROMPT_EVAL_ENABLED=true AI_PROMPT_EVAL_MODE=dry-run ... node tools/smoke/run-ai-prompt-evaluation-smoke.mjs` |
+| extension GitHub live disabled skip | `EXTENSION_GITHUB_LIVE_SMOKE_ENABLED=false npm --prefix extension run test:e2e:github-live` |
+| extension GitHub live | `EXTENSION_GITHUB_LIVE_SMOKE_ENABLED=true ... npm --prefix extension run test:e2e:github-live` |
+
+## 완료율 산정
+| 묶음 | 판정 | 근거 |
+| --- | --- | --- |
+| 프론트 UI UX 구조 | 100% 자동 검증 | 페이지별 parity validator와 PR #300-#304 CI pass |
+| 백엔드 기능/API 계약 | 100% 자동 검증 | backend check, pgvector integration, PR #305-#308, #310 CI pass |
+| 확장 fixture DOM | 100% 자동 검증 | `npm --prefix extension run validate`, `npm --prefix extension run test:e2e`, PR #309 CI pass |
+| 운영 live smoke | blocked | live provider key, Langfuse secret, staging DB, OAuth/JWT header, Chrome profile evidence가 아직 pass로 기록되지 않음 |
+| 최종 100% 완료 | blocked | 위 운영 live smoke blocker가 모두 pass evidence로 바뀌어야 완료 |
 
 ## 판정
 - 프론트엔드 구조와 핵심 UI UX 흐름은 자동 검증 상태입니다.
 - 백엔드 API 계약과 AI 생성물 품질 게이트는 자동 검증 상태입니다.
 - 확장 프로그램의 GitHub 유사 DOM 흐름은 자동 검증 상태입니다.
-- 실제 staging secret, OAuth session, Langfuse endpoint, staging DB가 필요한 운영 smoke는 수동 검증 상태입니다.
-- release readiness record는 secret 값을 기록하지 않고 `pending-manual` 재실행 조건을 남깁니다.
+- 실제 staging secret, OAuth session, Langfuse endpoint, staging DB, Chrome profile이 필요한 운영 smoke는 `blocked` 상태입니다.
+- release readiness record는 secret 값을 기록하지 않고 `blocked` 재실행 조건을 남깁니다.
+- 미실행 live smoke를 `skip`으로 완료 처리하지 않습니다. secret/profile이 없어 실행하지 못한 경우 100% 완료 판정의 blocker입니다.

@@ -50,7 +50,9 @@ validate_record() {
     pgvector
     operations
     ai-provider
+    ai-prompt-evaluation
     langfuse
+    extension-github-live
     provider-e2e
     profile-vector
     issue-crawl
