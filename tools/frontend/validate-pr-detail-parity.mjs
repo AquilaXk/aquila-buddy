@@ -69,6 +69,7 @@ assertIncludes("코드 변경 내용 (diff)", "PR detail page must show the diff
 assertIncludes("draft.diffContent", "PR detail page must render stored diff content.");
 assertIncludes("편집", "PR detail page must expose edit action.");
 assertIncludes("삭제", "PR detail page must expose delete action.");
+assertIncludes("router.replace(\"/pr-draft\")", "PR detail delete must replace history with the draft list.");
 assertIncludes("저장", "PR detail page must expose save action.");
 assertIncludes("취소", "PR detail page must expose cancel action.");
 assertIncludes("복사됨 ✓", "PR detail page must show copy feedback.");
@@ -89,6 +90,8 @@ for (const text of [
 ]) {
   assertNotIncludes(text, `PR detail page must not expose old "${text}" structure.`);
 }
+
+assertNotIncludes("router.push(\"/pr-draft\")", "PR detail delete must not leave a deleted draft detail in browser history.");
 
 for (const text of [">Branch<", "{'Branch'}", '{"Branch"}']) {
   assertNotIncludes(text, "PR detail page must not expose the old Branch label.");
