@@ -107,6 +107,43 @@ class PullRequestDraftServiceTest {
     }
 
     @Test
+    void createsDraftWithFallbackDiffWhenServerDiffLookupFails() {
+        FakeGeneratePullRequestDraftPort generatePort = new FakeGeneratePullRequestDraftPort();
+        FakeSavePullRequestDraftPort savePort = new FakeSavePullRequestDraftPort();
+        PullRequestDraftService service = new PullRequestDraftService(
+            generatePort,
+            request -> {
+                throw new IllegalStateException("GitHub compare diff를 찾을 수 없습니다.");
+            },
+            new FakeLoadPullRequestDraftRepositoryGuideContextPort(),
+            new FakeFindRecommendedIssuePort(),
+            new FakeLoadPullRequestDraftAnalysisContextPort(),
+            savePort,
+            new FakeLoadPullRequestDraftPort(),
+            new FakeLoadPullRequestDraftHistoryPort(),
+            new FakeUpdatePullRequestDraftPort(),
+            new FakeDeletePullRequestDraftPort(),
+            new FakeLoadPullRequestDraftTranslationPort()
+        );
+
+        PullRequestDraftRequest request = new PullRequestDraftRequest(
+            "spring-projects/spring-boot",
+            2,
+            "main",
+            "missing-branch",
+            null
+        );
+
+        StoredPullRequestDraft draft = service.create(request);
+
+        assertThat(generatePort.generatedRequest.diffContent())
+            .contains("Diff를 불러오지 못했습니다.")
+            .contains("main -> missing-branch");
+        assertThat(savePort.savedRequest).isEqualTo(generatePort.generatedRequest);
+        assertThat(draft.body()).contains("spring-projects/spring-boot");
+    }
+
+    @Test
     void keepsExplicitDiffContentWithoutResolvingFromGitHub() {
         FakeLoadPullRequestDraftDiffPort diffPort = new FakeLoadPullRequestDraftDiffPort();
         FakeGeneratePullRequestDraftPort generatePort = new FakeGeneratePullRequestDraftPort();

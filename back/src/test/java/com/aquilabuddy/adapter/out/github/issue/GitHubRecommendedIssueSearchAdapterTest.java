@@ -40,7 +40,7 @@ class GitHubRecommendedIssueSearchAdapterTest {
                       "id": 987654321,
                       "number": 42,
                       "title": "Improve onboarding docs",
-                      "body": "This issue is friendly for first-time contributors.",
+                      "body": "<img width=\\"360\\" height=\\"191\\" alt=\\"Image\\" src=\\"https://github.com/user-attachments/assets/09b66664-17ca-46b1-a2db-18b8a45d3e0a\\" /> Cerramos nuestra cuenta después de que cambió a X y dejó de ser una plataforma segura.",
                       "repository_url": "https://api.github.com/repos/spring-projects/spring-boot",
                       "labels": [
                         {"name": "good first issue"},
@@ -75,6 +75,10 @@ class GitHubRecommendedIssueSearchAdapterTest {
         assertThat(issues.getFirst().id()).isEqualTo("987654321");
         assertThat(issues.getFirst().repoFullName()).isEqualTo("spring-projects/spring-boot");
         assertThat(issues.getFirst().issueNumber()).isEqualTo(42);
+        assertThat(issues.getFirst().summary())
+            .isEqualTo("Cerramos nuestra cuenta después de que cambió a X y dejó de ser una plataforma segura.");
+        assertThat(issues.getFirst().reason())
+            .isEqualTo("GitHub Search에서 Good First Issue 조건으로 수집된 후보입니다.");
         assertThat(issues.getFirst().labels()).containsExactly("good first issue", "documentation");
         assertThat(issues.getFirst().status()).isEqualTo("OPEN");
     }
