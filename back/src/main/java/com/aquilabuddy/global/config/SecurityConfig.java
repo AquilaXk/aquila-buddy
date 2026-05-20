@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Arrays;
 import java.util.Set;
 import java.util.stream.Stream;
+import com.aquilabuddy.global.auth.csrf.CookieCsrfProtectionFilter;
 import com.aquilabuddy.global.auth.jwt.JwtAuthenticationFilter;
 import com.aquilabuddy.global.auth.jwt.JwtProperties;
 import com.aquilabuddy.global.auth.jwt.JwtProvider;
@@ -41,13 +42,16 @@ public class SecurityConfig {
 
     private final JwtProvider jwtProvider;
     private final ObjectMapper objectMapper;
+    private final CookieCsrfProtectionFilter cookieCsrfProtectionFilter;
 
     public SecurityConfig(
         JwtProvider jwtProvider,
-        ObjectMapper objectMapper
+        ObjectMapper objectMapper,
+        CookieCsrfProtectionFilter cookieCsrfProtectionFilter
     ) {
         this.jwtProvider = jwtProvider;
         this.objectMapper = objectMapper;
+        this.cookieCsrfProtectionFilter = cookieCsrfProtectionFilter;
     }
 
     /**
@@ -80,6 +84,7 @@ public class SecurityConfig {
                 response.setContentType("application/json;charset=UTF-8");
                 response.getWriter().write(objectMapper.writeValueAsString(ApiResponse.error("로그인이 필요합니다.")));
             }))
+            .addFilterBefore(cookieCsrfProtectionFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(new JwtAuthenticationFilter(jwtProvider), UsernamePasswordAuthenticationFilter.class)
             .build();
     }

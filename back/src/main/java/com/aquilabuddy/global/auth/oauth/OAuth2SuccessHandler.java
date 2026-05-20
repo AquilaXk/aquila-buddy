@@ -1,5 +1,6 @@
 package com.aquilabuddy.global.auth.oauth;
 
+import com.aquilabuddy.global.auth.csrf.CsrfCookieSupport;
 import com.aquilabuddy.global.auth.jwt.JwtCookieSupport;
 import com.aquilabuddy.global.auth.jwt.JwtProperties;
 import com.aquilabuddy.global.auth.jwt.JwtProvider;
@@ -46,6 +47,10 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
         response.addHeader(
             HttpHeaders.SET_COOKIE,
             JwtCookieSupport.authenticationCookie(token, jwtProperties.expiration()).toString()
+        );
+        response.addHeader(
+            HttpHeaders.SET_COOKIE,
+            CsrfCookieSupport.csrfCookie(CsrfCookieSupport.newToken(), jwtProperties.expiration()).toString()
         );
         response.sendRedirect(redirectUri);
     }

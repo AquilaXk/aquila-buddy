@@ -3,6 +3,7 @@ package com.aquilabuddy.global.config;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -20,6 +21,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -108,6 +110,58 @@ class SecurityConfigTest {
         mockMvc.perform(get("/api/v1/users/me")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer stale-local-storage-token")
                 .cookie(new Cookie(JwtCookieSupport.AUTH_COOKIE_NAME, token)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true));
+    }
+
+    @Test
+    void rejectsCookieAuthenticatedMutationWithoutCsrfContext() throws Exception {
+        String token = jwtProvider.generateToken("10001");
+
+        mockMvc.perform(patch("/api/v1/users/me")
+                .cookie(new Cookie(JwtCookieSupport.AUTH_COOKIE_NAME, token))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(profileUpdateJson()))
+            .andExpect(status().isForbidden())
+            .andExpect(jsonPath("$.success").value(false))
+            .andExpect(jsonPath("$.message").value("CSRF 검증에 실패했습니다."));
+    }
+
+    @Test
+    void allowsCookieAuthenticatedMutationFromTrustedOrigin() throws Exception {
+        String token = jwtProvider.generateToken("10001");
+
+        mockMvc.perform(patch("/api/v1/users/me")
+                .header(HttpHeaders.ORIGIN, "http://localhost:3000")
+                .cookie(new Cookie(JwtCookieSupport.AUTH_COOKIE_NAME, token))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(profileUpdateJson()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true));
+    }
+
+    @Test
+    void allowsCookieAuthenticatedMutationWithMatchingCsrfToken() throws Exception {
+        String token = jwtProvider.generateToken("10001");
+
+        mockMvc.perform(patch("/api/v1/users/me")
+                .header("X-Aquila-CSRF-Token", "csrf-token-123")
+                .cookie(new Cookie(JwtCookieSupport.AUTH_COOKIE_NAME, token))
+                .cookie(new Cookie("aquila_buddy_csrf", "csrf-token-123"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(profileUpdateJson()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true));
+    }
+
+    @Test
+    void allowsBearerMutationWithoutCsrfContext() throws Exception {
+        String token = jwtProvider.generateToken("10001");
+
+        mockMvc.perform(patch("/api/v1/users/me")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(profileUpdateJson()))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.success").value(true));
     }
@@ -210,5 +264,16 @@ class SecurityConfigTest {
             .map(parameter -> java.net.URLDecoder.decode(parameter.substring("state=".length()), java.nio.charset.StandardCharsets.UTF_8))
             .findFirst()
             .orElseThrow();
+    }
+
+    private static String profileUpdateJson() {
+        return """
+            {
+              "name": "Aquila",
+              "email": "aquila@example.com",
+              "primaryLanguages": ["Java"],
+              "topics": ["spring"]
+            }
+            """;
     }
 }
