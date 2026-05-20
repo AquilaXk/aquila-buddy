@@ -263,7 +263,7 @@ public class OpenAiCompatibleAiClient implements AiClient, EmbeddingClient {
     }
 
     private static String failureReason(RuntimeException exception) {
-        String message = exception.getMessage();
+        String message = exceptionMessageChain(exception);
         String detail = hasText(message)
             ? exception.getClass().getSimpleName() + ": " + message
             : exception.getClass().getSimpleName();
@@ -273,6 +273,22 @@ public class OpenAiCompatibleAiClient implements AiClient, EmbeddingClient {
             detail = exception.getClass().getSimpleName() + ": timeout - " + message;
         }
         return truncateFailureReason(detail);
+    }
+
+    private static String exceptionMessageChain(Throwable exception) {
+        StringBuilder message = new StringBuilder();
+        Throwable current = exception;
+        while (current != null) {
+            if (hasText(current.getMessage())) {
+                if (!message.isEmpty()) {
+                    message.append(" | caused by: ");
+                }
+                message.append(current.getMessage().strip());
+            }
+            Throwable cause = current.getCause();
+            current = cause == current ? null : cause;
+        }
+        return message.toString();
     }
 
     private static JdkClientHttpRequestFactory requestFactory(int timeoutMillis) {
