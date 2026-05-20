@@ -67,6 +67,7 @@ require_contains deploy/oci/aquila-buddy.env.example 'AQUILA_BUDDY_BACKEND_PORT=
 require_contains deploy/oci/aquila-buddy.env.example 'POSTGRES_IMAGE=pgvector/pgvector:pg16'
 require_contains deploy/oci/aquila-buddy.env.example 'DB_URL=jdbc:postgresql://aquila-buddy-postgres:5432/aquila_buddy'
 require_contains deploy/oci/aquila-buddy.env.example 'SPRING_PROFILES_ACTIVE=prod'
+require_contains deploy/oci/aquila-buddy.env.example 'SERVER_FORWARD_HEADERS_STRATEGY=framework'
 require_contains deploy/oci/aquila-buddy.env.example 'JWT_SECRET='
 require_contains deploy/oci/aquila-buddy.env.example 'GITHUB_CLIENT_SECRET='
 require_contains deploy/oci/aquila-buddy.env.example 'GITHUB_USER_CONTEXT_ENABLED=true'
@@ -82,6 +83,7 @@ require_contains .github/workflows/oci-buddy-cd.yml 'deploy/oci/build-aquila-bud
 require_contains .github/workflows/oci-buddy-cd.yml 'deploy/oci/run-aquila-buddy.sh'
 require_contains .github/workflows/oci-buddy-cd.yml 'buddy.aquilaxk.site'
 require_contains .github/workflows/oci-buddy-cd.yml 'SPRING_PROFILES_ACTIVE=prod'
+require_contains .github/workflows/oci-buddy-cd.yml 'SERVER_FORWARD_HEADERS_STRATEGY=framework'
 require_contains deploy/oci/bootstrap-github-runner.sh 'GITHUB_RUNNER_TOKEN'
 require_contains deploy/oci/bootstrap-github-runner.sh 'AquilaXk/aquila-buddy'
 require_contains deploy/oci/bootstrap-github-runner.sh 'oci-a1-buddy'
@@ -101,6 +103,11 @@ require_contains deploy/oci/render-nginx-config.sh 'proxy_pass http://127.0.0.1:
 require_contains deploy/oci/aquila-buddy.nginx.conf.template 'server_name ${AQUILA_BUDDY_DOMAIN};'
 require_contains deploy/oci/aquila-buddy.nginx.conf.template 'location /api/'
 require_contains deploy/oci/aquila-buddy.nginx.conf.template 'location /oauth2/'
+require_contains deploy/oci/aquila-buddy.nginx.conf.template 'location /login/oauth2/'
+
+if grep -R --line-number -E 'location[[:space:]]+/login/[[:space:]]*\{' "$repo_root/deploy/oci/aquila-buddy.nginx.conf.template" "$repo_root/deploy/oci/render-nginx-config.sh" >/dev/null; then
+  fail "login page path must stay on frontend; only /login/oauth2/ may proxy to backend"
+fi
 
 if grep -R --line-number --exclude 'validate-buddy-deploy-assets.sh' -E '(ghp_|github_pat_|BEGIN PRIVATE KEY|AIza|sk-[A-Za-z0-9])' "$repo_root/deploy/oci" >/dev/null; then
   fail "deploy/oci must not contain secret-looking values"

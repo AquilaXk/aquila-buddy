@@ -66,10 +66,12 @@ server {
         proxy_set_header X-Forwarded-Proto https;
     }
 
-    location /login/ {
+    location /login/oauth2/ {
         proxy_pass http://127.0.0.1:${AQUILA_BUDDY_BACKEND_PORT};
         proxy_set_header Host \$host;
         proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header X-Forwarded-Host \$host;
+        proxy_set_header X-Forwarded-Port 443;
     }
 
     location /actuator/health {
