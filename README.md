@@ -315,6 +315,48 @@ terraform plan
 
 `terraform.tfvars`, `terraform.env`, `.terraform/`, `*.tfstate`, `*.tfplan`은 gitignore 대상입니다.
 
+## OCI Runtime Deploy
+
+OCI A1 인스턴스에서 aquila-buddy를 실행할 때는 Docker image와 host nginx 라우팅을 사용합니다. 서버는 `/var/lib/aquila-data`를 Docker data-root로 사용하고, 애플리케이션은 기존 80/443 포트를 직접 점유하지 않고 loopback 포트로만 바인딩합니다.
+
+기본 포트:
+
+- Frontend container: `127.0.0.1:13011 -> 3000`
+- Backend container: `127.0.0.1:18091 -> 8080`
+- PostgreSQL/pgvector: Docker network 내부 `aquila-buddy-postgres:5432`
+
+배포 env는 예시 파일을 private path로 복사해 채웁니다. 실제 token, OAuth secret, JWT secret, provider key, `vertex-key.json`은 commit하지 않습니다.
+
+```bash
+sudo mkdir -p /opt/aquila-buddy/secrets
+sudo cp deploy/oci/aquila-buddy.env.example /opt/aquila-buddy/aquila-buddy.env
+sudo editor /opt/aquila-buddy/aquila-buddy.env
+```
+
+이미지를 빌드하고 registry에 push할 때는 `AQUILA_BUDDY_PUSH_IMAGES=true`를 사용합니다. frontend image는 `NEXT_PUBLIC_API_URL`과 `NEXT_PUBLIC_BACKEND_OAUTH_URL`을 build arg로 굽기 때문에 domain 값을 먼저 확정해야 합니다.
+
+```bash
+bash deploy/oci/build-aquila-buddy-images.sh /opt/aquila-buddy/aquila-buddy.env
+```
+
+서버에서 컨테이너를 띄웁니다. DB schema는 비어 있는 DB에만 자동 적용하고, 기존 schema가 있으면 destructive `schema.sql` 재적용을 건너뜁니다.
+
+```bash
+bash deploy/oci/run-aquila-buddy.sh /opt/aquila-buddy/aquila-buddy.env
+```
+
+host nginx 라우팅은 별도 단계로 설치합니다. 인증서는 `AQUILA_BUDDY_SSL_CERTIFICATE`, `AQUILA_BUDDY_SSL_CERTIFICATE_KEY` 경로에 이미 있어야 합니다.
+
+```bash
+bash deploy/oci/install-nginx-config.sh /opt/aquila-buddy/aquila-buddy.env
+```
+
+배포 자산의 정적 검증은 다음 명령으로 실행합니다.
+
+```bash
+bash deploy/oci/validate-buddy-deploy-assets.sh
+```
+
 ## Ports
 
 - Backend: `http://localhost:8080`
