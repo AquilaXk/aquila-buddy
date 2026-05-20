@@ -178,10 +178,10 @@ export default function IssueDetailPage() {
           </div>
         ) : null}
 
-        {issue.summary ? (
+        {"reason" in issue && issue.reason ? (
           <div className="mt-5 rounded-md bg-github-bg p-4">
             <p className="text-xs font-semibold text-github-muted">추천 이유</p>
-            <p className="mt-2 text-sm leading-6 text-github-text">{issue.summary}</p>
+            <p className="mt-2 text-sm leading-6 text-github-text">{issue.reason}</p>
           </div>
         ) : null}
       </section>

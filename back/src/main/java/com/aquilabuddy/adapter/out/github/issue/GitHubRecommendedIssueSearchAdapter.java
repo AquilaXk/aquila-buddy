@@ -110,11 +110,34 @@ public class GitHubRecommendedIssueSearchAdapter implements SearchRecommendedIss
 
     private String summary(String body) {
         String fallback = "GitHub에서 수집한 Good First Issue 후보입니다.";
-        String value = nonBlankOrDefault(body, fallback);
+        String value = sanitizeIssueBody(nonBlankOrDefault(body, fallback));
+        if (value.isBlank()) {
+            value = fallback;
+        }
         if (value.length() <= 240) {
             return value;
         }
         return value.substring(0, 240);
+    }
+
+    private String sanitizeIssueBody(String body) {
+        return decodeCommonHtmlEntities(body)
+            .replaceAll("!\\[[^\\]]*]\\([^)]*\\)", " ")
+            .replaceAll("(?i)<img\\b[^>]*>", " ")
+            .replaceAll("(?i)<[^>]+>", " ")
+            .replaceAll("https://github\\.com/user-attachments/\\S+", " ")
+            .replaceAll("\\[([^\\]]+)]\\(([^)]+)\\)", "$1")
+            .replaceAll("\\s+", " ")
+            .trim();
+    }
+
+    private String decodeCommonHtmlEntities(String value) {
+        return value
+            .replace("&lt;", "<")
+            .replace("&gt;", ">")
+            .replace("&amp;", "&")
+            .replace("&quot;", "\"")
+            .replace("&#39;", "'");
     }
 
     private String nonBlankOrDefault(String value, String fallback) {

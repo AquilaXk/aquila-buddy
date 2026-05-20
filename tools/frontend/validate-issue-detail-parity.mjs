@@ -48,6 +48,8 @@ assertIncludes("handleGetPseudo", "Issue detail page must expose a pseudo code r
 assertIncludes("이슈를 찾을 수 없습니다.", "Issue detail page must keep the not-found state.");
 assertIncludes("← 추천 이슈 목록", "Issue detail page must link back to the issues list.");
 assertIncludes("추천 이유", "Issue detail page must show the recommendation reason.");
+assertIncludes("{issue.reason}", "Issue detail page must render recommendation reason from issue.reason, not the raw issue body summary.");
+assertNotIncludes("{issue.summary}</p>", "Issue detail page must not render raw issue body summary as the recommendation reason.");
 assertIncludes("매칭", "Issue detail page must show the match score.");
 assertIncludes("StatusBadge", "Issue detail page must render status badges.");
 assertIncludes("1차 힌트 — 수정 가이드", "Issue detail page must show the first hint card.");
