@@ -1,6 +1,9 @@
 package com.aquilabuddy.global.config;
 
 import java.util.List;
+import java.util.Arrays;
+import java.util.Set;
+import java.util.stream.Stream;
 import com.aquilabuddy.global.auth.jwt.JwtAuthenticationFilter;
 import com.aquilabuddy.global.auth.jwt.JwtProperties;
 import com.aquilabuddy.global.auth.jwt.JwtProvider;
@@ -11,6 +14,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.env.Environment;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.oauth2.client.CommonOAuth2Provider;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -29,6 +33,11 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @Configuration
 @EnableConfigurationProperties(JwtProperties.class)
 public class SecurityConfig {
+
+    private static final String DEFAULT_FRONTEND_ALLOWED_ORIGINS =
+        "http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001";
+    private static final String DEFAULT_EXTENSION_ALLOWED_ORIGINS = "chrome-extension://*";
+    private static final Set<String> PROTECTED_PROFILES = Set.of("prod", "production", "staging");
 
     private final JwtProvider jwtProvider;
     private final ObjectMapper objectMapper;
@@ -79,15 +88,20 @@ public class SecurityConfig {
      * 로컬 프론트엔드 개발 서버에서 백엔드 API를 직접 호출할 수 있도록 API CORS를 허용합니다.
      */
     @Bean
-    CorsConfigurationSource corsConfigurationSource() {
+    CorsConfigurationSource corsConfigurationSource(
+        @Value("${app.cors.frontend-allowed-origins:" + DEFAULT_FRONTEND_ALLOWED_ORIGINS + "}") String frontendAllowedOrigins,
+        @Value("${app.cors.extension-allowed-origins:" + DEFAULT_EXTENSION_ALLOWED_ORIGINS + "}") String extensionAllowedOrigins,
+        Environment environment
+    ) {
+        List<String> allowedOriginPatterns = Stream.concat(
+                splitOrigins(frontendAllowedOrigins).stream(),
+                splitOrigins(extensionAllowedOrigins).stream()
+            )
+            .toList();
+        validateExtensionWildcard(allowedOriginPatterns, environment);
+
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOriginPatterns(List.of(
-            "http://localhost:3000",
-            "http://localhost:3001",
-            "http://127.0.0.1:3000",
-            "http://127.0.0.1:3001",
-            "chrome-extension://*"
-        ));
+        configuration.setAllowedOriginPatterns(allowedOriginPatterns);
         configuration.setAllowedMethods(List.of("GET", "POST", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
@@ -95,6 +109,32 @@ public class SecurityConfig {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
+    }
+
+    private static List<String> splitOrigins(String origins) {
+        if (origins == null || origins.isBlank()) {
+            return List.of();
+        }
+
+        return Arrays.stream(origins.split(","))
+            .map(String::trim)
+            .filter(origin -> !origin.isBlank())
+            .toList();
+    }
+
+    private static void validateExtensionWildcard(List<String> allowedOriginPatterns, Environment environment) {
+        boolean protectedProfile = Arrays.stream(environment.getActiveProfiles())
+            .map(String::toLowerCase)
+            .anyMatch(PROTECTED_PROFILES::contains);
+        if (!protectedProfile) {
+            return;
+        }
+
+        if (allowedOriginPatterns.contains(DEFAULT_EXTENSION_ALLOWED_ORIGINS)) {
+            throw new IllegalStateException(
+                "app.cors.extension-allowed-origins must not contain chrome-extension://* in prod or staging."
+            );
+        }
     }
 
     /**

@@ -273,6 +273,8 @@ EXTENSION_E2E_CHROME_EXTRA_FLAGS="--enable-logging=stderr --v=1" \
 npm --prefix extension run test:e2e
 ```
 
+백엔드 credential CORS는 extension origin을 `CORS_EXTENSION_ALLOWED_ORIGINS`로 제한합니다. 로컬 기본값은 개발 편의를 위해 `chrome-extension://*`를 허용하지만, `prod`/`staging` profile에서는 실제 extension id 기반 origin만 사용할 수 있습니다.
+
 ### Runtime Smoke
 
 ```bash
