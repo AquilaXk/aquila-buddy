@@ -36,7 +36,8 @@ for file in \
   deploy/oci/run-aquila-buddy.sh \
   deploy/oci/render-nginx-config.sh \
   deploy/oci/install-nginx-config.sh \
-  deploy/oci/aquila-buddy.nginx.conf.template
+  deploy/oci/aquila-buddy.nginx.conf.template \
+  back/src/main/resources/schema-postgres-operational.sql
 do
   require_file "$file"
 done
@@ -95,6 +96,7 @@ require_contains deploy/oci/build-aquila-buddy-images.sh '"${DOCKER[@]}" build'
 require_contains deploy/oci/build-aquila-buddy-images.sh 'NEXT_PUBLIC_BACKEND_OAUTH_URL'
 require_contains deploy/oci/run-aquila-buddy.sh 'pgvector/pgvector:pg16'
 require_contains deploy/oci/run-aquila-buddy.sh 'replace-with-git-sha'
+require_contains deploy/oci/run-aquila-buddy.sh 'back/src/main/resources/schema-postgres-operational.sql'
 require_contains deploy/oci/run-aquila-buddy.sh 'back/src/main/resources/schema-postgres-pgvector.sql'
 require_contains deploy/oci/run-aquila-buddy.sh '127.0.0.1:${AQUILA_BUDDY_BACKEND_PORT}'
 require_contains deploy/oci/run-aquila-buddy.sh '127.0.0.1:${AQUILA_BUDDY_FRONTEND_PORT}'

@@ -67,9 +67,11 @@ require_var DB_PASSWORD
 require_var JWT_SECRET
 
 schema_sql="${AQUILA_BUDDY_SCHEMA_SQL:-$repo_root/back/src/main/resources/schema.sql}"
+operational_sql="${AQUILA_BUDDY_OPERATIONAL_SQL:-$repo_root/back/src/main/resources/schema-postgres-operational.sql}"
 pgvector_sql="${AQUILA_BUDDY_PGVECTOR_SQL:-$repo_root/back/src/main/resources/schema-postgres-pgvector.sql}"
 
 [[ -f "$schema_sql" ]] || fail "missing schema file: $schema_sql"
+[[ -f "$operational_sql" ]] || fail "missing operational schema file: $operational_sql"
 [[ -f "$pgvector_sql" ]] || fail "missing pgvector schema file: $pgvector_sql"
 
 if ! "${DOCKER[@]}" network inspect "$AQUILA_BUDDY_NETWORK" >/dev/null 2>&1; then
@@ -107,11 +109,14 @@ schema_exists="$("${DOCKER[@]}" exec "$AQUILA_BUDDY_DB_CONTAINER" \
 if [[ "${AQUILA_BUDDY_FORCE_RESET_SCHEMA:-false}" == "true" || "$schema_exists" != "t" ]]; then
   "${DOCKER[@]}" exec -i "$AQUILA_BUDDY_DB_CONTAINER" \
     psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" < "$schema_sql"
-  "${DOCKER[@]}" exec -i "$AQUILA_BUDDY_DB_CONTAINER" \
-    psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" < "$pgvector_sql"
 else
   printf 'schema already exists; set AQUILA_BUDDY_FORCE_RESET_SCHEMA=true to reapply destructive schema.sql\n'
 fi
+
+"${DOCKER[@]}" exec -i "$AQUILA_BUDDY_DB_CONTAINER" \
+  psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" < "$operational_sql"
+"${DOCKER[@]}" exec -i "$AQUILA_BUDDY_DB_CONTAINER" \
+  psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" < "$pgvector_sql"
 
 remove_container() {
   local name="$1"
