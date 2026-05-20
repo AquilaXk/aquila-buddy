@@ -6,6 +6,10 @@ import com.aquilabuddy.global.auth.jwt.JwtProperties;
 import com.aquilabuddy.global.auth.jwt.JwtProvider;
 import com.aquilabuddy.global.auth.jwt.JwtCookieSupport;
 import com.aquilabuddy.global.auth.principal.OAuthPrincipal;
+import com.aquilabuddy.global.auth.refresh.RefreshTokenCookieSupport;
+import com.aquilabuddy.global.auth.refresh.RefreshTokenProperties;
+import com.aquilabuddy.global.auth.refresh.RefreshTokenSession;
+import com.aquilabuddy.global.auth.refresh.RefreshTokenSessionService;
 import java.time.Duration;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -21,13 +25,20 @@ class OAuth2HandlerTest {
 
     private final JwtProperties properties = new JwtProperties(SECRET, Duration.ofHours(1));
     private final JwtProvider provider = new JwtProvider(properties);
+    private final RefreshTokenSessionService refreshTokenSessionService =
+        org.mockito.Mockito.mock(RefreshTokenSessionService.class);
+    private final RefreshTokenProperties refreshTokenProperties = new RefreshTokenProperties(Duration.ofDays(14));
 
     @Test
     void successHandlerRedirectsToFrontendCallbackWithSecureCookie() throws Exception {
         OAuthPrincipal principal = new OAuthPrincipal("12345", Map.of("login", "aquila-dev"));
+        org.mockito.BDDMockito.given(refreshTokenSessionService.issue("12345"))
+            .willReturn(new RefreshTokenSession("12345", "refresh-token-value"));
         OAuth2SuccessHandler handler = new OAuth2SuccessHandler(
             provider,
             properties,
+            refreshTokenSessionService,
+            refreshTokenProperties,
             "http://localhost:3000/oauth/callback"
         );
         MockHttpServletResponse response = new MockHttpServletResponse();
@@ -55,6 +66,14 @@ class OAuth2HandlerTest {
             setCookie.indexOf(';')
         );
         assertThat(provider.getGithubId(token)).isEqualTo("12345");
+        assertThat(response.getHeaders(HttpHeaders.SET_COOKIE))
+            .anySatisfy(cookie -> assertThat(cookie)
+                .contains(RefreshTokenCookieSupport.REFRESH_COOKIE_NAME + "=refresh-token-value")
+                .contains("HttpOnly")
+                .contains("Secure")
+                .contains("SameSite=Lax")
+                .contains("Path=/")
+                .doesNotContain("Domain="));
     }
 
     @Test

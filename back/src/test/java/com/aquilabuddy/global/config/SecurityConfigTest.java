@@ -15,6 +15,7 @@ import com.aquilabuddy.global.auth.oauth.CookieOAuth2AuthorizationRequestReposit
 import com.aquilabuddy.global.auth.oauth.GitHubOAuthAccessToken;
 import com.aquilabuddy.global.auth.oauth.GitHubOAuthClient;
 import com.aquilabuddy.global.auth.oauth.GitHubOAuthUser;
+import com.aquilabuddy.global.auth.refresh.RefreshTokenCookieSupport;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -237,6 +238,13 @@ class SecurityConfigTest {
                 .contains("Secure")
                 .contains("SameSite=Lax")
                 .doesNotContain("Domain="));
+        assertThat(callback.getResponse().getHeaders(HttpHeaders.SET_COOKIE))
+            .anySatisfy(setCookie -> assertThat(setCookie)
+                .contains(RefreshTokenCookieSupport.REFRESH_COOKIE_NAME + "=")
+                .contains("HttpOnly")
+                .contains("Secure")
+                .contains("SameSite=Lax")
+                .doesNotContain("Domain="));
 
         Cookie authCookie = callback.getResponse().getCookie(JwtCookieSupport.AUTH_COOKIE_NAME);
         assertThat(authCookie).isNotNull();
@@ -246,6 +254,45 @@ class SecurityConfigTest {
             .andExpect(jsonPath("$.success").value(true))
             .andExpect(jsonPath("$.data.githubId").value(12345))
             .andExpect(jsonPath("$.data.login").value("aquila"));
+    }
+
+    @Test
+    void refreshRotatesRefreshCookieAndRejectsReuse() throws Exception {
+        Cookie refreshCookie = loginAndExtractRefreshCookie();
+
+        MvcResult refresh = mockMvc.perform(post("/api/v1/auth/refresh")
+                .cookie(refreshCookie))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andReturn();
+        Cookie rotatedRefreshCookie = refresh.getResponse().getCookie(RefreshTokenCookieSupport.REFRESH_COOKIE_NAME);
+        assertThat(rotatedRefreshCookie).isNotNull();
+        assertThat(rotatedRefreshCookie.getValue()).isNotEqualTo(refreshCookie.getValue());
+        assertThat(refresh.getResponse().getHeaders(HttpHeaders.SET_COOKIE))
+            .anySatisfy(setCookie -> assertThat(setCookie).contains(JwtCookieSupport.AUTH_COOKIE_NAME + "="));
+
+        mockMvc.perform(post("/api/v1/auth/refresh")
+                .cookie(refreshCookie))
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.success").value(false));
+        mockMvc.perform(post("/api/v1/auth/refresh")
+                .cookie(rotatedRefreshCookie))
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.success").value(false));
+    }
+
+    @Test
+    void logoutRevokesRefreshCookie() throws Exception {
+        Cookie refreshCookie = loginAndExtractRefreshCookie();
+
+        mockMvc.perform(post("/api/v1/auth/logout")
+                .cookie(refreshCookie))
+            .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/v1/auth/refresh")
+                .cookie(refreshCookie))
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.success").value(false));
     }
 
     @Test
@@ -275,5 +322,30 @@ class SecurityConfigTest {
               "topics": ["spring"]
             }
             """;
+    }
+
+    private Cookie loginAndExtractRefreshCookie() throws Exception {
+        MvcResult authorization = mockMvc.perform(get("/oauth2/authorization/github"))
+            .andExpect(status().isFound())
+            .andReturn();
+        MockHttpServletResponse authorizationResponse = authorization.getResponse();
+        Cookie authorizationCookie = authorizationResponse.getCookie(
+            CookieOAuth2AuthorizationRequestRepository.AUTHORIZATION_REQUEST_COOKIE_NAME
+        );
+        String state = stateFromLocation(authorizationResponse.getHeader(HttpHeaders.LOCATION));
+        org.mockito.BDDMockito.given(gitHubOAuthClient.exchangeCode(org.mockito.ArgumentMatchers.eq("code-123"), org.mockito.ArgumentMatchers.anyString()))
+            .willReturn(new GitHubOAuthAccessToken("gho_token"));
+        org.mockito.BDDMockito.given(gitHubOAuthClient.loadUser("gho_token"))
+            .willReturn(new GitHubOAuthUser(12345L, "aquila", "Aquila", "aquila@example.com"));
+
+        MvcResult callback = mockMvc.perform(get("/login/oauth2/code/github")
+                .param("code", "code-123")
+                .param("state", state)
+                .cookie(authorizationCookie))
+            .andExpect(status().isFound())
+            .andReturn();
+        Cookie refreshCookie = callback.getResponse().getCookie(RefreshTokenCookieSupport.REFRESH_COOKIE_NAME);
+        assertThat(refreshCookie).isNotNull();
+        return refreshCookie;
     }
 }

@@ -37,6 +37,8 @@ app:
   jwt:
     secret: ${JWT_SECRET:local-development-jwt-secret-32bytes-minimum-value}
     expiration: ${JWT_EXPIRATION:1h}
+  refresh-token:
+    expiration: ${REFRESH_TOKEN_EXPIRATION:14d}
   oauth2:
     redirect-uri: ${OAUTH2_REDIRECT_URI:http://localhost:3000/oauth/callback}
   cors:

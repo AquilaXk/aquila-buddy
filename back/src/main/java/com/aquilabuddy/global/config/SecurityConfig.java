@@ -8,6 +8,7 @@ import com.aquilabuddy.global.auth.csrf.CookieCsrfProtectionFilter;
 import com.aquilabuddy.global.auth.jwt.JwtAuthenticationFilter;
 import com.aquilabuddy.global.auth.jwt.JwtProperties;
 import com.aquilabuddy.global.auth.jwt.JwtProvider;
+import com.aquilabuddy.global.auth.refresh.RefreshTokenProperties;
 import com.aquilabuddy.global.response.ApiResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletResponse;
@@ -32,7 +33,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
  * Spring Security 기본 필터 체인을 구성합니다.
  */
 @Configuration
-@EnableConfigurationProperties(JwtProperties.class)
+@EnableConfigurationProperties({JwtProperties.class, RefreshTokenProperties.class})
 public class SecurityConfig {
 
     private static final String DEFAULT_FRONTEND_ALLOWED_ORIGINS =
@@ -68,6 +69,7 @@ public class SecurityConfig {
                 .requestMatchers(
                     "/api/v1/health",
                     "/api/v1/auth/logout",
+                    "/api/v1/auth/refresh",
                     "/actuator/health",
                     "/oauth2/**",
                     "/login/**",
