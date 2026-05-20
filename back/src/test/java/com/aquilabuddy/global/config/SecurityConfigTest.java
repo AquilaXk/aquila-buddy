@@ -28,7 +28,10 @@ import org.springframework.test.web.servlet.MvcResult;
 /**
  * 프론트엔드 개발 서버에서 백엔드 API를 호출할 수 있도록 CORS 설정을 검증합니다.
  */
-@SpringBootTest(properties = "app.oauth2.redirect-uri=https://buddy.aquilaxk.site/oauth/callback")
+@SpringBootTest(properties = {
+    "app.oauth2.redirect-uri=https://buddy.aquilaxk.site/oauth/callback",
+    "app.cors.extension-allowed-origins=chrome-extension://abcdefghijklmnopabcdefghijklmnop"
+})
 @AutoConfigureMockMvc
 class SecurityConfigTest {
 
@@ -48,6 +51,26 @@ class SecurityConfigTest {
                 .header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, "POST"))
             .andExpect(status().isOk())
             .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "http://localhost:3000"));
+    }
+
+    @Test
+    void allowsConfiguredChromeExtensionOriginForApiPreflight() throws Exception {
+        mockMvc.perform(options("/api/v1/pr")
+                .header(HttpHeaders.ORIGIN, "chrome-extension://abcdefghijklmnopabcdefghijklmnop")
+                .header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, "POST"))
+            .andExpect(status().isOk())
+            .andExpect(header().string(
+                HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN,
+                "chrome-extension://abcdefghijklmnopabcdefghijklmnop"
+            ));
+    }
+
+    @Test
+    void rejectsUnconfiguredChromeExtensionOriginForApiPreflight() throws Exception {
+        mockMvc.perform(options("/api/v1/pr")
+                .header(HttpHeaders.ORIGIN, "chrome-extension://ponmlkjihgfedcbaponmlkjihgfedcba")
+                .header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, "POST"))
+            .andExpect(status().isForbidden());
     }
 
     @Test

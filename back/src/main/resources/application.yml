@@ -39,6 +39,9 @@ app:
     expiration: ${JWT_EXPIRATION:1h}
   oauth2:
     redirect-uri: ${OAUTH2_REDIRECT_URI:http://localhost:3000/oauth/callback}
+  cors:
+    frontend-allowed-origins: ${CORS_FRONTEND_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001}
+    extension-allowed-origins: ${CORS_EXTENSION_ALLOWED_ORIGINS:chrome-extension://*}
   github:
     api-base-url: https://api.github.com
     token: ${GITHUB_TOKEN:}
