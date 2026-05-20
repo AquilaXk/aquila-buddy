@@ -22,6 +22,7 @@ export function ProfileEditorPanel({ initialProfile }: ProfileEditorPanelProps) 
   const [profile, setProfile] = useState(initialProfile);
   const [name, setName] = useState(initialProfile.name);
   const [email, setEmail] = useState(initialProfile.email);
+  const vectorUpdatedAt = profile.profileReady && profile.vectorUpdatedAt ? profile.vectorUpdatedAt : null;
   const [requestState, setRequestState] = useState<RequestState>({
     status: "idle",
     message: null,
@@ -135,9 +136,9 @@ export function ProfileEditorPanel({ initialProfile }: ProfileEditorPanelProps) 
           GitHub 활동을 분석하여 나에게 맞는 이슈를 추천받기 위한 임베딩 벡터를 생성합니다.
         </p>
 
-        {profile.vectorUpdatedAt ? (
+        {vectorUpdatedAt ? (
           <p className="mb-4 text-xs text-github-muted">
-            마지막 업데이트: <span className="text-github-accent">{formatDateTime(profile.vectorUpdatedAt)}</span>
+            마지막 업데이트: <span className="text-github-accent">{formatDateTime(vectorUpdatedAt)}</span>
           </p>
         ) : null}
 

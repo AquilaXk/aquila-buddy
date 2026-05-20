@@ -13,6 +13,7 @@ import com.aquilabuddy.domain.user.AuthenticatedUserProfile;
 import com.aquilabuddy.domain.user.UserProfile;
 import com.aquilabuddy.domain.user.UserProfileUpdateRequest;
 import com.aquilabuddy.global.github.GitHubApiClient;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -36,7 +37,6 @@ public class UserProfilePersistenceAdapter implements
     BackfillUserProfileEmbeddingPort {
 
     private static final String INITIAL_VECTOR_UPDATED_AT = "1970-01-01T00:00:00Z";
-    private static final String REFRESHED_VECTOR_UPDATED_AT = "2026-05-16T00:00:00Z";
     private static final int MAX_FAILURE_REASON_SAMPLES = 10;
 
     private final UserProfileJpaRepository repository;
@@ -115,16 +115,17 @@ public class UserProfilePersistenceAdapter implements
     @Override
     public UserProfile refreshCurrentUserProfileVector() {
         UserProfileJpaEntity entity = loadCurrentEntity();
+        String refreshedAt = Instant.now().toString();
 
         if (userContextEnabled) {
             GitHubApiClient.GitHubContributionContext context = gitHubApiClient.loadContributionContext(entity.getLogin());
             entity.refreshVector(
-                REFRESHED_VECTOR_UPDATED_AT,
+                refreshedAt,
                 nonEmptyOrCurrent(context.primaryLanguages(), entity.getPrimaryLanguages()),
                 nonEmptyOrCurrent(context.topics(), entity.getTopics())
             );
         } else {
-            entity.refreshVector(REFRESHED_VECTOR_UPDATED_AT);
+            entity.refreshVector(refreshedAt);
         }
         entity.updateProfileEmbedding(createProfileEmbedding(entity));
 

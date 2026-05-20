@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.aquilabuddy.application.port.out.ai.EmbeddingClient;
 import com.aquilabuddy.domain.embedding.EmbeddingVector;
 import com.aquilabuddy.support.SecurityContextTestUtils;
+import java.time.Instant;
 import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -129,18 +130,27 @@ class UserProfileControllerTest {
 
     @Test
     void refreshesCurrentUserProfileVector() throws Exception {
+        Instant beforeRefresh = Instant.now();
+
         mockMvc.perform(post("/api/v1/users/me/vector"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.success").value(true))
             .andExpect(jsonPath("$.data.profileReady").value(true))
-            .andExpect(jsonPath("$.data.vectorUpdatedAt").value("2026-05-16T00:00:00Z"));
+            .andExpect(jsonPath("$.data.vectorUpdatedAt").isNotEmpty());
 
         String storedEmbedding = jdbcTemplate.queryForObject(
             "SELECT profile_embedding FROM user_profiles WHERE github_id = ?",
             String.class,
             10001L
         );
+        String storedVectorUpdatedAt = jdbcTemplate.queryForObject(
+            "SELECT vector_updated_at FROM user_profiles WHERE github_id = ?",
+            String.class,
+            10001L
+        );
         assertThat(storedEmbedding).isEqualTo("[0.4,0.5,0.6]");
+        assertThat(Instant.parse(storedVectorUpdatedAt))
+            .isBetween(beforeRefresh, Instant.now());
     }
 
     @Test

@@ -41,7 +41,8 @@ export default function DashboardPage() {
   }, []);
 
   const displayName = user?.name || user?.login || (user?.githubId ? String(user.githubId) : "");
-  const hasVector = Boolean(user?.profileReady || user?.vectorUpdatedAt);
+  const vectorUpdatedAt = user?.profileReady && user.vectorUpdatedAt ? user.vectorUpdatedAt : null;
+  const hasVector = Boolean(vectorUpdatedAt);
 
   return (
     <ProtectedLayout>
@@ -131,7 +132,7 @@ export default function DashboardPage() {
             <div>
               <dt className="text-xs font-semibold uppercase tracking-wide text-github-muted">벡터 업데이트</dt>
               <dd className="mt-1 text-sm font-semibold text-github-text">
-                {user.vectorUpdatedAt ? formatDate(user.vectorUpdatedAt) : "업데이트 전"}
+                {vectorUpdatedAt ? formatDate(vectorUpdatedAt) : "업데이트 전"}
               </dd>
             </div>
           </dl>

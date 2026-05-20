@@ -7,6 +7,8 @@ import com.aquilabuddy.domain.user.UserProfile;
  */
 final class UserProfilePersistenceMapper {
 
+    private static final String INITIAL_VECTOR_UPDATED_AT = "1970-01-01T00:00:00Z";
+
     private UserProfilePersistenceMapper() {
     }
 
@@ -20,7 +22,15 @@ final class UserProfilePersistenceMapper {
             entity.getPrimaryLanguages(),
             entity.getTopics(),
             entity.isProfileReady(),
-            entity.getVectorUpdatedAt()
+            displayableVectorUpdatedAt(entity)
         );
+    }
+
+    private static String displayableVectorUpdatedAt(UserProfileJpaEntity entity) {
+        if (!entity.isProfileReady() || INITIAL_VECTOR_UPDATED_AT.equals(entity.getVectorUpdatedAt())) {
+            return null;
+        }
+
+        return entity.getVectorUpdatedAt();
     }
 }
