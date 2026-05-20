@@ -9,6 +9,7 @@ DROP TABLE IF EXISTS recommended_issue_labels;
 DROP TABLE IF EXISTS recommended_issues;
 DROP TABLE IF EXISTS user_profile_topics;
 DROP TABLE IF EXISTS user_profile_primary_languages;
+DROP TABLE IF EXISTS refresh_token_sessions;
 DROP TABLE IF EXISTS user_profiles;
 
 CREATE TABLE user_profiles (
@@ -20,6 +21,21 @@ CREATE TABLE user_profiles (
     profile_ready BOOLEAN NOT NULL,
     vector_updated_at VARCHAR(40) NOT NULL,
     profile_embedding VARCHAR(12000)
+);
+
+CREATE TABLE refresh_token_sessions (
+    token_hash VARCHAR(64) PRIMARY KEY,
+    family_id VARCHAR(64) NOT NULL,
+    github_id BIGINT NOT NULL,
+    issued_at TIMESTAMP NOT NULL,
+    expires_at TIMESTAMP NOT NULL,
+    rotated_at TIMESTAMP,
+    revoked_at TIMESTAMP,
+    replaced_by_token_hash VARCHAR(64),
+    CONSTRAINT fk_refresh_token_sessions_profile
+        FOREIGN KEY (github_id)
+        REFERENCES user_profiles(github_id)
+        ON DELETE CASCADE
 );
 
 CREATE TABLE user_profile_primary_languages (

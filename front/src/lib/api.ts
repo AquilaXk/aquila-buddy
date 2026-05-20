@@ -1,6 +1,7 @@
-import { clearAuthState, getToken } from "./auth";
+import { clearAuthState, getToken, markLoggedIn } from "./auth";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
+const REFRESH_URL = `${API_URL}/api/v1/auth/refresh`;
 const csrfCookieName = "aquila_buddy_csrf";
 const csrfHeaderName = "X-Aquila-CSRF-Token";
 const mutatingMethods = new Set(["POST", "PATCH", "PUT", "DELETE"]);
@@ -19,6 +20,10 @@ function isApiSuccess<T>(payload: ApiResponse<T>) {
 function hasApiData<T>(payload: ApiResponse<T>): payload is ApiResponse<T> & { data: T } {
   return isApiSuccess(payload) && payload.data !== null && payload.data !== undefined;
 }
+
+type ApiFetchInit = RequestInit & {
+  skipAuthRefresh?: boolean;
+};
 
 function readCookieValue(name: string) {
   if (typeof document === "undefined") {
@@ -63,14 +68,52 @@ function buildApiHeaders(headers?: HeadersInit, method = "GET") {
   return nextHeaders;
 }
 
-async function apiFetch(input: RequestInfo | URL, init: RequestInit = {}) {
-  const method = resolveRequestMethod(input, init);
+function requestUrl(input: RequestInfo | URL) {
+  if (typeof input === "string") {
+    return input;
+  }
+  if (input instanceof URL) {
+    return input.toString();
+  }
+  return input.url;
+}
 
-  const response = await fetch(input, {
-    ...init,
-    credentials: init.credentials ?? "include",
-    headers: buildApiHeaders(init.headers, method)
+function shouldAttemptRefresh(input: RequestInfo | URL, init: ApiFetchInit) {
+  const url = requestUrl(input);
+  return init.skipAuthRefresh !== true && !url.endsWith("/api/v1/auth/refresh") && !url.endsWith("/api/v1/auth/logout");
+}
+
+async function refreshSession() {
+  const response = await fetch(REFRESH_URL, {
+    method: "POST",
+    credentials: "include",
+    headers: buildApiHeaders(undefined, "POST")
   });
+
+  if (response.ok) {
+    markLoggedIn();
+    return true;
+  }
+
+  return false;
+}
+
+async function apiFetch(input: RequestInfo | URL, init: ApiFetchInit = {}) {
+  const { skipAuthRefresh, ...fetchInit } = init;
+  const method = resolveRequestMethod(input, fetchInit);
+  const response = await fetch(input, {
+    ...fetchInit,
+    credentials: fetchInit.credentials ?? "include",
+    headers: buildApiHeaders(fetchInit.headers, method)
+  });
+
+  if (response.status === 401 && shouldAttemptRefresh(input, init) && await refreshSession()) {
+    return fetch(input, {
+      ...fetchInit,
+      credentials: fetchInit.credentials ?? "include",
+      headers: buildApiHeaders(fetchInit.headers, method)
+    });
+  }
 
   if (response.status === 401) {
     clearAuthState();
