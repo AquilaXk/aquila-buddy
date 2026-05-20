@@ -57,6 +57,36 @@ test("fixture backend can bind a configured port", async () => {
   }
 });
 
+test("fixture backend supports credentialed browser CORS", async () => {
+  const backend = await createFrontendFixtureBackend();
+  const origin = "http://127.0.0.1:35799";
+
+  try {
+    const response = await fetch(`${backend.origin}/api/v1/users/me`, {
+      headers: {
+        Origin: origin
+      }
+    });
+
+    assert.equal(response.headers.get("Access-Control-Allow-Origin"), origin);
+    assert.equal(response.headers.get("Access-Control-Allow-Credentials"), "true");
+
+    const preflight = await fetch(`${backend.origin}/api/v1/users/me`, {
+      method: "OPTIONS",
+      headers: {
+        Origin: origin,
+        "Access-Control-Request-Method": "GET"
+      }
+    });
+
+    assert.equal(preflight.status, 204);
+    assert.equal(preflight.headers.get("Access-Control-Allow-Origin"), origin);
+    assert.equal(preflight.headers.get("Access-Control-Allow-Credentials"), "true");
+  } finally {
+    await backend.close();
+  }
+});
+
 async function getJson(url) {
   const response = await fetch(url);
   assert.equal(response.status, 200);

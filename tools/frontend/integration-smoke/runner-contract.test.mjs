@@ -28,6 +28,7 @@ test("integration smoke runner covers protected routes and failure envelope", as
     "/pr-draft",
     "/pr/draft-1",
     "assertUnauthenticatedRedirect",
+    "aquila-buddy-authenticated",
     "setProfileFailure(true)",
     "프로필을 불러오지 못했습니다",
   ]) {

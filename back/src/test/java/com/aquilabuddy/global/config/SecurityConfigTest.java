@@ -2,11 +2,14 @@ package com.aquilabuddy.global.config;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.aquilabuddy.global.auth.jwt.JwtCookieSupport;
 import com.aquilabuddy.global.auth.jwt.JwtProvider;
+import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -52,5 +55,29 @@ class SecurityConfigTest {
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.success").value(true));
+    }
+
+    @Test
+    void allowsProtectedApiWithJwtCookie() throws Exception {
+        String token = jwtProvider.generateToken("10001");
+
+        mockMvc.perform(get("/api/v1/users/me")
+                .cookie(new Cookie(JwtCookieSupport.AUTH_COOKIE_NAME, token)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true));
+    }
+
+    @Test
+    void logoutClearsJwtCookieWithoutRequiringAuthentication() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/logout"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(header().string(HttpHeaders.SET_COOKIE, org.hamcrest.Matchers.allOf(
+                org.hamcrest.Matchers.containsString(JwtCookieSupport.AUTH_COOKIE_NAME + "=;"),
+                org.hamcrest.Matchers.containsString("Max-Age=0"),
+                org.hamcrest.Matchers.containsString("HttpOnly"),
+                org.hamcrest.Matchers.containsString("Secure"),
+                org.hamcrest.Matchers.containsString("SameSite=Lax")
+            )));
     }
 }

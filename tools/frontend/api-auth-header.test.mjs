@@ -102,7 +102,25 @@ test("getUserProfile sends the stored token as a Bearer authorization header", a
   await api.getUserProfile();
 
   assert.equal(requests[0].url, "https://api.example.test/api/v1/users/me");
+  assert.equal(requests[0].init.credentials, "include");
   assert.equal(readHeader(requests[0].init.headers, "Authorization"), "Bearer fixture-token");
+});
+
+test("getUserProfile includes cookie credentials when no token is stored", async () => {
+  process.env.NEXT_PUBLIC_API_URL = "https://api.example.test";
+  installBrowserStorage(null);
+  const requests = [];
+  globalThis.fetch = async (url, init = {}) => {
+    requests.push({ url, init });
+    return successResponse(profileFixture);
+  };
+
+  const api = loadApiModule();
+  await api.getUserProfile();
+
+  assert.equal(requests[0].url, "https://api.example.test/api/v1/users/me");
+  assert.equal(requests[0].init.credentials, "include");
+  assert.equal(readHeader(requests[0].init.headers, "Authorization"), undefined);
 });
 
 test("updateUserProfile keeps JSON content type while adding the Bearer authorization header", async () => {
@@ -123,6 +141,7 @@ test("updateUserProfile keeps JSON content type while adding the Bearer authoriz
   });
 
   assert.equal(requests[0].url, "https://api.example.test/api/v1/users/me");
+  assert.equal(requests[0].init.credentials, "include");
   assert.equal(readHeader(requests[0].init.headers, "Authorization"), "Bearer fixture-token");
   assert.equal(readHeader(requests[0].init.headers, "Content-Type"), "application/json");
 });

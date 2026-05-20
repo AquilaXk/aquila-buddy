@@ -2,6 +2,7 @@ package com.aquilabuddy.global.auth.jwt;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.ServletException;
 import java.io.IOException;
 import java.time.Duration;
@@ -46,5 +47,33 @@ class JwtAuthenticationFilterTest {
         filter.doFilter(request, response, new MockFilterChain());
 
         assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
+    }
+
+    @Test
+    void setsAuthenticationWhenJwtCookieIsValid() throws ServletException, IOException {
+        String token = provider.generateToken("12345");
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/users/me");
+        request.setCookies(new Cookie(JwtCookieSupport.AUTH_COOKIE_NAME, token));
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        filter.doFilter(request, response, new MockFilterChain());
+
+        assertThat(SecurityContextHolder.getContext().getAuthentication()).isNotNull();
+        assertThat(SecurityContextHolder.getContext().getAuthentication().getName()).isEqualTo("12345");
+    }
+
+    @Test
+    void bearerTokenTakesPriorityOverJwtCookie() throws ServletException, IOException {
+        String bearerToken = provider.generateToken("12345");
+        String cookieToken = provider.generateToken("99999");
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/users/me");
+        request.addHeader(HttpHeaders.AUTHORIZATION, "Bearer " + bearerToken);
+        request.setCookies(new Cookie(JwtCookieSupport.AUTH_COOKIE_NAME, cookieToken));
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        filter.doFilter(request, response, new MockFilterChain());
+
+        assertThat(SecurityContextHolder.getContext().getAuthentication()).isNotNull();
+        assertThat(SecurityContextHolder.getContext().getAuthentication().getName()).isEqualTo("12345");
     }
 }

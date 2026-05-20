@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
-import { setToken } from "@/lib/auth";
+import { markLoggedIn } from "@/lib/auth";
 import { readOAuthCallbackParams } from "@/lib/oauthCallback";
 
 export default function OAuthCallbackPage() {
@@ -25,12 +25,7 @@ function OAuthCallbackContent() {
       return;
     }
 
-    if (!callbackParams.token) {
-      setError("토큰을 받지 못했습니다. 백엔드 로그를 확인하거나 다시 로그인해 주세요.");
-      return;
-    }
-
-    setToken(callbackParams.token);
+    markLoggedIn();
     router.replace(callbackParams.redirectTo);
   }, [callbackParams, router]);
 
