@@ -1,32 +1,311 @@
 # Aquila Buddy
 
-Java 21 + Spring Boot and Next.js scaffold for an OMOS-style open source contribution assistant.
+개인 프로젝트 기준의 오픈소스 기여 도우미 MVP입니다. GitHub OAuth 로그인, 개발자 프로필 분석, Good First Issue 추천, 이슈 해결 힌트, PR 초안 작성 흐름을 작은 운영 예산 안에서 검증하는 데 초점을 둡니다.
+실제 자동 기여 대행 서비스가 아니라 `GitHub API 연동`, `pgvector 기반 추천`, `AI provider boundary`, `PR draft workflow`, `Chrome extension live smoke`, `OCI A1 운영 budget`, `회귀 방지 gate`를 포트폴리오 수준으로 보여주는 프로젝트입니다.
 
-## Runtime Apps
+![Aquila Buddy mascot](front/public/brand-mascot.png)
 
-- `back`: Java 21, Spring Boot 3.5, Gradle, Spring MVC, Security, OAuth2 Client, JPA, PostgreSQL, pgvector
-- `front`: Next.js 16, React 19, TypeScript, Tailwind CSS
+## 프로젝트 개요
 
-## Local Start
+Aquila Buddy는 모든 오픈소스 이슈를 자동 해결하는 프로젝트가 아닙니다. GitHub issue와 repository context를 수집하고, 현재 사용자의 profile embedding과 issue embedding을 기준으로 후보를 좁힌 뒤, 이슈 이해와 PR 작성에 필요한 보조 정보를 제공합니다.
 
-Backend defaults to an embedded H2 database for quick local smoke checks.
+- 프런트는 `Next.js 16 + React 19 + TypeScript`, 백엔드는 `Spring Boot 3.5 + Java 21`로 구성했습니다.
+- 데이터 기준은 `PostgreSQL + pgvector`이고, 로컬 빠른 smoke는 H2 기본값으로 시작할 수 있습니다.
+- AI 경로는 `Vertex AI`와 `OpenAI-compatible` provider boundary 뒤에 두고, fixture/dry-run/live smoke를 분리했습니다.
+- 운영 경로는 `Nginx reverse proxy`, Docker image, GitHub Actions CI/CD, OCI A1 self-hosted runner 기준으로 정리했습니다.
+
+### 실제 기여 보조 흐름
+
+사용자는 GitHub로 로그인한 뒤 프로필을 준비하고, 추천 이슈 목록에서 상세 내용을 확인합니다. 이후 수정 가이드와 의사 코드를 참고해 작업 방향을 잡고, PR 초안/영문 번역을 생성해 upstream 제출 전 문안을 다듬습니다.
+
+## 개인 프로젝트 범위
+
+### In Scope
+
+- GitHub OAuth 로그인, JWT cookie/session 기반 인증
+- GitHub 사용자 프로필 저장, profile vector refresh
+- GitHub issue 검색, Good First Issue 후보 수집/저장
+- PostgreSQL pgvector 기반 profile/issue similarity ranking
+- 이슈 상세, 수정 가이드, 의사 코드, workflow readiness
+- PR 초안 생성, PR 초안 이력, 제출 readiness, 영문 번역
+- AI 호출 관측, Langfuse 선택 전송, release readiness evidence
+- Chrome extension 검증과 GitHub live smoke opt-in 흐름
+- OCI A1 단일 host 배포 baseline과 public health 검증
+
+### Out of Scope
+
+- 사용자를 대신한 upstream PR 자동 생성/merge
+- 임의 repository write 권한 사용
+- GitHub marketplace app, 조직 단위 multi-tenant SaaS 운영
+- 결제, 과금, 팀 관리, 관리자 콘솔
+- 무제한 issue crawl, 전역 검색, 대규모 organization indexing
+- provider secret 관리형 vault, 상용 SLA, 고가용성 multi-region 배포
+
+이 프로젝트는 기여 준비와 제출 문안 작성을 보조하는 데모 범위입니다. 실제 upstream 변경 생성, reviewer 대응, maintainer 승인, 배포 책임은 사용자의 로컬 개발 흐름과 대상 저장소 정책에 남겨둡니다.
+
+## 왜 이 프로젝트가 차별점이 있는가
+
+- `기여 workflow`를 화면 단위 기능보다 앞에 두었습니다.
+  - 프로필 준비, 이슈 추천, 분석 힌트, PR 초안, 번역, 제출 readiness가 한 흐름으로 이어지도록 구성합니다.
+- `AI 호출을 운영 경계 뒤에 둡니다`.
+  - provider별 구현은 adapter로 분리하고, 실패 시 fallback과 smoke evidence를 남깁니다.
+- `추천 근거를 데이터 경로로 검증합니다`.
+  - profile embedding, issue embedding, pgvector ranking, score fallback을 분리해 추천 API 전체 실패를 줄입니다.
+- `브라우저 확장과 웹 앱을 함께 검증합니다`.
+  - 기본 CI는 fixture/contract를 확인하고, 실제 GitHub DOM smoke는 로그인된 Chrome profile이 있는 opt-in 경로로 둡니다.
+- `성능/완료 주장을 evidence와 분리합니다`.
+  - parity matrix, release readiness record, live provider smoke가 없는 상태에서는 완료/운영 준비를 과장하지 않습니다.
+
+## 핵심 기능
+
+### GitHub Profile & Auth
+
+- GitHub OAuth 로그인과 OAuth callback profile upsert
+- JWT access token cookie 기반 API 인증
+- 사용자 이름, email, 감지 언어, topic 저장
+- profile embedding refresh와 갱신 시각 추적
+
+### Issue Recommendation
+
+- GitHub Search API 기반 Good First Issue 후보 수집
+- 수집 issue 저장, history 조회, 상세 조회
+- issue body summary 정리, label/status/score 보존
+- pgvector similarity ranking과 score fallback
+
+### Issue Analysis
+
+- repository code context 수집
+- 수정 가이드, 의사 코드, side effect 정리
+- guide cache, issue updated-at 비교, 일일 생성 제한
+- 분석 결과를 PR 초안 context로 재사용
+
+### PR Draft Workflow
+
+- base/head branch, issue context, diff context 기반 PR 초안 생성
+- GitHub compare diff 실패 시 fallback context 초안 생성
+- PR 초안 history, readiness, timeline, submission bundle
+- 영문 번역 draft와 contribution report
+
+### Runtime Smoke & Extension
+
+- AI provider dry-run/live smoke
+- Langfuse observability dry-run/live smoke
+- provider E2E smoke와 release readiness record
+- Chrome extension manifest/popup/live E2E contract 검증
+
+## 기술 스택
+
+| 영역 | 스택 |
+| --- | --- |
+| Frontend | Next.js 16, React 19, TypeScript, Tailwind CSS |
+| Backend | Spring Boot 3.5, Java 21, Spring Security, OAuth2 Client, JPA, WebFlux |
+| Data | PostgreSQL, pgvector, H2 local smoke |
+| AI / Observability | Vertex AI, OpenAI-compatible API, Langfuse |
+| Browser Extension | Chrome extension, Node test runner, Chrome DevTools live smoke |
+| Edge / Ops | Nginx, Docker, OCI A1 Flex, GitHub Actions self-hosted runner |
+| Quality | Gradle check, ArchUnit, MockWebServer, frontend parity validators, integration smoke |
+
+## 아키텍처 포인트
+
+### 1. Hexagonal Boundary
+
+- `domain`은 Spring/JPA/web/sdk 구현에 의존하지 않습니다.
+- `application`은 use case와 outbound port를 조합합니다.
+- `adapter/in`은 REST API, `adapter/out`은 persistence/GitHub/AI/Langfuse 구현을 담당합니다.
+- 인증, 예외, 응답 envelope, provider 설정은 `global` 경계에 둡니다.
+
+### 2. Provider Boundary
+
+- PR 초안, issue guide, 번역, embedding은 AI provider adapter 뒤에 있습니다.
+- `vertex-ai`와 `openai-compatible` provider를 runtime env로 선택합니다.
+- provider 장애나 parser 실패는 fallback draft/guide와 observation으로 흡수합니다.
+
+### 3. Recommendation Read Path
+
+- online 추천은 저장된 issue 후보와 사용자 profile embedding을 기준으로 좁힙니다.
+- pgvector가 비활성화되거나 ranking이 비면 score 기반 fallback으로 응답합니다.
+- issue crawl/search 실패가 추천 API 전체 실패로 번지지 않도록 저장 데이터 fallback을 유지합니다.
+
+### 4. Evidence-Based Runtime
+
+- 기본 CI는 backend/frontend/extension/operations smoke/pgvector integration을 분리해 실행합니다.
+- live provider, Langfuse, GitHub DOM smoke는 secret과 외부 인증 상태가 필요하므로 opt-in으로 둡니다.
+- release readiness record는 secret 없이 pass/blocked evidence만 남깁니다.
+
+## 프로젝트 구조
+
+```text
+.
+├── back/                   # Spring Boot 3.5 / Java 21 backend
+├── front/                  # Next.js 16 / React 19 frontend
+├── extension/              # Chrome extension surface
+├── deploy/oci/             # OCI A1 Docker/Nginx deploy scripts
+├── infra/terraform/        # OCI Always Free A1 baseline
+├── tools/                  # smoke/test/frontend/extension helper scripts
+├── .github/                # issue/PR templates, CI/CD workflows
+├── compose.yaml            # local PostgreSQL/pgvector 개발 인프라
+└── README.md               # project overview and operation entrypoint
+```
+
+## 로컬 실행
+
+### 사전 준비
+
+- Java 21
+- Node.js LTS
+- npm
+- Docker Compose
+- Chrome 또는 Chromium, extension live smoke 실행 시
+
+### 1. 백엔드 빠른 실행
+
+기본 실행은 H2 기반 local smoke에 맞춰져 있습니다.
 
 ```bash
 ./back/gradlew -p back bootRun
 ```
 
-PostgreSQL/pgvector can be used with the `dev` profile:
+- Backend: `http://localhost:8080`
+- Actuator health: `http://localhost:8080/actuator/health`
+- Swagger UI: `http://localhost:8080/swagger-ui.html`
+
+### 2. PostgreSQL/pgvector 개발 인프라 실행
 
 ```bash
-docker compose up -d
+docker compose up -d postgres
 SPRING_PROFILES_ACTIVE=dev ./back/gradlew -p back bootRun
 ```
 
+- PostgreSQL/pgvector: `localhost:5432`
+- Database: `aquila_buddy`
+- User/password: `aquila` / `aquila`
+
+### 3. 프런트 실행
+
 ```bash
-cd front
-npm install
-npm run dev
+npm --prefix front install
+NEXT_PUBLIC_API_URL=http://localhost:8080 npm --prefix front run dev
 ```
+
+다른 포트를 쓰려면 `PORT`를 함께 지정합니다.
+
+```bash
+NEXT_PUBLIC_API_URL=http://localhost:8080 PORT=3001 npm --prefix front run dev
+```
+
+- Front: `http://localhost:3000`
+
+로그인, 프로필, 추천, PR 초안 API 호출은 백엔드가 먼저 떠 있어야 합니다. 백엔드 연결 오류가 보이면 다음 순서로 확인합니다.
+
+```bash
+curl http://localhost:8080/actuator/health
+```
+
+1. `./back/gradlew -p back bootRun` 또는 `SPRING_PROFILES_ACTIVE=dev ./back/gradlew -p back bootRun`이 실행 중인지 확인합니다.
+2. 프런트 실행 shell에 `NEXT_PUBLIC_API_URL=http://localhost:8080`이 들어갔는지 확인합니다.
+3. PostgreSQL profile을 사용할 때는 `docker compose up -d postgres`가 먼저 실행됐는지 확인합니다.
+
+### 4. Extension 검증
+
+```bash
+npm --prefix extension run validate
+npm --prefix extension run test:e2e:contracts
+```
+
+실제 GitHub DOM smoke는 로그인된 Chrome profile, live backend URL, 인증 header, 대상 issue/compare URL이 있을 때만 opt-in으로 실행합니다.
+
+## 품질 게이트
+
+### Backend
+
+```bash
+./back/gradlew -p back check
+```
+
+- unit/slice test, Spring context test, persistence integration, ArchUnit architecture test를 포함합니다.
+- pgvector 통합 검증은 별도 script로 격리된 PostgreSQL/pgvector 컨테이너를 사용할 수 있습니다.
+
+```bash
+bash tools/test/run-pgvector-integration.sh --compose --dry-run
+PGVECTOR_TEST_DB_PORT=54329 bash tools/test/run-pgvector-integration.sh --compose
+```
+
+### Frontend
+
+```bash
+npm --prefix front run typecheck
+npm --prefix front run build
+npm --prefix front run test:e2e
+npm --prefix front run smoke:integration
+```
+
+프런트 smoke는 기본 CI에서 fixture backend를 띄워 보호 라우트, success envelope, failure envelope를 브라우저로 확인합니다.
+CI release gate처럼 `npm run build` 산출물을 검증할 때는 `next start` 모드를 사용합니다.
+
+```bash
+NEXT_PUBLIC_API_URL=http://127.0.0.1:18080 \
+FRONTEND_INTEGRATION_SERVER_MODE=start \
+FRONTEND_INTEGRATION_FIXTURE_BACKEND_PORT=18080 \
+FRONTEND_INTEGRATION_ROUTE_TIMEOUT_MS=20000 \
+npm --prefix front run smoke:integration
+```
+
+실제 backend를 대상으로 수동 smoke를 실행할 때는 live backend URL을 지정합니다. 이 모드는 local fixture backend를 사용하지 않으므로 backend, OAuth/JWT, 데이터 준비 상태를 먼저 확인해야 합니다.
+
+```bash
+FRONTEND_INTEGRATION_USE_LIVE_BACKEND=true \
+NEXT_PUBLIC_API_URL=http://localhost:8080 \
+npm --prefix front run smoke:integration
+```
+
+### Extension
+
+```bash
+npm --prefix extension run validate
+npm --prefix extension run test:e2e:contracts
+```
+
+Chrome DevTools endpoint를 사용하는 live E2E는 runner 환경에서 Chrome startup timeout과 stderr logging을 명시합니다.
+
+```bash
+EXTENSION_E2E_CHROME_STARTUP_TIMEOUT_MS=30000 \
+EXTENSION_E2E_CHROME_EXTRA_FLAGS="--enable-logging=stderr --v=1" \
+npm --prefix extension run test:e2e
+```
+
+### Runtime Smoke
+
+```bash
+bash tools/smoke/validate-ai-runtime-env.sh
+bash tools/smoke/validate-ai-provider-smoke-env.sh
+bash tools/smoke/run-ai-provider-smoke.sh
+bash tools/smoke/validate-langfuse-observability-env.sh
+bash tools/smoke/run-langfuse-observability-smoke.sh
+bash tools/smoke/validate-provider-e2e-env.sh
+bash tools/smoke/run-provider-e2e-smoke.sh
+```
+
+필수 env가 빠진 상태에서는 validation script가 실패해야 합니다. live smoke는 외부 provider key와 인증 상태가 필요하므로 기본 CI에서는 실행하지 않습니다.
+
+## Runtime Baseline
+
+- public domain: `https://buddy.aquilaxk.site`
+- backend runtime: Spring Boot 3.5 / Java 21
+- frontend runtime: Next.js 16 / Node.js 22 container
+- database: PostgreSQL with pgvector
+- AI provider default: `vertex-ai`
+- recommendation ranking: `RECOMMENDATION_SIMILARITY_PROVIDER=pgvector`
+- OCI baseline: A1 Flex single host, Docker data-root on `/var/lib/aquila-data`
+- loopback ports: frontend `127.0.0.1:13011`, backend `127.0.0.1:18091`
+
+## Environment Split
+
+- 로컬 빠른 개발: H2 기본 backend + local frontend
+- 로컬 pgvector 개발: `compose.yaml` PostgreSQL/pgvector + `SPRING_PROFILES_ACTIVE=dev`
+- AI provider dry-run: smoke script validation과 synthetic payload 확인
+- AI provider live: 실제 provider key와 timeout/error observation 확인
+- 운영 배포: OCI A1 Docker images + host Nginx reverse proxy
+- release evidence: [release readiness records](tools/smoke/release-readiness/README.md)
 
 ## Runtime Configuration
 
@@ -36,106 +315,9 @@ npm run dev
 - `AI_PROVIDER=openai-compatible`: OpenAI-compatible chat completion/embedding provider를 사용합니다.
 - `RECOMMENDATION_SIMILARITY_PROVIDER=pgvector`: 사용자 profile embedding과 issue embedding의 pgvector similarity ranking을 사용합니다.
 - `LANGFUSE_ENABLED=true`: AI 호출을 Langfuse generation event로 함께 전송합니다. 기본값은 `false`입니다.
-- `ANALYSIS_ISSUE_GUIDE_DAILY_LIMIT=5`: 사용자별 이슈 분석 guide 생성 일일 제한입니다. 캐시 적중은 제한 카운트에 포함하지 않습니다.
+- `ANALYSIS_ISSUE_GUIDE_DAILY_LIMIT=5`: 사용자별 이슈 분석 guide 생성 일일 제한입니다. cache hit는 quota에 반영하지 않습니다.
 
-Vertex AI smoke에 필요한 기본 env:
-
-```bash
-GOOGLE_CLOUD_PROJECT_ID=grepp-ai-project
-VERTEX_AI_LOCATION=us-central1
-VERTEX_AI_MODEL=gemini-2.5-flash
-VERTEX_AI_EMBEDDING_MODEL=gemini-embedding-001
-VERTEX_AI_EMBEDDING_DIMENSIONS=1536
-VERTEX_AI_CREDENTIALS_PATH=./vertex-key.json
-GOOGLE_APPLICATION_CREDENTIALS=./vertex-key.json
-```
-
-`vertex-key.json` 같은 credential 파일은 로컬에만 두고 git에 추가하지 않습니다.
-`.gitignore`는 `vertex-key.json`, `**/vertex-key.json`, credential/service-account JSON 패턴을 제외합니다.
-
-OpenAI-compatible smoke에 필요한 기본 env:
-
-```bash
-AI_API_BASE_URL=https://api.openai.com/v1
-AI_API_KEY=openai_or_compatible_api_key
-AI_CHAT_MODEL=gpt-4o-mini
-AI_TEMPERATURE=0.2
-AI_EMBEDDING_MODEL=text-embedding-3-small
-AI_EMBEDDING_DIMENSIONS=1536
-AI_REQUEST_TIMEOUT_MILLIS=30000
-```
-
-`AI_API_KEY` 대신 `OPENAI_API_KEY`를 사용할 수 있습니다. chat model은 issue guide, PR 초안, 번역에 쓰이고 embedding model은 profile/issue embedding과 pgvector ranking smoke에 쓰입니다.
-
-Langfuse tracing은 선택 기능이며 secret key는 환경 변수로만 주입합니다.
-
-```bash
-LANGFUSE_ENABLED=false
-LANGFUSE_BASE_URL=https://cloud.langfuse.com
-LANGFUSE_PUBLIC_KEY=
-LANGFUSE_SECRET_KEY=
-LANGFUSE_ENVIRONMENT=local
-LANGFUSE_SMOKE_ENABLED=false
-LANGFUSE_SMOKE_MODE=dry-run
-LANGFUSE_SMOKE_TIMEOUT_SECONDS=30
-```
-
-Langfuse 실연동 smoke는 opt-in입니다. `LANGFUSE_SMOKE_MODE=dry-run`은 전송 없이 성공/실패 generation payload의 prompt version, model, latency, usage, 실패 사유 점검 순서를 출력하고, `live`는 synthetic trace event를 Langfuse ingestion endpoint로 보냅니다.
-
-이슈 분석 guide 생성 제한은 기본 5회입니다. 초과 시 API는 HTTP 429와 `success=false`, `status=fail`, `message=이슈 분석 일일 생성 제한을 초과했습니다. 잠시 후 다시 시도해 주세요.` envelope를 반환합니다. 운영에서 값을 바꿀 때는 `ANALYSIS_ISSUE_GUIDE_DAILY_LIMIT`만 조정하고, 저장된 guide를 재사용하는 cache hit 요청은 quota에 반영하지 않습니다.
-
-GitHub 연동 smoke에는 repository/issue 조회가 가능한 token이 필요합니다.
-OAuth 로그인을 함께 확인할 때는 `read:user`, `user:email` scope의 GitHub OAuth app 설정도 필요합니다.
-
-## Runtime Smoke
-
-운영 배포 전 상세 점검 절차는 [AI 운영 smoke runbook](tools/smoke/AI_RUNTIME_SMOKE.md)을 기준으로 확인합니다.
-배포 후보별 실행 결과와 rollback 판단은 [release readiness records](tools/smoke/release-readiness/README.md)에 secret 없이 남깁니다.
-100% 완료 판정은 [동등성 완료 매트릭스](tools/smoke/release-readiness/PARITY_COMPLETION_MATRIX.md)의 자동 검증 항목이 모두 pass이고, live provider/Langfuse/extension GitHub/provider E2E evidence가 `blocked` 없이 pass로 기록된 상태를 기준으로 합니다.
-
-PostgreSQL/pgvector와 실제 AI provider를 함께 확인하는 최소 순서:
-
-```bash
-docker compose up -d
-bash tools/test/run-pgvector-integration.sh --validate-only
-bash tools/test/run-pgvector-integration.sh --compose --dry-run
-bash tools/smoke/validate-ai-runtime-env.sh
-SPRING_PROFILES_ACTIVE=dev ./back/gradlew -p back bootRun
-```
-
-필수 env가 빠진 상태에서는 validation script가 실패해야 합니다.
-
-```bash
-bash tools/smoke/validate-ai-runtime-env.sh
-bash tools/smoke/validate-ai-provider-smoke-env.sh
-bash tools/smoke/run-ai-provider-smoke.sh
-bash tools/smoke/validate-langfuse-observability-env.sh
-bash tools/smoke/run-langfuse-observability-smoke.sh --dry-run
-bash tools/smoke/validate-provider-e2e-env.sh
-```
-
-Vertex AI + pgvector smoke env 예시:
-
-```bash
-AI_PROVIDER=vertex-ai \
-GOOGLE_CLOUD_PROJECT_ID=grepp-ai-project \
-VERTEX_AI_LOCATION=us-central1 \
-VERTEX_AI_MODEL=gemini-2.5-flash \
-VERTEX_AI_EMBEDDING_MODEL=gemini-embedding-001 \
-VERTEX_AI_EMBEDDING_DIMENSIONS=1536 \
-VERTEX_AI_CREDENTIALS_PATH=./vertex-key.json \
-GOOGLE_APPLICATION_CREDENTIALS=./vertex-key.json \
-RECOMMENDATION_SIMILARITY_PROVIDER=pgvector \
-RECOMMENDATION_SIMILARITY_LIMIT=20 \
-DB_URL=jdbc:postgresql://localhost:5432/aquila_buddy \
-DB_USER=aquila \
-DB_PASSWORD=aquila \
-GITHUB_TOKEN=github_pat_or_fine_grained_token \
-GITHUB_TOKEN_PERMISSIONS=metadata:read,contents:read,pull-requests:read,issues:read \
-bash tools/smoke/validate-ai-runtime-env.sh
-```
-
-OpenAI-compatible + pgvector smoke env 예시:
+OpenAI-compatible smoke를 실행할 때는 provider, GitHub token 권한, pgvector 설정을 한 번에 검증합니다.
 
 ```bash
 AI_PROVIDER=openai-compatible \
@@ -147,185 +329,22 @@ AI_EMBEDDING_MODEL=text-embedding-3-small \
 AI_EMBEDDING_DIMENSIONS=1536 \
 RECOMMENDATION_SIMILARITY_PROVIDER=pgvector \
 RECOMMENDATION_SIMILARITY_LIMIT=20 \
-DB_URL=jdbc:postgresql://localhost:5432/aquila_buddy \
-DB_USER=aquila \
-DB_PASSWORD=aquila \
 GITHUB_TOKEN=github_pat_or_fine_grained_token \
 GITHUB_TOKEN_PERMISSIONS=metadata:read,contents:read,pull-requests:read,issues:read \
 bash tools/smoke/validate-ai-runtime-env.sh
 ```
 
-수동 smoke 흐름:
+Langfuse tracing은 선택 기능입니다. 운영에서 켤 때만 `LANGFUSE_ENABLED=true`와 public/secret key를 함께 주입하고, smoke는 별도 validation script로 확인합니다.
 
-1. OAuth 로그인 또는 `DEFAULT_GITHUB_ID` fallback 사용자로 profile을 준비합니다.
-2. profile vector refresh를 실행해 `profile_embedding` 저장을 확인합니다.
-3. issue crawl/search를 실행해 `issue_embedding` 저장을 확인합니다.
-4. `RECOMMENDATION_SIMILARITY_PROVIDER=pgvector`로 추천 순위가 embedding similarity를 반영하는지 확인합니다.
-5. issue guide, PR draft, translation을 실행해 AI 호출과 `ai_call_observations` 저장을 확인합니다.
-6. `LANGFUSE_ENABLED=true` 환경에서는 같은 호출이 Langfuse generation event로 적재되는지 확인합니다.
+GitHub 연동에는 repository/issue 조회가 가능한 fine-grained token이 필요합니다. OAuth 로그인을 함께 확인할 때는 GitHub OAuth app의 Authorization callback URL을 운영 도메인 callback과 맞춥니다.
 
-pgvector 운영 검증은 `schema.sql` 이후 `schema-postgres-pgvector.sql` 적용 순서, `profile_embedding`/`issue_embedding`의 `vector(1536)` 변환, `idx_user_profiles_profile_embedding`/`idx_recommended_issues_issue_embedding` HNSW index, backfill 후 추천 순위 변경을 확인합니다.
-
-로컬에서 격리된 PostgreSQL + pgvector 컨테이너로 통합 테스트를 실행하려면 `--compose`를 사용합니다. 기본 포트는 `54329`이며 `PGVECTOR_TEST_DB_PORT`로 바꿀 수 있습니다.
-
-```bash
-bash tools/test/run-pgvector-integration.sh --compose --dry-run
-PGVECTOR_TEST_DB_PORT=54329 bash tools/test/run-pgvector-integration.sh --compose
-```
-
-운영 backfill API는 `APP_EMBEDDING_BACKFILL_OPERATION_TOKEN`이 설정된 경우에만 열립니다. 요청에는 `X-Aquila-Operation-Token`과 선택적 `X-Aquila-Operator` header를 함께 넘기며, 성공/거부/실패/rate-limit 결과는 secret 없이 audit log로 남습니다. `EMBEDDING_BACKFILL_MAX_LIMIT`은 요청 limit 상한, `EMBEDDING_BACKFILL_MIN_INTERVAL_SECONDS`는 연속 실행 최소 간격입니다.
-
-실제 provider E2E smoke는 opt-in입니다. OAuth 또는 JWT에서 얻은 API 인증 header를 준비한 뒤 다음 값을 채우고 실행합니다.
-
-```bash
-PROVIDER_E2E_SMOKE_ENABLED=true \
-PROVIDER_E2E_DRY_RUN=false \
-BACKEND_BASE_URL=http://localhost:8080 \
-PROVIDER_E2E_AUTH_MODE=oauth-header \
-PROVIDER_E2E_AUTH_HEADER='Authorization: Bearer oauth_or_jwt_token' \
-PROVIDER_E2E_REPO_FULL_NAME=owner/repo \
-PROVIDER_E2E_ISSUE_NUMBER=123 \
-PROVIDER_E2E_BASE_BRANCH=main \
-PROVIDER_E2E_HEAD_BRANCH=provider-e2e-smoke \
-EMBEDDING_BACKFILL_OPERATION_TOKEN=operation_token \
-bash tools/smoke/run-provider-e2e-smoke.sh
-```
-
-실행 전 env만 확인할 때는 `bash tools/smoke/validate-provider-e2e-env.sh`, 실제 호출 없이 순서만 확인할 때는 `PROVIDER_E2E_DRY_RUN=true bash tools/smoke/run-provider-e2e-smoke.sh`를 사용합니다.
-
-AI provider 직접 smoke는 opt-in입니다. `AI_PROVIDER_SMOKE_MODE=dry-run`은 네트워크 호출 없이 OpenAI-compatible chat/embedding, Vertex text/embedding, timeout/error observation, provider fallback 확인 순서를 출력합니다. `AI_PROVIDER_SMOKE_MODE=live`와 실제 key를 설정하면 OpenAI-compatible chat completion과 embedding endpoint를 직접 호출합니다.
-
-```bash
-AI_PROVIDER_SMOKE_ENABLED=true \
-AI_PROVIDER_SMOKE_MODE=dry-run \
-AI_PROVIDER_SMOKE_TIMEOUT_SECONDS=30 \
-AI_PROVIDER=openai-compatible \
-AI_API_BASE_URL=https://api.openai.com/v1 \
-AI_API_KEY=openai_or_compatible_api_key \
-AI_CHAT_MODEL=gpt-4o-mini \
-AI_EMBEDDING_MODEL=text-embedding-3-small \
-AI_EMBEDDING_DIMENSIONS=1536 \
-bash tools/smoke/validate-ai-provider-smoke-env.sh
-
-AI_PROVIDER_SMOKE_ENABLED=true \
-AI_PROVIDER_SMOKE_MODE=dry-run \
-AI_PROVIDER_SMOKE_TIMEOUT_SECONDS=30 \
-AI_PROVIDER=openai-compatible \
-AI_API_BASE_URL=https://api.openai.com/v1 \
-AI_API_KEY=openai_or_compatible_api_key \
-AI_CHAT_MODEL=gpt-4o-mini \
-AI_EMBEDDING_MODEL=text-embedding-3-small \
-AI_EMBEDDING_DIMENSIONS=1536 \
-bash tools/smoke/run-ai-provider-smoke.sh
-```
-
-AI prompt evaluation smoke는 같은 workflow에서 opt-in으로 실행됩니다. dry-run은 `tools/smoke/ai-prompt-evaluation-fixtures.json`의 이슈 가이드, PR 초안, 번역, parser fallback, provider failure 샘플을 evidence로 남기고, live mode는 OpenAI-compatible chat completion 응답의 required/forbidden token, latency, token usage, parser result, failure reason을 기록합니다.
-
-```bash
-AI_PROMPT_EVAL_ENABLED=true \
-AI_PROMPT_EVAL_MODE=dry-run \
-AI_PROVIDER=openai-compatible \
-AI_CHAT_MODEL=gpt-4o-mini \
-AI_PROMPT_EVAL_EVIDENCE_FILE=tools/smoke/release-readiness/ai-prompt-evaluation-local.md \
-node tools/smoke/run-ai-prompt-evaluation-smoke.mjs
-```
-
-Langfuse trace 전송 경로는 기본 CI에서 외부 endpoint를 호출하지 않습니다. 수동으로 점검할 때는 다음처럼 dry-run으로 payload 항목을 먼저 확인한 뒤 live mode로 전환합니다.
-
-```bash
-bash tools/smoke/run-langfuse-observability-smoke.sh --dry-run
-
-LANGFUSE_SMOKE_ENABLED=true \
-LANGFUSE_SMOKE_MODE=live \
-LANGFUSE_SMOKE_TIMEOUT_SECONDS=30 \
-LANGFUSE_BASE_URL=https://cloud.langfuse.com \
-LANGFUSE_PUBLIC_KEY=pk_langfuse \
-LANGFUSE_SECRET_KEY=sk_langfuse \
-LANGFUSE_ENVIRONMENT=staging \
-bash tools/smoke/validate-langfuse-observability-env.sh
-
-LANGFUSE_SMOKE_ENABLED=true \
-LANGFUSE_SMOKE_MODE=live \
-LANGFUSE_SMOKE_TIMEOUT_SECONDS=30 \
-LANGFUSE_BASE_URL=https://cloud.langfuse.com \
-LANGFUSE_PUBLIC_KEY=pk_langfuse \
-LANGFUSE_SECRET_KEY=sk_langfuse \
-LANGFUSE_ENVIRONMENT=staging \
-bash tools/smoke/run-langfuse-observability-smoke.sh
-```
-
-프론트/백엔드 통합 smoke는 기본 CI에서 fixture backend를 띄워 보호 라우트, success envelope, failure envelope를 브라우저로 확인합니다. 로컬에서도 외부 서비스 없이 같은 검증을 실행할 수 있습니다.
-
-```bash
-npm --prefix front run smoke:integration
-```
-
-release gate에서 build 산출물을 그대로 검증할 때는 `next start` 모드와 route 대기 시간을 명시합니다.
-
-```bash
-NEXT_PUBLIC_API_URL=http://127.0.0.1:18080 \
-FRONTEND_INTEGRATION_SERVER_MODE=start \
-FRONTEND_INTEGRATION_FIXTURE_BACKEND_PORT=18080 \
-FRONTEND_INTEGRATION_ROUTE_TIMEOUT_MS=20000 \
-npm --prefix front run smoke:integration
-```
-
-실제 backend와 연결해 수동으로 확인할 때는 OAuth/JWT 토큰을 브라우저에 준비한 환경에서 live backend URL을 지정합니다. 이 경로는 외부 인증 상태와 운영 데이터에 의존하므로 기본 CI에서는 실행하지 않습니다.
-
-```bash
-FRONTEND_INTEGRATION_USE_LIVE_BACKEND=true \
-NEXT_PUBLIC_API_URL=http://localhost:8080 \
-npm --prefix front run smoke:integration
-```
-
-## OCI Always Free Terraform
-
-OCI Always Free A1 Flex 배포 baseline은 `infra/terraform/oci/always-free-a1-flex`에 둡니다.
-
-- 기본 shape: `VM.Standard.A1.Flex`
-- 기본 resource prefix: `aquila-buddy-a1`
-- 기본 hostname label: `aquilabuddy`
-- 기본 VCN DNS label: `aquilabuddyvcn`
-- storage: boot volume `50GB`, data Block Volume `150GB`, data volume `0` VPU/GB
-- data mount: `/var/lib/aquila-data`, Docker data-root `/var/lib/aquila-data/docker`
-
-실제 OCID, fingerprint, private key, SSH key는 commit하지 않습니다. `terraform.tfvars.example` 또는 `terraform.env.example`를 복사해 로컬에서만 실제 값으로 채웁니다.
-
-```bash
-cd infra/terraform/oci/always-free-a1-flex
-cp terraform.tfvars.example terraform.tfvars
-terraform init
-terraform fmt -check
-terraform validate
-terraform plan
-```
-
-환경 변수 방식으로 실행할 때는 shell export template을 사용합니다.
-
-```bash
-cd infra/terraform/oci/always-free-a1-flex
-cp terraform.env.example terraform.env
-# terraform.env에 실제 OCID, fingerprint, SSH public key를 채웁니다.
-set -a
-source terraform.env
-set +a
-terraform init
-terraform plan
-```
-
-`terraform.tfvars`, `terraform.env`, `.terraform/`, `*.tfstate`, `*.tfplan`은 gitignore 대상입니다.
+credential 파일과 secret은 로컬 또는 운영 private path에만 둡니다. `vertex-key.json`, OAuth secret, JWT secret, provider key, GitHub token은 git에 추가하지 않습니다.
 
 ## OCI Runtime Deploy
 
-OCI A1 인스턴스에서 aquila-buddy를 실행할 때는 Docker image와 host nginx 라우팅을 사용합니다. 서버는 `/var/lib/aquila-data`를 Docker data-root로 사용하고, 애플리케이션은 기존 80/443 포트를 직접 점유하지 않고 loopback 포트로만 바인딩합니다.
+OCI A1 인스턴스에서 aquila-buddy를 실행할 때는 Docker image와 host Nginx 라우팅을 사용합니다. 서버는 `/var/lib/aquila-data`를 Docker data-root로 사용하고, 애플리케이션은 기존 80/443 포트를 직접 점유하지 않고 loopback 포트로만 바인딩합니다.
 
-기본 포트:
-
-- Frontend container: `127.0.0.1:13011 -> 3000`
-- Backend container: `127.0.0.1:18091 -> 8080`
-- PostgreSQL/pgvector: Docker network 내부 `aquila-buddy-postgres:5432`
-
-배포 env는 예시 파일을 private path로 복사해 채웁니다. 실제 token, OAuth secret, JWT secret, provider key, `vertex-key.json`은 commit하지 않습니다.
+배포 env는 예시 파일을 private path로 복사해 채웁니다.
 
 ```bash
 sudo mkdir -p /opt/aquila-buddy/secrets
@@ -337,17 +356,7 @@ sudo editor /opt/aquila-buddy/aquila-buddy.env
 
 ```bash
 bash deploy/oci/build-aquila-buddy-images.sh /opt/aquila-buddy/aquila-buddy.env
-```
-
-서버에서 컨테이너를 띄웁니다. DB schema는 비어 있는 DB에만 자동 적용하고, 기존 schema가 있으면 destructive `schema.sql` 재적용을 건너뜁니다.
-
-```bash
 bash deploy/oci/run-aquila-buddy.sh /opt/aquila-buddy/aquila-buddy.env
-```
-
-host nginx 라우팅은 별도 단계로 설치합니다. 인증서는 `AQUILA_BUDDY_SSL_CERTIFICATE`, `AQUILA_BUDDY_SSL_CERTIFICATE_KEY` 경로에 이미 있어야 합니다.
-
-```bash
 bash deploy/oci/install-nginx-config.sh /opt/aquila-buddy/aquila-buddy.env
 ```
 
@@ -357,51 +366,24 @@ bash deploy/oci/install-nginx-config.sh /opt/aquila-buddy/aquila-buddy.env
 bash deploy/oci/validate-buddy-deploy-assets.sh
 ```
 
-## Ports
+## Delivery Flow
 
-- Backend: `http://localhost:8080`
-- Swagger UI: `http://localhost:8080/swagger-ui.html`
-- Frontend: `http://localhost:3000`
-- PostgreSQL: `localhost:5432`
+- 작업 브랜치는 `main`에서 짧게 분기하고 PR base는 `main`으로 둡니다.
+- GitHub issue/PR 제목은 `[Type] 한국어 작업 요약` 형식을 사용합니다.
+- PR 리뷰와 backend/frontend/extension/operations CI 통과 후 `main`에 병합합니다.
+- `main` merge SHA는 `OCI Buddy CD` workflow로 운영 host에 자동 배포합니다.
+- live provider, Langfuse, GitHub DOM smoke는 secret과 외부 인증 상태가 있는 opt-in workflow에서 evidence를 남깁니다.
+- 미완성 기능은 장기 `develop` 브랜치 대신 feature flag 또는 runtime env로 기본 비노출 처리합니다.
 
-## Verification
+## 관련 문서
 
-```bash
-./back/gradlew -p back check
-npm --prefix front run typecheck
-npm --prefix front run build
-```
+- OCI 배포 가이드: [deploy/oci/README.md](deploy/oci/README.md)
+- OCI Always Free baseline: [infra/terraform/oci/always-free-a1-flex/README.md](infra/terraform/oci/always-free-a1-flex/README.md)
+- [AI 운영 smoke runbook](tools/smoke/AI_RUNTIME_SMOKE.md)
+- release readiness records: [tools/smoke/release-readiness/README.md](tools/smoke/release-readiness/README.md)
+- 동등성 완료 매트릭스: [tools/smoke/release-readiness/PARITY_COMPLETION_MATRIX.md](tools/smoke/release-readiness/PARITY_COMPLETION_MATRIX.md)
 
-Extension live E2E는 headless Chrome DevTools endpoint를 사용합니다. CI runner에서 Chrome startup이 느릴 수 있으므로 다음 env로 대기 시간과 stderr logging을 고정합니다.
+## 프로젝트에서 강조하고 싶은 점
 
-```bash
-EXTENSION_E2E_CHROME_STARTUP_TIMEOUT_MS=30000 \
-EXTENSION_E2E_CHROME_EXTRA_FLAGS="--enable-logging=stderr --v=1" \
-npm --prefix extension run test:e2e
-```
-
-`Chrome DevTools endpoint did not open`이 발생하면 로그의 `exitCode`, `signal`, `stderr`를 먼저 확인합니다. 로컬 sandbox에서 loopback listen이 막히면 승인된 환경에서 같은 명령을 재실행해야 합니다.
-
-실제 GitHub DOM smoke는 수동 opt-in입니다. 로그인된 Chrome profile, live backend URL, 인증 header, 대상 issue/compare URL이 없으면 실패 대신 skip evidence를 남깁니다.
-
-```bash
-EXTENSION_GITHUB_LIVE_SMOKE_ENABLED=true \
-EXTENSION_GITHUB_LIVE_SKIP_ON_MISSING_SECRETS=true \
-EXTENSION_GITHUB_LIVE_EVIDENCE_FILE=tools/smoke/release-readiness/extension-github-live-local.md \
-EXTENSION_E2E_CHROME_USER_DATA_DIR=/path/to/chrome-profile \
-EXTENSION_GITHUB_LIVE_REPO=AquilaXk/aquila-buddy \
-EXTENSION_GITHUB_LIVE_ISSUE_NUMBER=297 \
-EXTENSION_GITHUB_LIVE_COMPARE_URL=https://github.com/AquilaXk/aquila-buddy/compare/main...test-branch \
-EXTENSION_GITHUB_LIVE_BACKEND_BASE_URL=http://localhost:8080 \
-EXTENSION_GITHUB_LIVE_AUTH_HEADER='Authorization: Bearer jwt_or_oauth_token' \
-npm --prefix extension run test:e2e:github-live
-```
-
-## Agent Docs
-
-Machine-facing agent settings are local-only and ignored by git:
-
-- `AGENTS.md`
-- `docs/AGENT-CONTEXT.md`
-- `docs/agent/*.md`
-- `.codex/tasks/*.local`
+이 프로젝트는 실제 기여를 자동으로 대신 수행하려는 구현이 아니라, 개인 프로젝트 범위에서 오픈소스 기여 준비 흐름을 일관된 제품 경험으로 구성한 포트폴리오입니다.
+GitHub API, pgvector 추천, AI draft, Langfuse 관측, Chrome extension smoke, OCI 배포 evidence를 코드와 문서의 같은 레벨에서 관리하되, upstream write 자동화와 상용 SaaS 운영 책임은 명시적으로 범위 밖에 둡니다.
