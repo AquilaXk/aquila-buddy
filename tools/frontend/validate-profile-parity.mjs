@@ -24,8 +24,14 @@ function assertNotIncludes(text, needle, message) {
   }
 }
 
+assertIncludes(profilePage, '"use client";', "Profile page must be a Client Component so browser auth cookies are sent to the backend.");
+assertIncludes(profilePage, "useEffect", "Profile page must load the current user profile from the browser.");
+assertIncludes(profilePage, "useState", "Profile page must manage loading/profile/error state client-side.");
 assertIncludes(profilePage, "getUserProfile", "Profile page must load the current user profile.");
-assertIncludes(profilePage, "<ProfileEditorPanel initialProfile={result.profile} />", "Profile page must render the simplified editor panel.");
+assertIncludes(profilePage, "<ProfileEditorPanel initialProfile={profile} />", "Profile page must render the simplified editor panel.");
+assertIncludes(profilePage, "프로필을 불러오는 중...", "Profile page must show a loading state while fetching from the browser.");
+assertNotIncludes(profilePage, "async function ProfilePage", "Profile page must not fetch the authenticated profile during server render.");
+assertNotIncludes(profilePage, "result.profile", "Profile page must not depend on server-loaded profile results.");
 assertNotIncludes(profilePage, "getUserProfileByLogin", "Profile page must not fetch the public profile panel.");
 assertNotIncludes(profilePage, "publicProfile", "Profile page must not pass public profile data.");
 
