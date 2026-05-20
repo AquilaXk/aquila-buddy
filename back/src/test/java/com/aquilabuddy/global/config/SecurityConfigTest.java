@@ -79,6 +79,17 @@ class SecurityConfigTest {
     }
 
     @Test
+    void allowsProtectedApiWithJwtCookieWhenBearerTokenIsStale() throws Exception {
+        String token = jwtProvider.generateToken("10001");
+
+        mockMvc.perform(get("/api/v1/users/me")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer stale-local-storage-token")
+                .cookie(new Cookie(JwtCookieSupport.AUTH_COOKIE_NAME, token)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true));
+    }
+
+    @Test
     void logoutClearsJwtCookieWithoutRequiringAuthentication() throws Exception {
         mockMvc.perform(post("/api/v1/auth/logout"))
             .andExpect(status().isOk())

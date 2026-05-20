@@ -33,9 +33,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         HttpServletResponse response,
         FilterChain filterChain
     ) throws ServletException, IOException {
-        String token = extractToken(request);
+        String token = firstValidToken(extractBearerToken(request), extractCookieToken(request));
 
-        if (token != null && jwtProvider.isValid(token)) {
+        if (token != null) {
             String githubId = jwtProvider.getGithubId(token);
             OAuthPrincipal principal = new OAuthPrincipal(githubId, Map.of());
             UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
@@ -49,13 +49,29 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
-    private String extractToken(HttpServletRequest request) {
+    private String firstValidToken(String bearerToken, String cookieToken) {
+        if (bearerToken != null && jwtProvider.isValid(bearerToken)) {
+            return bearerToken;
+        }
+
+        if (cookieToken != null && jwtProvider.isValid(cookieToken)) {
+            return cookieToken;
+        }
+
+        return null;
+    }
+
+    private String extractBearerToken(HttpServletRequest request) {
         String authorization = request.getHeader(HttpHeaders.AUTHORIZATION);
 
         if (authorization != null && authorization.startsWith(BEARER_PREFIX)) {
             return authorization.substring(BEARER_PREFIX.length());
         }
 
+        return null;
+    }
+
+    private String extractCookieToken(HttpServletRequest request) {
         Cookie[] cookies = request.getCookies();
         if (cookies == null) {
             return null;
