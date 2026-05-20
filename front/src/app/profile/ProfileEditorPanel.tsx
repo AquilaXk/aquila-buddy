@@ -76,12 +76,23 @@ export function ProfileEditorPanel({ initialProfile }: ProfileEditorPanelProps) 
 
       <section className="mb-6 rounded-xl border border-github-border bg-github-surface p-6">
         <div className="mb-6 flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-github-purple/30 text-lg font-bold text-github-purple-light">
-            {getProfileInitial(profile)}
-          </div>
+          {profile.avatarUrl ? (
+            <img
+              alt={`${profile.login} GitHub avatar`}
+              className="h-12 w-12 rounded-full border border-github-border bg-github-bg object-cover"
+              referrerPolicy="no-referrer"
+              src={profile.avatarUrl}
+            />
+          ) : (
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-github-purple/30 text-lg font-bold text-github-purple-light">
+              {getProfileInitial(profile)}
+            </div>
+          )}
           <div>
-            <p className="font-medium text-github-text">{profile.githubId}</p>
-            <p className="text-xs text-github-muted">GitHub ID</p>
+            <p className="font-medium text-github-text">{profile.login ? `@${profile.login}` : profile.githubId}</p>
+            <p className="text-xs text-github-muted">
+              {profile.login ? `GitHub ID ${profile.githubId}` : "GitHub ID"}
+            </p>
           </div>
         </div>
 
