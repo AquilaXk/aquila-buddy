@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.aquilabuddy.application.port.out.ai.EmbeddingClient;
 import com.aquilabuddy.domain.embedding.EmbeddingBackfillResult;
 import com.aquilabuddy.domain.embedding.EmbeddingVector;
+import com.aquilabuddy.domain.user.AuthenticatedUserProfile;
 import com.aquilabuddy.domain.user.UserProfile;
 import com.aquilabuddy.domain.user.UserProfileUpdateRequest;
 import com.aquilabuddy.global.auth.CurrentUserGithubIdProvider;
@@ -114,6 +115,43 @@ class UserProfilePersistenceAdapterTest {
         assertThat(adapter.loadCurrentUserProfile())
             .usingRecursiveComparison()
             .isEqualTo(updated);
+    }
+
+    @Test
+    void upsertsNewAuthenticatedUserProfile() {
+        adapter.upsertAuthenticatedUserProfile(new AuthenticatedUserProfile(
+            12345L,
+            "aquila",
+            "Aquila",
+            "aquila@example.com"
+        ));
+
+        UserProfile profile = adapter.loadUserProfileByGithubId(12345L).orElseThrow();
+        assertThat(profile.githubId()).isEqualTo(12345L);
+        assertThat(profile.login()).isEqualTo("aquila");
+        assertThat(profile.name()).isEqualTo("Aquila");
+        assertThat(profile.email()).isEqualTo("aquila@example.com");
+        assertThat(profile.profileReady()).isFalse();
+        assertThat(profile.primaryLanguages()).isEmpty();
+        assertThat(profile.topics()).isEmpty();
+    }
+
+    @Test
+    void upsertingExistingAuthenticatedUserProfilePreservesRecommendationContext() {
+        adapter.upsertAuthenticatedUserProfile(new AuthenticatedUserProfile(
+            10001L,
+            "aquila-renamed",
+            "Aquila Renamed",
+            "renamed@example.com"
+        ));
+
+        UserProfile profile = adapter.loadUserProfileByGithubId(10001L).orElseThrow();
+        assertThat(profile.login()).isEqualTo("aquila-renamed");
+        assertThat(profile.name()).isEqualTo("Aquila Renamed");
+        assertThat(profile.email()).isEqualTo("renamed@example.com");
+        assertThat(profile.profileReady()).isTrue();
+        assertThat(profile.primaryLanguages()).containsExactly("Java", "TypeScript", "SQL");
+        assertThat(profile.topics()).containsExactly("spring", "nextjs", "open-source");
     }
 
     @Test

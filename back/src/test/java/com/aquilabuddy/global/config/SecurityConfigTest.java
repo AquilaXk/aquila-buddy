@@ -148,6 +148,15 @@ class SecurityConfigTest {
                 .contains("HttpOnly")
                 .contains("Secure")
                 .contains("SameSite=Lax"));
+
+        Cookie authCookie = callback.getResponse().getCookie(JwtCookieSupport.AUTH_COOKIE_NAME);
+        assertThat(authCookie).isNotNull();
+        mockMvc.perform(get("/api/v1/users/me")
+                .cookie(authCookie))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.githubId").value(12345))
+            .andExpect(jsonPath("$.data.login").value("aquila"));
     }
 
     @Test

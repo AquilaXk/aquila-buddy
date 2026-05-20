@@ -4,10 +4,13 @@ import com.aquilabuddy.application.port.in.user.GetCurrentUserProfileUseCase;
 import com.aquilabuddy.application.port.in.user.GetUserProfileByGithubIdUseCase;
 import com.aquilabuddy.application.port.in.user.GetUserProfileByLoginUseCase;
 import com.aquilabuddy.application.port.in.user.RefreshCurrentUserProfileVectorUseCase;
+import com.aquilabuddy.application.port.in.user.SyncAuthenticatedUserProfileUseCase;
 import com.aquilabuddy.application.port.in.user.UpdateCurrentUserProfileUseCase;
 import com.aquilabuddy.application.port.out.user.LoadUserProfilePort;
 import com.aquilabuddy.application.port.out.user.RefreshUserProfileVectorPort;
 import com.aquilabuddy.application.port.out.user.SaveUserProfilePort;
+import com.aquilabuddy.application.port.out.user.UpsertAuthenticatedUserProfilePort;
+import com.aquilabuddy.domain.user.AuthenticatedUserProfile;
 import com.aquilabuddy.domain.user.UserProfile;
 import com.aquilabuddy.domain.user.UserProfileUpdateRequest;
 import java.util.Optional;
@@ -24,20 +27,24 @@ public class UserProfileService implements
     GetUserProfileByLoginUseCase,
     GetUserProfileByGithubIdUseCase,
     UpdateCurrentUserProfileUseCase,
-    RefreshCurrentUserProfileVectorUseCase {
+    RefreshCurrentUserProfileVectorUseCase,
+    SyncAuthenticatedUserProfileUseCase {
 
     private final LoadUserProfilePort loadUserProfilePort;
     private final SaveUserProfilePort saveUserProfilePort;
     private final RefreshUserProfileVectorPort refreshUserProfileVectorPort;
+    private final UpsertAuthenticatedUserProfilePort upsertAuthenticatedUserProfilePort;
 
     public UserProfileService(
         LoadUserProfilePort loadUserProfilePort,
         SaveUserProfilePort saveUserProfilePort,
-        RefreshUserProfileVectorPort refreshUserProfileVectorPort
+        RefreshUserProfileVectorPort refreshUserProfileVectorPort,
+        UpsertAuthenticatedUserProfilePort upsertAuthenticatedUserProfilePort
     ) {
         this.loadUserProfilePort = loadUserProfilePort;
         this.saveUserProfilePort = saveUserProfilePort;
         this.refreshUserProfileVectorPort = refreshUserProfileVectorPort;
+        this.upsertAuthenticatedUserProfilePort = upsertAuthenticatedUserProfilePort;
     }
 
     /**
@@ -78,5 +85,13 @@ public class UserProfileService implements
     @Override
     public UserProfile refreshCurrentUserVector() {
         return refreshUserProfileVectorPort.refreshCurrentUserProfileVector();
+    }
+
+    /**
+     * OAuth 인증으로 확인된 GitHub 사용자 식별 정보를 프로필 저장소에 반영합니다.
+     */
+    @Override
+    public void syncAuthenticatedUserProfile(AuthenticatedUserProfile profile) {
+        upsertAuthenticatedUserProfilePort.upsertAuthenticatedUserProfile(profile);
     }
 }
