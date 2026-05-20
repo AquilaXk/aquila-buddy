@@ -1,5 +1,7 @@
 package com.aquilabuddy.global.auth.oauth;
 
+import com.aquilabuddy.application.port.in.user.SyncAuthenticatedUserProfileUseCase;
+import com.aquilabuddy.domain.user.AuthenticatedUserProfile;
 import com.aquilabuddy.global.auth.principal.OAuthPrincipal;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -37,6 +39,7 @@ public class GitHubOAuthController {
     private final ClientRegistrationRepository clientRegistrationRepository;
     private final CookieOAuth2AuthorizationRequestRepository authorizationRequestRepository;
     private final GitHubOAuthClient gitHubOAuthClient;
+    private final SyncAuthenticatedUserProfileUseCase syncAuthenticatedUserProfileUseCase;
     private final OAuth2SuccessHandler successHandler;
     private final OAuth2FailureHandler failureHandler;
     private final SecureRandom secureRandom = new SecureRandom();
@@ -45,12 +48,14 @@ public class GitHubOAuthController {
         ClientRegistrationRepository clientRegistrationRepository,
         CookieOAuth2AuthorizationRequestRepository authorizationRequestRepository,
         GitHubOAuthClient gitHubOAuthClient,
+        SyncAuthenticatedUserProfileUseCase syncAuthenticatedUserProfileUseCase,
         OAuth2SuccessHandler successHandler,
         OAuth2FailureHandler failureHandler
     ) {
         this.clientRegistrationRepository = clientRegistrationRepository;
         this.authorizationRequestRepository = authorizationRequestRepository;
         this.gitHubOAuthClient = gitHubOAuthClient;
+        this.syncAuthenticatedUserProfileUseCase = syncAuthenticatedUserProfileUseCase;
         this.successHandler = successHandler;
         this.failureHandler = failureHandler;
     }
@@ -98,6 +103,12 @@ public class GitHubOAuthController {
         try {
             GitHubOAuthAccessToken token = gitHubOAuthClient.exchangeCode(code, authorizationRequest.getRedirectUri());
             GitHubOAuthUser user = gitHubOAuthClient.loadUser(token.accessToken());
+            syncAuthenticatedUserProfileUseCase.syncAuthenticatedUserProfile(new AuthenticatedUserProfile(
+                user.id(),
+                user.login(),
+                user.name(),
+                user.email()
+            ));
             OAuthPrincipal principal = new OAuthPrincipal(String.valueOf(user.id()), attributes(user));
             successHandler.onAuthenticationSuccess(
                 request,

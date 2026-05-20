@@ -5,6 +5,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.aquilabuddy.application.port.out.user.LoadUserProfilePort;
 import com.aquilabuddy.application.port.out.user.RefreshUserProfileVectorPort;
 import com.aquilabuddy.application.port.out.user.SaveUserProfilePort;
+import com.aquilabuddy.application.port.out.user.UpsertAuthenticatedUserProfilePort;
+import com.aquilabuddy.domain.user.AuthenticatedUserProfile;
 import com.aquilabuddy.domain.user.UserProfile;
 import com.aquilabuddy.domain.user.UserProfileUpdateRequest;
 import java.util.List;
@@ -19,7 +21,7 @@ class UserProfileServiceTest {
     @Test
     void updatesCurrentUserProfile() {
         RecordingUserProfilePort port = new RecordingUserProfilePort();
-        UserProfileService service = new UserProfileService(port, port, port);
+        UserProfileService service = new UserProfileService(port, port, port, port);
 
         UserProfile updated = service.updateCurrentUser(new UserProfileUpdateRequest(
             "Aquila Maintainer",
@@ -43,7 +45,7 @@ class UserProfileServiceTest {
     @Test
     void refreshesCurrentUserProfileVector() {
         RecordingUserProfilePort port = new RecordingUserProfilePort();
-        UserProfileService service = new UserProfileService(port, port, port);
+        UserProfileService service = new UserProfileService(port, port, port, port);
 
         UserProfile refreshed = service.refreshCurrentUserVector();
 
@@ -55,7 +57,7 @@ class UserProfileServiceTest {
     @Test
     void returnsUserProfileByLogin() {
         RecordingUserProfilePort port = new RecordingUserProfilePort();
-        UserProfileService service = new UserProfileService(port, port, port);
+        UserProfileService service = new UserProfileService(port, port, port, port);
 
         Optional<UserProfile> profile = service.getUserProfileByLogin("aquila-dev");
 
@@ -67,7 +69,7 @@ class UserProfileServiceTest {
     @Test
     void returnsUserProfileByGithubId() {
         RecordingUserProfilePort port = new RecordingUserProfilePort();
-        UserProfileService service = new UserProfileService(port, port, port);
+        UserProfileService service = new UserProfileService(port, port, port, port);
 
         Optional<UserProfile> profile = service.getUserProfileByGithubId(10001L);
 
@@ -79,7 +81,7 @@ class UserProfileServiceTest {
     @Test
     void returnsEmptyWhenUserProfileByLoginDoesNotExist() {
         RecordingUserProfilePort port = new RecordingUserProfilePort();
-        UserProfileService service = new UserProfileService(port, port, port);
+        UserProfileService service = new UserProfileService(port, port, port, port);
 
         Optional<UserProfile> profile = service.getUserProfileByLogin("missing-user");
 
@@ -90,7 +92,7 @@ class UserProfileServiceTest {
     @Test
     void returnsEmptyWhenUserProfileByGithubIdDoesNotExist() {
         RecordingUserProfilePort port = new RecordingUserProfilePort();
-        UserProfileService service = new UserProfileService(port, port, port);
+        UserProfileService service = new UserProfileService(port, port, port, port);
 
         Optional<UserProfile> profile = service.getUserProfileByGithubId(99999L);
 
@@ -98,12 +100,34 @@ class UserProfileServiceTest {
         assertThat(port.requestedGithubId).isEqualTo(99999L);
     }
 
+    @Test
+    void syncsAuthenticatedUserProfile() {
+        RecordingUserProfilePort port = new RecordingUserProfilePort();
+        UserProfileService service = new UserProfileService(port, port, port, port);
+
+        service.syncAuthenticatedUserProfile(new AuthenticatedUserProfile(
+            12345L,
+            "aquila",
+            "Aquila",
+            "aquila@example.com"
+        ));
+
+        assertThat(port.syncedProfile).isEqualTo(new AuthenticatedUserProfile(
+            12345L,
+            "aquila",
+            "Aquila",
+            "aquila@example.com"
+        ));
+    }
+
     private static class RecordingUserProfilePort implements
         LoadUserProfilePort,
         SaveUserProfilePort,
-        RefreshUserProfileVectorPort {
+        RefreshUserProfileVectorPort,
+        UpsertAuthenticatedUserProfilePort {
 
         private UserProfileUpdateRequest savedRequest;
+        private AuthenticatedUserProfile syncedProfile;
         private boolean refreshRequested;
         private String requestedLogin;
         private long requestedGithubId;
@@ -170,6 +194,11 @@ class UserProfileServiceTest {
                 true,
                 "2026-05-16T00:00:00Z"
             );
+        }
+
+        @Override
+        public void upsertAuthenticatedUserProfile(AuthenticatedUserProfile profile) {
+            this.syncedProfile = profile;
         }
     }
 }

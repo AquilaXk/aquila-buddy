@@ -125,6 +125,12 @@ public class UserProfileJpaEntity {
         this.topics = new ArrayList<>(topics);
     }
 
+    void updateIdentity(String login, String name, String email) {
+        this.login = login;
+        this.name = name;
+        this.email = email;
+    }
+
     void refreshVector(String vectorUpdatedAt) {
         this.profileReady = true;
         this.vectorUpdatedAt = vectorUpdatedAt;

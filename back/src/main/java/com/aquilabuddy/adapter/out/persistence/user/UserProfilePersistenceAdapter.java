@@ -2,12 +2,14 @@ package com.aquilabuddy.adapter.out.persistence.user;
 
 import com.aquilabuddy.application.port.out.ai.EmbeddingClient;
 import com.aquilabuddy.application.port.out.embedding.BackfillUserProfileEmbeddingPort;
-import com.aquilabuddy.application.port.out.user.LoadUserProfilePort;
 import com.aquilabuddy.application.port.out.user.CurrentUserGithubIdPort;
+import com.aquilabuddy.application.port.out.user.LoadUserProfilePort;
 import com.aquilabuddy.application.port.out.user.RefreshUserProfileVectorPort;
 import com.aquilabuddy.application.port.out.user.SaveUserProfilePort;
+import com.aquilabuddy.application.port.out.user.UpsertAuthenticatedUserProfilePort;
 import com.aquilabuddy.domain.embedding.EmbeddingBackfillResult;
 import com.aquilabuddy.domain.embedding.EmbeddingVector;
+import com.aquilabuddy.domain.user.AuthenticatedUserProfile;
 import com.aquilabuddy.domain.user.UserProfile;
 import com.aquilabuddy.domain.user.UserProfileUpdateRequest;
 import com.aquilabuddy.global.github.GitHubApiClient;
@@ -30,8 +32,10 @@ public class UserProfilePersistenceAdapter implements
     LoadUserProfilePort,
     SaveUserProfilePort,
     RefreshUserProfileVectorPort,
+    UpsertAuthenticatedUserProfilePort,
     BackfillUserProfileEmbeddingPort {
 
+    private static final String INITIAL_VECTOR_UPDATED_AT = "1970-01-01T00:00:00Z";
     private static final String REFRESHED_VECTOR_UPDATED_AT = "2026-05-16T00:00:00Z";
     private static final int MAX_FAILURE_REASON_SAMPLES = 10;
 
@@ -84,6 +88,27 @@ public class UserProfilePersistenceAdapter implements
         entity.updateProfile(request.name(), request.email(), request.primaryLanguages(), request.topics());
 
         return UserProfilePersistenceMapper.toDomain(repository.save(entity));
+    }
+
+    @Override
+    public void upsertAuthenticatedUserProfile(AuthenticatedUserProfile profile) {
+        UserProfileJpaEntity entity = repository.findById(profile.githubId())
+            .map(existing -> {
+                existing.updateIdentity(profile.login(), profile.name(), profile.email());
+                return existing;
+            })
+            .orElseGet(() -> new UserProfileJpaEntity(
+                profile.githubId(),
+                profile.login(),
+                profile.name(),
+                profile.email(),
+                List.of(),
+                List.of(),
+                false,
+                INITIAL_VECTOR_UPDATED_AT
+            ));
+
+        repository.save(entity);
     }
 
     @Override
