@@ -25,12 +25,13 @@ class CookieOAuth2AuthorizationRequestRepositoryTest {
 
         String setCookie = response.getHeader(HttpHeaders.SET_COOKIE);
         assertThat(setCookie)
-            .contains(CookieOAuth2AuthorizationRequestRepository.AUTHORIZATION_REQUEST_COOKIE_NAME + "=")
+            .contains("__Host-aquila_buddy_oauth2_authorization_request=")
             .contains("Path=/")
             .contains("Max-Age=180")
             .contains("Secure")
             .contains("HttpOnly")
-            .contains("SameSite=Lax");
+            .contains("SameSite=Lax")
+            .doesNotContain("Domain=");
     }
 
     @Test
@@ -50,6 +51,21 @@ class CookieOAuth2AuthorizationRequestRepositoryTest {
     }
 
     @Test
+    void loadsAuthorizationRequestFromLegacyCookieDuringPrefixTransition() {
+        OAuth2AuthorizationRequest authorizationRequest = authorizationRequest();
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        repository.saveAuthorizationRequest(authorizationRequest, new MockHttpServletRequest(), response);
+        Cookie savedCookie = cookieFrom(response);
+        MockHttpServletRequest nextRequest = new MockHttpServletRequest();
+        nextRequest.setCookies(new Cookie("aquila_buddy_oauth2_authorization_request", savedCookie.getValue()));
+
+        OAuth2AuthorizationRequest loaded = repository.loadAuthorizationRequest(nextRequest);
+
+        assertThat(loaded).isNotNull();
+        assertThat(loaded.getState()).isEqualTo("state-123");
+    }
+
+    @Test
     void removeAuthorizationRequestExpiresCookieAndReturnsLoadedRequest() {
         OAuth2AuthorizationRequest authorizationRequest = authorizationRequest();
         MockHttpServletResponse saveResponse = new MockHttpServletResponse();
@@ -62,12 +78,23 @@ class CookieOAuth2AuthorizationRequestRepositoryTest {
 
         assertThat(removed).isNotNull();
         assertThat(removed.getState()).isEqualTo("state-123");
-        assertThat(removeResponse.getHeader(HttpHeaders.SET_COOKIE))
-            .contains(CookieOAuth2AuthorizationRequestRepository.AUTHORIZATION_REQUEST_COOKIE_NAME + "=;")
-            .contains("Max-Age=0")
-            .contains("Secure")
-            .contains("HttpOnly")
-            .contains("SameSite=Lax");
+        assertThat(removeResponse.getHeaders(HttpHeaders.SET_COOKIE))
+            .anySatisfy(setCookie -> assertThat(setCookie)
+                .contains("__Host-aquila_buddy_oauth2_authorization_request=;")
+                .contains("Max-Age=0")
+                .contains("Path=/")
+                .contains("Secure")
+                .contains("HttpOnly")
+                .contains("SameSite=Lax")
+                .doesNotContain("Domain="))
+            .anySatisfy(setCookie -> assertThat(setCookie)
+                .contains("aquila_buddy_oauth2_authorization_request=;")
+                .contains("Max-Age=0")
+                .contains("Path=/")
+                .contains("Secure")
+                .contains("HttpOnly")
+                .contains("SameSite=Lax")
+                .doesNotContain("Domain="));
     }
 
     private static OAuth2AuthorizationRequest authorizationRequest() {

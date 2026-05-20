@@ -25,6 +25,8 @@ public class CookieOAuth2AuthorizationRequestRepository
     implements AuthorizationRequestRepository<OAuth2AuthorizationRequest> {
 
     public static final String AUTHORIZATION_REQUEST_COOKIE_NAME =
+        "__Host-aquila_buddy_oauth2_authorization_request";
+    public static final String LEGACY_AUTHORIZATION_REQUEST_COOKIE_NAME =
         "aquila_buddy_oauth2_authorization_request";
 
     private static final Duration COOKIE_MAX_AGE = Duration.ofMinutes(3);
@@ -88,19 +90,34 @@ public class CookieOAuth2AuthorizationRequestRepository
             return null;
         }
 
+        String hostPrefixedValue = findCookieValue(cookies, AUTHORIZATION_REQUEST_COOKIE_NAME);
+        if (hostPrefixedValue != null) {
+            return hostPrefixedValue;
+        }
+
+        // OAuth redirect 중 배포가 바뀌어도 callback state를 한 번 더 복구할 수 있게 legacy cookie를 읽습니다.
+        return findCookieValue(cookies, LEGACY_AUTHORIZATION_REQUEST_COOKIE_NAME);
+    }
+
+    private static String findCookieValue(Cookie[] cookies, String name) {
         return Arrays.stream(cookies)
-            .filter(cookie -> AUTHORIZATION_REQUEST_COOKIE_NAME.equals(cookie.getName()))
+            .filter(cookie -> name.equals(cookie.getName()))
             .map(Cookie::getValue)
             .findFirst()
             .orElse(null);
     }
 
     private static void expireAuthorizationRequestCookie(HttpServletResponse response) {
-        response.addHeader(HttpHeaders.SET_COOKIE, responseCookie("", Duration.ZERO));
+        response.addHeader(HttpHeaders.SET_COOKIE, responseCookie(AUTHORIZATION_REQUEST_COOKIE_NAME, "", Duration.ZERO));
+        response.addHeader(HttpHeaders.SET_COOKIE, responseCookie(LEGACY_AUTHORIZATION_REQUEST_COOKIE_NAME, "", Duration.ZERO));
     }
 
     private static String responseCookie(String value, Duration maxAge) {
-        return ResponseCookie.from(AUTHORIZATION_REQUEST_COOKIE_NAME, value)
+        return responseCookie(AUTHORIZATION_REQUEST_COOKIE_NAME, value, maxAge);
+    }
+
+    private static String responseCookie(String name, String value, Duration maxAge) {
+        return ResponseCookie.from(name, value)
             .httpOnly(true)
             .secure(true)
             .sameSite("Lax")

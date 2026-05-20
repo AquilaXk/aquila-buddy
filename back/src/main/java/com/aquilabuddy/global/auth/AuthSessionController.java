@@ -18,7 +18,8 @@ public class AuthSessionController {
     @PostMapping("/logout")
     ResponseEntity<ApiResponse<Void>> logout() {
         return ResponseEntity.ok()
-            .header(HttpHeaders.SET_COOKIE, JwtCookieSupport.expiredAuthenticationCookie().toString())
+            .headers(headers -> JwtCookieSupport.expiredAuthenticationCookies()
+                .forEach(cookie -> headers.add(HttpHeaders.SET_COOKIE, cookie.toString())))
             .body(ApiResponse.success(null));
     }
 }

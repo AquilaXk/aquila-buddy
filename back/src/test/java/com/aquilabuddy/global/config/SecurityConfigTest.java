@@ -91,16 +91,28 @@ class SecurityConfigTest {
 
     @Test
     void logoutClearsJwtCookieWithoutRequiringAuthentication() throws Exception {
-        mockMvc.perform(post("/api/v1/auth/logout"))
+        MvcResult logout = mockMvc.perform(post("/api/v1/auth/logout"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.success").value(true))
-            .andExpect(header().string(HttpHeaders.SET_COOKIE, org.hamcrest.Matchers.allOf(
-                org.hamcrest.Matchers.containsString(JwtCookieSupport.AUTH_COOKIE_NAME + "=;"),
-                org.hamcrest.Matchers.containsString("Max-Age=0"),
-                org.hamcrest.Matchers.containsString("HttpOnly"),
-                org.hamcrest.Matchers.containsString("Secure"),
-                org.hamcrest.Matchers.containsString("SameSite=Lax")
-            )));
+            .andReturn();
+
+        assertThat(logout.getResponse().getHeaders(HttpHeaders.SET_COOKIE))
+            .anySatisfy(setCookie -> assertThat(setCookie)
+                .contains("__Host-aquila_buddy_token=;")
+                .contains("Max-Age=0")
+                .contains("Path=/")
+                .contains("HttpOnly")
+                .contains("Secure")
+                .contains("SameSite=Lax")
+                .doesNotContain("Domain="))
+            .anySatisfy(setCookie -> assertThat(setCookie)
+                .contains("aquila_buddy_token=;")
+                .contains("Max-Age=0")
+                .contains("Path=/")
+                .contains("HttpOnly")
+                .contains("Secure")
+                .contains("SameSite=Lax")
+                .doesNotContain("Domain="));
     }
 
     @Test
@@ -110,13 +122,12 @@ class SecurityConfigTest {
             .andExpect(status().isFound())
             .andExpect(header().string(HttpHeaders.LOCATION, org.hamcrest.Matchers.containsString("github.com/login/oauth/authorize")))
             .andExpect(header().string(HttpHeaders.SET_COOKIE, org.hamcrest.Matchers.allOf(
-                org.hamcrest.Matchers.containsString(
-                    CookieOAuth2AuthorizationRequestRepository.AUTHORIZATION_REQUEST_COOKIE_NAME + "="
-                ),
+                org.hamcrest.Matchers.containsString("__Host-aquila_buddy_oauth2_authorization_request="),
                 org.hamcrest.Matchers.containsString("Max-Age=180"),
                 org.hamcrest.Matchers.containsString("HttpOnly"),
                 org.hamcrest.Matchers.containsString("Secure"),
-                org.hamcrest.Matchers.containsString("SameSite=Lax")
+                org.hamcrest.Matchers.containsString("SameSite=Lax"),
+                org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("Domain="))
             )));
     }
 
@@ -144,10 +155,11 @@ class SecurityConfigTest {
             .andReturn();
         assertThat(callback.getResponse().getHeaders(HttpHeaders.SET_COOKIE))
             .anySatisfy(setCookie -> assertThat(setCookie)
-                .contains(JwtCookieSupport.AUTH_COOKIE_NAME + "=")
+                .contains("__Host-aquila_buddy_token=")
                 .contains("HttpOnly")
                 .contains("Secure")
-                .contains("SameSite=Lax"));
+                .contains("SameSite=Lax")
+                .doesNotContain("Domain="));
 
         Cookie authCookie = callback.getResponse().getCookie(JwtCookieSupport.AUTH_COOKIE_NAME);
         assertThat(authCookie).isNotNull();

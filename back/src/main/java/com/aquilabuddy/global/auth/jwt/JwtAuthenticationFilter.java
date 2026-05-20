@@ -77,8 +77,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return null;
         }
 
+        String hostPrefixedToken = extractCookieValue(cookies, JwtCookieSupport.AUTH_COOKIE_NAME);
+        if (hostPrefixedToken != null) {
+            return hostPrefixedToken;
+        }
+
+        // __Host- prefix 배포 전환 동안 기존 cookie도 logout 전까지 수용합니다.
+        return extractCookieValue(cookies, JwtCookieSupport.LEGACY_AUTH_COOKIE_NAME);
+    }
+
+    private String extractCookieValue(Cookie[] cookies, String name) {
         return Arrays.stream(cookies)
-            .filter(cookie -> JwtCookieSupport.AUTH_COOKIE_NAME.equals(cookie.getName()))
+            .filter(cookie -> name.equals(cookie.getName()))
             .map(Cookie::getValue)
             .filter(value -> value != null && !value.isBlank())
             .findFirst()
