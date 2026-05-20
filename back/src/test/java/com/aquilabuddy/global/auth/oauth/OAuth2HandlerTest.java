@@ -41,12 +41,13 @@ class OAuth2HandlerTest {
         assertThat(response.getRedirectedUrl()).isEqualTo("http://localhost:3000/oauth/callback");
         String setCookie = response.getHeader(HttpHeaders.SET_COOKIE);
         assertThat(setCookie)
-            .contains(JwtCookieSupport.AUTH_COOKIE_NAME + "=")
+            .contains("__Host-aquila_buddy_token=")
             .contains("HttpOnly")
             .contains("Secure")
             .contains("SameSite=Lax")
             .contains("Path=/")
-            .contains("Max-Age=3600");
+            .contains("Max-Age=3600")
+            .doesNotContain("Domain=");
 
         String token = setCookie.substring(
             setCookie.indexOf(JwtCookieSupport.AUTH_COOKIE_NAME + "=")

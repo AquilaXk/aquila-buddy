@@ -63,6 +63,19 @@ class JwtAuthenticationFilterTest {
     }
 
     @Test
+    void setsAuthenticationWhenLegacyJwtCookieIsValidDuringPrefixTransition() throws ServletException, IOException {
+        String token = provider.generateToken("12345");
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/users/me");
+        request.setCookies(new Cookie("aquila_buddy_token", token));
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        filter.doFilter(request, response, new MockFilterChain());
+
+        assertThat(SecurityContextHolder.getContext().getAuthentication()).isNotNull();
+        assertThat(SecurityContextHolder.getContext().getAuthentication().getName()).isEqualTo("12345");
+    }
+
+    @Test
     void bearerTokenTakesPriorityOverJwtCookie() throws ServletException, IOException {
         String bearerToken = provider.generateToken("12345");
         String cookieToken = provider.generateToken("99999");
