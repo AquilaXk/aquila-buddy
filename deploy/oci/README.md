@@ -100,3 +100,21 @@ bash deploy/oci/render-nginx-config.sh /opt/aquila-buddy/aquila-buddy.env
 ```bash
 bash deploy/oci/validate-buddy-deploy-assets.sh
 ```
+
+## GitHub Actions CD
+
+`OCI Buddy CD` workflow는 `self-hosted`, `oci-a1-staging`, `aquila-buddy` labels가 붙은 repo 전용 runner에서 실행됩니다. runner는 OCI A1 host에서 다음 값으로 등록합니다.
+
+```bash
+GITHUB_RUNNER_TOKEN=<repo-runner-registration-token> \
+bash deploy/oci/bootstrap-github-runner.sh
+```
+
+workflow secret은 실제 값을 base64로 저장합니다.
+
+```text
+OCI_A1_BUDDY_ENV_B64
+OCI_A1_VERTEX_KEY_JSON_B64
+```
+
+수동 실행은 기본 `dry_run=true`입니다. 실제 컨테이너 교체는 `dry_run=false`로 실행합니다.
