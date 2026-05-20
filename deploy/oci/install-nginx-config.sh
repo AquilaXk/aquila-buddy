@@ -24,6 +24,8 @@ if [[ "$(id -u)" -eq 0 ]]; then
   install -m 0644 "$tmp_file" "$config_path"
   nginx -t
   systemctl reload nginx
+elif [[ -x /usr/local/sbin/aquila-buddy-install-nginx-config ]]; then
+  sudo -n /usr/local/sbin/aquila-buddy-install-nginx-config "$tmp_file" "$config_path"
 else
   sudo install -m 0644 "$tmp_file" "$config_path"
   sudo nginx -t

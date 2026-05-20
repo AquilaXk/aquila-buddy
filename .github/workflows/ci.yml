@@ -83,6 +83,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Validate OCI deploy assets
+        run: bash deploy/oci/validate-buddy-deploy-assets.sh
+
       - name: Validate openai-compatible pgvector smoke env
         env:
           AI_PROVIDER: openai-compatible

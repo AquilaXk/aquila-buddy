@@ -28,8 +28,10 @@ for file in \
   back/Dockerfile \
   .dockerignore \
   front/Dockerfile \
+  .github/workflows/oci-buddy-cd.yml \
   deploy/oci/README.md \
   deploy/oci/aquila-buddy.env.example \
+  deploy/oci/bootstrap-github-runner.sh \
   deploy/oci/build-aquila-buddy-images.sh \
   deploy/oci/run-aquila-buddy.sh \
   deploy/oci/render-nginx-config.sh \
@@ -41,6 +43,7 @@ done
 
 for file in \
   deploy/oci/build-aquila-buddy-images.sh \
+  deploy/oci/bootstrap-github-runner.sh \
   deploy/oci/run-aquila-buddy.sh \
   deploy/oci/render-nginx-config.sh \
   deploy/oci/install-nginx-config.sh
@@ -58,15 +61,31 @@ require_contains front/Dockerfile 'NEXT_PUBLIC_API_URL'
 require_contains front/Dockerfile 'EXPOSE 3000'
 
 require_contains deploy/oci/aquila-buddy.env.example 'AQUILA_BUDDY_DOMAIN='
+require_contains deploy/oci/aquila-buddy.env.example 'AQUILA_BUDDY_DOMAIN=buddy.aquilaxk.site'
 require_contains deploy/oci/aquila-buddy.env.example 'AQUILA_BUDDY_FRONTEND_PORT=13011'
 require_contains deploy/oci/aquila-buddy.env.example 'AQUILA_BUDDY_BACKEND_PORT=18091'
 require_contains deploy/oci/aquila-buddy.env.example 'POSTGRES_IMAGE=pgvector/pgvector:pg16'
 require_contains deploy/oci/aquila-buddy.env.example 'DB_URL=jdbc:postgresql://aquila-buddy-postgres:5432/aquila_buddy'
 require_contains deploy/oci/aquila-buddy.env.example 'JWT_SECRET='
 require_contains deploy/oci/aquila-buddy.env.example 'GITHUB_CLIENT_SECRET='
+require_contains deploy/oci/aquila-buddy.env.example 'GITHUB_USER_CONTEXT_ENABLED=true'
+require_contains deploy/oci/aquila-buddy.env.example 'GITHUB_ISSUE_SEARCH_ENABLED=true'
 require_contains deploy/oci/aquila-buddy.env.example 'VERTEX_AI_CREDENTIALS_PATH=/run/secrets/vertex-key.json'
 require_contains deploy/oci/README.md 'https://<AQUILA_BUDDY_DOMAIN>/login/oauth2/code/github'
 require_contains deploy/oci/README.md 'AQUILA_BUDDY_FORCE_RESET_SCHEMA=true'
+
+require_contains .github/workflows/oci-buddy-cd.yml 'runs-on: [self-hosted, oci-a1-staging, aquila-buddy]'
+require_contains .github/workflows/oci-buddy-cd.yml 'OCI_A1_BUDDY_ENV_B64'
+require_contains .github/workflows/oci-buddy-cd.yml 'OCI_A1_VERTEX_KEY_JSON_B64'
+require_contains .github/workflows/oci-buddy-cd.yml 'deploy/oci/build-aquila-buddy-images.sh'
+require_contains .github/workflows/oci-buddy-cd.yml 'deploy/oci/run-aquila-buddy.sh'
+require_contains .github/workflows/oci-buddy-cd.yml 'buddy.aquilaxk.site'
+require_contains deploy/oci/bootstrap-github-runner.sh 'GITHUB_RUNNER_TOKEN'
+require_contains deploy/oci/bootstrap-github-runner.sh 'AquilaXk/aquila-buddy'
+require_contains deploy/oci/bootstrap-github-runner.sh 'oci-a1-buddy'
+require_contains deploy/oci/bootstrap-github-runner.sh 'oci-a1-staging,aquila-buddy'
+require_contains deploy/oci/bootstrap-github-runner.sh 'aquila-buddy-install-nginx-config'
+require_contains deploy/oci/install-nginx-config.sh 'aquila-buddy-install-nginx-config'
 
 require_contains deploy/oci/build-aquila-buddy-images.sh '"${DOCKER[@]}" build'
 require_contains deploy/oci/build-aquila-buddy-images.sh 'NEXT_PUBLIC_BACKEND_OAUTH_URL'
