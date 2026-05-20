@@ -117,9 +117,14 @@ jobs:
           set -euo pipefail
           umask 077
 
+          private_env_file="$DEPLOY_ROOT/aquila-buddy.private.env"
+          runtime_env_file="$DEPLOY_ROOT/aquila-buddy.env"
+          managed_runtime_keys_regex='^(AQUILA_BUDDY_DOMAIN|AQUILA_BUDDY_IMAGE_TAG|AQUILA_BUDDY_BACKEND_IMAGE|AQUILA_BUDDY_FRONTEND_IMAGE|AQUILA_BUDDY_VERTEX_KEY_HOST_PATH|NEXT_PUBLIC_API_URL|NEXT_PUBLIC_BACKEND_OAUTH_URL|OAUTH2_REDIRECT_URI|SPRING_PROFILES_ACTIVE|SERVER_FORWARD_HEADERS_STRATEGY)='
+
           install -d "$DEPLOY_ROOT" "$DEPLOY_ROOT/secrets"
-          printf '%s' "$OCI_A1_BUDDY_ENV_B64" | base64 -d > "$DEPLOY_ROOT/aquila-buddy.env"
+          printf '%s' "$OCI_A1_BUDDY_ENV_B64" | base64 -d > "$private_env_file"
           printf '%s' "$OCI_A1_VERTEX_KEY_JSON_B64" | base64 -d > "$DEPLOY_ROOT/secrets/vertex-key.json"
+          grep -Ev "$managed_runtime_keys_regex" "$private_env_file" > "$runtime_env_file" || true
 
           {
             echo
@@ -133,9 +138,9 @@ jobs:
             echo "OAUTH2_REDIRECT_URI=https://$AQUILA_BUDDY_DOMAIN/oauth/callback"
             echo "SPRING_PROFILES_ACTIVE=prod"
             echo "SERVER_FORWARD_HEADERS_STRATEGY=framework"
-          } >> "$DEPLOY_ROOT/aquila-buddy.env"
+          } >> "$runtime_env_file"
 
-          chmod 600 "$DEPLOY_ROOT/aquila-buddy.env" "$DEPLOY_ROOT/secrets/vertex-key.json"
+          chmod 600 "$private_env_file" "$runtime_env_file" "$DEPLOY_ROOT/secrets/vertex-key.json"
 
           {
             echo "### Runtime env"

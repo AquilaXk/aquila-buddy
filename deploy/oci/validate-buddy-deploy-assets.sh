@@ -83,6 +83,8 @@ require_contains deploy/oci/README.md 'AQUILA_BUDDY_FORCE_RESET_SCHEMA=true'
 require_contains .github/workflows/oci-buddy-cd.yml 'runs-on: [self-hosted, oci-a1-staging, aquila-buddy]'
 require_contains .github/workflows/oci-buddy-cd.yml 'OCI_A1_BUDDY_ENV_B64'
 require_contains .github/workflows/oci-buddy-cd.yml 'OCI_A1_VERTEX_KEY_JSON_B64'
+require_contains .github/workflows/oci-buddy-cd.yml 'managed_runtime_keys_regex'
+require_contains .github/workflows/oci-buddy-cd.yml 'aquila-buddy.private.env'
 require_contains .github/workflows/oci-buddy-cd.yml 'deploy/oci/build-aquila-buddy-images.sh'
 require_contains .github/workflows/oci-buddy-cd.yml 'deploy/oci/run-aquila-buddy.sh'
 require_contains .github/workflows/oci-buddy-cd.yml 'buddy.aquilaxk.site'
@@ -102,6 +104,8 @@ require_contains deploy/oci/run-aquila-buddy.sh 'replace-with-git-sha'
 require_contains deploy/oci/run-aquila-buddy.sh 'back/src/main/resources/schema-postgres-operational.sql'
 require_contains deploy/oci/run-aquila-buddy.sh 'back/src/main/resources/schema-postgres-pgvector.sql'
 require_contains deploy/oci/run-aquila-buddy.sh 'back/src/main/resources/schema-postgres-rls.sql'
+require_contains deploy/oci/run-aquila-buddy.sh 'reject_duplicate_env_keys'
+require_contains deploy/oci/run-aquila-buddy.sh 'NEXT_PUBLIC_BACKEND_OAUTH_URL=$NEXT_PUBLIC_BACKEND_OAUTH_URL'
 require_contains deploy/oci/run-aquila-buddy.sh 'DB_USER must be a non-superuser app role distinct from POSTGRES_USER'
 require_contains deploy/oci/run-aquila-buddy.sh 'NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS'
 require_contains deploy/oci/run-aquila-buddy.sh '127.0.0.1:${AQUILA_BUDDY_BACKEND_PORT}'
@@ -115,6 +119,11 @@ require_contains deploy/oci/aquila-buddy.nginx.conf.template 'location /login/oa
 
 if grep -R --line-number -E 'location[[:space:]]+/login/[[:space:]]*\{' "$repo_root/deploy/oci/aquila-buddy.nginx.conf.template" "$repo_root/deploy/oci/render-nginx-config.sh" >/dev/null; then
   fail "login page path must stay on frontend; only /login/oauth2/ may proxy to backend"
+fi
+
+frontend_run_block="$(sed -n '/remove_container "\$AQUILA_BUDDY_FRONTEND_CONTAINER"/,/"\$AQUILA_BUDDY_FRONTEND_IMAGE"/p' "$repo_root/deploy/oci/run-aquila-buddy.sh")"
+if grep -F -- '--env-file "$env_file"' <<< "$frontend_run_block" >/dev/null; then
+  fail "frontend container must not receive the full private env file"
 fi
 
 if grep -R --line-number --exclude 'validate-buddy-deploy-assets.sh' -E '(ghp_|github_pat_|BEGIN PRIVATE KEY|AIza|sk-[A-Za-z0-9])' "$repo_root/deploy/oci" >/dev/null; then

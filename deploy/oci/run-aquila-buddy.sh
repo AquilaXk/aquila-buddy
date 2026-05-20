@@ -14,9 +14,25 @@ require_var() {
   [[ -n "${!name:-}" ]] || fail "missing required env: $name"
 }
 
+reject_duplicate_env_keys() {
+  local file="$1"
+  local duplicates
+  duplicates="$(
+    { grep -E '^[A-Za-z_][A-Za-z0-9_]*=' "$file" || true; } \
+      | cut -d= -f1 \
+      | sort \
+      | uniq -d \
+      | tr '\n' ' '
+  )"
+  duplicates="${duplicates% }"
+  [[ -z "$duplicates" ]] || fail "env file contains duplicate keys: $duplicates"
+}
+
 if [[ ! -f "$env_file" ]]; then
   fail "env file not found: $env_file"
 fi
+
+reject_duplicate_env_keys "$env_file"
 
 set -a
 # shellcheck disable=SC1090
@@ -39,6 +55,8 @@ AQUILA_BUDDY_DB_VOLUME="${AQUILA_BUDDY_DB_VOLUME:-aquila-buddy-postgres-data}"
 AQUILA_BUDDY_BIND_ADDRESS="${AQUILA_BUDDY_BIND_ADDRESS:-127.0.0.1}"
 AQUILA_BUDDY_FRONTEND_PORT="${AQUILA_BUDDY_FRONTEND_PORT:-13011}"
 AQUILA_BUDDY_BACKEND_PORT="${AQUILA_BUDDY_BACKEND_PORT:-18091}"
+NEXT_PUBLIC_API_URL="${NEXT_PUBLIC_API_URL:-http://127.0.0.1:${AQUILA_BUDDY_BACKEND_PORT}}"
+NEXT_PUBLIC_BACKEND_OAUTH_URL="${NEXT_PUBLIC_BACKEND_OAUTH_URL:-http://127.0.0.1:${AQUILA_BUDDY_BACKEND_PORT}/oauth2/authorization/github}"
 POSTGRES_IMAGE="${POSTGRES_IMAGE:-pgvector/pgvector:pg16}"
 POSTGRES_DB="${POSTGRES_DB:-aquila_buddy}"
 POSTGRES_USER="${POSTGRES_USER:-aquila_admin}"
@@ -202,7 +220,8 @@ remove_container "$AQUILA_BUDDY_FRONTEND_CONTAINER"
   --name "$AQUILA_BUDDY_FRONTEND_CONTAINER" \
   --network "$AQUILA_BUDDY_NETWORK" \
   --restart unless-stopped \
-  --env-file "$env_file" \
+  -e "NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL" \
+  -e "NEXT_PUBLIC_BACKEND_OAUTH_URL=$NEXT_PUBLIC_BACKEND_OAUTH_URL" \
   -p "$AQUILA_BUDDY_BIND_ADDRESS:${AQUILA_BUDDY_FRONTEND_PORT}:3000" \
   "$AQUILA_BUDDY_FRONTEND_IMAGE" >/dev/null
 
