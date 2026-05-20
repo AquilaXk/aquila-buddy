@@ -1,3 +1,5 @@
+import { getToken } from "./auth";
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 
 type ApiResponse<T> = {
@@ -13,6 +15,24 @@ function isApiSuccess<T>(payload: ApiResponse<T>) {
 
 function hasApiData<T>(payload: ApiResponse<T>): payload is ApiResponse<T> & { data: T } {
   return isApiSuccess(payload) && payload.data !== null && payload.data !== undefined;
+}
+
+function buildApiHeaders(headers?: HeadersInit) {
+  const nextHeaders = new Headers(headers);
+  const token = getToken();
+
+  if (token !== null) {
+    nextHeaders.set("Authorization", `Bearer ${token}`);
+  }
+
+  return nextHeaders;
+}
+
+function apiFetch(input: RequestInfo | URL, init: RequestInit = {}) {
+  return fetch(input, {
+    ...init,
+    headers: buildApiHeaders(init.headers)
+  });
 }
 
 export type UserProfile = {
@@ -261,7 +281,7 @@ export type PullRequestDraftTranslationSubmission = {
 };
 
 export async function getUserProfile(): Promise<UserProfile> {
-  const response = await fetch(`${API_URL}/api/v1/users/me`, {
+  const response = await apiFetch(`${API_URL}/api/v1/users/me`, {
     cache: "no-store"
   });
 
@@ -279,7 +299,7 @@ export async function getUserProfile(): Promise<UserProfile> {
 }
 
 export async function getUserProfileByLogin(githubId: string): Promise<UserProfile> {
-  const response = await fetch(`${API_URL}/api/v1/users/${encodeURIComponent(githubId)}`, {
+  const response = await apiFetch(`${API_URL}/api/v1/users/${encodeURIComponent(githubId)}`, {
     cache: "no-store"
   });
 
@@ -297,7 +317,7 @@ export async function getUserProfileByLogin(githubId: string): Promise<UserProfi
 }
 
 export async function updateUserProfile(request: UpdateUserProfileRequest): Promise<UserProfile> {
-  const response = await fetch(`${API_URL}/api/v1/users/me`, {
+  const response = await apiFetch(`${API_URL}/api/v1/users/me`, {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json"
@@ -319,7 +339,7 @@ export async function updateUserProfile(request: UpdateUserProfileRequest): Prom
 }
 
 export async function refreshUserProfileVector(): Promise<UserProfile> {
-  const response = await fetch(`${API_URL}/api/v1/users/me/vector`, {
+  const response = await apiFetch(`${API_URL}/api/v1/users/me/vector`, {
     method: "POST"
   });
 
@@ -339,7 +359,7 @@ export async function refreshUserProfileVector(): Promise<UserProfile> {
 export async function createPullRequestDraft(
   request: CreatePullRequestDraftRequest
 ): Promise<StoredPullRequestDraft> {
-  const response = await fetch(`${API_URL}/api/v1/pr`, {
+  const response = await apiFetch(`${API_URL}/api/v1/pr`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
@@ -361,7 +381,7 @@ export async function createPullRequestDraft(
 }
 
 export async function getPullRequestDrafts(): Promise<StoredPullRequestDraft[]> {
-  const response = await fetch(`${API_URL}/api/v1/pr`, {
+  const response = await apiFetch(`${API_URL}/api/v1/pr`, {
     cache: "no-store"
   });
 
@@ -384,7 +404,7 @@ export async function getPullRequestDraftHistory(page = 0, size = 5): Promise<Pu
     size: String(size)
   });
 
-  const response = await fetch(`${API_URL}/api/v1/pr/history?${searchParams.toString()}`, {
+  const response = await apiFetch(`${API_URL}/api/v1/pr/history?${searchParams.toString()}`, {
     cache: "no-store"
   });
 
@@ -402,7 +422,7 @@ export async function getPullRequestDraftHistory(page = 0, size = 5): Promise<Pu
 }
 
 export async function getPullRequestDraft(id: string): Promise<StoredPullRequestDraft> {
-  const response = await fetch(`${API_URL}/api/v1/pr/${encodeURIComponent(id)}`, {
+  const response = await apiFetch(`${API_URL}/api/v1/pr/${encodeURIComponent(id)}`, {
     cache: "no-store"
   });
 
@@ -423,7 +443,7 @@ export async function updatePullRequestDraft(
   id: string,
   request: UpdatePullRequestDraftRequest
 ): Promise<StoredPullRequestDraft> {
-  const response = await fetch(`${API_URL}/api/v1/pr/${encodeURIComponent(id)}`, {
+  const response = await apiFetch(`${API_URL}/api/v1/pr/${encodeURIComponent(id)}`, {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json"
@@ -445,7 +465,7 @@ export async function updatePullRequestDraft(
 }
 
 export async function deletePullRequestDraft(id: string): Promise<void> {
-  const response = await fetch(`${API_URL}/api/v1/pr/${encodeURIComponent(id)}`, {
+  const response = await apiFetch(`${API_URL}/api/v1/pr/${encodeURIComponent(id)}`, {
     method: "DELETE"
   });
 
@@ -461,7 +481,7 @@ export async function deletePullRequestDraft(id: string): Promise<void> {
 }
 
 export async function getPullRequestDraftReadiness(id: string): Promise<PullRequestDraftReadiness> {
-  const response = await fetch(`${API_URL}/api/v1/pr/${encodeURIComponent(id)}/readiness`, {
+  const response = await apiFetch(`${API_URL}/api/v1/pr/${encodeURIComponent(id)}/readiness`, {
     cache: "no-store"
   });
 
@@ -479,7 +499,7 @@ export async function getPullRequestDraftReadiness(id: string): Promise<PullRequ
 }
 
 export async function getPullRequestDraftSubmission(id: string): Promise<PullRequestDraftSubmission> {
-  const response = await fetch(`${API_URL}/api/v1/pr/${encodeURIComponent(id)}/submission`, {
+  const response = await apiFetch(`${API_URL}/api/v1/pr/${encodeURIComponent(id)}/submission`, {
     cache: "no-store"
   });
 
@@ -497,7 +517,7 @@ export async function getPullRequestDraftSubmission(id: string): Promise<PullReq
 }
 
 export async function getPullRequestDraftTimeline(id: string): Promise<PullRequestDraftTimeline> {
-  const response = await fetch(`${API_URL}/api/v1/pr/${encodeURIComponent(id)}/timeline`, {
+  const response = await apiFetch(`${API_URL}/api/v1/pr/${encodeURIComponent(id)}/timeline`, {
     cache: "no-store"
   });
 
@@ -517,7 +537,7 @@ export async function getPullRequestDraftTimeline(id: string): Promise<PullReque
 export async function getPullRequestDraftContributionReport(
   id: string
 ): Promise<PullRequestDraftContributionReport> {
-  const response = await fetch(`${API_URL}/api/v1/pr/${encodeURIComponent(id)}/report`, {
+  const response = await apiFetch(`${API_URL}/api/v1/pr/${encodeURIComponent(id)}/report`, {
     cache: "no-store"
   });
 
@@ -538,7 +558,7 @@ export async function createPullRequestDraftTranslation(
   id: string,
   targetLanguage: "en"
 ): Promise<PullRequestDraftTranslation> {
-  const response = await fetch(`${API_URL}/api/v1/pr/${encodeURIComponent(id)}/translations`, {
+  const response = await apiFetch(`${API_URL}/api/v1/pr/${encodeURIComponent(id)}/translations`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
@@ -560,7 +580,7 @@ export async function createPullRequestDraftTranslation(
 }
 
 export async function translatePullRequestDraft(id: string): Promise<PullRequestDraftTranslateResult> {
-  const response = await fetch(`${API_URL}/api/v1/pr/${encodeURIComponent(id)}/translate`, {
+  const response = await apiFetch(`${API_URL}/api/v1/pr/${encodeURIComponent(id)}/translate`, {
     method: "POST"
   });
 
@@ -578,7 +598,7 @@ export async function translatePullRequestDraft(id: string): Promise<PullRequest
 }
 
 export async function getPullRequestDraftTranslations(id: string): Promise<PullRequestDraftTranslation[]> {
-  const response = await fetch(`${API_URL}/api/v1/pr/${encodeURIComponent(id)}/translations`, {
+  const response = await apiFetch(`${API_URL}/api/v1/pr/${encodeURIComponent(id)}/translations`, {
     cache: "no-store"
   });
 
@@ -602,7 +622,7 @@ export async function getPullRequestDraftTranslationActivities(
     limit: String(limit)
   });
 
-  const response = await fetch(`${API_URL}/api/v1/pr/translations/activity?${searchParams.toString()}`, {
+  const response = await apiFetch(`${API_URL}/api/v1/pr/translations/activity?${searchParams.toString()}`, {
     cache: "no-store"
   });
 
@@ -623,7 +643,7 @@ export async function getPullRequestDraftTranslationReadiness(
   id: string,
   translationId: string
 ): Promise<PullRequestDraftTranslationReadiness> {
-  const response = await fetch(
+  const response = await apiFetch(
     `${API_URL}/api/v1/pr/${encodeURIComponent(id)}/translations/${encodeURIComponent(translationId)}/readiness`,
     {
       cache: "no-store"
@@ -647,7 +667,7 @@ export async function getPullRequestDraftTranslationTimeline(
   id: string,
   translationId: string
 ): Promise<PullRequestDraftTranslationTimeline> {
-  const response = await fetch(
+  const response = await apiFetch(
     `${API_URL}/api/v1/pr/${encodeURIComponent(id)}/translations/${encodeURIComponent(translationId)}/timeline`,
     {
       cache: "no-store"
@@ -671,7 +691,7 @@ export async function getPullRequestDraftTranslationSubmission(
   id: string,
   translationId: string
 ): Promise<PullRequestDraftTranslationSubmission> {
-  const response = await fetch(
+  const response = await apiFetch(
     `${API_URL}/api/v1/pr/${encodeURIComponent(id)}/translations/${encodeURIComponent(translationId)}/submission`,
     {
       cache: "no-store"
@@ -692,7 +712,7 @@ export async function getPullRequestDraftTranslationSubmission(
 }
 
 export async function getRecommendedIssues(): Promise<RecommendedIssue[]> {
-  const response = await fetch(`${API_URL}/api/v1/issues/recommend`, {
+  const response = await apiFetch(`${API_URL}/api/v1/issues/recommend`, {
     cache: "no-store"
   });
 
@@ -710,7 +730,7 @@ export async function getRecommendedIssues(): Promise<RecommendedIssue[]> {
 }
 
 export async function getCollectedIssues(): Promise<RecommendedIssue[]> {
-  const response = await fetch(`${API_URL}/api/v1/issues`, {
+  const response = await apiFetch(`${API_URL}/api/v1/issues`, {
     cache: "no-store"
   });
 
@@ -728,7 +748,7 @@ export async function getCollectedIssues(): Promise<RecommendedIssue[]> {
 }
 
 export async function getIssueDetail(id: string): Promise<RecommendedIssue> {
-  const response = await fetch(`${API_URL}/api/v1/issues/${encodeURIComponent(id)}`, {
+  const response = await apiFetch(`${API_URL}/api/v1/issues/${encodeURIComponent(id)}`, {
     cache: "no-store"
   });
 
@@ -750,7 +770,7 @@ export async function crawlSearchIssues(query: string): Promise<RecommendedIssue
     q: query
   });
 
-  const response = await fetch(`${API_URL}/api/v1/issues/crawl/search?${searchParams.toString()}`, {
+  const response = await apiFetch(`${API_URL}/api/v1/issues/crawl/search?${searchParams.toString()}`, {
     method: "POST"
   });
 
@@ -768,7 +788,7 @@ export async function crawlSearchIssues(query: string): Promise<RecommendedIssue
 }
 
 export async function getRecommendedIssueHistory(): Promise<RecommendedIssueHistory[]> {
-  const response = await fetch(`${API_URL}/api/v1/issues/recommend/history`, {
+  const response = await apiFetch(`${API_URL}/api/v1/issues/recommend/history`, {
     cache: "no-store"
   });
 
@@ -786,7 +806,7 @@ export async function getRecommendedIssueHistory(): Promise<RecommendedIssueHist
 }
 
 export async function getIssueGuide(issueId: string): Promise<IssueGuide> {
-  const response = await fetch(`${API_URL}/api/v1/issues/${encodeURIComponent(issueId)}/guide`, {
+  const response = await apiFetch(`${API_URL}/api/v1/issues/${encodeURIComponent(issueId)}/guide`, {
     cache: "no-store"
   });
 
@@ -804,7 +824,7 @@ export async function getIssueGuide(issueId: string): Promise<IssueGuide> {
 }
 
 export async function getIssuePseudoCode(issueId: string): Promise<IssuePseudoCode> {
-  const response = await fetch(`${API_URL}/api/v1/issues/${encodeURIComponent(issueId)}/pseudo`, {
+  const response = await apiFetch(`${API_URL}/api/v1/issues/${encodeURIComponent(issueId)}/pseudo`, {
     cache: "no-store"
   });
 
@@ -822,7 +842,7 @@ export async function getIssuePseudoCode(issueId: string): Promise<IssuePseudoCo
 }
 
 export async function getIssueGuideWorkflow(issueId: string): Promise<IssueGuideWorkflow> {
-  const response = await fetch(`${API_URL}/api/v1/issues/${encodeURIComponent(issueId)}/guide/workflow`, {
+  const response = await apiFetch(`${API_URL}/api/v1/issues/${encodeURIComponent(issueId)}/guide/workflow`, {
     cache: "no-store"
   });
 
