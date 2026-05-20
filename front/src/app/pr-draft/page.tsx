@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { FormEvent, Suspense, useCallback, useEffect, useMemo, useState } from "react";
-import { ProtectedLayout } from "@/components/ProtectedLayout";
+import ProtectedLayout from "@/components/ProtectedLayout";
 import {
   createPullRequestDraft,
   getIssueDetail,

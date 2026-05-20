@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { ProtectedLayout } from "@/components/ProtectedLayout";
+import ProtectedLayout from "@/components/ProtectedLayout";
 import {
   crawlSearchIssues,
   getRecommendedIssueHistory,
