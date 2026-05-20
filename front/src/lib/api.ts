@@ -1,4 +1,4 @@
-import { getToken } from "./auth";
+import { clearAuthState, getToken } from "./auth";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 
@@ -28,12 +28,18 @@ function buildApiHeaders(headers?: HeadersInit) {
   return nextHeaders;
 }
 
-function apiFetch(input: RequestInfo | URL, init: RequestInit = {}) {
-  return fetch(input, {
+async function apiFetch(input: RequestInfo | URL, init: RequestInit = {}) {
+  const response = await fetch(input, {
     ...init,
     credentials: init.credentials ?? "include",
     headers: buildApiHeaders(init.headers)
   });
+
+  if (response.status === 401) {
+    clearAuthState();
+  }
+
+  return response;
 }
 
 export async function logout(): Promise<void> {
