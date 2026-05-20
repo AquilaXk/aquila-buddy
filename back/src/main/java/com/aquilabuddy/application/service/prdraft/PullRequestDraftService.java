@@ -111,7 +111,22 @@ public class PullRequestDraftService implements
         }
 
         // 서버 수집 diff가 없으면 생성/저장 모두 같은 맥락을 쓰도록 도메인 요청을 보강합니다.
-        return request.withDiffContent(loadPullRequestDraftDiffPort.loadDiff(request));
+        try {
+            return request.withDiffContent(loadPullRequestDraftDiffPort.loadDiff(request));
+        } catch (IllegalStateException exception) {
+            // 사용자가 아직 fork/head 브랜치를 만들지 않은 상태에서도 이슈 기반 초안은 생성할 수 있어야 합니다.
+            return request.withDiffContent(fallbackDiffContent(request));
+        }
+    }
+
+    private String fallbackDiffContent(PullRequestDraftRequest request) {
+        return String.join("\n",
+            "Diff를 불러오지 못했습니다.",
+            "Repository: " + request.upstreamRepo(),
+            "Issue: #" + request.githubIssueNumber(),
+            "Branch: " + request.baseBranch() + " -> " + request.headBranch(),
+            "GitHub compare 대상 브랜치가 아직 없거나 접근 권한이 없어서 이슈/분석 컨텍스트 기반으로 초안을 생성합니다."
+        );
     }
 
     private PullRequestDraftRequest resolveRepositoryGuideContext(PullRequestDraftRequest request) {

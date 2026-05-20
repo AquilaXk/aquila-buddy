@@ -101,7 +101,7 @@ class PullRequestDraftControllerTest {
     }
 
     @Test
-    void returnsBadGatewayWhenServerDiffLookupFails() throws Exception {
+    void createsPullRequestDraftWithFallbackDiffWhenServerDiffLookupFails() throws Exception {
         mockMvc.perform(post("/api/v1/pr")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
@@ -112,11 +112,11 @@ class PullRequestDraftControllerTest {
                       "headBranch": "missing-branch"
                     }
                     """))
-            .andExpect(status().isBadGateway())
-            .andExpect(jsonPath("$.success").value(false))
-            .andExpect(jsonPath("$.status").value("fail"))
-            .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("GitHub compare diff를 불러오지 못했습니다")))
-            .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("base/head 브랜치")));
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.id").isNotEmpty())
+            .andExpect(jsonPath("$.data.diffContent").value(org.hamcrest.Matchers.containsString("Diff를 불러오지 못했습니다.")))
+            .andExpect(jsonPath("$.data.diffContent").value(org.hamcrest.Matchers.containsString("main -> missing-branch")));
     }
 
     @Test
