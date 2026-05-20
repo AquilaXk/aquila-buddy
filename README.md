@@ -229,6 +229,24 @@ bash tools/test/run-pgvector-integration.sh --compose --dry-run
 PGVECTOR_TEST_DB_PORT=54329 bash tools/test/run-pgvector-integration.sh --compose
 ```
 
+frontend smoke는 기본 CI에서 fixture backend를 띄워 보호 라우트, success envelope, failure envelope를 브라우저로 확인합니다. CI release gate처럼 `npm run build` 산출물을 검증할 때는 `next start` 모드를 사용합니다.
+
+```bash
+NEXT_PUBLIC_API_URL=http://127.0.0.1:18080 \
+FRONTEND_INTEGRATION_SERVER_MODE=start \
+FRONTEND_INTEGRATION_FIXTURE_BACKEND_PORT=18080 \
+FRONTEND_INTEGRATION_ROUTE_TIMEOUT_MS=20000 \
+npm --prefix front run smoke:integration
+```
+
+실제 backend를 대상으로 수동 smoke를 실행할 때는 live backend URL을 지정합니다. 이 모드는 local fixture backend를 사용하지 않으므로 backend, OAuth/JWT, 데이터 준비 상태를 먼저 확인해야 합니다.
+
+```bash
+FRONTEND_INTEGRATION_USE_LIVE_BACKEND=true \
+NEXT_PUBLIC_API_URL=http://localhost:8080 \
+npm --prefix front run smoke:integration
+```
+
 #### Resolving issues
 
 - `403` 또는 `401`: OAuth/JWT cookie, `JWT_SECRET`, GitHub OAuth app callback URL을 확인합니다.
