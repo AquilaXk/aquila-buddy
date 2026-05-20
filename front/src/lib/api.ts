@@ -48,6 +48,7 @@ export type UserProfile = {
   login: string;
   name: string;
   email: string;
+  avatarUrl: string | null;
   primaryLanguages: string[];
   topics: string[];
   profileReady: boolean;

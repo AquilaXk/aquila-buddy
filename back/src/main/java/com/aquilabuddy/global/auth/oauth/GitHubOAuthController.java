@@ -107,7 +107,8 @@ public class GitHubOAuthController {
                 user.id(),
                 user.login(),
                 user.name(),
-                user.email()
+                user.email(),
+                user.avatarUrl()
             ));
             OAuthPrincipal principal = new OAuthPrincipal(String.valueOf(user.id()), attributes(user));
             successHandler.onAuthenticationSuccess(
@@ -171,6 +172,9 @@ public class GitHubOAuthController {
         attributes.put("login", user.login());
         attributes.put("name", user.name());
         attributes.put("email", user.email());
+        if (user.avatarUrl() != null) {
+            attributes.put("avatar_url", user.avatarUrl());
+        }
         return attributes;
     }
 

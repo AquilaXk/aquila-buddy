@@ -11,11 +11,25 @@ public record UserProfile(
     String login,
     String name,
     String email,
+    String avatarUrl,
     List<String> primaryLanguages,
     List<String> topics,
     boolean profileReady,
     String vectorUpdatedAt
 ) {
+
+    public UserProfile(
+        long githubId,
+        String login,
+        String name,
+        String email,
+        List<String> primaryLanguages,
+        List<String> topics,
+        boolean profileReady,
+        String vectorUpdatedAt
+    ) {
+        this(githubId, login, name, email, null, primaryLanguages, topics, profileReady, vectorUpdatedAt);
+    }
 
     @JsonProperty("id")
     public String id() {

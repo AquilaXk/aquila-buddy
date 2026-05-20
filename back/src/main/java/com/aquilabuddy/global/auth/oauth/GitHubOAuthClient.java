@@ -23,19 +23,22 @@ public class GitHubOAuthClient {
     private final String clientSecret;
     private final String tokenUri;
     private final String userUri;
+    private final String emailsUri;
 
     public GitHubOAuthClient(
         RestClient.Builder restClientBuilder,
         @Value("${spring.security.oauth2.client.registration.github.client-id:local-client-id}") String clientId,
         @Value("${spring.security.oauth2.client.registration.github.client-secret:local-client-secret}") String clientSecret,
         @Value("${app.oauth2.github.token-uri:https://github.com/login/oauth/access_token}") String tokenUri,
-        @Value("${app.oauth2.github.user-uri:https://api.github.com/user}") String userUri
+        @Value("${app.oauth2.github.user-uri:https://api.github.com/user}") String userUri,
+        @Value("${app.oauth2.github.emails-uri:https://api.github.com/user/emails}") String emailsUri
     ) {
         this.restClient = restClientBuilder.build();
         this.clientId = clientId;
         this.clientSecret = clientSecret;
         this.tokenUri = tokenUri;
         this.userUri = userUri;
+        this.emailsUri = emailsUri;
     }
 
     public GitHubOAuthAccessToken exchangeCode(String code, String redirectUri) {
@@ -92,8 +95,58 @@ public class GitHubOAuthClient {
             response.id(),
             fallback(response.login(), "github-" + response.id()),
             fallback(response.name(), fallback(response.login(), "GitHub User")),
-            fallback(response.email(), fallback(response.login(), "github-" + response.id()) + "@users.noreply.github.com")
+            resolveEmail(accessToken, response),
+            response.avatarUrl()
         );
+    }
+
+    private String resolveEmail(String accessToken, GitHubUserResponse user) {
+        GitHubEmailResponse[] emails = loadEmails(accessToken);
+        String primaryVerifiedEmail = selectEmail(emails, true);
+        if (primaryVerifiedEmail != null) {
+            return primaryVerifiedEmail;
+        }
+
+        if (user.email() != null && !user.email().isBlank()) {
+            return user.email();
+        }
+
+        String verifiedEmail = selectEmail(emails, false);
+        if (verifiedEmail != null) {
+            return verifiedEmail;
+        }
+
+        return fallback(user.login(), "github-" + user.id()) + "@users.noreply.github.com";
+    }
+
+    private GitHubEmailResponse[] loadEmails(String accessToken) {
+        try {
+            GitHubEmailResponse[] emails = restClient.get()
+                .uri(emailsUri)
+                .accept(MediaType.APPLICATION_JSON)
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
+                .retrieve()
+                .body(GitHubEmailResponse[].class);
+            return emails == null ? new GitHubEmailResponse[0] : emails;
+        } catch (RestClientException exception) {
+            // GitHub email scope 누락이나 API 장애가 로그인 자체를 막지 않도록 공개 email/noreply fallback을 사용합니다.
+            return new GitHubEmailResponse[0];
+        }
+    }
+
+    private static String selectEmail(GitHubEmailResponse[] emails, boolean primaryOnly) {
+        for (GitHubEmailResponse email : emails) {
+            if (email == null || !Boolean.TRUE.equals(email.verified())) {
+                continue;
+            }
+            if (primaryOnly && !Boolean.TRUE.equals(email.primary())) {
+                continue;
+            }
+            if (email.email() != null && !email.email().isBlank()) {
+                return email.email();
+            }
+        }
+        return null;
     }
 
     private static OAuth2AuthenticationException oauthException(String code, String description, Throwable cause) {
@@ -125,7 +178,16 @@ public class GitHubOAuthClient {
         Long id,
         String login,
         String name,
-        String email
+        String email,
+        @JsonProperty("avatar_url")
+        String avatarUrl
+    ) {
+    }
+
+    private record GitHubEmailResponse(
+        String email,
+        Boolean primary,
+        Boolean verified
     ) {
     }
 }

@@ -16,6 +16,7 @@ CREATE TABLE user_profiles (
     login VARCHAR(255) NOT NULL UNIQUE,
     name VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL,
+    avatar_url VARCHAR(1000),
     profile_ready BOOLEAN NOT NULL,
     vector_updated_at VARCHAR(40) NOT NULL,
     profile_embedding VARCHAR(12000)
