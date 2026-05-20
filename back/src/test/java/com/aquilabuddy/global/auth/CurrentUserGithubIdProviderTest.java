@@ -8,6 +8,9 @@ import java.util.Map;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
+import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 class CurrentUserGithubIdProviderTest {
@@ -33,12 +36,26 @@ class CurrentUserGithubIdProviderTest {
     }
 
     @Test
-    void returnsDefaultGithubIdWhenAuthenticationIsMissing() {
+    void rejectsMissingAuthenticationInsteadOfUsingDefaultGithubId() {
         CurrentUserGithubIdProvider provider = new CurrentUserGithubIdProvider(10001L);
 
-        long githubId = provider.currentGithubId();
+        assertThatThrownBy(provider::currentGithubId)
+            .isInstanceOf(AuthenticationCredentialsNotFoundException.class)
+            .hasMessageContaining("GitHub 사용자 인증 정보");
+    }
 
-        assertThat(githubId).isEqualTo(10001L);
+    @Test
+    void rejectsUnsupportedPrincipalInsteadOfUsingDefaultGithubId() {
+        SecurityContextHolder.getContext().setAuthentication(new AnonymousAuthenticationToken(
+            "anonymous",
+            "anonymousUser",
+            AuthorityUtils.createAuthorityList("ROLE_ANONYMOUS")
+        ));
+        CurrentUserGithubIdProvider provider = new CurrentUserGithubIdProvider(10001L);
+
+        assertThatThrownBy(provider::currentGithubId)
+            .isInstanceOf(AuthenticationCredentialsNotFoundException.class)
+            .hasMessageContaining("GitHub 사용자 인증 정보");
     }
 
     @Test

@@ -9,7 +9,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.aquilabuddy.application.port.out.ai.EmbeddingClient;
 import com.aquilabuddy.domain.embedding.EmbeddingVector;
+import com.aquilabuddy.support.SecurityContextTestUtils;
 import java.util.List;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -36,6 +39,16 @@ class UserProfileControllerTest {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
+
+    @BeforeEach
+    void setCurrentUser() {
+        SecurityContextTestUtils.setCurrentGithubUser(10001L);
+    }
+
+    @AfterEach
+    void clearCurrentUser() {
+        SecurityContextTestUtils.clear();
+    }
 
     @Test
     void returnsCurrentUserProfile() throws Exception {
