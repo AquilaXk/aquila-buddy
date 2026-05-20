@@ -160,12 +160,12 @@ GitHub OAuth login
 
 ### 2. Provider 추상화
 
-`AI_PROVIDER` 값으로 provider를 전환합니다. 운영 기본값은 `vertex-ai`이며, OpenAI-compatible smoke에서는 chat completion과 embedding 호출을 같은 흐름에서 검증합니다.
+`AI_PROVIDER` 값으로 provider를 전환합니다. 기본 운영 AI provider는 `vertex-ai`입니다. OpenAI-compatible smoke에서는 chat completion과 embedding 호출을 같은 흐름에서 검증합니다.
 
 | Provider | 용도 |
 |----------|------|
 | `vertex-ai` | 운영 기본 Gemini text/embedding provider |
-| `openai-compatible` | OpenAI-compatible chat completion, embedding smoke |
+| `openai-compatible` | `AI_PROVIDER=openai-compatible`: OpenAI-compatible chat completion/embedding provider를 사용합니다. |
 | `fixture` | secret 없이 실행 가능한 local/CI fixture 검증 |
 
 ### 3. 코드 맥락 분석
@@ -175,6 +175,8 @@ GitHub OAuth login
 ### 4. 관측성과 품질 방어
 
 AI 호출은 prompt version, model, latency, token usage, 실패 사유를 남깁니다. PR 초안은 markdown 구조, title/body parser fallback, `close #issue` 형식, 빈 응답 방어를 테스트로 고정합니다.
+
+Langfuse tracing은 선택 기능입니다. 운영에서 켤 때만 `LANGFUSE_ENABLED=true`와 public/secret key를 함께 주입하고, smoke는 별도 validation script로 확인합니다.
 
 ---
 
@@ -410,7 +412,38 @@ AI_EMBEDDING_MODEL=text-embedding-3-small \
 AI_EMBEDDING_DIMENSIONS=1536 \
 RECOMMENDATION_SIMILARITY_PROVIDER=pgvector \
 GITHUB_TOKEN=github_pat_or_fine_grained_token \
+GITHUB_TOKEN_PERMISSIONS=metadata:read,contents:read,pull-requests:read,issues:read \
 bash tools/smoke/validate-ai-runtime-env.sh
+```
+
+Langfuse observability smoke를 live mode로 확인할 때는 다음 값을 함께 채웁니다.
+
+```bash
+LANGFUSE_ENABLED=true
+LANGFUSE_BASE_URL=https://cloud.langfuse.com
+LANGFUSE_PUBLIC_KEY=
+LANGFUSE_SECRET_KEY=
+LANGFUSE_ENVIRONMENT=production
+```
+
+### Frontend integration smoke
+
+frontend smoke는 기본 CI에서 fixture backend를 띄워 보호 라우트, success envelope, failure envelope를 브라우저로 확인합니다. CI release gate처럼 `npm run build` 산출물을 검증할 때는 `next start` 모드를 사용합니다.
+
+```bash
+NEXT_PUBLIC_API_URL=http://127.0.0.1:18080 \
+FRONTEND_INTEGRATION_SERVER_MODE=start \
+FRONTEND_INTEGRATION_FIXTURE_BACKEND_PORT=18080 \
+FRONTEND_INTEGRATION_ROUTE_TIMEOUT_MS=20000 \
+npm --prefix front run smoke:integration
+```
+
+실제 backend를 대상으로 수동 smoke를 실행할 때는 live backend URL을 지정합니다. 이 모드는 local fixture backend를 사용하지 않으므로 backend, OAuth/JWT, 데이터 준비 상태를 먼저 확인해야 합니다.
+
+```bash
+FRONTEND_INTEGRATION_USE_LIVE_BACKEND=true \
+NEXT_PUBLIC_API_URL=http://localhost:8080 \
+npm --prefix front run smoke:integration
 ```
 
 ### Extension smoke
