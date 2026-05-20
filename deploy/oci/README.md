@@ -33,6 +33,7 @@ sudo editor /opt/aquila-buddy/aquila-buddy.env
 - `AQUILA_BUDDY_BACKEND_IMAGE`
 - `AQUILA_BUDDY_FRONTEND_IMAGE`
 - `POSTGRES_PASSWORD`
+- `DB_USER`
 - `DB_PASSWORD`
 - `JWT_SECRET`
 - `GITHUB_CLIENT_ID`
@@ -74,6 +75,8 @@ AQUILA_BUDDY_PUSH_IMAGES=true
 ```bash
 bash deploy/oci/run-aquila-buddy.sh /opt/aquila-buddy/aquila-buddy.env
 ```
+
+`POSTGRES_USER`는 schema owner/admin role로만 사용하고 backend는 `DB_USER`로 지정한 runtime role로 접속합니다. `DB_USER`는 `POSTGRES_USER`와 달라야 하며, 배포 스크립트가 role을 `NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS`로 생성한 뒤 필요한 table/sequence 권한만 부여합니다. 기존 volume을 쓰는 서버는 `POSTGRES_USER`를 현재 superuser/owner role로 유지하고, `DB_USER`/`DB_PASSWORD`를 새 runtime role 값으로 바꿔 첫 배포에서 role을 만들게 합니다.
 
 처음 생성된 빈 DB에는 `schema.sql`과 `schema-postgres-pgvector.sql`을 자동 적용합니다. 기존 schema가 있으면 destructive `schema.sql` 재적용을 건너뜁니다. 의도적으로 초기화하려면 private env에 다음 값을 명시합니다.
 
