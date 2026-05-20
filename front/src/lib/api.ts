@@ -1,6 +1,9 @@
 import { clearAuthState, getToken } from "./auth";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
+const csrfCookieName = "aquila_buddy_csrf";
+const csrfHeaderName = "X-Aquila-CSRF-Token";
+const mutatingMethods = new Set(["POST", "PATCH", "PUT", "DELETE"]);
 
 type ApiResponse<T> = {
   success?: boolean;
@@ -17,7 +20,32 @@ function hasApiData<T>(payload: ApiResponse<T>): payload is ApiResponse<T> & { d
   return isApiSuccess(payload) && payload.data !== null && payload.data !== undefined;
 }
 
-function buildApiHeaders(headers?: HeadersInit) {
+function readCookieValue(name: string) {
+  if (typeof document === "undefined") {
+    return null;
+  }
+
+  const prefix = `${name}=`;
+  return document.cookie
+    .split(";")
+    .map((cookie) => cookie.trim())
+    .find((cookie) => cookie.startsWith(prefix))
+    ?.slice(prefix.length) ?? null;
+}
+
+function resolveRequestMethod(input: RequestInfo | URL, init: RequestInit) {
+  if (init.method) {
+    return init.method.toUpperCase();
+  }
+
+  if (typeof Request !== "undefined" && input instanceof Request) {
+    return input.method.toUpperCase();
+  }
+
+  return "GET";
+}
+
+function buildApiHeaders(headers?: HeadersInit, method = "GET") {
   const nextHeaders = new Headers(headers);
   const token = getToken();
 
@@ -25,14 +53,23 @@ function buildApiHeaders(headers?: HeadersInit) {
     nextHeaders.set("Authorization", `Bearer ${token}`);
   }
 
+  if (mutatingMethods.has(method) && !nextHeaders.has(csrfHeaderName)) {
+    const csrfToken = readCookieValue(csrfCookieName);
+    if (csrfToken !== null) {
+      nextHeaders.set(csrfHeaderName, csrfToken);
+    }
+  }
+
   return nextHeaders;
 }
 
 async function apiFetch(input: RequestInfo | URL, init: RequestInit = {}) {
+  const method = resolveRequestMethod(input, init);
+
   const response = await fetch(input, {
     ...init,
     credentials: init.credentials ?? "include",
-    headers: buildApiHeaders(init.headers)
+    headers: buildApiHeaders(init.headers, method)
   });
 
   if (response.status === 401) {

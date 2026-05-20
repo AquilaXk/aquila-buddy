@@ -3,13 +3,19 @@ package com.aquilabuddy.global.config;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.aquilabuddy.global.auth.csrf.CookieCsrfProtectionFilter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.env.MockEnvironment;
 
 class SecurityConfigCorsProfileTest {
 
-    private final SecurityConfig securityConfig = new SecurityConfig(null, new ObjectMapper());
+    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final SecurityConfig securityConfig = new SecurityConfig(
+        null,
+        objectMapper,
+        new CookieCsrfProtectionFilter(objectMapper, "http://localhost:3000")
+    );
 
     @Test
     void rejectsExtensionWildcardInProductionProfile() {

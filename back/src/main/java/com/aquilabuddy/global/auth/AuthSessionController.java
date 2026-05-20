@@ -1,5 +1,6 @@
 package com.aquilabuddy.global.auth;
 
+import com.aquilabuddy.global.auth.csrf.CsrfCookieSupport;
 import com.aquilabuddy.global.auth.jwt.JwtCookieSupport;
 import com.aquilabuddy.global.response.ApiResponse;
 import org.springframework.http.HttpHeaders;
@@ -18,8 +19,11 @@ public class AuthSessionController {
     @PostMapping("/logout")
     ResponseEntity<ApiResponse<Void>> logout() {
         return ResponseEntity.ok()
-            .headers(headers -> JwtCookieSupport.expiredAuthenticationCookies()
-                .forEach(cookie -> headers.add(HttpHeaders.SET_COOKIE, cookie.toString())))
+            .headers(headers -> {
+                JwtCookieSupport.expiredAuthenticationCookies()
+                    .forEach(cookie -> headers.add(HttpHeaders.SET_COOKIE, cookie.toString()));
+                headers.add(HttpHeaders.SET_COOKIE, CsrfCookieSupport.expiredCsrfCookie().toString());
+            })
             .body(ApiResponse.success(null));
     }
 }

@@ -42,6 +42,8 @@ app:
   cors:
     frontend-allowed-origins: ${CORS_FRONTEND_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001}
     extension-allowed-origins: ${CORS_EXTENSION_ALLOWED_ORIGINS:chrome-extension://*}
+  csrf:
+    allowed-origins: ${CSRF_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001}
   github:
     api-base-url: https://api.github.com
     token: ${GITHUB_TOKEN:}
