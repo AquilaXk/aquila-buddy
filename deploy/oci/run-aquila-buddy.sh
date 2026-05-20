@@ -73,10 +73,12 @@ fi
 schema_sql="${AQUILA_BUDDY_SCHEMA_SQL:-$repo_root/back/src/main/resources/schema.sql}"
 operational_sql="${AQUILA_BUDDY_OPERATIONAL_SQL:-$repo_root/back/src/main/resources/schema-postgres-operational.sql}"
 pgvector_sql="${AQUILA_BUDDY_PGVECTOR_SQL:-$repo_root/back/src/main/resources/schema-postgres-pgvector.sql}"
+rls_sql="${AQUILA_BUDDY_RLS_SQL:-$repo_root/back/src/main/resources/schema-postgres-rls.sql}"
 
 [[ -f "$schema_sql" ]] || fail "missing schema file: $schema_sql"
 [[ -f "$operational_sql" ]] || fail "missing operational schema file: $operational_sql"
 [[ -f "$pgvector_sql" ]] || fail "missing pgvector schema file: $pgvector_sql"
+[[ -f "$rls_sql" ]] || fail "missing RLS schema file: $rls_sql"
 
 if ! "${DOCKER[@]}" network inspect "$AQUILA_BUDDY_NETWORK" >/dev/null 2>&1; then
   "${DOCKER[@]}" network create "$AQUILA_BUDDY_NETWORK" >/dev/null
@@ -155,6 +157,7 @@ fi
 psql_as_admin < "$operational_sql"
 psql_as_admin < "$pgvector_sql"
 grant_app_db_privileges
+psql_as_admin -v app_user="$DB_USER" < "$rls_sql"
 
 remove_container() {
   local name="$1"

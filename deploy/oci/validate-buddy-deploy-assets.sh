@@ -37,7 +37,8 @@ for file in \
   deploy/oci/render-nginx-config.sh \
   deploy/oci/install-nginx-config.sh \
   deploy/oci/aquila-buddy.nginx.conf.template \
-  back/src/main/resources/schema-postgres-operational.sql
+  back/src/main/resources/schema-postgres-operational.sql \
+  back/src/main/resources/schema-postgres-rls.sql
 do
   require_file "$file"
 done
@@ -100,6 +101,7 @@ require_contains deploy/oci/run-aquila-buddy.sh 'pgvector/pgvector:pg16'
 require_contains deploy/oci/run-aquila-buddy.sh 'replace-with-git-sha'
 require_contains deploy/oci/run-aquila-buddy.sh 'back/src/main/resources/schema-postgres-operational.sql'
 require_contains deploy/oci/run-aquila-buddy.sh 'back/src/main/resources/schema-postgres-pgvector.sql'
+require_contains deploy/oci/run-aquila-buddy.sh 'back/src/main/resources/schema-postgres-rls.sql'
 require_contains deploy/oci/run-aquila-buddy.sh 'DB_USER must be a non-superuser app role distinct from POSTGRES_USER'
 require_contains deploy/oci/run-aquila-buddy.sh 'NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS'
 require_contains deploy/oci/run-aquila-buddy.sh '127.0.0.1:${AQUILA_BUDDY_BACKEND_PORT}'
