@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { isLoggedIn } from "@/lib/auth";
+import { getUserProfile } from "@/lib/api";
+import { authStateChangedEvent, clearAuthState, isLoggedIn, markLoggedIn } from "@/lib/auth";
 import Navbar from "./Navbar";
 
 type ProtectedLayoutProps = {
@@ -12,17 +13,65 @@ type ProtectedLayoutProps = {
 export default function ProtectedLayout({ children }: ProtectedLayoutProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const [mounted, setMounted] = useState(false);
+  const [sessionStatus, setSessionStatus] = useState<"checking" | "authenticated" | "unauthenticated">("checking");
 
   useEffect(() => {
-    setMounted(true);
+    let cancelled = false;
 
-    if (!isLoggedIn()) {
-      router.replace(`/login?next=${encodeURIComponent(pathname)}`);
+    async function verifySession() {
+      setSessionStatus("checking");
+
+      if (!isLoggedIn()) {
+        setSessionStatus("unauthenticated");
+        router.replace(`/login?next=${encodeURIComponent(pathname)}`);
+        return;
+      }
+
+      try {
+        await getUserProfile();
+        if (cancelled) {
+          return;
+        }
+        markLoggedIn();
+        setSessionStatus("authenticated");
+      } catch {
+        if (cancelled) {
+          return;
+        }
+
+        if (!isLoggedIn()) {
+          setSessionStatus("unauthenticated");
+          router.replace(`/login?next=${encodeURIComponent(pathname)}`);
+          return;
+        }
+
+        setSessionStatus("authenticated");
+      }
     }
+
+    verifySession();
+
+    return () => {
+      cancelled = true;
+    };
   }, [pathname, router]);
 
-  if (!mounted || !isLoggedIn()) {
+  useEffect(() => {
+    function handleAuthStateChanged() {
+      if (!isLoggedIn()) {
+        setSessionStatus("unauthenticated");
+        router.replace(`/login?next=${encodeURIComponent(pathname)}`);
+      }
+    }
+
+    window.addEventListener(authStateChangedEvent, handleAuthStateChanged);
+
+    return () => {
+      window.removeEventListener(authStateChangedEvent, handleAuthStateChanged);
+    };
+  }, [pathname, router]);
+
+  if (sessionStatus !== "authenticated") {
     return null;
   }
 

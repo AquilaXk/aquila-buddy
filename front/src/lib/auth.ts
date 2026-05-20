@@ -1,5 +1,6 @@
 const tokenKey = "aquila-buddy-token";
 const authStateKey = "aquila-buddy-authenticated";
+export const authStateChangedEvent = "aquila-buddy-auth-state-changed";
 
 function getBrowserStorage() {
   if (typeof window === "undefined" || typeof window.localStorage === "undefined") {
@@ -35,6 +36,7 @@ export function markLoggedIn() {
 
   storage?.setItem(authStateKey, "true");
   storage?.removeItem(tokenKey);
+  notifyAuthStateChanged();
 }
 
 export function clearAuthState() {
@@ -42,8 +44,17 @@ export function clearAuthState() {
 
   storage?.removeItem(authStateKey);
   storage?.removeItem(tokenKey);
+  notifyAuthStateChanged();
 }
 
 export function clearToken() {
   clearAuthState();
+}
+
+function notifyAuthStateChanged() {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.dispatchEvent(new Event(authStateChangedEvent));
 }
