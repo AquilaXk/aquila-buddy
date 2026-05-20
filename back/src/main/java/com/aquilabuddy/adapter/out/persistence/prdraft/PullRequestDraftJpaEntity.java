@@ -17,6 +17,9 @@ public class PullRequestDraftJpaEntity {
     @Column(name = "draft_id", nullable = false, length = 100)
     private String id;
 
+    @Column(name = "owner_github_id", nullable = false)
+    private long ownerGithubId;
+
     @Column(name = "upstream_repo", nullable = false)
     private String upstreamRepo;
 
@@ -60,7 +63,21 @@ public class PullRequestDraftJpaEntity {
         String body,
         Instant createdAt
     ) {
-        this(id, upstreamRepo, githubIssueNumber, null, null, baseBranch, headBranch, title, body, null, createdAt);
+        this(id, 10001L, upstreamRepo, githubIssueNumber, null, null, baseBranch, headBranch, title, body, null, createdAt);
+    }
+
+    PullRequestDraftJpaEntity(
+        String id,
+        long ownerGithubId,
+        String upstreamRepo,
+        long githubIssueNumber,
+        String baseBranch,
+        String headBranch,
+        String title,
+        String body,
+        Instant createdAt
+    ) {
+        this(id, ownerGithubId, upstreamRepo, githubIssueNumber, null, null, baseBranch, headBranch, title, body, null, createdAt);
     }
 
     PullRequestDraftJpaEntity(
@@ -76,7 +93,25 @@ public class PullRequestDraftJpaEntity {
         String diffContent,
         Instant createdAt
     ) {
+        this(id, 10001L, upstreamRepo, githubIssueNumber, sourceIssueId, issueTitle, baseBranch, headBranch, title, body, diffContent, createdAt);
+    }
+
+    PullRequestDraftJpaEntity(
+        String id,
+        long ownerGithubId,
+        String upstreamRepo,
+        long githubIssueNumber,
+        String sourceIssueId,
+        String issueTitle,
+        String baseBranch,
+        String headBranch,
+        String title,
+        String body,
+        String diffContent,
+        Instant createdAt
+    ) {
         this.id = id;
+        this.ownerGithubId = ownerGithubId;
         this.upstreamRepo = upstreamRepo;
         this.githubIssueNumber = githubIssueNumber;
         this.sourceIssueId = sourceIssueId;
@@ -91,6 +126,10 @@ public class PullRequestDraftJpaEntity {
 
     String getId() {
         return id;
+    }
+
+    long getOwnerGithubId() {
+        return ownerGithubId;
     }
 
     String getUpstreamRepo() {
