@@ -2,6 +2,7 @@ package com.aquilabuddy.adapter.in.web.ai;
 
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -16,11 +17,13 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(AiCallObservabilityController.class)
 @AutoConfigureMockMvc(addFilters = false)
+@TestPropertySource(properties = "app.ai.observability.operation-token=test-operation-token")
 class AiCallObservabilityControllerTest {
 
     @Autowired
@@ -67,7 +70,9 @@ class AiCallObservabilityControllerTest {
                 ))
             ));
 
-        mockMvc.perform(get("/api/v1/ai/observability").param("limit", "10"))
+        mockMvc.perform(get("/api/v1/ai/observability")
+                .header("X-Aquila-Operation-Token", "test-operation-token")
+                .param("limit", "10"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.success").value(true))
             .andExpect(jsonPath("$.data.requestedLimit").value(10))
@@ -84,5 +89,23 @@ class AiCallObservabilityControllerTest {
             .andExpect(jsonPath("$.data.recentCalls[1].failureReason").value("Embedding provider returned invalid vector dimensions"));
 
         then(getAiCallObservabilityUseCase).should().getRecentAiCallObservability(10);
+    }
+
+    @Test
+    void rejectsAiCallObservabilityWhenOperationTokenIsMissing() throws Exception {
+        mockMvc.perform(get("/api/v1/ai/observability").param("limit", "10"))
+            .andExpect(status().isForbidden());
+
+        verifyNoInteractions(getAiCallObservabilityUseCase);
+    }
+
+    @Test
+    void rejectsAiCallObservabilityWhenOperationTokenIsWrong() throws Exception {
+        mockMvc.perform(get("/api/v1/ai/observability")
+                .header("X-Aquila-Operation-Token", "wrong-token")
+                .param("limit", "10"))
+            .andExpect(status().isForbidden());
+
+        verifyNoInteractions(getAiCallObservabilityUseCase);
     }
 }
