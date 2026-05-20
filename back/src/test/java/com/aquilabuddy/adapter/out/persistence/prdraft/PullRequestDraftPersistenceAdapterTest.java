@@ -8,8 +8,11 @@ import com.aquilabuddy.domain.prdraft.PullRequestDraftHistoryQuery;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftRequest;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftUpdateRequest;
 import com.aquilabuddy.domain.prdraft.StoredPullRequestDraft;
+import com.aquilabuddy.global.auth.CurrentUserGithubIdProvider;
+import com.aquilabuddy.support.SecurityContextTestUtils;
 import java.time.Instant;
 import java.util.List;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,7 +24,10 @@ import org.springframework.context.annotation.Import;
  * PR 초안 persistence adapter가 생성 입력과 생성 결과를 함께 저장하고 재조회하는지 검증합니다.
  */
 @DataJpaTest
-@Import(PullRequestDraftPersistenceAdapter.class)
+@Import({
+    PullRequestDraftPersistenceAdapter.class,
+    CurrentUserGithubIdProvider.class
+})
 class PullRequestDraftPersistenceAdapterTest {
 
     @Autowired
@@ -40,6 +46,12 @@ class PullRequestDraftPersistenceAdapterTest {
     void setUp() {
         translationRepository.deleteAll();
         repository.deleteAll();
+        SecurityContextTestUtils.setCurrentGithubUser(10001L);
+    }
+
+    @AfterEach
+    void tearDown() {
+        SecurityContextTestUtils.clear();
     }
 
     @Test
@@ -230,5 +242,34 @@ class PullRequestDraftPersistenceAdapterTest {
     @Test
     void returnsFalseWhenDeletingMissingDraft() {
         assertThat(adapter.deletePullRequestDraft("missing")).isFalse();
+    }
+
+    @Test
+    void doesNotExposeDraftOwnedByAnotherGithubUser() {
+        StoredPullRequestDraft ownerDraft = adapter.savePullRequestDraft(
+            new PullRequestDraftRequest(
+                "spring-projects/spring-boot",
+                123,
+                "main",
+                "feat/readme-fix",
+                "diff --git a/README.md b/README.md",
+                "issue-demo-1"
+            ),
+            new PullRequestDraft("[Docs] README 기여 안내 보완", "close #123")
+        );
+
+        SecurityContextTestUtils.setCurrentGithubUser(20002L);
+
+        assertThat(adapter.loadPullRequestDraft(ownerDraft.id())).isEmpty();
+        assertThat(adapter.loadRecentPullRequestDrafts()).isEmpty();
+        assertThat(adapter.loadPullRequestDraftHistory(new PullRequestDraftHistoryQuery(0, 10)).content()).isEmpty();
+        assertThat(adapter.updatePullRequestDraft(
+            ownerDraft.id(),
+            new PullRequestDraftUpdateRequest("[Docs] 침범 수정", "updated by another user")
+        )).isEmpty();
+        assertThat(adapter.deletePullRequestDraft(ownerDraft.id())).isFalse();
+
+        SecurityContextTestUtils.setCurrentGithubUser(10001L);
+        assertThat(adapter.loadPullRequestDraft(ownerDraft.id())).isPresent();
     }
 }

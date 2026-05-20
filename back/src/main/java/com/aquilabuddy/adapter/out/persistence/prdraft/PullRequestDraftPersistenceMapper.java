@@ -31,12 +31,14 @@ final class PullRequestDraftPersistenceMapper {
 
     static PullRequestDraftJpaEntity toEntity(
         String id,
+        long ownerGithubId,
         PullRequestDraftRequest request,
         PullRequestDraft draft,
         Instant createdAt
     ) {
         return new PullRequestDraftJpaEntity(
             id,
+            ownerGithubId,
             request.upstreamRepo(),
             request.githubIssueNumber(),
             request.sourceIssueId(),

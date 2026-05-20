@@ -5,6 +5,7 @@ import com.aquilabuddy.application.port.out.prdraft.LoadPullRequestDraftHistoryP
 import com.aquilabuddy.application.port.out.prdraft.LoadPullRequestDraftPort;
 import com.aquilabuddy.application.port.out.prdraft.SavePullRequestDraftPort;
 import com.aquilabuddy.application.port.out.prdraft.UpdatePullRequestDraftPort;
+import com.aquilabuddy.application.port.out.user.CurrentUserGithubIdPort;
 import com.aquilabuddy.domain.prdraft.PullRequestDraft;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftHistoryPage;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftHistoryQuery;
@@ -18,11 +19,13 @@ import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * [Outgoing Adapter] 생성된 PR 초안을 JPA 저장소에 보관하고 조회합니다.
  */
 @Component
+@Transactional
 public class PullRequestDraftPersistenceAdapter implements
     SavePullRequestDraftPort,
     LoadPullRequestDraftPort,
@@ -31,15 +34,21 @@ public class PullRequestDraftPersistenceAdapter implements
     DeletePullRequestDraftPort {
 
     private final PullRequestDraftJpaRepository repository;
+    private final CurrentUserGithubIdPort currentUserGithubIdPort;
 
-    public PullRequestDraftPersistenceAdapter(PullRequestDraftJpaRepository repository) {
+    public PullRequestDraftPersistenceAdapter(
+        PullRequestDraftJpaRepository repository,
+        CurrentUserGithubIdPort currentUserGithubIdPort
+    ) {
         this.repository = repository;
+        this.currentUserGithubIdPort = currentUserGithubIdPort;
     }
 
     @Override
     public StoredPullRequestDraft savePullRequestDraft(PullRequestDraftRequest request, PullRequestDraft draft) {
         PullRequestDraftJpaEntity entity = PullRequestDraftPersistenceMapper.toEntity(
             UUID.randomUUID().toString(),
+            currentUserGithubId(),
             request,
             draft,
             Instant.now()
@@ -50,7 +59,7 @@ public class PullRequestDraftPersistenceAdapter implements
 
     @Override
     public List<StoredPullRequestDraft> loadRecentPullRequestDrafts() {
-        return repository.findAllByOrderByCreatedAtDesc()
+        return repository.findAllByOwnerGithubIdOrderByCreatedAtDesc(currentUserGithubId())
             .stream()
             .map(PullRequestDraftPersistenceMapper::toDomain)
             .toList();
@@ -58,13 +67,14 @@ public class PullRequestDraftPersistenceAdapter implements
 
     @Override
     public Optional<StoredPullRequestDraft> loadPullRequestDraft(String id) {
-        return repository.findById(id)
+        return repository.findByIdAndOwnerGithubId(id, currentUserGithubId())
             .map(PullRequestDraftPersistenceMapper::toDomain);
     }
 
     @Override
     public PullRequestDraftHistoryPage loadPullRequestDraftHistory(PullRequestDraftHistoryQuery query) {
-        Page<PullRequestDraftJpaEntity> page = repository.findAllByOrderByCreatedAtDesc(
+        Page<PullRequestDraftJpaEntity> page = repository.findAllByOwnerGithubIdOrderByCreatedAtDesc(
+            currentUserGithubId(),
             PageRequest.of(query.page(), query.size())
         );
 
@@ -87,7 +97,7 @@ public class PullRequestDraftPersistenceAdapter implements
         String id,
         PullRequestDraftUpdateRequest request
     ) {
-        return repository.findById(id)
+        return repository.findByIdAndOwnerGithubId(id, currentUserGithubId())
             .map(entity -> {
                 entity.updateDraft(request.title(), request.body());
                 return PullRequestDraftPersistenceMapper.toDomain(repository.save(entity));
@@ -96,10 +106,15 @@ public class PullRequestDraftPersistenceAdapter implements
 
     @Override
     public boolean deletePullRequestDraft(String id) {
-        if (!repository.existsById(id)) {
+        long ownerGithubId = currentUserGithubId();
+        if (!repository.existsByIdAndOwnerGithubId(id, ownerGithubId)) {
             return false;
         }
-        repository.deleteById(id);
+        repository.deleteByIdAndOwnerGithubId(id, ownerGithubId);
         return true;
+    }
+
+    private long currentUserGithubId() {
+        return currentUserGithubIdPort.currentGithubId();
     }
 }

@@ -100,6 +100,7 @@ CREATE TABLE ai_call_observations (
 
 CREATE TABLE pr_drafts (
     draft_id VARCHAR(100) PRIMARY KEY,
+    owner_github_id BIGINT NOT NULL,
     upstream_repo VARCHAR(255) NOT NULL,
     github_issue_number BIGINT NOT NULL,
     source_issue_id VARCHAR(100),
@@ -109,7 +110,11 @@ CREATE TABLE pr_drafts (
     title VARCHAR(500) NOT NULL,
     body VARCHAR(8000) NOT NULL,
     diff_content VARCHAR(12000),
-    created_at TIMESTAMP NOT NULL
+    created_at TIMESTAMP NOT NULL,
+    CONSTRAINT fk_pr_drafts_owner
+        FOREIGN KEY (owner_github_id)
+        REFERENCES user_profiles(github_id)
+        ON DELETE CASCADE
 );
 
 CREATE TABLE pr_draft_translations (
