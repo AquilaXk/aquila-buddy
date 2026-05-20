@@ -111,6 +111,8 @@
 
 ## 시스템 아키텍처
 
+![Aquila Buddy system architecture](front/public/images/aquila-buddy-system-architecture.png)
+
 ```text
 [Browser / Chrome Extension]
   ├─ Next.js App Router frontend
