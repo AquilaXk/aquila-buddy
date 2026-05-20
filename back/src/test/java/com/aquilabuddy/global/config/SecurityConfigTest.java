@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.aquilabuddy.global.auth.jwt.JwtCookieSupport;
 import com.aquilabuddy.global.auth.jwt.JwtProvider;
+import com.aquilabuddy.global.auth.oauth.CookieOAuth2AuthorizationRequestRepository;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -75,6 +76,23 @@ class SecurityConfigTest {
             .andExpect(header().string(HttpHeaders.SET_COOKIE, org.hamcrest.Matchers.allOf(
                 org.hamcrest.Matchers.containsString(JwtCookieSupport.AUTH_COOKIE_NAME + "=;"),
                 org.hamcrest.Matchers.containsString("Max-Age=0"),
+                org.hamcrest.Matchers.containsString("HttpOnly"),
+                org.hamcrest.Matchers.containsString("Secure"),
+                org.hamcrest.Matchers.containsString("SameSite=Lax")
+            )));
+    }
+
+    @Test
+    void startsGithubOAuthWithCookieBackedAuthorizationRequest() throws Exception {
+        mockMvc.perform(get("/oauth2/authorization/github")
+                .param("state", "/dashboard"))
+            .andExpect(status().isFound())
+            .andExpect(header().string(HttpHeaders.LOCATION, org.hamcrest.Matchers.containsString("github.com/login/oauth/authorize")))
+            .andExpect(header().string(HttpHeaders.SET_COOKIE, org.hamcrest.Matchers.allOf(
+                org.hamcrest.Matchers.containsString(
+                    CookieOAuth2AuthorizationRequestRepository.AUTHORIZATION_REQUEST_COOKIE_NAME + "="
+                ),
+                org.hamcrest.Matchers.containsString("Max-Age=180"),
                 org.hamcrest.Matchers.containsString("HttpOnly"),
                 org.hamcrest.Matchers.containsString("Secure"),
                 org.hamcrest.Matchers.containsString("SameSite=Lax")
