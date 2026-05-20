@@ -4,10 +4,6 @@ import java.util.List;
 import com.aquilabuddy.global.auth.jwt.JwtAuthenticationFilter;
 import com.aquilabuddy.global.auth.jwt.JwtProperties;
 import com.aquilabuddy.global.auth.jwt.JwtProvider;
-import com.aquilabuddy.global.auth.oauth.CookieOAuth2AuthorizationRequestRepository;
-import com.aquilabuddy.global.auth.oauth.CustomOAuth2UserService;
-import com.aquilabuddy.global.auth.oauth.OAuth2FailureHandler;
-import com.aquilabuddy.global.auth.oauth.OAuth2SuccessHandler;
 import com.aquilabuddy.global.response.ApiResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletResponse;
@@ -34,25 +30,13 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @EnableConfigurationProperties(JwtProperties.class)
 public class SecurityConfig {
 
-    private final CustomOAuth2UserService customOAuth2UserService;
-    private final CookieOAuth2AuthorizationRequestRepository cookieOAuth2AuthorizationRequestRepository;
-    private final OAuth2SuccessHandler oauth2SuccessHandler;
-    private final OAuth2FailureHandler oauth2FailureHandler;
     private final JwtProvider jwtProvider;
     private final ObjectMapper objectMapper;
 
     public SecurityConfig(
-        CustomOAuth2UserService customOAuth2UserService,
-        CookieOAuth2AuthorizationRequestRepository cookieOAuth2AuthorizationRequestRepository,
-        OAuth2SuccessHandler oauth2SuccessHandler,
-        OAuth2FailureHandler oauth2FailureHandler,
         JwtProvider jwtProvider,
         ObjectMapper objectMapper
     ) {
-        this.customOAuth2UserService = customOAuth2UserService;
-        this.cookieOAuth2AuthorizationRequestRepository = cookieOAuth2AuthorizationRequestRepository;
-        this.oauth2SuccessHandler = oauth2SuccessHandler;
-        this.oauth2FailureHandler = oauth2FailureHandler;
         this.jwtProvider = jwtProvider;
         this.objectMapper = objectMapper;
     }
@@ -81,13 +65,6 @@ public class SecurityConfig {
                 .permitAll()
                 .anyRequest()
                 .authenticated()
-            )
-            .oauth2Login(oauth2 -> oauth2
-                .authorizationEndpoint(authorization -> authorization
-                    .authorizationRequestRepository(cookieOAuth2AuthorizationRequestRepository))
-                .userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService))
-                .successHandler(oauth2SuccessHandler)
-                .failureHandler(oauth2FailureHandler)
             )
             .exceptionHandling(exception -> exception.authenticationEntryPoint((request, response, authException) -> {
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
