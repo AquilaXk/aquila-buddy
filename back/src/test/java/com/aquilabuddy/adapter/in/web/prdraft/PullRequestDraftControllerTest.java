@@ -11,6 +11,8 @@ import com.aquilabuddy.application.port.out.prdraft.LoadPullRequestDraftDiffPort
 import com.jayway.jsonpath.JsonPath;
 import com.aquilabuddy.adapter.out.persistence.prdraft.PullRequestDraftJpaRepository;
 import com.aquilabuddy.adapter.out.persistence.prdraft.PullRequestDraftTranslationJpaRepository;
+import com.aquilabuddy.support.SecurityContextTestUtils;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,6 +45,12 @@ class PullRequestDraftControllerTest {
     void setUp() {
         translationRepository.deleteAll();
         repository.deleteAll();
+        SecurityContextTestUtils.setCurrentGithubUser(10001L);
+    }
+
+    @AfterEach
+    void tearDown() {
+        SecurityContextTestUtils.clear();
     }
 
     @Test

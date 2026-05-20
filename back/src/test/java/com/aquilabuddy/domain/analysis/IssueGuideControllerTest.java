@@ -4,6 +4,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.aquilabuddy.support.SecurityContextTestUtils;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -19,6 +22,16 @@ class IssueGuideControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @BeforeEach
+    void setCurrentUser() {
+        SecurityContextTestUtils.setCurrentGithubUser(10001L);
+    }
+
+    @AfterEach
+    void clearCurrentUser() {
+        SecurityContextTestUtils.clear();
+    }
 
     @Test
     void returnsIssueGuide() throws Exception {

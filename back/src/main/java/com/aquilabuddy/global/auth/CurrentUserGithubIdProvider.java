@@ -3,6 +3,7 @@ package com.aquilabuddy.global.auth;
 import com.aquilabuddy.application.port.out.user.CurrentUserGithubIdPort;
 import com.aquilabuddy.global.auth.principal.OAuthPrincipal;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -13,12 +14,9 @@ import org.springframework.stereotype.Component;
 @Component
 public class CurrentUserGithubIdProvider implements CurrentUserGithubIdPort {
 
-    private final long defaultGithubId;
-
     public CurrentUserGithubIdProvider(
         @Value("${app.auth.default-github-id:10001}") long defaultGithubId
     ) {
-        this.defaultGithubId = defaultGithubId;
     }
 
     @Override
@@ -26,7 +24,7 @@ public class CurrentUserGithubIdProvider implements CurrentUserGithubIdPort {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
         if (authentication == null || !(authentication.getPrincipal() instanceof OAuthPrincipal principal)) {
-            return defaultGithubId;
+            throw new AuthenticationCredentialsNotFoundException("GitHub 사용자 인증 정보가 필요합니다.");
         }
 
         try {

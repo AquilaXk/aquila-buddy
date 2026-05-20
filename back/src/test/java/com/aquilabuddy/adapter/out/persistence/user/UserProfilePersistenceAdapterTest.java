@@ -9,9 +9,11 @@ import com.aquilabuddy.domain.user.UserProfile;
 import com.aquilabuddy.domain.user.UserProfileUpdateRequest;
 import com.aquilabuddy.global.auth.CurrentUserGithubIdProvider;
 import com.aquilabuddy.global.github.GitHubApiClient;
+import com.aquilabuddy.support.SecurityContextTestUtils;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -52,6 +54,12 @@ class UserProfilePersistenceAdapterTest {
     void setUp() {
         embeddingValues = DEFAULT_EMBEDDING_VALUES;
         embeddingFails = false;
+        SecurityContextTestUtils.setCurrentGithubUser(10001L);
+    }
+
+    @AfterEach
+    void tearDown() {
+        SecurityContextTestUtils.clear();
     }
 
     @Test
