@@ -44,6 +44,11 @@ export default function IssuesPage() {
     try {
       const user = await getUserProfile();
       const languages = user.primaryLanguages;
+      const profileTerms = user.topics
+        .map((topic) => topic.trim().toLowerCase())
+        .filter((topic) => /^[a-z0-9][a-z0-9.+#-]{1,39}$/.test(topic))
+        .slice(0, 2);
+      const topicQuery = profileTerms.length > 0 ? ` ${profileTerms.join(" ")}` : "";
 
       if (!languages || languages.length === 0) {
         throw new Error("프로필 분석이 필요합니다. 마이페이지에서 벡터 업데이트를 먼저 실행해주세요.");
@@ -52,7 +57,7 @@ export default function IssuesPage() {
       setRecommendStep("GitHub에서 이슈 수집 중...");
       await Promise.all(
         languages.slice(0, 3).map((language) =>
-          crawlSearchIssues(`language:${language.toLowerCase()} label:"good first issue" state:open`)
+          crawlSearchIssues(`language:${language.toLowerCase()}${topicQuery} label:"good first issue" state:open`)
         )
       );
 
@@ -126,6 +131,7 @@ export default function IssuesPage() {
 
 function IssueHistoryCard({ issue }: { issue: RecommendedIssueHistory }) {
   const scorePercent = Math.round(issue.score * 100);
+  const hasSimilarityScore = issue.score > 0.01;
 
   return (
     <Link
@@ -139,7 +145,7 @@ function IssueHistoryCard({ issue }: { issue: RecommendedIssueHistory }) {
             <span className="text-xs text-github-muted">
               {issue.repoFullName} #{issue.issueNumber}
             </span>
-            {scorePercent > 0 ? (
+            {hasSimilarityScore ? (
               <span className="rounded-full border border-green-500/20 bg-green-500/10 px-2 py-0.5 text-xs text-green-400">
                 매칭 {scorePercent}%
               </span>

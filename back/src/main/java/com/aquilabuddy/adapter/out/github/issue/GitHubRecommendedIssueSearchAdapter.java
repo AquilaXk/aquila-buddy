@@ -14,6 +14,7 @@ import org.springframework.web.client.RestClient;
 public class GitHubRecommendedIssueSearchAdapter implements SearchRecommendedIssuesPort {
 
     private static final String STATUS_OPEN = "OPEN";
+    private static final double SEARCH_CANDIDATE_SCORE = 0.0;
 
     private final RestClient restClient;
     private final String token;
@@ -94,7 +95,7 @@ public class GitHubRecommendedIssueSearchAdapter implements SearchRecommendedIss
             item.number(),
             nonBlankOrDefault(item.title(), "제목 없음"),
             summary(item.body()),
-            1.0,
+            SEARCH_CANDIDATE_SCORE,
             labels,
             STATUS_OPEN,
             "GitHub Search에서 Good First Issue 조건으로 수집된 후보입니다."
@@ -122,11 +123,14 @@ public class GitHubRecommendedIssueSearchAdapter implements SearchRecommendedIss
 
     private String sanitizeIssueBody(String body) {
         return decodeCommonHtmlEntities(body)
+            .replaceAll("(?s)```.*?```", " ")
             .replaceAll("!\\[[^\\]]*]\\([^)]*\\)", " ")
             .replaceAll("(?i)<img\\b[^>]*>", " ")
             .replaceAll("(?i)<[^>]+>", " ")
             .replaceAll("https://github\\.com/user-attachments/\\S+", " ")
             .replaceAll("\\[([^\\]]+)]\\(([^)]+)\\)", "$1")
+            .replaceAll("`([^`]*)`", "$1")
+            .replaceAll("(?m)^#{1,6}\\s*", "")
             .replaceAll("\\s+", " ")
             .trim();
     }

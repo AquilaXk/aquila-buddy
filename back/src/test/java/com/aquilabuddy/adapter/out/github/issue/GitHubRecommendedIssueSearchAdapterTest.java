@@ -77,10 +77,52 @@ class GitHubRecommendedIssueSearchAdapterTest {
         assertThat(issues.getFirst().issueNumber()).isEqualTo(42);
         assertThat(issues.getFirst().summary())
             .isEqualTo("Cerramos nuestra cuenta después de que cambió a X y dejó de ser una plataforma segura.");
+        assertThat(issues.getFirst().score()).isZero();
         assertThat(issues.getFirst().reason())
             .isEqualTo("GitHub Search에서 Good First Issue 조건으로 수집된 후보입니다.");
         assertThat(issues.getFirst().labels()).containsExactly("good first issue", "documentation");
         assertThat(issues.getFirst().status()).isEqualTo("OPEN");
+    }
+
+    @Test
+    void stripsMarkdownNoiseFromSummary() throws IOException {
+        server = HttpServer.create(new InetSocketAddress(0), 0);
+        server.createContext("/search/issues", exchange -> {
+            byte[] body = """
+                {
+                  "items": [
+                    {
+                      "id": 456,
+                      "number": 9,
+                      "title": "Clean docs",
+                      "body": "```json { \\"name\\": \\"demo\\" } ``` Please update `README.md` so new contributors can start quickly.",
+                      "repository_url": "https://api.github.com/repos/example/docs",
+                      "labels": [
+                        {"name": "good first issue"}
+                      ]
+                    }
+                  ]
+                }
+                """.getBytes(StandardCharsets.UTF_8);
+            exchange.getResponseHeaders().add("Content-Type", "application/json");
+            exchange.sendResponseHeaders(200, body.length);
+            exchange.getResponseBody().write(body);
+            exchange.close();
+        });
+        server.start();
+        GitHubRecommendedIssueSearchAdapter adapter = new GitHubRecommendedIssueSearchAdapter(
+            RestClient.builder(),
+            "http://localhost:" + server.getAddress().getPort(),
+            "",
+            true,
+            "label:\"good first issue\"",
+            1
+        );
+
+        List<RecommendedIssue> issues = adapter.searchRecommendedIssues();
+
+        assertThat(issues.getFirst().summary())
+            .isEqualTo("Please update README.md so new contributors can start quickly.");
     }
 
     @Test
