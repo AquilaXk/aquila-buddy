@@ -41,7 +41,7 @@
 
 ## About the Project
 
-![Aquila Buddy mascot](front/public/brand-mascot.png)
+![Aquila Buddy service preview](front/public/images/aquila-buddy-service-preview.png)
 
 # 오픈소스 기여 준비를 위한 AI workflow infrastructure
 
