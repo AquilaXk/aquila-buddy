@@ -4,10 +4,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.aquilabuddy.global.auth.jwt.JwtProperties;
 import com.aquilabuddy.global.auth.jwt.JwtProvider;
+import com.aquilabuddy.global.auth.jwt.JwtCookieSupport;
 import com.aquilabuddy.global.auth.principal.OAuthPrincipal;
 import java.time.Duration;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpHeaders;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -17,12 +19,17 @@ class OAuth2HandlerTest {
 
     private static final String SECRET = "local-development-jwt-secret-32bytes-minimum-value";
 
-    private final JwtProvider provider = new JwtProvider(new JwtProperties(SECRET, Duration.ofHours(1)));
+    private final JwtProperties properties = new JwtProperties(SECRET, Duration.ofHours(1));
+    private final JwtProvider provider = new JwtProvider(properties);
 
     @Test
-    void successHandlerRedirectsToFrontendCallbackWithToken() throws Exception {
+    void successHandlerRedirectsToFrontendCallbackWithSecureCookie() throws Exception {
         OAuthPrincipal principal = new OAuthPrincipal("12345", Map.of("login", "aquila-dev"));
-        OAuth2SuccessHandler handler = new OAuth2SuccessHandler(provider, "http://localhost:3000/oauth/callback");
+        OAuth2SuccessHandler handler = new OAuth2SuccessHandler(
+            provider,
+            properties,
+            "http://localhost:3000/oauth/callback"
+        );
         MockHttpServletResponse response = new MockHttpServletResponse();
 
         handler.onAuthenticationSuccess(
@@ -31,8 +38,21 @@ class OAuth2HandlerTest {
             new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities())
         );
 
-        assertThat(response.getRedirectedUrl()).startsWith("http://localhost:3000/oauth/callback?token=");
-        String token = response.getRedirectedUrl().substring(response.getRedirectedUrl().indexOf("token=") + 6);
+        assertThat(response.getRedirectedUrl()).isEqualTo("http://localhost:3000/oauth/callback");
+        String setCookie = response.getHeader(HttpHeaders.SET_COOKIE);
+        assertThat(setCookie)
+            .contains(JwtCookieSupport.AUTH_COOKIE_NAME + "=")
+            .contains("HttpOnly")
+            .contains("Secure")
+            .contains("SameSite=Lax")
+            .contains("Path=/")
+            .contains("Max-Age=3600");
+
+        String token = setCookie.substring(
+            setCookie.indexOf(JwtCookieSupport.AUTH_COOKIE_NAME + "=")
+                + JwtCookieSupport.AUTH_COOKIE_NAME.length() + 1,
+            setCookie.indexOf(';')
+        );
         assertThat(provider.getGithubId(token)).isEqualTo("12345");
     }
 

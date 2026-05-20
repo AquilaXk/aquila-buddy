@@ -25,16 +25,17 @@ function assertNotIncludes(needle, message) {
 
 assertIncludes("\"use client\";", "OAuth callback page must stay client-rendered.");
 assertIncludes("readOAuthCallbackParams", "OAuth callback page must keep normalized callback parsing.");
-assertIncludes("setToken(callbackParams.token)", "OAuth callback page must store the callback token.");
+assertIncludes("markLoggedIn()", "OAuth callback page must mark the cookie-backed session.");
 assertIncludes("router.replace(callbackParams.redirectTo)", "OAuth callback page must redirect to the parsed target.");
 assertIncludes("callbackParams.error", "OAuth callback page must handle provider error query fixtures.");
-assertIncludes("!callbackParams.token", "OAuth callback page must handle missing-token fixtures.");
 assertIncludes("const [error, setError] = useState<string | null>(null)", "OAuth callback page must keep a compact error state.");
 assertIncludes("로그인 처리 중...", "OAuth callback page must show the processing label.");
 assertIncludes("border-2 border-github-purple-light border-t-transparent rounded-full animate-spin", "OAuth callback page must use the compact spinner.");
 assertIncludes("로그인 실패", "OAuth callback page must show the compact failure title.");
-assertIncludes("토큰을 받지 못했습니다.", "OAuth callback page must show the missing token copy.");
 assertIncludes("다시 로그인", "OAuth callback page must keep the login retry link.");
+assertNotIncludes("setToken(callbackParams.token)", "OAuth callback page must not store OAuth JWTs in localStorage.");
+assertNotIncludes("!callbackParams.token", "OAuth callback page must accept cookie-backed callbacks without a token query.");
+assertNotIncludes("토큰을 받지 못했습니다.", "OAuth callback page must not require a URL token.");
 
 for (const text of [
   "CallbackStatus",

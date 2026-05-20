@@ -9,14 +9,14 @@ import org.junit.jupiter.api.Test;
 class OAuthCallbackControllerTest {
 
     @Test
-    void returnsTokenInCommonResponse() {
+    void returnsCookieIssuedStatusInCommonResponse() {
         OAuthCallbackController controller = new OAuthCallbackController();
 
-        ApiResponse<Map<String, String>> response = controller.callback("jwt-token");
+        ApiResponse<Map<String, String>> response = controller.callback();
 
         assertThat(response.success()).isTrue();
         assertThat(response.status()).isEqualTo("success");
-        assertThat(response.data()).containsEntry("token", "jwt-token");
+        assertThat(response.data()).containsEntry("status", "cookie-issued");
         assertThat(response.message()).isEqualTo("success to response");
     }
 }

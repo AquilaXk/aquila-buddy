@@ -31,7 +31,14 @@ function buildApiHeaders(headers?: HeadersInit) {
 function apiFetch(input: RequestInfo | URL, init: RequestInit = {}) {
   return fetch(input, {
     ...init,
+    credentials: init.credentials ?? "include",
     headers: buildApiHeaders(init.headers)
+  });
+}
+
+export async function logout(): Promise<void> {
+  await apiFetch(`${API_URL}/api/v1/auth/logout`, {
+    method: "POST"
   });
 }
 

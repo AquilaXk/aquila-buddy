@@ -56,7 +56,8 @@ assertIncludes(navbar, "sticky top-0 z-50 border-b border-github-border", "Navba
 assertIncludes(navbar, "bg-github-surface/95", "Navbar must keep the gothic surface treatment.");
 assertIncludes(navbar, "/brand-mascot-bank.png", "Navbar must render the brand image.");
 assertIncludes(navbar, "aquila buddy", "Navbar must show the service name.");
-assertIncludes(navbar, "clearToken();", "Navbar logout must clear the stored token first.");
+assertIncludes(navbar, "clearAuthState();", "Navbar logout must clear the local auth marker.");
+assertIncludes(navbar, "logout()", "Navbar logout must call the backend logout endpoint.");
 assertIncludes(navbar, "router.replace(\"/login\")", "Navbar logout must replace history with the login screen.");
 assertIncludes(navbar, "matchPrefixes: [\"/pr-draft\", \"/pr/\"]", "Navbar must keep PR draft/detail active-state grouping.");
 assertNotIncludes(navbar, "<header", "Navbar must not add an extra header wrapper.");

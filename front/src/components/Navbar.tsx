@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { clearToken } from "@/lib/auth";
+import { logout } from "@/lib/api";
+import { clearAuthState } from "@/lib/auth";
 
 const navLinks = [
   { href: "/dashboard", label: "대시보드" },
@@ -15,9 +16,13 @@ export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
 
-  function handleLogout() {
-    clearToken();
-    router.replace("/login");
+  async function handleLogout() {
+    try {
+      await logout();
+    } finally {
+      clearAuthState();
+      router.replace("/login");
+    }
   }
 
   function isActive(link: (typeof navLinks)[number]) {

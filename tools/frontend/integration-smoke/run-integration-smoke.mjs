@@ -70,7 +70,7 @@ async function assertUnauthenticatedRedirect(chromeSession, origin) {
 }
 
 async function login(page) {
-  await page.evaluate('window.localStorage.setItem("aquila-buddy-token", "fixture-token")');
+  await page.evaluate('window.localStorage.setItem("aquila-buddy-authenticated", "true")');
 }
 
 async function visitAndAssert(page, url, expectedText) {

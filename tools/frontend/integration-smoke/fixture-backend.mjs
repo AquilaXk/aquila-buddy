@@ -6,14 +6,15 @@ export async function createFrontendFixtureBackend(options = {}) {
   };
   const server = createServer((request, response) => {
     const url = new URL(request.url ?? "/", "http://127.0.0.1");
+    const origin = request.headers.origin;
 
     if (request.method === "OPTIONS") {
-      writeJson(response, 204, null);
+      writeJson(response, 204, null, origin);
       return;
     }
 
     const payload = routeFixture(url, request.method ?? "GET", state);
-    writeJson(response, payload.httpStatus ?? 200, payload.body);
+    writeJson(response, payload.httpStatus ?? 200, payload.body, origin);
   });
 
   await new Promise((resolve, reject) => {
@@ -217,14 +218,20 @@ function routeFixture(url, method, options) {
   return response(errorEnvelope(`unhandled fixture route: ${method} ${pathname}`), 404);
 }
 
-function writeJson(response, status, body) {
-  response.writeHead(status, {
+function writeJson(response, status, body, origin) {
+  const headers = {
     "Access-Control-Allow-Headers": "Content-Type, Authorization",
     "Access-Control-Allow-Methods": "GET, POST, PATCH, DELETE, OPTIONS",
-    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Origin": origin ?? "*",
     "Cache-Control": "no-store",
     "Content-Type": "application/json; charset=utf-8",
-  });
+  };
+
+  if (origin) {
+    headers["Access-Control-Allow-Credentials"] = "true";
+  }
+
+  response.writeHead(status, headers);
   response.end(body === null ? "" : JSON.stringify(body));
 }
 
