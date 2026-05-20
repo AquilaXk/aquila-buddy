@@ -59,6 +59,8 @@ Aquila Buddy는 사용자를 대신해 upstream PR을 자동으로 만들거나 
 - 추천 ranking: `RECOMMENDATION_SIMILARITY_PROVIDER=pgvector`
 - live provider, Langfuse, GitHub DOM smoke는 secret과 외부 인증 상태가 필요한 opt-in workflow입니다.
 
+기본 운영 AI provider는 `vertex-ai`입니다.
+
 ### Built With
 
 - [Spring Boot](https://spring.io/projects/spring-boot)
