@@ -138,7 +138,7 @@ export type UserProfile = {
   primaryLanguages: string[];
   topics: string[];
   profileReady: boolean;
-  vectorUpdatedAt: string;
+  vectorUpdatedAt: string | null;
 };
 
 export type UpdateUserProfileRequest = {

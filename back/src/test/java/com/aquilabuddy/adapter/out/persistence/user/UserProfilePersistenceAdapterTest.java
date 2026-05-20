@@ -11,6 +11,7 @@ import com.aquilabuddy.domain.user.UserProfileUpdateRequest;
 import com.aquilabuddy.global.auth.CurrentUserGithubIdProvider;
 import com.aquilabuddy.global.github.GitHubApiClient;
 import com.aquilabuddy.support.SecurityContextTestUtils;
+import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -134,6 +135,7 @@ class UserProfilePersistenceAdapterTest {
         assertThat(profile.email()).isEqualTo("aquila@example.com");
         assertThat(profile.avatarUrl()).isEqualTo("https://avatars.githubusercontent.com/u/12345?v=4");
         assertThat(profile.profileReady()).isFalse();
+        assertThat(profile.vectorUpdatedAt()).isNull();
         assertThat(profile.primaryLanguages()).isEmpty();
         assertThat(profile.topics()).isEmpty();
     }
@@ -160,10 +162,13 @@ class UserProfilePersistenceAdapterTest {
 
     @Test
     void refreshesCurrentUserProfileVectorState() {
+        Instant beforeRefresh = Instant.now();
+
         UserProfile refreshed = adapter.refreshCurrentUserProfileVector();
 
         assertThat(refreshed.profileReady()).isTrue();
-        assertThat(refreshed.vectorUpdatedAt()).isEqualTo("2026-05-16T00:00:00Z");
+        assertThat(Instant.parse(refreshed.vectorUpdatedAt()))
+            .isBetween(beforeRefresh, Instant.now());
     }
 
     @Test
