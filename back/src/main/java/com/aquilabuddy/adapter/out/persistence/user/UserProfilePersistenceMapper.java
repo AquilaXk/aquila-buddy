@@ -16,6 +16,7 @@ final class UserProfilePersistenceMapper {
             entity.getLogin(),
             entity.getName(),
             entity.getEmail(),
+            entity.getAvatarUrl(),
             entity.getPrimaryLanguages(),
             entity.getTopics(),
             entity.isProfileReady(),

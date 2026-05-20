@@ -32,6 +32,9 @@ public class UserProfileJpaEntity {
     @Column(name = "email", nullable = false)
     private String email;
 
+    @Column(name = "avatar_url", length = 1000)
+    private String avatarUrl;
+
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(
         name = "user_profile_primary_languages",
@@ -67,6 +70,7 @@ public class UserProfileJpaEntity {
         String login,
         String name,
         String email,
+        String avatarUrl,
         List<String> primaryLanguages,
         List<String> topics,
         boolean profileReady,
@@ -76,10 +80,24 @@ public class UserProfileJpaEntity {
         this.login = login;
         this.name = name;
         this.email = email;
+        this.avatarUrl = avatarUrl;
         this.primaryLanguages = new ArrayList<>(primaryLanguages);
         this.topics = new ArrayList<>(topics);
         this.profileReady = profileReady;
         this.vectorUpdatedAt = vectorUpdatedAt;
+    }
+
+    UserProfileJpaEntity(
+        Long githubId,
+        String login,
+        String name,
+        String email,
+        List<String> primaryLanguages,
+        List<String> topics,
+        boolean profileReady,
+        String vectorUpdatedAt
+    ) {
+        this(githubId, login, name, email, null, primaryLanguages, topics, profileReady, vectorUpdatedAt);
     }
 
     Long getGithubId() {
@@ -96,6 +114,10 @@ public class UserProfileJpaEntity {
 
     String getEmail() {
         return email;
+    }
+
+    String getAvatarUrl() {
+        return avatarUrl;
     }
 
     List<String> getPrimaryLanguages() {
@@ -125,10 +147,11 @@ public class UserProfileJpaEntity {
         this.topics = new ArrayList<>(topics);
     }
 
-    void updateIdentity(String login, String name, String email) {
+    void updateIdentity(String login, String name, String email, String avatarUrl) {
         this.login = login;
         this.name = name;
         this.email = email;
+        this.avatarUrl = avatarUrl;
     }
 
     void refreshVector(String vectorUpdatedAt) {

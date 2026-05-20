@@ -94,7 +94,7 @@ public class UserProfilePersistenceAdapter implements
     public void upsertAuthenticatedUserProfile(AuthenticatedUserProfile profile) {
         UserProfileJpaEntity entity = repository.findById(profile.githubId())
             .map(existing -> {
-                existing.updateIdentity(profile.login(), profile.name(), profile.email());
+                existing.updateIdentity(profile.login(), profile.name(), profile.email(), profile.avatarUrl());
                 return existing;
             })
             .orElseGet(() -> new UserProfileJpaEntity(
@@ -102,6 +102,7 @@ public class UserProfilePersistenceAdapter implements
                 profile.login(),
                 profile.name(),
                 profile.email(),
+                profile.avatarUrl(),
                 List.of(),
                 List.of(),
                 false,

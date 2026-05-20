@@ -7,6 +7,11 @@ public record GitHubOAuthUser(
     long id,
     String login,
     String name,
-    String email
+    String email,
+    String avatarUrl
 ) {
+
+    public GitHubOAuthUser(long id, String login, String name, String email) {
+        this(id, login, name, email, null);
+    }
 }

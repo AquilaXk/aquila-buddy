@@ -123,7 +123,8 @@ class UserProfilePersistenceAdapterTest {
             12345L,
             "aquila",
             "Aquila",
-            "aquila@example.com"
+            "aquila@example.com",
+            "https://avatars.githubusercontent.com/u/12345?v=4"
         ));
 
         UserProfile profile = adapter.loadUserProfileByGithubId(12345L).orElseThrow();
@@ -131,6 +132,7 @@ class UserProfilePersistenceAdapterTest {
         assertThat(profile.login()).isEqualTo("aquila");
         assertThat(profile.name()).isEqualTo("Aquila");
         assertThat(profile.email()).isEqualTo("aquila@example.com");
+        assertThat(profile.avatarUrl()).isEqualTo("https://avatars.githubusercontent.com/u/12345?v=4");
         assertThat(profile.profileReady()).isFalse();
         assertThat(profile.primaryLanguages()).isEmpty();
         assertThat(profile.topics()).isEmpty();
@@ -142,13 +144,15 @@ class UserProfilePersistenceAdapterTest {
             10001L,
             "aquila-renamed",
             "Aquila Renamed",
-            "renamed@example.com"
+            "renamed@example.com",
+            "https://avatars.githubusercontent.com/u/10001?v=4"
         ));
 
         UserProfile profile = adapter.loadUserProfileByGithubId(10001L).orElseThrow();
         assertThat(profile.login()).isEqualTo("aquila-renamed");
         assertThat(profile.name()).isEqualTo("Aquila Renamed");
         assertThat(profile.email()).isEqualTo("renamed@example.com");
+        assertThat(profile.avatarUrl()).isEqualTo("https://avatars.githubusercontent.com/u/10001?v=4");
         assertThat(profile.profileReady()).isTrue();
         assertThat(profile.primaryLanguages()).containsExactly("Java", "TypeScript", "SQL");
         assertThat(profile.topics()).containsExactly("spring", "nextjs", "open-source");
