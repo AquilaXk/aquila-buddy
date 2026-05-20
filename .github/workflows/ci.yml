@@ -16,9 +16,75 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  changes:
+    name: Changes
+    runs-on: ubuntu-latest
+
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+      extension: ${{ steps.filter.outputs.extension }}
+      pgvector: ${{ steps.filter.outputs.pgvector }}
+      operations: ${{ steps.filter.outputs.operations }}
+      docs_only: ${{ steps.filter.outputs.docs_only }}
+      ci: ${{ steps.filter.outputs.ci }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Detect changed paths
+        id: filter
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BEFORE_SHA: ${{ github.event.before }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+
+          zero_sha="0000000000000000000000000000000000000000"
+          head_sha="${HEAD_SHA}"
+
+          if [[ "${EVENT_NAME}" == "pull_request" ]]; then
+            base_sha="${BASE_SHA}"
+          elif [[ -n "${BEFORE_SHA}" && "${BEFORE_SHA}" != "${zero_sha}" ]]; then
+            base_sha="${BEFORE_SHA}"
+          else
+            base_sha="$(git rev-list --max-parents=0 HEAD)"
+          fi
+
+          git diff --name-only "${base_sha}" "${head_sha}" > changed-files.txt
+          bash tools/ci/detect-changed-paths.sh changed-files.txt
+
+  docs-validation:
+    name: Docs Validation
+    runs-on: ubuntu-latest
+    needs: changes
+    if: ${{ needs.changes.outputs.docs_only == 'true' || needs.changes.outputs.ci == 'true' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Validate changed documentation
+        run: git diff --check HEAD^1 HEAD
+
+      - name: Validate CI and README contracts
+        run: |
+          node --test tools/ci/*.test.mjs
+          node --test tools/frontend/integration-smoke/runner-contract.test.mjs
+
   backend:
     name: Backend
     runs-on: ubuntu-latest
+    needs: changes
+    if: ${{ needs.changes.outputs.backend == 'true' }}
 
     defaults:
       run:
@@ -41,6 +107,8 @@ jobs:
   pgvector-integration:
     name: Pgvector Integration
     runs-on: ubuntu-latest
+    needs: changes
+    if: ${{ needs.changes.outputs.pgvector == 'true' }}
 
     services:
       postgres:
@@ -78,6 +146,8 @@ jobs:
   operations-smoke:
     name: Operations Smoke
     runs-on: ubuntu-latest
+    needs: changes
+    if: ${{ needs.changes.outputs.operations == 'true' }}
 
     steps:
       - name: Checkout
@@ -110,6 +180,8 @@ jobs:
   frontend:
     name: Frontend
     runs-on: ubuntu-latest
+    needs: changes
+    if: ${{ needs.changes.outputs.frontend == 'true' }}
 
     defaults:
       run:
@@ -154,6 +226,8 @@ jobs:
   extension:
     name: Extension
     runs-on: ubuntu-latest
+    needs: changes
+    if: ${{ needs.changes.outputs.extension == 'true' }}
 
     steps:
       - name: Checkout
