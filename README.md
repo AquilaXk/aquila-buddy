@@ -593,7 +593,7 @@ bash tools/smoke/run-provider-e2e-smoke.sh
 
 ## License
 
-이 저장소에는 현재 branch 기준 별도 `LICENSE` 파일이 없습니다. 코드 사용, 재배포, 상업적 활용이 필요하면 저장소 소유자의 정책을 먼저 확인해야 합니다.
+Aquila Buddy는 MIT License에 따라 배포됩니다. 자세한 내용은 [LICENSE](LICENSE)를 확인하세요.
 
 ---
 
