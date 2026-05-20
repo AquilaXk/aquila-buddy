@@ -131,6 +131,7 @@ jobs:
             echo "NEXT_PUBLIC_API_URL=https://$AQUILA_BUDDY_DOMAIN"
             echo "NEXT_PUBLIC_BACKEND_OAUTH_URL=https://$AQUILA_BUDDY_DOMAIN/oauth2/authorization/github"
             echo "OAUTH2_REDIRECT_URI=https://$AQUILA_BUDDY_DOMAIN/oauth/callback"
+            echo "SPRING_PROFILES_ACTIVE=prod"
           } >> "$DEPLOY_ROOT/aquila-buddy.env"
 
           chmod 600 "$DEPLOY_ROOT/aquila-buddy.env" "$DEPLOY_ROOT/secrets/vertex-key.json"
