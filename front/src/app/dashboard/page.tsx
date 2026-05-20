@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ProtectedLayout } from "@/components/ProtectedLayout";
+import ProtectedLayout from "@/components/ProtectedLayout";
 import { getUserProfile, type UserProfile } from "@/lib/api";
 
 export default function DashboardPage() {

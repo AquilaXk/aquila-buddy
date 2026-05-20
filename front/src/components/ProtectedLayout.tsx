@@ -9,7 +9,7 @@ type ProtectedLayoutProps = {
   children: React.ReactNode;
 };
 
-export function ProtectedLayout({ children }: ProtectedLayoutProps) {
+export default function ProtectedLayout({ children }: ProtectedLayoutProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);

@@ -1,4 +1,4 @@
-import { ProtectedLayout } from "@/components/ProtectedLayout";
+import ProtectedLayout from "@/components/ProtectedLayout";
 import { getUserProfile } from "@/lib/api";
 import { ProfileEditorPanel } from "./ProfileEditorPanel";
 
