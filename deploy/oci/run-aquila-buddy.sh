@@ -41,9 +41,8 @@ AQUILA_BUDDY_FRONTEND_PORT="${AQUILA_BUDDY_FRONTEND_PORT:-13011}"
 AQUILA_BUDDY_BACKEND_PORT="${AQUILA_BUDDY_BACKEND_PORT:-18091}"
 POSTGRES_IMAGE="${POSTGRES_IMAGE:-pgvector/pgvector:pg16}"
 POSTGRES_DB="${POSTGRES_DB:-aquila_buddy}"
-POSTGRES_USER="${POSTGRES_USER:-aquila}"
-DB_USER="${DB_USER:-$POSTGRES_USER}"
-DB_PASSWORD="${DB_PASSWORD:-${POSTGRES_PASSWORD:-}}"
+POSTGRES_USER="${POSTGRES_USER:-aquila_admin}"
+DB_USER="${DB_USER:-aquila_app}"
 DB_URL="${DB_URL:-jdbc:postgresql://$AQUILA_BUDDY_DB_CONTAINER:5432/$POSTGRES_DB}"
 SPRING_PROFILES_ACTIVE="${SPRING_PROFILES_ACTIVE:-dev}"
 
@@ -63,8 +62,13 @@ if [[ "$AQUILA_BUDDY_FRONTEND_IMAGE" == *replace-with-git-sha* ]]; then
   AQUILA_BUDDY_FRONTEND_IMAGE="$AQUILA_BUDDY_IMAGE_PREFIX/aquila-buddy-front:$AQUILA_BUDDY_IMAGE_TAG"
 fi
 
+require_var POSTGRES_PASSWORD
 require_var DB_PASSWORD
 require_var JWT_SECRET
+
+if [[ "$DB_USER" == "$POSTGRES_USER" ]]; then
+  fail "DB_USER must be a non-superuser app role distinct from POSTGRES_USER"
+fi
 
 schema_sql="${AQUILA_BUDDY_SCHEMA_SQL:-$repo_root/back/src/main/resources/schema.sql}"
 operational_sql="${AQUILA_BUDDY_OPERATIONAL_SQL:-$repo_root/back/src/main/resources/schema-postgres-operational.sql}"
@@ -87,7 +91,7 @@ else
     --restart unless-stopped \
     -e "POSTGRES_DB=$POSTGRES_DB" \
     -e "POSTGRES_USER=$POSTGRES_USER" \
-    -e "POSTGRES_PASSWORD=$DB_PASSWORD" \
+    -e "POSTGRES_PASSWORD=$POSTGRES_PASSWORD" \
     -v "$AQUILA_BUDDY_DB_VOLUME:/var/lib/postgresql/data" \
     "$POSTGRES_IMAGE" >/dev/null
 fi
@@ -103,20 +107,54 @@ if ! "${DOCKER[@]}" exec "$AQUILA_BUDDY_DB_CONTAINER" pg_isready -U "$POSTGRES_U
   fail "postgres did not become ready"
 fi
 
-schema_exists="$("${DOCKER[@]}" exec "$AQUILA_BUDDY_DB_CONTAINER" \
-  psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc "select to_regclass('public.user_profiles') is not null;" | tr -d '[:space:]')"
+psql_as_admin() {
+  "${DOCKER[@]}" exec -i \
+    -e "PGPASSWORD=$POSTGRES_PASSWORD" \
+    "$AQUILA_BUDDY_DB_CONTAINER" \
+    psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" "$@"
+}
+
+ensure_app_db_role() {
+  psql_as_admin -v app_user="$DB_USER" -v app_password="$DB_PASSWORD" <<'SQL'
+SELECT format('CREATE ROLE %I LOGIN PASSWORD %L', :'app_user', :'app_password')
+WHERE NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = :'app_user')
+\gexec
+SELECT format(
+    'ALTER ROLE %I WITH LOGIN PASSWORD %L NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS',
+    :'app_user',
+    :'app_password'
+)
+\gexec
+SQL
+}
+
+grant_app_db_privileges() {
+  psql_as_admin -v app_user="$DB_USER" -v db_name="$POSTGRES_DB" <<'SQL'
+REVOKE CREATE ON SCHEMA public FROM PUBLIC;
+GRANT CONNECT ON DATABASE :"db_name" TO :"app_user";
+GRANT USAGE ON SCHEMA public TO :"app_user";
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO :"app_user";
+GRANT USAGE, SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA public TO :"app_user";
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+    GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO :"app_user";
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+    GRANT USAGE, SELECT, UPDATE ON SEQUENCES TO :"app_user";
+SQL
+}
+
+ensure_app_db_role
+
+schema_exists="$(psql_as_admin -tAc "select to_regclass('public.user_profiles') is not null;" | tr -d '[:space:]')"
 
 if [[ "${AQUILA_BUDDY_FORCE_RESET_SCHEMA:-false}" == "true" || "$schema_exists" != "t" ]]; then
-  "${DOCKER[@]}" exec -i "$AQUILA_BUDDY_DB_CONTAINER" \
-    psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" < "$schema_sql"
+  psql_as_admin < "$schema_sql"
 else
   printf 'schema already exists; set AQUILA_BUDDY_FORCE_RESET_SCHEMA=true to reapply destructive schema.sql\n'
 fi
 
-"${DOCKER[@]}" exec -i "$AQUILA_BUDDY_DB_CONTAINER" \
-  psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" < "$operational_sql"
-"${DOCKER[@]}" exec -i "$AQUILA_BUDDY_DB_CONTAINER" \
-  psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" < "$pgvector_sql"
+psql_as_admin < "$operational_sql"
+psql_as_admin < "$pgvector_sql"
+grant_app_db_privileges
 
 remove_container() {
   local name="$1"
