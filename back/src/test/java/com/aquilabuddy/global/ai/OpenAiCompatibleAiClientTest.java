@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.aquilabuddy.domain.ai.AiCallOperation;
+import java.lang.reflect.Method;
+import java.net.http.HttpTimeoutException;
 import java.util.concurrent.TimeUnit;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
@@ -12,6 +14,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
 
 class OpenAiCompatibleAiClientTest {
 
@@ -121,6 +124,20 @@ class OpenAiCompatibleAiClientTest {
         assertThat(observer.firstObservation().success()).isFalse();
         assertThat(observer.firstObservation().operation()).isEqualTo(AiCallOperation.COMPLETION);
         assertThat(observer.firstObservation().failureReason()).contains("timeout");
+    }
+
+    @Test
+    void normalizesTimeoutFailureFromNestedCauseMessages() throws Exception {
+        Method failureReason = OpenAiCompatibleAiClient.class
+            .getDeclaredMethod("failureReason", RuntimeException.class);
+        failureReason.setAccessible(true);
+
+        String reason = (String) failureReason.invoke(
+            null,
+            new RestClientException("I/O error", new HttpTimeoutException("request timed out"))
+        );
+
+        assertThat(reason).contains("timeout");
     }
 
     @Test
