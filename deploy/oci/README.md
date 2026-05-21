@@ -120,4 +120,6 @@ OCI_A1_BUDDY_ENV_B64
 OCI_A1_VERTEX_KEY_JSON_B64
 ```
 
+CD workflow는 private env에서 production topology로 고정해야 하는 값을 제거한 뒤 다시 씁니다. `DB_URL`은 `aquila-buddy-postgres` 컨테이너 네트워크 주소로, `DB_USER`는 `aquila_app` runtime role로, Vertex credential path는 컨테이너 내부 `/run/secrets/vertex-key.json`로 materialize됩니다. 기존 DB volume과 연결된 `POSTGRES_USER`/`POSTGRES_PASSWORD`는 private env 값을 유지합니다.
+
 수동 실행은 기본 `dry_run=true`입니다. 실제 컨테이너 교체는 `dry_run=false`로 실행합니다.
