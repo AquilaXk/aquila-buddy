@@ -5,6 +5,7 @@ const REFRESH_URL = `${API_URL}/api/v1/auth/refresh`;
 const csrfCookieName = "aquila_buddy_csrf";
 const csrfHeaderName = "X-Aquila-CSRF-Token";
 const mutatingMethods = new Set(["POST", "PATCH", "PUT", "DELETE"]);
+let refreshSessionPromise: Promise<boolean> | null = null;
 
 type ApiResponse<T> = {
   success?: boolean;
@@ -98,6 +99,17 @@ async function refreshSession() {
   return false;
 }
 
+async function refreshSessionOnce() {
+  if (refreshSessionPromise === null) {
+    // 만료된 세션에서 병렬 API 요청이 refresh 토큰을 동시에 회전시키지 않도록 공유한다.
+    refreshSessionPromise = refreshSession().finally(() => {
+      refreshSessionPromise = null;
+    });
+  }
+
+  return refreshSessionPromise;
+}
+
 async function apiFetch(input: RequestInfo | URL, init: ApiFetchInit = {}) {
   const { skipAuthRefresh, ...fetchInit } = init;
   const method = resolveRequestMethod(input, fetchInit);
@@ -107,7 +119,7 @@ async function apiFetch(input: RequestInfo | URL, init: ApiFetchInit = {}) {
     headers: buildApiHeaders(fetchInit.headers, method)
   });
 
-  if (response.status === 401 && shouldAttemptRefresh(input, init) && await refreshSession()) {
+  if (response.status === 401 && shouldAttemptRefresh(input, init) && await refreshSessionOnce()) {
     return fetch(input, {
       ...fetchInit,
       credentials: fetchInit.credentials ?? "include",
