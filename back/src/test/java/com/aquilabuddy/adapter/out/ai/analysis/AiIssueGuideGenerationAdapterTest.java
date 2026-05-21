@@ -45,7 +45,7 @@ class AiIssueGuideGenerationAdapterTest {
     @Test
     void includesRepositoryCodeContextInPromptWhenAvailable() {
         CapturingAiClient aiClient = new CapturingAiClient(String.join("\n",
-            "GUIDELINE: Update validation handling near the controller.",
+            "GUIDELINE: ValidationController에서 invalid input 실패 조건을 재현 테스트로 고정한 뒤 API 응답 메시지를 수정하고 controller 테스트로 검증합니다.",
             "PSEUDO_CODE:",
             "1. Inspect ValidationController",
             "SIDE_EFFECTS:",
@@ -69,6 +69,26 @@ class AiIssueGuideGenerationAdapterTest {
             .contains("File: src/main/java/ValidationController.java")
             .contains("class ValidationController {}");
         assertThat(guide.filePaths()).containsExactly("src/main/java/ValidationController.java");
+    }
+
+    @Test
+    void fallsBackWhenGuidelineOmitsIssueSpecificFailureAndVerification() {
+        AiIssueGuideGenerationAdapter adapter = new AiIssueGuideGenerationAdapter(new CapturingAiClient(String.join("\n",
+            "GUIDELINE: IssueGuideController의 guide, workflow, pseudoCode 흐름을 확인합니다.",
+            "PSEUDO_CODE:",
+            "1. IssueGuideController를 연다.",
+            "2. guide 흐름을 확인한다.",
+            "SIDE_EFFECTS:",
+            "- IssueGuideController 응답이 바뀔 수 있습니다."
+        )));
+
+        IssueGuide guide = adapter.generateIssueGuide(issue(), issueGuideControllerContext());
+
+        assertThat(guide.guideline())
+            .contains("IssueGuideController")
+            .contains("Refine validation error example")
+            .contains("재현 테스트")
+            .doesNotContain("guide, workflow, pseudoCode 흐름을 확인합니다");
     }
 
     @Test

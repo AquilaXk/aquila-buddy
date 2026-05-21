@@ -32,7 +32,7 @@ class AiGeneratedOutputQualityRegressionTest {
     @DisplayName("[prompt=ai-output-quality-v2026-05-18 model=openai-compatible-contract fixture=issue-guide-code-context] issue guide keeps non-empty file paths and implementation sections")
     void evaluatesIssueGuideFixtureQuality() {
         CapturingAiClient aiClient = new CapturingAiClient("""
-            GUIDELINE: Update the validation controller and keep the API error envelope stable.
+            GUIDELINE: ValidationController에서 validation error example 실패 조건을 regression test로 재현한 뒤 API error envelope 메시지를 update하고 controller test로 verify합니다.
             PSEUDO_CODE:
             1. Open ValidationController and locate the invalid input branch.
             2. Add a regression test for the new message.
@@ -47,7 +47,7 @@ class AiGeneratedOutputQualityRegressionTest {
 
         assertQualityMetadata("issue-guide-code-context");
         assertThat(guide.filePaths()).containsExactly("src/main/java/demo/ValidationController.java");
-        assertThat(guide.guideline()).contains("validation controller").isNotBlank();
+        assertThat(guide.guideline()).contains("ValidationController").contains("regression test").isNotBlank();
         assertThat(guide.pseudoCode()).contains("regression test").isNotBlank();
         assertThat(guide.sideEffects()).hasSize(2).allSatisfy(sideEffect -> assertThat(sideEffect).isNotBlank());
         assertThat(aiClient.userPrompt)
