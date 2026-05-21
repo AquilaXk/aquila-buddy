@@ -90,6 +90,14 @@ class SecurityConfigTest {
     }
 
     @Test
+    void allowsAnonymousIssueCrawlSearch() throws Exception {
+        mockMvc.perform(post("/api/v1/issues/crawl/search")
+                .param("q", "language:java label:\"good first issue\" state:open"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true));
+    }
+
+    @Test
     void allowsProtectedApiWithBearerToken() throws Exception {
         String token = jwtProvider.generateToken("10001");
 
