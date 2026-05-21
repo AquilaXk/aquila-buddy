@@ -48,7 +48,7 @@ class VertexAiPropertiesTest {
 
         assertThat(properties.projectIdOrThrow()).isEqualTo("grepp-ai-project");
         assertThat(properties.locationOrDefault()).isEqualTo("us-central1");
-        assertThat(properties.modelOrDefault()).isEqualTo("gemini-2.5-flash");
+        assertThat(properties.modelOrDefault()).isEqualTo("gemini-2.5-pro");
         assertThat(properties.embeddingModelOrDefault()).isEqualTo("gemini-embedding-001");
         assertThat(properties.embeddingDimensionsOrDefault()).isEqualTo(1536);
         assertThat(properties.credentialsPathOrBlank()).isEmpty();

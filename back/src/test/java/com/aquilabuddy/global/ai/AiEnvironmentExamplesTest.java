@@ -22,7 +22,7 @@ class AiEnvironmentExamplesTest {
             .contains("AI_PROVIDER=vertex-ai")
             .contains("GOOGLE_CLOUD_PROJECT_ID=grepp-ai-project")
             .contains("VERTEX_AI_LOCATION=us-central1")
-            .contains("VERTEX_AI_MODEL=gemini-2.5-flash")
+            .contains("VERTEX_AI_MODEL=gemini-2.5-pro")
             .contains("VERTEX_AI_CREDENTIALS_PATH=./vertex-key.json")
             .contains("LANGFUSE_ENABLED=false")
             .contains("LANGFUSE_BASE_URL=https://cloud.langfuse.com")
@@ -37,7 +37,7 @@ class AiEnvironmentExamplesTest {
             .contains("AI_PROVIDER=vertex-ai")
             .contains("GOOGLE_CLOUD_PROJECT_ID=grepp-ai-project")
             .contains("VERTEX_AI_LOCATION=us-central1")
-            .contains("VERTEX_AI_MODEL=gemini-2.5-flash")
+            .contains("VERTEX_AI_MODEL=gemini-2.5-pro")
             .contains("VERTEX_AI_CREDENTIALS_PATH=./vertex-key.json")
             .contains("LANGFUSE_ENABLED=false")
             .contains("LANGFUSE_BASE_URL=https://cloud.langfuse.com")
@@ -449,7 +449,7 @@ class AiEnvironmentExamplesTest {
             entry("AI_PROVIDER", "vertex-ai"),
             entry("GOOGLE_CLOUD_PROJECT_ID", "grepp-ai-project"),
             entry("VERTEX_AI_LOCATION", "us-central1"),
-            entry("VERTEX_AI_MODEL", "gemini-2.5-flash"),
+            entry("VERTEX_AI_MODEL", "gemini-2.5-pro"),
             entry("VERTEX_AI_EMBEDDING_MODEL", "gemini-embedding-001"),
             entry("VERTEX_AI_EMBEDDING_DIMENSIONS", "1536"),
             entry("VERTEX_AI_CREDENTIALS_PATH", "/tmp/nonexistent-vertex-key.json"),

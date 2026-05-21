@@ -13,7 +13,7 @@ public record VertexAiProperties(
 ) {
 
     private static final String DEFAULT_LOCATION = "us-central1";
-    private static final String DEFAULT_MODEL = "gemini-2.5-flash";
+    private static final String DEFAULT_MODEL = "gemini-2.5-pro";
     private static final String DEFAULT_EMBEDDING_MODEL = "gemini-embedding-001";
     private static final int DEFAULT_EMBEDDING_DIMENSIONS = 1536;
 

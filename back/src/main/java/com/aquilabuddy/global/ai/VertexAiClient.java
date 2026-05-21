@@ -27,7 +27,7 @@ public class VertexAiClient implements AiClient {
     private final String model;
 
     public VertexAiClient(VertexAiTextGenerator generator) {
-        this(generator, new NoopAiCallObserver(), "gemini-2.5-flash");
+        this(generator, new NoopAiCallObserver(), "gemini-2.5-pro");
     }
 
     @Autowired
