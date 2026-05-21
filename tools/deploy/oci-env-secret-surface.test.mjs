@@ -17,12 +17,19 @@ test("OCI CD materializes a deduplicated runtime env from a private source env",
 test("OCI CD owns non-secret production runtime keys that drift in local env files", () => {
   const managedRuntimeKeys = cdWorkflow.match(/managed_runtime_keys_regex='([^']+)'/)?.[1] ?? "";
 
-  for (const key of ["DB_URL", "DB_USER", "VERTEX_AI_CREDENTIALS_PATH", "GOOGLE_APPLICATION_CREDENTIALS"]) {
+  for (const key of [
+    "DB_URL",
+    "DB_USER",
+    "CSRF_ALLOWED_ORIGINS",
+    "VERTEX_AI_CREDENTIALS_PATH",
+    "GOOGLE_APPLICATION_CREDENTIALS"
+  ]) {
     assert.match(managedRuntimeKeys, new RegExp(`(^|[|])${key}([|)]|=)`));
   }
 
   assert.match(cdWorkflow, /echo "DB_URL=jdbc:postgresql:\/\/aquila-buddy-postgres:5432\/aquila_buddy"/);
   assert.match(cdWorkflow, /echo "DB_USER=aquila_app"/);
+  assert.match(cdWorkflow, /echo "CSRF_ALLOWED_ORIGINS=https:\/\/\$AQUILA_BUDDY_DOMAIN"/);
   assert.match(cdWorkflow, /echo "VERTEX_AI_CREDENTIALS_PATH=\/run\/secrets\/vertex-key\.json"/);
   assert.match(cdWorkflow, /echo "GOOGLE_APPLICATION_CREDENTIALS=\/run\/secrets\/vertex-key\.json"/);
 });
@@ -51,5 +58,7 @@ test("frontend container does not receive the full private env file", () => {
 test("deploy asset validator locks env dedupe and frontend public env contracts", () => {
   assert.match(validator, /managed_runtime_keys_regex/);
   assert.match(validator, /reject_duplicate_env_keys/);
+  assert.match(validator, /CSRF_ALLOWED_ORIGINS=https:\/\/buddy\.aquilaxk\.site/);
+  assert.match(validator, /CSRF_ALLOWED_ORIGINS=https:\/\/\$AQUILA_BUDDY_DOMAIN/);
   assert.match(validator, /NEXT_PUBLIC_BACKEND_OAUTH_URL=\$NEXT_PUBLIC_BACKEND_OAUTH_URL/);
 });
