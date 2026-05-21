@@ -4,10 +4,11 @@
     {
       "fixture": "issue-guide-code-context",
       "operation": "issue-guide",
-      "systemPrompt": "Generate an issue guide with GUIDELINE, PSEUDO_CODE, and SIDE_EFFECTS markers. PSEUDO_CODE must be code-like and include GIVEN, WHEN, CALL, and ASSERT lines.",
-      "userPrompt": "Issue: Refine validation error example. Repository code context: src/main/java/demo/ValidationController.java. Failure condition: blank input currently returns a vague validation message. Expected output must name the target file, the failure branch, and a concrete verification.",
-      "requires": ["GUIDELINE", "PSEUDO_CODE", "SIDE_EFFECTS", "GIVEN", "CALL", "ASSERT"],
-      "forbids": ["1. "]
+      "systemPrompt": "Generate an issue guide with GUIDELINE, PSEUDO_CODE, and SIDE_EFFECTS markers. PSEUDO_CODE must be code-like and include concrete input values, failing branch, changed condition, and ASSERT lines. Do not use placeholder helpers.",
+      "userPrompt": "Issue: Template/inlineTemplate validation uses isEmpty() instead of isBlank(). Repository code context: src/main/java/demo/TemplateSpec.java has TemplateSpec.of(template, inlineTemplate). Failure condition: template = \"   \" currently passes isEmpty() and fails later. Expected output must show the whitespace input, isBlank() branch, and concrete assertion.",
+      "requires": ["GUIDELINE", "PSEUDO_CODE", "SIDE_EFFECTS", "GIVEN", "IF", "ASSERT", "isBlank()"],
+      "requiresRegex": ["template\\s*=\\s*\"\\s+\""],
+      "forbids": ["1. ", "apply_smallest_change", "preserve_existing_flow", "normal_input", "failing_input", "issue_failure", "target_symbol"]
     },
     {
       "fixture": "recommendation-summary-korean",

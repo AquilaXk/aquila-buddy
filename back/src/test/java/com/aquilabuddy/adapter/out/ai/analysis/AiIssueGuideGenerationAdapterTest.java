@@ -144,6 +144,39 @@ class AiIssueGuideGenerationAdapterTest {
             .allSatisfy(sideEffect -> assertThat(sideEffect)
                 .doesNotContain("controller/service")
                 .doesNotContain("shouldRenderProductList(), of(), setVariable()"));
+        assertThat(guide.pseudoCode())
+            .contains("template = \"   \"")
+            .contains("isBlank()")
+            .contains("ASSERT")
+            .doesNotContain("apply_smallest_change")
+            .doesNotContain("normal_input")
+            .doesNotContain("failing_input");
+    }
+
+    @Test
+    void fallsBackWhenPseudoCodeUsesAbstractPlaceholders() {
+        AiIssueGuideGenerationAdapter adapter = new AiIssueGuideGenerationAdapter(new CapturingAiClient(String.join("\n",
+            "GUIDELINE: 원인: 공백 문자열이 isEmpty() 검증을 통과해 isBlank() 기준이 필요한 입력이 뒤늦게 실패합니다. 수정 방향: TemplateSpec의 검증 분기를 isBlank() 기준으로 바꾸고 정상 입력은 유지합니다. 첫 검증: ProductListTest에서 공백 입력과 정상 템플릿 입력을 함께 확인합니다.",
+            "PSEUDO_CODE:",
+            "GIVEN target_file = \"src/main/java/com/github/suzumiyaaoba/thymeleaf/snapshot/TemplateSpec.java\"",
+            "WHEN issue_failure = \"Template/inlineTemplate validation uses isEmpty() instead of isBlank()\" is reproduced",
+            "CALL preserve_existing_flow(target_symbol, \"of(), setVariable(), assertMatchesSnapshot()\")",
+            "CALL apply_smallest_change(target_file, issue_failure, label=\"bug\")",
+            "ASSERT \"of(), setVariable(), assertMatchesSnapshot()\" handles normal_input and failing_input",
+            "SIDE_EFFECTS:",
+            "- 공백 문자열을 실패 입력으로 바꾸면 기존 빈 문자열 처리 테스트가 영향을 받을 수 있습니다."
+        )));
+
+        IssueGuide guide = adapter.generateIssueGuide(thymeleafIssue(), thymeleafSnapshotContext());
+
+        assertThat(guide.pseudoCode())
+            .contains("template = \"   \"")
+            .contains("isBlank()")
+            .contains("ASSERT")
+            .doesNotContain("preserve_existing_flow")
+            .doesNotContain("apply_smallest_change")
+            .doesNotContain("normal_input")
+            .doesNotContain("failing_input");
     }
 
     @Test
@@ -184,7 +217,10 @@ class AiIssueGuideGenerationAdapterTest {
         assertThat(guide.filePaths())
             .containsExactly("back/src/main/java/com/aquilabuddy/adapter/in/web/analysis/IssueGuideController.java");
         assertThat(guide.guideline()).contains("IssueGuideController");
-        assertThat(guide.pseudoCode()).contains("guide").contains("workflow").contains("pseudoCode");
+        assertThat(guide.pseudoCode())
+            .contains("invalidInput")
+            .contains("ASSERT")
+            .doesNotContain("guide, workflow, pseudoCode");
         assertThat(guide.sideEffects()).anySatisfy(sideEffect -> assertThat(sideEffect).contains("IssueGuideController"));
     }
 
