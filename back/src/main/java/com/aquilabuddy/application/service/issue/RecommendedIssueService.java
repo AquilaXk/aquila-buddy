@@ -14,7 +14,9 @@ import com.aquilabuddy.application.port.out.issue.SaveRecommendedIssuesPort;
 import com.aquilabuddy.application.port.out.issue.SearchRecommendedIssuesPort;
 import com.aquilabuddy.application.port.out.issue.SummarizeRecommendedIssuePort;
 import com.aquilabuddy.domain.issue.RecommendedIssue;
+import com.aquilabuddy.domain.issue.RecommendedIssueCopyQuality;
 import com.aquilabuddy.domain.issue.RecommendedIssueHistory;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -113,11 +115,9 @@ public class RecommendedIssueService implements
         } catch (RuntimeException ignored) {
             // 외부 검색 장애가 추천 API 전체 실패로 번지지 않도록 저장 데이터 fallback을 유지합니다.
         }
-        List<RecommendedIssue> storedIssues = List.copyOf(loadRecommendedIssuesPort.loadRecommendedIssues());
-        List<RecommendedIssue> summarizedStoredIssues = summarizeSafely(storedIssues);
-        if (!summarizedStoredIssues.equals(storedIssues)) {
-            saveRecommendedIssuesPort.saveRecommendedIssues(summarizedStoredIssues);
-        }
+        List<RecommendedIssue> summarizedStoredIssues = summarizeAndPersistIfChanged(
+            loadRecommendedIssuesPort.loadRecommendedIssues()
+        );
         return rankRecommendedIssuesPort.rankRecommendedIssues(summarizedStoredIssues);
     }
 
@@ -136,7 +136,7 @@ public class RecommendedIssueService implements
      */
     @Override
     public List<RecommendedIssue> listCollectedIssues() {
-        return loadCollectedIssuesPort.loadCollectedIssues();
+        return summarizeAndPersistIfChanged(loadCollectedIssuesPort.loadCollectedIssues());
     }
 
     /**
@@ -144,7 +144,8 @@ public class RecommendedIssueService implements
      */
     @Override
     public Optional<RecommendedIssue> getRecommendedIssue(String id) {
-        return findRecommendedIssuePort.findById(id);
+        return findRecommendedIssuePort.findById(id)
+            .flatMap(this::summarizeAndPersistIfChanged);
     }
 
     /**
@@ -152,7 +153,7 @@ public class RecommendedIssueService implements
      */
     @Override
     public List<RecommendedIssueHistory> history() {
-        return loadRecommendedIssuesPort.loadRecommendedIssues()
+        return summarizeAndPersistIfChanged(loadRecommendedIssuesPort.loadRecommendedIssues())
             .stream()
             .map(RecommendedIssueHistory::notAnalyzed)
             .toList();
@@ -163,7 +164,52 @@ public class RecommendedIssueService implements
      */
     @Override
     public Optional<RecommendedIssue> lookup(String repoFullName, long issueNumber) {
-        return findRecommendedIssuePort.findByRepoFullNameAndIssueNumber(repoFullName, issueNumber);
+        return findRecommendedIssuePort.findByRepoFullNameAndIssueNumber(repoFullName, issueNumber)
+            .flatMap(this::summarizeAndPersistIfChanged);
+    }
+
+    private Optional<RecommendedIssue> summarizeAndPersistIfChanged(RecommendedIssue issue) {
+        List<RecommendedIssue> summarizedIssues = summarizeAndPersistIfChanged(List.of(issue));
+        if (summarizedIssues.isEmpty()) {
+            return Optional.of(issue);
+        }
+        return Optional.of(summarizedIssues.getFirst());
+    }
+
+    private List<RecommendedIssue> summarizeAndPersistIfChanged(List<RecommendedIssue> issues) {
+        List<RecommendedIssue> storedIssues = List.copyOf(Objects.requireNonNullElse(issues, List.of()));
+        List<RecommendedIssue> refreshCandidates = storedIssues.stream()
+            .filter(RecommendedIssueCopyQuality::needsRefresh)
+            .toList();
+        if (refreshCandidates.isEmpty()) {
+            return storedIssues;
+        }
+
+        List<RecommendedIssue> refreshedIssues = summarizeSafely(refreshCandidates);
+        List<RecommendedIssue> summarizedIssues = mergeRefreshedIssues(storedIssues, refreshCandidates, refreshedIssues);
+        if (!summarizedIssues.equals(storedIssues)) {
+            saveRecommendedIssuesPort.saveRecommendedIssues(summarizedIssues);
+        }
+        return summarizedIssues;
+    }
+
+    private static List<RecommendedIssue> mergeRefreshedIssues(
+        List<RecommendedIssue> storedIssues,
+        List<RecommendedIssue> refreshCandidates,
+        List<RecommendedIssue> refreshedIssues
+    ) {
+        List<RecommendedIssue> result = new ArrayList<>(storedIssues);
+        for (int index = 0; index < refreshCandidates.size() && index < refreshedIssues.size(); index++) {
+            RecommendedIssue candidate = refreshCandidates.get(index);
+            RecommendedIssue refreshed = refreshedIssues.get(index);
+            for (int storedIndex = 0; storedIndex < result.size(); storedIndex++) {
+                if (result.get(storedIndex).id().equals(candidate.id())) {
+                    result.set(storedIndex, refreshed);
+                    break;
+                }
+            }
+        }
+        return List.copyOf(result);
     }
 
     private List<RecommendedIssue> summarizeSafely(List<RecommendedIssue> issues) {

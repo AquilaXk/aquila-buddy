@@ -14,6 +14,61 @@ public record RecommendedIssue(
     double score,
     List<String> labels,
     String status,
-    String reason
+    String reason,
+    String copyOutputVersion
 ) {
+
+    public static final String CURRENT_COPY_OUTPUT_VERSION = "recommended-issue-card-copy-v2026-05-21";
+
+    public RecommendedIssue(
+        String id,
+        String repoFullName,
+        long issueNumber,
+        String title,
+        String summary,
+        double score,
+        List<String> labels,
+        String status,
+        String reason
+    ) {
+        this(
+            id,
+            repoFullName,
+            issueNumber,
+            title,
+            summary,
+            score,
+            labels,
+            status,
+            reason,
+            CURRENT_COPY_OUTPUT_VERSION
+        );
+    }
+
+    public RecommendedIssue {
+        labels = labels == null ? List.of() : List.copyOf(labels);
+        copyOutputVersion = normalizeCopyOutputVersion(copyOutputVersion);
+    }
+
+    public RecommendedIssue withCurrentCopyOutputVersion() {
+        return new RecommendedIssue(
+            id,
+            repoFullName,
+            issueNumber,
+            title,
+            summary,
+            score,
+            labels,
+            status,
+            reason,
+            CURRENT_COPY_OUTPUT_VERSION
+        );
+    }
+
+    private static String normalizeCopyOutputVersion(String value) {
+        if (value == null || value.trim().isBlank()) {
+            return "legacy";
+        }
+        return value.trim();
+    }
 }

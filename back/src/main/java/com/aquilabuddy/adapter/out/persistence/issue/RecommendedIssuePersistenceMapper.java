@@ -23,7 +23,8 @@ final class RecommendedIssuePersistenceMapper {
             entity.getScore(),
             entity.getLabels(),
             entity.getStatus(),
-            entity.getReason()
+            entity.getReason(),
+            entity.getCopyOutputVersion()
         );
     }
 
@@ -40,7 +41,8 @@ final class RecommendedIssuePersistenceMapper {
             issue.score(),
             issue.labels(),
             issue.status(),
-            issue.reason()
+            issue.reason(),
+            issue.copyOutputVersion()
         );
     }
 }

@@ -106,7 +106,8 @@ public class PgvectorRecommendedIssueSimilarityAdapter implements RankRecommende
             resultSet.getDouble("similarity_score"),
             splitLabels(resultSet.getString("labels")),
             resultSet.getString("status"),
-            resultSet.getString("reason")
+            resultSet.getString("reason"),
+            resultSet.getString("copy_output_version")
         );
     }
 
