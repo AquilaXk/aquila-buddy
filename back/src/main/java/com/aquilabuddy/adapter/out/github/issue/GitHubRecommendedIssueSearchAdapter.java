@@ -6,6 +6,8 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestClientResponseException;
 
 /**
  * [Outgoing Adapter] GitHub Search API에서 Good First Issue 후보를 수집합니다.
@@ -51,6 +53,28 @@ public class GitHubRecommendedIssueSearchAdapter implements SearchRecommendedIss
             return List.of();
         }
 
+        try {
+            return searchRecommendedIssues(query, token);
+        } catch (RestClientResponseException exception) {
+            if (exception.getStatusCode().value() == 401 && !token.isBlank()) {
+                return searchRecommendedIssuesWithoutToken(query);
+            }
+            return List.of();
+        } catch (RestClientException exception) {
+            return List.of();
+        }
+    }
+
+    private List<RecommendedIssue> searchRecommendedIssuesWithoutToken(String query) {
+        try {
+            // 운영 token이 만료/폐기된 경우 공개 Search API로 한 번 더 시도해 사용자 인증 401 전파를 막습니다.
+            return searchRecommendedIssues(query, "");
+        } catch (RestClientException exception) {
+            return List.of();
+        }
+    }
+
+    private List<RecommendedIssue> searchRecommendedIssues(String query, String bearerToken) {
         GitHubIssueSearchResponse response = restClient.get()
             .uri(uriBuilder -> uriBuilder
                 .path("/search/issues")
@@ -58,8 +82,8 @@ public class GitHubRecommendedIssueSearchAdapter implements SearchRecommendedIss
                 .queryParam("per_page", limit)
                 .build())
             .headers(headers -> {
-                if (!token.isBlank()) {
-                    headers.setBearerAuth(token);
+                if (!bearerToken.isBlank()) {
+                    headers.setBearerAuth(bearerToken);
                 }
             })
             .retrieve()
