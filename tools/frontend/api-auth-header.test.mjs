@@ -28,7 +28,13 @@ function loadApiModule() {
   module.require = (request) => {
     if (request === "./auth") {
       return {
-        getToken: () => globalThis.window?.localStorage?.getItem("aquila-buddy-token") ?? null
+        clearAuthState: () => {
+          globalThis.__authStateCleared = true;
+        },
+        getToken: () => globalThis.window?.localStorage?.getItem("aquila-buddy-token") ?? null,
+        markLoggedIn: () => {
+          globalThis.__authStateMarked = true;
+        }
       };
     }
 
@@ -40,10 +46,18 @@ function loadApiModule() {
 }
 
 function installBrowserStorage(token) {
+  delete globalThis.__authStateCleared;
+  delete globalThis.__authStateMarked;
   globalThis.window = {
     localStorage: {
       getItem: (key) => (key === "aquila-buddy-token" ? token : null)
     }
+  };
+}
+
+function installDocumentCookie(cookie) {
+  globalThis.document = {
+    cookie
   };
 }
 
@@ -67,12 +81,26 @@ function readHeader(headers, name) {
 
 function successResponse(data) {
   return {
+    status: 200,
     ok: true,
     json: async () => ({
       success: true,
       status: "success",
       data,
       message: null
+    })
+  };
+}
+
+function unauthorizedResponse() {
+  return {
+    status: 401,
+    ok: false,
+    json: async () => ({
+      success: false,
+      status: "fail",
+      data: null,
+      message: "로그인이 필요합니다."
     })
   };
 }
@@ -144,4 +172,43 @@ test("updateUserProfile keeps JSON content type while adding the Bearer authoriz
   assert.equal(requests[0].init.credentials, "include");
   assert.equal(readHeader(requests[0].init.headers, "Authorization"), "Bearer fixture-token");
   assert.equal(readHeader(requests[0].init.headers, "Content-Type"), "application/json");
+});
+
+test("parallel crawl requests share a single refresh after simultaneous unauthorized responses", async () => {
+  process.env.NEXT_PUBLIC_API_URL = "https://api.example.test";
+  installBrowserStorage(null);
+  installDocumentCookie("aquila_buddy_csrf=csrf-token");
+  let refreshRequests = 0;
+  const crawlAttemptsByUrl = new Map();
+  const requests = [];
+  globalThis.fetch = async (url, init = {}) => {
+    requests.push({ url, init });
+
+    if (String(url).endsWith("/api/v1/auth/refresh")) {
+      refreshRequests += 1;
+      return refreshRequests === 1 ? successResponse(null) : unauthorizedResponse();
+    }
+
+    if (String(url).includes("/api/v1/issues/crawl/search?")) {
+      const attempts = crawlAttemptsByUrl.get(url) ?? 0;
+      crawlAttemptsByUrl.set(url, attempts + 1);
+      return attempts === 0 ? unauthorizedResponse() : successResponse([]);
+    }
+
+    throw new Error(`Unexpected request: ${url}`);
+  };
+
+  const api = loadApiModule();
+  await Promise.all([
+    api.crawlSearchIssues('language:html label:"good first issue" state:open'),
+    api.crawlSearchIssues('language:java label:"good first issue" state:open'),
+    api.crawlSearchIssues('language:typescript label:"good first issue" state:open')
+  ]);
+
+  const crawlRequests = requests.filter(({ url }) => String(url).includes("/api/v1/issues/crawl/search?"));
+  assert.equal(refreshRequests, 1);
+  assert.equal(crawlRequests.length, 6);
+  assert.equal(globalThis.__authStateMarked, true);
+  assert.equal(globalThis.__authStateCleared, undefined);
+  assert.equal(readHeader(crawlRequests[0].init.headers, "X-Aquila-CSRF-Token"), "csrf-token");
 });
