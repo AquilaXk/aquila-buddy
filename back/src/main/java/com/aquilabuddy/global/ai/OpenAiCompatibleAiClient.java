@@ -267,12 +267,28 @@ public class OpenAiCompatibleAiClient implements AiClient, EmbeddingClient {
         String detail = hasText(message)
             ? exception.getClass().getSimpleName() + ": " + message
             : exception.getClass().getSimpleName();
-        String lowerDetail = detail.toLowerCase();
-        if (lowerDetail.contains("timed out") || lowerDetail.contains("timeout")
-            || lowerDetail.contains("request cancelled")) {
-            detail = exception.getClass().getSimpleName() + ": timeout - " + message;
+        if (hasTimeoutSignal(exception)) {
+            detail = hasText(message)
+                ? exception.getClass().getSimpleName() + ": timeout - " + message
+                : exception.getClass().getSimpleName() + ": timeout";
         }
         return truncateFailureReason(detail);
+    }
+
+    private static boolean hasTimeoutSignal(Throwable exception) {
+        Throwable current = exception;
+        while (current != null) {
+            String className = current.getClass().getSimpleName().toLowerCase();
+            String message = current.getMessage();
+            String lowerMessage = message == null ? "" : message.toLowerCase();
+            if (className.contains("timeout") || lowerMessage.contains("timed out")
+                || lowerMessage.contains("timeout") || lowerMessage.contains("request cancelled")) {
+                return true;
+            }
+            Throwable cause = current.getCause();
+            current = cause == current ? null : cause;
+        }
+        return false;
     }
 
     private static String exceptionMessageChain(Throwable exception) {

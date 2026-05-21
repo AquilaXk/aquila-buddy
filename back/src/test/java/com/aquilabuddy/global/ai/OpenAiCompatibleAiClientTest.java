@@ -141,6 +141,20 @@ class OpenAiCompatibleAiClientTest {
     }
 
     @Test
+    void normalizesTimeoutFailureFromNestedCauseType() throws Exception {
+        Method failureReason = OpenAiCompatibleAiClient.class
+            .getDeclaredMethod("failureReason", RuntimeException.class);
+        failureReason.setAccessible(true);
+
+        String reason = (String) failureReason.invoke(
+            null,
+            new RestClientException("I/O error", new TimeoutWithoutMessageException())
+        );
+
+        assertThat(reason).contains("timeout");
+    }
+
+    @Test
     void rejectsChatCompletionResponseWithoutChoices() {
         enqueueJson(200, """
             {
@@ -212,5 +226,8 @@ class OpenAiCompatibleAiClientTest {
             .setResponseCode(statusCode)
             .addHeader("Content-Type", "application/json")
             .setBody(body));
+    }
+
+    private static class TimeoutWithoutMessageException extends RuntimeException {
     }
 }
