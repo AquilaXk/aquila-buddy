@@ -1,10 +1,11 @@
 package com.aquilabuddy.global.auth.oauth;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import com.aquilabuddy.global.auth.jwt.JwtCookieSupport;
 import com.aquilabuddy.global.auth.jwt.JwtProperties;
 import com.aquilabuddy.global.auth.jwt.JwtProvider;
-import com.aquilabuddy.global.auth.jwt.JwtCookieSupport;
 import com.aquilabuddy.global.auth.principal.OAuthPrincipal;
 import com.aquilabuddy.global.auth.refresh.RefreshTokenCookieSupport;
 import com.aquilabuddy.global.auth.refresh.RefreshTokenProperties;
@@ -76,6 +77,31 @@ class OAuth2HandlerTest {
                 .contains("SameSite=Lax")
                 .contains("Path=/")
                 .doesNotContain("Domain="));
+    }
+
+    @Test
+    void successHandlerReportsRefreshSessionFailureWithOAuthErrorCode() {
+        OAuthPrincipal principal = new OAuthPrincipal("12345", Map.of("login", "aquila-dev"));
+        org.mockito.BDDMockito.given(refreshTokenSessionService.issue("12345"))
+            .willThrow(new IllegalStateException("refresh table drift"));
+        OAuth2SuccessHandler handler = new OAuth2SuccessHandler(
+            provider,
+            properties,
+            refreshTokenSessionService,
+            refreshTokenProperties,
+            "http://localhost:3000/oauth/callback"
+        );
+
+        OAuth2AuthenticationException exception = assertThrows(
+            OAuth2AuthenticationException.class,
+            () -> handler.onAuthenticationSuccess(
+                new MockHttpServletRequest(),
+                new MockHttpServletResponse(),
+                new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities())
+            )
+        );
+
+        assertThat(exception.getError().getErrorCode()).isEqualTo("refresh_session_failed");
     }
 
     @Test

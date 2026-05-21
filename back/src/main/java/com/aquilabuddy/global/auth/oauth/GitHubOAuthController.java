@@ -103,13 +103,7 @@ public class GitHubOAuthController {
         try {
             GitHubOAuthAccessToken token = gitHubOAuthClient.exchangeCode(code, authorizationRequest.getRedirectUri());
             GitHubOAuthUser user = gitHubOAuthClient.loadUser(token.accessToken());
-            syncAuthenticatedUserProfileUseCase.syncAuthenticatedUserProfile(new AuthenticatedUserProfile(
-                user.id(),
-                user.login(),
-                user.name(),
-                user.email(),
-                user.avatarUrl()
-            ));
+            syncAuthenticatedUserProfile(user);
             OAuthPrincipal principal = new OAuthPrincipal(String.valueOf(user.id()), attributes(user));
             successHandler.onAuthenticationSuccess(
                 request,
@@ -122,6 +116,20 @@ public class GitHubOAuthController {
             redirectFailure(request, response, new OAuth2AuthenticationException(exception.getError(), exception.getMessage(), exception));
         } catch (RuntimeException exception) {
             redirectFailure(request, response, oauthException("oauth_callback_failed", "OAuth callback 처리에 실패했습니다."));
+        }
+    }
+
+    private void syncAuthenticatedUserProfile(GitHubOAuthUser user) {
+        try {
+            syncAuthenticatedUserProfileUseCase.syncAuthenticatedUserProfile(new AuthenticatedUserProfile(
+                user.id(),
+                user.login(),
+                user.name(),
+                user.email(),
+                user.avatarUrl()
+            ));
+        } catch (RuntimeException exception) {
+            throw oauthException("profile_sync_failed", "OAuth 사용자 프로필 동기화에 실패했습니다.", exception);
         }
     }
 
@@ -187,7 +195,14 @@ public class GitHubOAuthController {
     }
 
     private static OAuth2AuthenticationException oauthException(String code, String description) {
+        return oauthException(code, description, null);
+    }
+
+    private static OAuth2AuthenticationException oauthException(String code, String description, Throwable cause) {
         OAuth2Error error = new OAuth2Error(code, description, null);
-        return new OAuth2AuthenticationException(error, description);
+        if (cause == null) {
+            return new OAuth2AuthenticationException(error, description);
+        }
+        return new OAuth2AuthenticationException(error, description, cause);
     }
 }
