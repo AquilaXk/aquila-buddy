@@ -14,6 +14,7 @@ final class PgvectorRecommendedIssueSimilaritySql {
             1 - (issue_embedding <=> CAST(:queryVector AS vector)) AS similarity_score,
             status,
             reason,
+            copy_output_version,
             COALESCE(string_agg(label.label, ',' ORDER BY label.label_order), '') AS labels
         FROM recommended_issues
         LEFT JOIN recommended_issue_labels label
@@ -28,7 +29,8 @@ final class PgvectorRecommendedIssueSimilaritySql {
             summary,
             issue_embedding,
             status,
-            reason
+            reason,
+            copy_output_version
         ORDER BY issue_embedding <=> CAST(:queryVector AS vector), issue_number ASC
         LIMIT :limit
         """;

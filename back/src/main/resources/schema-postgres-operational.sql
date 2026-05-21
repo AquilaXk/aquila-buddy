@@ -139,8 +139,25 @@ CREATE TABLE IF NOT EXISTS recommended_issues (
     score DOUBLE PRECISION NOT NULL,
     status VARCHAR(50) NOT NULL,
     reason VARCHAR(1000) NOT NULL,
+    copy_output_version VARCHAR(120) NOT NULL DEFAULT 'recommended-issue-card-copy-v2026-05-21',
     issue_embedding VARCHAR(12000)
 );
+
+ALTER TABLE recommended_issues
+    ADD COLUMN IF NOT EXISTS copy_output_version VARCHAR(120);
+
+UPDATE recommended_issues
+SET copy_output_version = 'legacy'
+WHERE copy_output_version IS NULL
+    OR reason ILIKE '%GitHub Search%'
+    OR reason ILIKE '%수집된 후보%'
+    OR summary !~ '[가-힣]';
+
+ALTER TABLE recommended_issues
+    ALTER COLUMN copy_output_version SET DEFAULT 'recommended-issue-card-copy-v2026-05-21';
+
+ALTER TABLE recommended_issues
+    ALTER COLUMN copy_output_version SET NOT NULL;
 
 CREATE TABLE IF NOT EXISTS recommended_issue_labels (
     recommended_issue_id VARCHAR(100) NOT NULL,

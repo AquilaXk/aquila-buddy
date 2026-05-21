@@ -1,5 +1,6 @@
 package com.aquilabuddy.adapter.out.persistence.issue;
 
+import com.aquilabuddy.domain.issue.RecommendedIssue;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
@@ -56,6 +57,9 @@ public class RecommendedIssueJpaEntity {
     @Column(name = "reason", nullable = false, length = 1_000)
     private String reason;
 
+    @Column(name = "copy_output_version", nullable = false, length = 120)
+    private String copyOutputVersion = RecommendedIssue.CURRENT_COPY_OUTPUT_VERSION;
+
     @Column(name = "issue_embedding", length = 12_000, insertable = false, updatable = false)
     private String issueEmbedding;
 
@@ -73,7 +77,19 @@ public class RecommendedIssueJpaEntity {
         String status,
         String reason
     ) {
-        this(id, repoFullName, issueNumber, title, summary, score, labels, status, reason, null);
+        this(
+            id,
+            repoFullName,
+            issueNumber,
+            title,
+            summary,
+            score,
+            labels,
+            status,
+            reason,
+            RecommendedIssue.CURRENT_COPY_OUTPUT_VERSION,
+            null
+        );
     }
 
     RecommendedIssueJpaEntity(
@@ -86,6 +102,22 @@ public class RecommendedIssueJpaEntity {
         List<String> labels,
         String status,
         String reason,
+        String copyOutputVersion
+    ) {
+        this(id, repoFullName, issueNumber, title, summary, score, labels, status, reason, copyOutputVersion, null);
+    }
+
+    RecommendedIssueJpaEntity(
+        String id,
+        String repoFullName,
+        long issueNumber,
+        String title,
+        String summary,
+        double score,
+        List<String> labels,
+        String status,
+        String reason,
+        String copyOutputVersion,
         String issueEmbedding
     ) {
         this.id = id;
@@ -97,6 +129,9 @@ public class RecommendedIssueJpaEntity {
         this.labels = new ArrayList<>(labels);
         this.status = status;
         this.reason = reason;
+        this.copyOutputVersion = copyOutputVersion == null || copyOutputVersion.isBlank()
+            ? "legacy"
+            : copyOutputVersion.trim();
         this.issueEmbedding = issueEmbedding;
     }
 
@@ -134,6 +169,10 @@ public class RecommendedIssueJpaEntity {
 
     String getReason() {
         return reason;
+    }
+
+    String getCopyOutputVersion() {
+        return copyOutputVersion;
     }
 
     String getIssueEmbedding() {

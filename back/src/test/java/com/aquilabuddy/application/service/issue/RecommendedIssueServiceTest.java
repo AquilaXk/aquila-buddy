@@ -263,6 +263,43 @@ class RecommendedIssueServiceTest {
     }
 
     @Test
+    void summarizesStoredIssuesBeforeReturningRecommendationHistory() {
+        RecommendedIssue stored = new RecommendedIssue(
+            "stored-legacy",
+            "suzumiyaaoba/thymeleaf-snapshot",
+            6,
+            "Template/inlineTemplate validation uses isEmpty() instead of isBlank()",
+            "Problem Snapshot validates that whitespace input passes isEmpty() and fails later.",
+            0.9,
+            List.of("bug", "good first issue"),
+            "OPEN",
+            "GitHub Search에서 Good First Issue 조건으로 수집된 후보입니다.",
+            "legacy"
+        );
+        RecommendedIssue summarized = withSummary(
+            stored,
+            "공백 template 값이 isEmpty() 검증을 통과해 Thymeleaf 처리 중 뒤늦게 실패하는 문제입니다."
+        );
+        RecordingSaveRecommendedIssuesPort savePort = new RecordingSaveRecommendedIssuesPort();
+        RecordingSummarizeRecommendedIssuePort summaryPort = new RecordingSummarizeRecommendedIssuePort(List.of(summarized));
+        RecommendedIssueService service = new RecommendedIssueService(
+            new CountingLoadRecommendedIssuesPort(List.of(stored)),
+            new CountingLoadRecommendedIssuesPort(List.of(stored)),
+            new InMemoryFindRecommendedIssuePort(List.of(stored)),
+            savePort,
+            List::of,
+            List::copyOf,
+            summaryPort
+        );
+
+        List<RecommendedIssueHistory> result = service.history();
+
+        assertThat(result.getFirst().summary()).isEqualTo(summarized.summary());
+        assertThat(summaryPort.receivedIssues()).containsExactly(stored);
+        assertThat(savePort.savedIssues()).containsExactly(summarized);
+    }
+
+    @Test
     void listsCollectedIssuesWithoutCallingSearch() {
         RecommendedIssue stored = issue("stored", "vercel/next.js", 1);
         CountingLoadRecommendedIssuesPort loadPort = new CountingLoadRecommendedIssuesPort(List.of(stored));

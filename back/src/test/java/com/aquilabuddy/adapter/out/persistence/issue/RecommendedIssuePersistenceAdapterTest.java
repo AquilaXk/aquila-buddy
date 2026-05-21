@@ -138,6 +138,8 @@ class RecommendedIssuePersistenceAdapterTest {
         assertThat(issues.getFirst().issueNumber()).isEqualTo(101);
         assertThat(issues.getFirst().labels()).containsExactly("good first issue", "documentation");
         assertThat(issues.getFirst().reason()).isEqualTo("GitHub Search 후보입니다.");
+        assertThat(issues.getFirst().copyOutputVersion())
+            .isEqualTo(RecommendedIssue.CURRENT_COPY_OUTPUT_VERSION);
     }
 
     @Test

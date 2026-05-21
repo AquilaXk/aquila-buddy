@@ -69,6 +69,7 @@ CREATE TABLE recommended_issues (
     score DOUBLE PRECISION NOT NULL,
     status VARCHAR(50) NOT NULL,
     reason VARCHAR(1000) NOT NULL,
+    copy_output_version VARCHAR(120) NOT NULL DEFAULT 'recommended-issue-card-copy-v2026-05-21',
     issue_embedding VARCHAR(12000)
 );
 

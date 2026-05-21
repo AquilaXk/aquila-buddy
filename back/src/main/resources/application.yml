@@ -86,6 +86,9 @@ app:
     issue-guide:
       daily-limit: ${ANALYSIS_ISSUE_GUIDE_DAILY_LIMIT:5}
   recommendation:
+    copy-refresh:
+      operation-token: ${APP_RECOMMENDATION_COPY_REFRESH_OPERATION_TOKEN:}
+      max-limit: ${RECOMMENDATION_COPY_REFRESH_MAX_LIMIT:200}
     similarity:
       provider: ${RECOMMENDATION_SIMILARITY_PROVIDER:score}
       limit: ${RECOMMENDATION_SIMILARITY_LIMIT:20}
