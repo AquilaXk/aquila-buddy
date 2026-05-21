@@ -37,13 +37,28 @@ class AiRecommendedIssueSummaryAdapterTest {
     }
 
     @Test
+    void removesDisplayLabelFromAiSummary() {
+        CapturingAiClient aiClient = new CapturingAiClient("""
+            SUMMARY: 한국어 요약: 템플릿 값이 공백만 있어도 검증을 통과해 나중에 Thymeleaf 렌더링 단계에서 실패하는 문제입니다.
+            REASON: bug와 good first issue 라벨이 있어 실패 조건을 테스트로 확인하며 작게 시작하기 좋은 후보입니다.
+            """);
+        AiRecommendedIssueSummaryAdapter adapter = new AiRecommendedIssueSummaryAdapter(aiClient);
+
+        List<RecommendedIssue> result = adapter.summarizeRecommendedIssues(List.of(issue()));
+
+        assertThat(result.getFirst().summary())
+            .isEqualTo("템플릿 값이 공백만 있어도 검증을 통과해 나중에 Thymeleaf 렌더링 단계에서 실패하는 문제입니다.");
+    }
+
+    @Test
     void usesRuleBasedKoreanSummaryAndReasonWhenAiResponseIsMalformed() {
         AiRecommendedIssueSummaryAdapter adapter = new AiRecommendedIssueSummaryAdapter(new CapturingAiClient(" "));
 
         List<RecommendedIssue> result = adapter.summarizeRecommendedIssues(List.of(issue()));
 
         assertThat(result.getFirst().summary())
-            .contains("한국어")
+            .doesNotStartWith("한국어 요약:")
+            .contains("문제")
             .contains("isEmpty()")
             .contains("isBlank()")
             .doesNotContain("Problem Snapshot");
@@ -59,7 +74,8 @@ class AiRecommendedIssueSummaryAdapterTest {
         List<RecommendedIssue> result = adapter.summarizeRecommendedIssues(List.of(issue()));
 
         assertThat(result.getFirst().summary())
-            .contains("한국어")
+            .doesNotStartWith("한국어 요약:")
+            .contains("문제")
             .contains("isEmpty()")
             .doesNotContain("Problem Snapshot");
         assertThat(result.getFirst().reason())

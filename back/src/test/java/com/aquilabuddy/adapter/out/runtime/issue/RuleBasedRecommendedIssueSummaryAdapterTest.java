@@ -27,7 +27,7 @@ class RuleBasedRecommendedIssueSummaryAdapterTest {
         RecommendedIssue result = adapter.summarizeRecommendedIssues(List.of(raw)).getFirst();
 
         assertThat(result.summary())
-            .contains("한국어 요약")
+            .doesNotStartWith("한국어 요약:")
             .contains("Template/inlineTemplate")
             .doesNotContain("Problem Snapshot");
         assertThat(result.reason())

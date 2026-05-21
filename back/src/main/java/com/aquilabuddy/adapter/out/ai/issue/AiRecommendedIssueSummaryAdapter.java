@@ -7,6 +7,7 @@ import com.aquilabuddy.domain.issue.RecommendedIssue;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.regex.Pattern;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.stereotype.Component;
 
@@ -21,6 +22,10 @@ public class AiRecommendedIssueSummaryAdapter implements SummarizeRecommendedIss
     private static final int REASON_MAX_LENGTH = 220;
     private static final String SUMMARY_MARKER = "SUMMARY:";
     private static final String REASON_MARKER = "REASON:";
+    private static final Pattern SUMMARY_DISPLAY_LABEL = Pattern.compile(
+        "^(?:한국어\\s*요약|요약|summary)\\s*[:：]\\s*",
+        Pattern.CASE_INSENSITIVE
+    );
     private static final String SYSTEM_PROMPT = """
         너는 한국어 사용자를 위한 오픈소스 이슈 추천 카드 요약 작성자다.
         입력된 GitHub 이슈 제목, 저장소, 라벨, 원문 요약, 기존 추천 이유만 사용한다.
@@ -95,6 +100,9 @@ public class AiRecommendedIssueSummaryAdapter implements SummarizeRecommendedIss
             .replaceAll("\\*\\*", "")
             .replaceAll("\\s+", " ")
             .trim();
+        if ("summary".equals(fieldName)) {
+            sanitized = SUMMARY_DISPLAY_LABEL.matcher(sanitized).replaceFirst("").trim();
+        }
         if (sanitized.isBlank()) {
             throw new IllegalStateException("AI issue " + fieldName + " response must not be blank.");
         }
@@ -103,7 +111,7 @@ public class AiRecommendedIssueSummaryAdapter implements SummarizeRecommendedIss
 
     private static CardCopy fallbackCardCopy(RecommendedIssue issue) {
         String title = issue.title();
-        String summary = "한국어 요약: " + title
+        String summary = title
             + " 문제를 다루며, 원문 설명을 바탕으로 실패 조건을 재현하고 작은 수정 범위에서 검증해야 합니다.";
         String reason = fallbackReason(issue);
         return new CardCopy(
