@@ -36,12 +36,7 @@ public class RuleBasedIssueGuideGenerationAdapter implements GenerateIssueGuideP
                     + "에서 공백/정상 입력 재현 테스트를 함께 확인해 기존 동작과 새 실패 조건을 비교합니다."
                     + " 코드 맥락만으로 구현 위치가 테스트 파일로만 보이면, 테스트는 재현 기준으로 두고 실제 검증 구현 파일을 추가 조사합니다.",
                 String.join("\n",
-                    "GIVEN target_file = \"" + focus.path() + "\"",
-                    "AND target_symbol = \"" + focus.primarySymbol() + "\"",
-                    "WHEN issue_failure = \"" + issue.title() + "\" is reproduced",
-                    "CALL preserve_existing_flow(target_symbol, \"" + focus.methodSummary() + "\")",
-                    "CALL apply_smallest_change(target_file, issue_failure, label=\"" + firstLabel + "\")",
-                    "ASSERT \"" + focus.methodSummary() + "\" handles normal_input and failing_input"
+                    pseudoCodeLines(issue, focus)
                 ),
                 List.of(
                     sideEffectFor(issue, focus.fileName()),
@@ -53,20 +48,57 @@ public class RuleBasedIssueGuideGenerationAdapter implements GenerateIssueGuideP
         return new IssueGuide(
             issue.id(),
             selectedFilePaths(codeContext),
-            issue.repoFullName() + " #" + issue.issueNumber() + "의 " + firstLabel
-                + " 범위를 작게 나누고 현재 테스트 계약을 먼저 고정합니다.",
-            String.join("\n",
-                "GIVEN issue = \"" + issue.repoFullName() + "#" + issue.issueNumber() + "\"",
-                "WHEN issue_title = \"" + issue.title() + "\" is reproduced",
-                "CALL write_minimal_regression_test(issue_title)",
-                "CALL apply_smallest_change(issue_title)",
-                "ASSERT related_api_response_and_pr_context_use_same_terms()"
-            ),
+                issue.repoFullName() + " #" + issue.issueNumber() + "의 " + firstLabel
+                    + " 범위를 작게 나누고 현재 테스트 계약을 먼저 고정합니다.",
+                String.join("\n",
+                    "GIVEN issue = \"" + issue.repoFullName() + "#" + issue.issueNumber() + "\"",
+                    "WHEN issue_title = \"" + issue.title() + "\" is reproduced",
+                    "IF current_behavior_accepts_issue_condition",
+                    "CALL add_regression_test_for_issue_condition()",
+                    "CALL update_visible_branch_for_issue_condition()",
+                    "ASSERT regression_test_rejects_issue_condition()",
+                    "ASSERT existing_valid_case_still_passes()"
+                ),
             List.of(
                 "응답 문구가 바뀌면 프론트엔드 표시와 문서 예시가 함께 영향을 받을 수 있습니다.",
                 "기존 추천 점수와 생성 guide의 설명이 어긋나지 않는지 확인해야 합니다."
             )
         );
+    }
+
+    private static String[] pseudoCodeLines(RecommendedIssue issue, IssueGuideCodeContextAnchors.CodeFocus focus) {
+        String issueText = (issue.title() + " " + issue.summary()).toLowerCase();
+        if (issueText.contains("isempty") && issueText.contains("isblank")) {
+            return new String[] {
+                "GIVEN template = \"   \"",
+                "AND inlineTemplate = \"\"",
+                "WHEN " + focus.primarySymbol() + " validates template inputs",
+                "IF template.isBlank() AND inlineTemplate.isBlank()",
+                "RETURN validation_error(\"template or inlineTemplate is required\")",
+                "ASSERT whitespace template is rejected before Thymeleaf rendering",
+                "ASSERT template = \"<p>Hello</p>\" still renders successfully"
+            };
+        }
+        if (issueText.contains("validation") || issueText.contains("검증")) {
+            return new String[] {
+                "GIVEN invalidInput = value_from_issue_title",
+                "AND validInput = existing_success_case",
+                "WHEN " + focus.primarySymbol() + " validates invalidInput",
+                "IF current validation accepts invalidInput",
+                "CALL tighten_validation_branch(invalidInput)",
+                "ASSERT invalidInput is rejected with the documented error",
+                "ASSERT validInput still passes"
+            };
+        }
+        return new String[] {
+            "GIVEN issueCondition = \"" + issue.title() + "\"",
+            "AND validCase = existing_success_case",
+            "WHEN " + focus.primarySymbol() + " handles issueCondition",
+            "IF current branch does not expose the expected outcome",
+            "CALL update_branch_for_issue_condition(issueCondition)",
+            "ASSERT issueCondition produces the expected outcome",
+            "ASSERT validCase still passes"
+        };
     }
 
     private static String failureExplanation(RecommendedIssue issue) {

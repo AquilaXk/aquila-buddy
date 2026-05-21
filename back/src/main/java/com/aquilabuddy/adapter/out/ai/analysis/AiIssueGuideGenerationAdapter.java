@@ -38,6 +38,8 @@ public class AiIssueGuideGenerationAdapter implements GenerateIssueGuidePort {
         Do not write generic GUIDELINE text such as "follow the validation flow" unless it names the concrete failing condition and edit.
         PSEUDO_CODE must be language-neutral pseudocode, not a numbered explanation checklist.
         PSEUDO_CODE must use code-like lines such as GIVEN, WHEN, IF, CALL, RETURN, ASSERT, or VERIFY.
+        PSEUDO_CODE must include concrete input values, failing condition, changed branch, and expected assertion when they are visible from the issue.
+        Do not use abstract placeholder helpers such as apply_smallest_change, preserve_existing_flow, normal_input, failing_input, issue_failure, or target_symbol.
         Return exactly this marker format.
         GUIDELINE: <2-4 concrete Korean sentences with target, failure condition, edit direction, and first verification>
         PSEUDO_CODE:
@@ -213,6 +215,33 @@ public class AiIssueGuideGenerationAdapter implements GenerateIssueGuidePort {
         }
         if (numberedLines >= Math.max(2, lines.size() / 2)) {
             throw new IllegalStateException("AI issue guide PSEUDO_CODE must not be a numbered checklist.");
+        }
+        requireNoAbstractPseudoCodePlaceholders(pseudoCode);
+    }
+
+    private static void requireNoAbstractPseudoCodePlaceholders(String pseudoCode) {
+        String normalized = pseudoCode.toLowerCase(Locale.ROOT);
+        List<String> forbiddenTokens = List.of(
+            "apply_smallest_change",
+            "preserve_existing_flow",
+            "normal_input",
+            "failing_input",
+            "issue_failure",
+            "target_symbol",
+            "target_file"
+        );
+        for (String token : forbiddenTokens) {
+            if (normalized.contains(token)) {
+                throw new IllegalStateException("AI issue guide PSEUDO_CODE must not use abstract placeholder: " + token);
+            }
+        }
+        Matcher matcher = METHOD_REFERENCE_PATTERN.matcher(pseudoCode);
+        int count = 0;
+        while (matcher.find()) {
+            count++;
+        }
+        if (count > 8) {
+            throw new IllegalStateException("AI issue guide PSEUDO_CODE must not be dominated by method name lists.");
         }
     }
 

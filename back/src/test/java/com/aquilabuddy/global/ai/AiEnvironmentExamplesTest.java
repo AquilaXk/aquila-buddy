@@ -525,11 +525,13 @@ class AiEnvironmentExamplesTest {
             .contains("\"fixture\": \"pr-translation-english\"")
             .contains("\"fixture\": \"pr-draft-parser-fallback\"")
             .contains("\"fixture\": \"provider-failure-observation\"")
-            .contains("\"requires\": [\"GUIDELINE\", \"PSEUDO_CODE\", \"SIDE_EFFECTS\", \"GIVEN\", \"CALL\", \"ASSERT\"]")
+            .contains("\"requires\": [\"GUIDELINE\", \"PSEUDO_CODE\", \"SIDE_EFFECTS\", \"GIVEN\", \"IF\", \"ASSERT\", \"isBlank()\"]")
+            .contains("\"requiresRegex\": [\"template\\\\s*=\\\\s*\\\"\\\\s+\\\"\"]")
             .contains("\"requires\": [\"SUMMARY:\", \"REASON:\", \"isEmpty()\", \"isBlank()\", \"Thymeleaf\"]")
             .contains("\"requiresRegex\": [\"[가-힣]\"]")
             .contains("\"requires\": [\"TITLE\", \"BODY\", \"close #2\", \"## Summary\"]")
             .contains("\"forbids\": [\"README 안내를 보완합니다\"]")
+            .contains("apply_smallest_change")
             .contains("\"forbids\": [\"Problem Snapshot\", \"**Description**\", \"GitHub Search\", \"수집된 후보\", \"1. \"]");
     }
 
