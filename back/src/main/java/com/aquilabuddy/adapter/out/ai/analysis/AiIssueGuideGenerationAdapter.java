@@ -11,6 +11,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.stereotype.Component;
@@ -30,7 +32,9 @@ public class AiIssueGuideGenerationAdapter implements GenerateIssueGuidePort {
         When repository code context is present, mention at least one exact file name, class, method, function, or config key from that context.
         Do not invent validation, error handling, database, UI, or test behavior that is not visible in the issue metadata or code context.
         If the provided code context is too thin to determine the exact implementation point, say what must be inspected next instead of pretending it is known.
-        GUIDELINE must include the target file or symbol, the issue-specific failure condition, the intended edit direction, and the first verification.
+        GUIDELINE must explain root cause, intended edit direction, and first verification in natural Korean sentences.
+        GUIDELINE may mention target files or symbols, but must not become a repeated list of method names.
+        Do not mention controller, service, UI, or API side effects unless those roles are visible in the selected repository code context.
         Do not write generic GUIDELINE text such as "follow the validation flow" unless it names the concrete failing condition and edit.
         PSEUDO_CODE must be language-neutral pseudocode, not a numbered explanation checklist.
         PSEUDO_CODE must use code-like lines such as GIVEN, WHEN, IF, CALL, RETURN, ASSERT, or VERIFY.
@@ -41,6 +45,7 @@ public class AiIssueGuideGenerationAdapter implements GenerateIssueGuidePort {
         SIDE_EFFECTS:
         - <2-4 concrete side effect or verification concern>
         """;
+    private static final Pattern METHOD_REFERENCE_PATTERN = Pattern.compile("\\b[a-z][A-Za-z0-9_]*\\s*\\(\\)");
 
     private final AiClient aiClient;
     private final GenerateIssueGuidePort fallbackGenerator;
@@ -149,6 +154,49 @@ public class AiIssueGuideGenerationAdapter implements GenerateIssueGuidePort {
         if (!containsAny(guideline, verificationSignals())) {
             throw new IllegalStateException("AI issue guide GUIDELINE must include first verification.");
         }
+        requireNoExcessiveSymbolListing(guide);
+        requireNoGenericRoleMismatch(guide, codeContext);
+    }
+
+    private static void requireNoExcessiveSymbolListing(IssueGuide guide) {
+        Matcher matcher = METHOD_REFERENCE_PATTERN.matcher(guide.guideline());
+        int count = 0;
+        while (matcher.find()) {
+            count++;
+        }
+        if (count > 6) {
+            throw new IllegalStateException("AI issue guide GUIDELINE must not be dominated by method name lists.");
+        }
+    }
+
+    private static void requireNoGenericRoleMismatch(IssueGuide guide, RepositoryCodeContext codeContext) {
+        String guideText = String.join("\n",
+            guide.guideline(),
+            String.join("\n", guide.sideEffects())
+        ).toLowerCase(Locale.ROOT);
+        String contextText = contextText(codeContext);
+        if (guideText.contains("controller/service")
+            && !contextText.contains("controller")
+            && !contextText.contains("service")) {
+            throw new IllegalStateException("AI issue guide must not mention generic controller/service side effects.");
+        }
+        if (guideText.contains("controller") && !contextText.contains("controller")) {
+            throw new IllegalStateException("AI issue guide must not mention controller side effects without controller context.");
+        }
+        if (guideText.contains("service") && !contextText.contains("service")) {
+            throw new IllegalStateException("AI issue guide must not mention service side effects without service context.");
+        }
+    }
+
+    private static String contextText(RepositoryCodeContext codeContext) {
+        if (codeContext == null || !codeContext.hasFiles()) {
+            return "";
+        }
+        return codeContext.files()
+            .stream()
+            .map(file -> file.path() + "\n" + file.content())
+            .collect(java.util.stream.Collectors.joining("\n"))
+            .toLowerCase(Locale.ROOT);
     }
 
     private static void requireCodeLikePseudoCode(String pseudoCode) {

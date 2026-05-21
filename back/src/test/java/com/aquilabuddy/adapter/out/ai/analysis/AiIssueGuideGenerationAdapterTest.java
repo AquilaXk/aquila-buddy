@@ -118,6 +118,35 @@ class AiIssueGuideGenerationAdapterTest {
     }
 
     @Test
+    void fallsBackWhenGuidelineRepeatsSymbolsAndGenericControllerWarnings() {
+        AiIssueGuideGenerationAdapter adapter = new AiIssueGuideGenerationAdapter(new CapturingAiClient(String.join("\n",
+            "GUIDELINE: ProductListTest.java의 ProductListTest와 shouldRenderProductList(), of(), setVariable(), assertMatchesSnapshot(), shouldRenderEmptyProductList() 흐름에서 \"Template/inlineTemplate validation uses isEmpty() instead of isBlank()\" 실패 조건을 먼저 재현 테스트로 고정합니다. 이후 sample/src/test/java/com/github/suzumiyaaoba/thymeleaf/snapshot/sample/ProductListTest.java에서 확인 가능한 책임 안에서 수정 방향을 적용하고 shouldRenderProductList(), of(), setVariable(), assertMatchesSnapshot(), shouldRenderEmptyProductList() 정상/실패 입력을 첫 검증으로 다시 확인합니다.",
+            "PSEUDO_CODE:",
+            "GIVEN target_file = \"sample/src/test/java/com/github/suzumiyaaoba/thymeleaf/snapshot/sample/ProductListTest.java\"",
+            "WHEN issue_failure = \"Template/inlineTemplate validation uses isEmpty() instead of isBlank()\" is reproduced",
+            "CALL preserve_existing_flow(target_symbol, \"shouldRenderProductList(), of(), setVariable(), assertMatchesSnapshot(), shouldRenderEmptyProductList()\")",
+            "ASSERT \"shouldRenderProductList(), of(), setVariable(), assertMatchesSnapshot(), shouldRenderEmptyProductList()\" handles normal_input and failing_input",
+            "SIDE_EFFECTS:",
+            "- ProductListTest.java의 응답 계약이 바뀌면 관련 controller/service 테스트 기대값도 함께 바뀔 수 있습니다.",
+            "- ProductListTest 주변 호출부가 같은 shouldRenderProductList(), of(), setVariable(), assertMatchesSnapshot(), shouldRenderEmptyProductList() 결과를 재사용하는지 확인해야 합니다."
+        )));
+
+        IssueGuide guide = adapter.generateIssueGuide(thymeleafIssue(), thymeleafSnapshotContext());
+
+        assertThat(guide.guideline())
+            .contains("isEmpty()")
+            .contains("isBlank()")
+            .contains("공백")
+            .contains("수정")
+            .contains("검증")
+            .doesNotContain("shouldRenderProductList(), of(), setVariable()");
+        assertThat(guide.sideEffects())
+            .allSatisfy(sideEffect -> assertThat(sideEffect)
+                .doesNotContain("controller/service")
+                .doesNotContain("shouldRenderProductList(), of(), setVariable()"));
+    }
+
+    @Test
     void fallsBackToRuleBasedGuideWhenAiResponseWithoutRequiredMarkers() {
         AiIssueGuideGenerationAdapter adapter = new AiIssueGuideGenerationAdapter(new CapturingAiClient("plain text"));
 
@@ -170,6 +199,53 @@ class AiIssueGuideGenerationAdapterTest {
             List.of("good first issue", "validation"),
             "OPEN",
             "현재 Java 21 + Spring 작업 스택과 직접 맞닿아 있습니다."
+        );
+    }
+
+    private static RecommendedIssue thymeleafIssue() {
+        return new RecommendedIssue(
+            "thymeleaf-6",
+            "suzumiyaaoba/thymeleaf-snapshot",
+            6L,
+            "Template/inlineTemplate validation uses isEmpty() instead of isBlank()",
+            "공백 문자열이 isEmpty() 검증을 통과해 Thymeleaf 처리 중 뒤늦게 실패하는 문제입니다.",
+            0.9,
+            List.of("bug", "good first issue"),
+            "OPEN",
+            "bug 라벨과 good first issue 범위가 맞아 검증 조건을 작게 재현하고 수정하기 좋습니다."
+        );
+    }
+
+    private static RepositoryCodeContext thymeleafSnapshotContext() {
+        return RepositoryCodeContext.fromFiles(
+            "suzumiyaaoba/thymeleaf-snapshot",
+            "main",
+            List.of(
+                new RepositoryCodeContextFile(
+                    "sample/src/test/java/com/github/suzumiyaaoba/thymeleaf/snapshot/sample/ProductListTest.java",
+                    """
+                        class ProductListTest {
+                            void shouldRenderProductList() {}
+                            void shouldRenderEmptyProductList() {}
+                        }
+                        """
+                ),
+                new RepositoryCodeContextFile(
+                    "src/main/java/com/github/suzumiyaaoba/thymeleaf/snapshot/TemplateSpec.java",
+                    """
+                        class TemplateSpec {
+                            static TemplateSpec of(String template, String inlineTemplate) {
+                                if (template.isEmpty() && inlineTemplate.isEmpty()) {
+                                    throw new IllegalArgumentException("template required");
+                                }
+                                return new TemplateSpec();
+                            }
+                        }
+                        """
+                )
+            ),
+            3,
+            2_000
         );
     }
 
