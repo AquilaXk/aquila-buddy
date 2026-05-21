@@ -5,7 +5,7 @@ ALTER TABLE user_profiles
 
 ALTER TABLE user_profiles
     ALTER COLUMN profile_embedding TYPE vector(1536)
-    USING NULLIF(profile_embedding, '')::vector;
+    USING NULLIF(profile_embedding::text, '')::vector;
 
 CREATE INDEX IF NOT EXISTS idx_user_profiles_profile_embedding
     ON user_profiles
@@ -16,7 +16,7 @@ ALTER TABLE recommended_issues
 
 ALTER TABLE recommended_issues
     ALTER COLUMN issue_embedding TYPE vector(1536)
-    USING NULLIF(issue_embedding, '')::vector;
+    USING NULLIF(issue_embedding::text, '')::vector;
 
 CREATE INDEX IF NOT EXISTS idx_recommended_issues_issue_embedding
     ON recommended_issues

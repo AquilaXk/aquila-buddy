@@ -28,11 +28,26 @@ class PgvectorInitContractTest {
         String validator = Files.readString(Path.of("../tools/db/validate-pgvector-init.mjs"));
 
         assertThat(validator)
+            .contains("USING NULLIF(profile_embedding::text, '')::vector")
+            .contains("USING NULLIF(issue_embedding::text, '')::vector")
+            .contains("assertExcludes(pgvectorSql, \"DO $$\"")
             .contains("idx_user_profiles_profile_embedding")
             .contains("USING hnsw (profile_embedding vector_cosine_ops)")
             .contains("idx_recommended_issues_issue_embedding")
             .contains("USING hnsw (issue_embedding vector_cosine_ops)")
             .contains("schema.sql must be applied before schema-postgres-pgvector.sql");
+    }
+
+    @Test
+    void pgvectorSchemaUsesTextCastForSafeRepeatedVectorConversion() throws IOException {
+        String schema = Files.readString(Path.of("../back/src/main/resources/schema-postgres-pgvector.sql"));
+
+        assertThat(schema)
+            .contains("ALTER COLUMN profile_embedding TYPE vector(1536)")
+            .contains("USING NULLIF(profile_embedding::text, '')::vector")
+            .contains("ALTER COLUMN issue_embedding TYPE vector(1536)")
+            .contains("USING NULLIF(issue_embedding::text, '')::vector")
+            .doesNotContain("DO $$");
     }
 
     private static ScriptResult runScript(String script, String... arguments) throws IOException, InterruptedException {
