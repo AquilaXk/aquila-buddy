@@ -6,4 +6,5 @@ spring:
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
-      ddl-auto: validate
+      # 배포 스크립트가 schema/operational/pgvector SQL을 순서대로 적용하므로 Hibernate 검증은 끈다.
+      ddl-auto: none

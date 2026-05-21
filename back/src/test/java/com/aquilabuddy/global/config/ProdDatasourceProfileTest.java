@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test;
 class ProdDatasourceProfileTest {
 
     @Test
-    void prodProfileBindsPostgresDatasourceFromRuntimeEnvironment() throws IOException {
+    void prodProfileBindsPostgresDatasourceAndKeepsSchemaManagedByDeploySql() throws IOException {
         String applicationProd = Files.readString(Path.of("src/main/resources/application-prod.yml"));
 
         assertThat(applicationProd)
@@ -18,7 +18,8 @@ class ProdDatasourceProfileTest {
             .contains("username: ${DB_USER:aquila}")
             .contains("password: ${DB_PASSWORD:aquila}")
             .contains("driver-class-name: org.postgresql.Driver")
-            .contains("ddl-auto: validate")
+            .contains("ddl-auto: none")
+            .doesNotContain("ddl-auto: validate")
             .doesNotContain("jdbc:h2:mem");
     }
 }
