@@ -56,7 +56,7 @@ public class RecommendedIssueJpaEntity {
     @Column(name = "reason", nullable = false, length = 1_000)
     private String reason;
 
-    @Column(name = "issue_embedding", length = 12_000)
+    @Column(name = "issue_embedding", length = 12_000, insertable = false, updatable = false)
     private String issueEmbedding;
 
     protected RecommendedIssueJpaEntity() {

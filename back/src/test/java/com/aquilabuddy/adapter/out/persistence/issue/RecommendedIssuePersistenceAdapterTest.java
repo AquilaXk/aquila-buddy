@@ -213,9 +213,14 @@ class RecommendedIssuePersistenceAdapterTest {
             0.9,
             List.of("documentation"),
             "OPEN",
-            "이미 embedding이 있는 후보입니다.",
-            "[0.9,0.8,0.7]"
+            "이미 embedding이 있는 후보입니다."
         ));
+        repository.flush();
+        jdbcTemplate.update(
+            "UPDATE recommended_issues SET issue_embedding = ? WHERE issue_id = ?",
+            "[0.9,0.8,0.7]",
+            "embedded-issue"
+        );
 
         EmbeddingBackfillResult result = adapter.backfillMissingIssueEmbeddings(10);
         repository.flush();

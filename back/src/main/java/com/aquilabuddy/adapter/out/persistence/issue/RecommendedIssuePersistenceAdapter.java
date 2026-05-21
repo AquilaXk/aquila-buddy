@@ -14,8 +14,11 @@ import java.util.List;
 import java.util.Optional;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DataAccessException;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * [Outgoing Adapter] 추천 이슈 조회 outbound port의 JPA 구현체입니다.
@@ -24,6 +27,7 @@ import org.springframework.stereotype.Component;
  * 이 adapter와 repository 내부에 둡니다.
  */
 @Component
+@Transactional
 public class RecommendedIssuePersistenceAdapter implements
     LoadRecommendedIssuesPort,
     LoadCollectedIssuesPort,
@@ -34,15 +38,19 @@ public class RecommendedIssuePersistenceAdapter implements
     private static final int MAX_FAILURE_REASON_SAMPLES = 10;
 
     private final RecommendedIssueJpaRepository repository;
+    private final JdbcTemplate jdbcTemplate;
     private final ObjectProvider<EmbeddingClient> embeddingClientProvider;
     private final int expectedEmbeddingDimensions;
+    private Boolean pgvectorIssueEmbeddingColumn;
 
     public RecommendedIssuePersistenceAdapter(
         RecommendedIssueJpaRepository repository,
+        JdbcTemplate jdbcTemplate,
         ObjectProvider<EmbeddingClient> embeddingClientProvider,
         @Value("${app.embedding.expected-dimensions:1536}") int expectedEmbeddingDimensions
     ) {
         this.repository = repository;
+        this.jdbcTemplate = jdbcTemplate;
         this.embeddingClientProvider = embeddingClientProvider;
         this.expectedEmbeddingDimensions = expectedEmbeddingDimensions;
     }
@@ -92,15 +100,15 @@ public class RecommendedIssuePersistenceAdapter implements
      */
     @Override
     public void saveRecommendedIssues(List<RecommendedIssue> issues) {
-        List<RecommendedIssueJpaEntity> entities = issues.stream()
-            .map(issue -> {
-                RecommendedIssueJpaEntity entity = RecommendedIssuePersistenceMapper.toEntity(issue);
-                entity.updateIssueEmbedding(createIssueEmbedding(issue));
-                return entity;
-            })
-            .toList();
+        List<RecommendedIssueJpaEntity> entities = new ArrayList<>();
+        List<IssueEmbeddingUpdate> embeddingUpdates = new ArrayList<>();
+        for (RecommendedIssue issue : issues) {
+            entities.add(RecommendedIssuePersistenceMapper.toEntity(issue));
+            embeddingUpdates.add(new IssueEmbeddingUpdate(issue.id(), createIssueEmbedding(issue)));
+        }
 
-        repository.saveAll(entities);
+        repository.saveAllAndFlush(entities);
+        embeddingUpdates.forEach(update -> updateIssueEmbedding(update.issueId(), update.issueEmbedding()));
     }
 
     @Override
@@ -147,14 +155,13 @@ public class RecommendedIssuePersistenceAdapter implements
                     );
                     continue;
                 }
-                entity.updateIssueEmbedding(vector.toPgvectorLiteral());
+                updateIssueEmbedding(entity.getId(), vector.toPgvectorLiteral());
                 updated++;
             } catch (RuntimeException exception) {
                 failed++;
                 addFailureReason(failureReasons, entity.getId() + ": " + exception.getClass().getSimpleName());
             }
         }
-        repository.saveAll(candidates);
 
         return new EmbeddingBackfillResult(
             "issues",
@@ -185,6 +192,54 @@ public class RecommendedIssuePersistenceAdapter implements
         } catch (RuntimeException exception) {
             return null;
         }
+    }
+
+    private void updateIssueEmbedding(String issueId, String issueEmbedding) {
+        if (issueEmbedding == null) {
+            jdbcTemplate.update(
+                "UPDATE recommended_issues SET issue_embedding = NULL WHERE issue_id = ?",
+                issueId
+            );
+            return;
+        }
+
+        if (issueEmbeddingColumnUsesPgvector()) {
+            jdbcTemplate.update(
+                "UPDATE recommended_issues SET issue_embedding = CAST(? AS vector) WHERE issue_id = ?",
+                issueEmbedding,
+                issueId
+            );
+            return;
+        }
+
+        jdbcTemplate.update(
+            "UPDATE recommended_issues SET issue_embedding = ? WHERE issue_id = ?",
+            issueEmbedding,
+            issueId
+        );
+    }
+
+    private boolean issueEmbeddingColumnUsesPgvector() {
+        if (pgvectorIssueEmbeddingColumn != null) {
+            return pgvectorIssueEmbeddingColumn;
+        }
+
+        try {
+            Boolean result = jdbcTemplate.queryForObject("""
+                SELECT CASE WHEN COUNT(*) > 0 THEN TRUE ELSE FALSE END
+                FROM information_schema.columns
+                WHERE table_schema = 'public'
+                    AND table_name = 'recommended_issues'
+                    AND column_name = 'issue_embedding'
+                    AND udt_name = 'vector'
+                """,
+                Boolean.class
+            );
+            pgvectorIssueEmbeddingColumn = Boolean.TRUE.equals(result);
+        } catch (DataAccessException exception) {
+            pgvectorIssueEmbeddingColumn = false;
+        }
+        return pgvectorIssueEmbeddingColumn;
     }
 
     private static String buildIssueEmbeddingInput(RecommendedIssue issue) {
@@ -226,5 +281,8 @@ public class RecommendedIssuePersistenceAdapter implements
         if (failureReasons.size() < MAX_FAILURE_REASON_SAMPLES) {
             failureReasons.add(reason);
         }
+    }
+
+    private record IssueEmbeddingUpdate(String issueId, String issueEmbedding) {
     }
 }
