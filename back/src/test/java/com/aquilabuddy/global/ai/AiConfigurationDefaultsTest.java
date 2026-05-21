@@ -19,6 +19,7 @@ class AiConfigurationDefaultsTest {
         List<PropertySource<?>> sources = loadYaml("application.yml");
 
         assertThat(property(sources, "app.ai.provider")).isEqualTo("${AI_PROVIDER:vertex-ai}");
+        assertThat(property(sources, "app.ai.vertex.model")).isEqualTo("${VERTEX_AI_MODEL:gemini-2.5-pro}");
         assertThat(property(sources, "app.ai.vertex.credentials-path"))
             .isEqualTo("${VERTEX_AI_CREDENTIALS_PATH:${GOOGLE_APPLICATION_CREDENTIALS:./vertex-key.json}}");
         assertThat(property(sources, "app.ai.openai-compatible.request-timeout-millis"))
