@@ -43,7 +43,6 @@
 - [운영과 배포](#운영과-배포)
 - [트러블 슈팅](#트러블-슈팅)
 - [현재 상태와 개선 방향](#현재-상태와-개선-방향)
-- [기여 방식](#기여-방식)
 - [License](#license)
 - [관련 링크](#관련-링크)
 
@@ -512,7 +511,7 @@ OCI Buddy CD
   └─ runtime smoke
 ```
 
-문서/이미지처럼 영향 범위가 작은 PR은 변경 파일 기반 CI skip gate를 사용할 수 있도록 release gate 분리를 진행 중입니다.
+문서/이미지처럼 런타임 영향이 없는 변경은 PR에서 변경 범위에 맞는 문서 검증을 중심으로 확인합니다.
 
 ---
 
@@ -605,21 +604,7 @@ bash tools/smoke/run-provider-e2e-smoke.sh
 | PR Draft | draft, translation, readiness, submission 흐름 제공 | markdown parser fallback과 close issue 품질 gate 강화 |
 | Observability | AI call observation과 Langfuse adapter 제공 | 실제 Langfuse trace, usage, error metadata 실연동 검증 |
 | Extension | manifest/popup/contract 검증 제공 | 실제 GitHub DOM live smoke evidence 강화 |
-| CI/CD | backend/frontend/extension/operations gate 제공 | 변경 파일 기반 skip과 release readiness gate 분리 |
-
----
-
-## 기여 방식
-
-기여는 이슈 기반으로 진행합니다. 작업 전 GitHub issue를 만들거나 기존 issue 번호를 확정하고, `main` 최신 기준에서 짧은 branch를 분기합니다.
-
-1. Issue를 선택합니다.
-2. `type/short-description` 형식의 branch를 만듭니다.
-3. 변경 범위와 검증 방법을 계획서에 고정합니다.
-4. 관련 검증을 실행합니다.
-5. PR 본문 첫 섹션에 `close #<issue-number>`를 연결합니다.
-
-작게 시작하려면 [open issues](https://github.com/AquilaXk/aquila-buddy/issues)를 확인하세요. 문서, smoke script, frontend parity validator, fixture test는 진입 비용이 낮은 편입니다.
+| CI/CD | backend/frontend/extension/operations gate 제공 | live smoke evidence와 변경 범위별 검증 선택 정교화 |
 
 ---
 
@@ -635,8 +620,6 @@ Aquila Buddy는 MIT License에 따라 배포됩니다. 자세한 내용은 [LICE
 |------|-----|
 | 서비스 | [buddy.aquilaxk.site](https://buddy.aquilaxk.site) |
 | GitHub | [AquilaXk/aquila-buddy](https://github.com/AquilaXk/aquila-buddy) |
-| Issues | [GitHub Issues](https://github.com/AquilaXk/aquila-buddy/issues) |
-| Pull Requests | [GitHub Pull Requests](https://github.com/AquilaXk/aquila-buddy/pulls) |
 | CI | [GitHub Actions](https://github.com/AquilaXk/aquila-buddy/actions) |
 | AI Smoke | [AI_RUNTIME_SMOKE.md](tools/smoke/AI_RUNTIME_SMOKE.md) |
 | Deploy | [deploy/oci/README.md](deploy/oci/README.md) |
