@@ -12,43 +12,59 @@ class AiRecommendedIssueSummaryAdapterTest {
 
     @Test
     void summarizesRecommendedIssueWithIssueSummaryUseCase() {
-        CapturingAiClient aiClient = new CapturingAiClient(
-            "SUMMARY: 템플릿 입력값이 공백만 있어도 검증을 통과해 나중에 Thymeleaf 처리 단계에서 실패하는 문제입니다."
-        );
+        CapturingAiClient aiClient = new CapturingAiClient("""
+            SUMMARY: 템플릿 입력값이 공백만 있어도 검증을 통과해 나중에 Thymeleaf 처리 단계에서 실패하는 문제입니다.
+            REASON: bug와 good first issue 라벨이 있고 검증 조건이 명확해 작은 테스트부터 시작하기 좋은 후보입니다.
+            """);
         AiRecommendedIssueSummaryAdapter adapter = new AiRecommendedIssueSummaryAdapter(aiClient);
 
         List<RecommendedIssue> result = adapter.summarizeRecommendedIssues(List.of(issue()));
 
         assertThat(result.getFirst().summary())
             .isEqualTo("템플릿 입력값이 공백만 있어도 검증을 통과해 나중에 Thymeleaf 처리 단계에서 실패하는 문제입니다.");
+        assertThat(result.getFirst().reason())
+            .isEqualTo("bug와 good first issue 라벨이 있고 검증 조건이 명확해 작은 테스트부터 시작하기 좋은 후보입니다.");
         assertThat(aiClient.useCase).isEqualTo(AiCompletionUseCase.ISSUE_SUMMARY);
         assertThat(aiClient.systemPrompt)
             .contains("한국어")
-            .contains("SUMMARY:");
+            .contains("SUMMARY:")
+            .contains("REASON:");
         assertThat(aiClient.userPrompt)
             .contains("Repository: suzumiyaaoba/thymeleaf-snapshot")
             .contains("Title: Template/inlineTemplate validation uses isEmpty() instead of isBlank()")
-            .contains("Source summary: Problem Snapshot validates by checking isEmpty()");
+            .contains("Source summary: Problem Snapshot validates by checking isEmpty()")
+            .contains("Source recommendation reason: GitHub Search에서 Good First Issue 조건으로 수집된 후보입니다.");
     }
 
     @Test
-    void keepsOriginalSummaryWhenAiResponseIsMalformed() {
+    void usesRuleBasedKoreanSummaryAndReasonWhenAiResponseIsMalformed() {
         AiRecommendedIssueSummaryAdapter adapter = new AiRecommendedIssueSummaryAdapter(new CapturingAiClient(" "));
 
         List<RecommendedIssue> result = adapter.summarizeRecommendedIssues(List.of(issue()));
 
         assertThat(result.getFirst().summary())
-            .isEqualTo("Problem Snapshot validates by checking isEmpty(), so whitespace input passes and fails later.");
+            .contains("한국어")
+            .contains("isEmpty()")
+            .contains("isBlank()")
+            .doesNotContain("Problem Snapshot");
+        assertThat(result.getFirst().reason())
+            .contains("good first issue")
+            .doesNotContain("GitHub Search");
     }
 
     @Test
-    void keepsOriginalSummaryWhenAiClientFails() {
+    void usesRuleBasedKoreanSummaryAndReasonWhenAiClientFails() {
         AiRecommendedIssueSummaryAdapter adapter = new AiRecommendedIssueSummaryAdapter(new ThrowingAiClient());
 
         List<RecommendedIssue> result = adapter.summarizeRecommendedIssues(List.of(issue()));
 
         assertThat(result.getFirst().summary())
-            .isEqualTo("Problem Snapshot validates by checking isEmpty(), so whitespace input passes and fails later.");
+            .contains("한국어")
+            .contains("isEmpty()")
+            .doesNotContain("Problem Snapshot");
+        assertThat(result.getFirst().reason())
+            .contains("검증")
+            .doesNotContain("GitHub Search");
     }
 
     private static RecommendedIssue issue() {

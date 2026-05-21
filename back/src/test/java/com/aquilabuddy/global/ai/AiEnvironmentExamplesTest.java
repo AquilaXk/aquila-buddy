@@ -526,10 +526,11 @@ class AiEnvironmentExamplesTest {
             .contains("\"fixture\": \"pr-draft-parser-fallback\"")
             .contains("\"fixture\": \"provider-failure-observation\"")
             .contains("\"requires\": [\"GUIDELINE\", \"PSEUDO_CODE\", \"SIDE_EFFECTS\", \"GIVEN\", \"CALL\", \"ASSERT\"]")
+            .contains("\"requires\": [\"SUMMARY:\", \"REASON:\", \"isEmpty()\", \"isBlank()\", \"Thymeleaf\"]")
             .contains("\"requiresRegex\": [\"[가-힣]\"]")
             .contains("\"requires\": [\"TITLE\", \"BODY\", \"close #2\", \"## Summary\"]")
             .contains("\"forbids\": [\"README 안내를 보완합니다\"]")
-            .contains("\"forbids\": [\"Problem Snapshot\", \"**Description**\", \"1. \"]");
+            .contains("\"forbids\": [\"Problem Snapshot\", \"**Description**\", \"GitHub Search\", \"수집된 후보\", \"1. \"]");
     }
 
     @Test

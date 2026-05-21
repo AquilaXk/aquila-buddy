@@ -178,7 +178,10 @@ class AiGeneratedOutputQualityRegressionTest {
     @DisplayName("[prompt=ai-output-quality-v2026-05-21 model=openai-compatible-contract fixture=recommendation-summary-korean] recommendation cards keep Korean meaning summaries")
     void evaluatesRecommendationSummaryFixtureQuality() {
         AiRecommendedIssueSummaryAdapter adapter = new AiRecommendedIssueSummaryAdapter(new CapturingAiClient(
-            "SUMMARY: 템플릿 값이 공백만 있어도 검증을 통과해 나중에 Thymeleaf 렌더링 단계에서 실패하는 문제입니다."
+            """
+            SUMMARY: 템플릿 값이 공백만 있어도 검증을 통과해 나중에 Thymeleaf 렌더링 단계에서 실패하는 문제입니다.
+            REASON: bug와 good first issue 라벨이 있어 실패 조건을 테스트로 확인하며 작게 시작하기 좋은 후보입니다.
+            """
         ));
 
         RecommendedIssue result = adapter.summarizeRecommendedIssues(List.of(issue())).getFirst();
@@ -190,6 +193,10 @@ class AiGeneratedOutputQualityRegressionTest {
             .containsPattern("[가-힣]")
             .doesNotContain("Problem Snapshot")
             .doesNotContain("**Description**");
+        assertThat(result.reason())
+            .contains("good first issue")
+            .contains("테스트")
+            .doesNotContain("GitHub Search");
     }
 
     private static void assertSubmittableIssueGuide(IssueGuide guide) {
