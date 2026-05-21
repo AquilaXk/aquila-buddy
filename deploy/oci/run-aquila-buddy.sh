@@ -83,6 +83,8 @@ fi
 require_var POSTGRES_PASSWORD
 require_var DB_PASSWORD
 require_var JWT_SECRET
+require_var GITHUB_CLIENT_ID
+require_var GITHUB_CLIENT_SECRET
 
 if [[ "$DB_USER" == "$POSTGRES_USER" ]]; then
   fail "DB_USER must be a non-superuser app role distinct from POSTGRES_USER"
