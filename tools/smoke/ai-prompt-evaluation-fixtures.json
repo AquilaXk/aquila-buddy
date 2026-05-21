@@ -1,13 +1,22 @@
 {
-  "promptVersion": "ai-output-quality-v2026-05-18",
+  "promptVersion": "ai-output-quality-v2026-05-21",
   "samples": [
     {
       "fixture": "issue-guide-code-context",
       "operation": "issue-guide",
-      "systemPrompt": "Generate an issue guide with GUIDELINE, PSEUDO_CODE, and SIDE_EFFECTS markers.",
-      "userPrompt": "Issue: Refine validation error example. Repository code context: src/main/java/demo/ValidationController.java",
-      "requires": ["GUIDELINE", "PSEUDO_CODE", "SIDE_EFFECTS"],
-      "forbids": []
+      "systemPrompt": "Generate an issue guide with GUIDELINE, PSEUDO_CODE, and SIDE_EFFECTS markers. PSEUDO_CODE must be code-like and include GIVEN, WHEN, CALL, and ASSERT lines.",
+      "userPrompt": "Issue: Refine validation error example. Repository code context: src/main/java/demo/ValidationController.java. Failure condition: blank input currently returns a vague validation message. Expected output must name the target file, the failure branch, and a concrete verification.",
+      "requires": ["GUIDELINE", "PSEUDO_CODE", "SIDE_EFFECTS", "GIVEN", "CALL", "ASSERT"],
+      "forbids": ["1. "]
+    },
+    {
+      "fixture": "recommendation-summary-korean",
+      "operation": "recommendation-summary",
+      "systemPrompt": "Summarize a GitHub issue for a Korean recommendation card. Return only SUMMARY: followed by one or two Korean sentences. Preserve technical identifiers such as isEmpty(), isBlank(), and Thymeleaf.",
+      "userPrompt": "Repository: suzumiyaaoba/thymeleaf-snapshot\nIssue number: #6\nTitle: Template/inlineTemplate validation uses isEmpty() instead of isBlank()\nLabels: bug, good first issue\nSource summary: Problem Snapshot validates that at least one of template or inlineTemplate is provided by checking isEmpty(). A value of \" \" passes this check, then fails deep inside the Thymeleaf engine with a cryptic error.",
+      "requires": ["SUMMARY:", "isEmpty()", "isBlank()", "Thymeleaf"],
+      "requiresRegex": ["[가-힣]"],
+      "forbids": ["Problem Snapshot", "**Description**", "1. "]
     },
     {
       "fixture": "pr-draft-markdown-close",

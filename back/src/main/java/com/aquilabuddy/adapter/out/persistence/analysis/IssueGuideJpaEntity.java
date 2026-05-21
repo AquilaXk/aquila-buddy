@@ -1,5 +1,6 @@
 package com.aquilabuddy.adapter.out.persistence.analysis;
 
+import com.aquilabuddy.domain.analysis.IssueGuideOutputContract;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
@@ -36,6 +37,9 @@ public class IssueGuideJpaEntity {
 
     @Column(name = "generated_at", nullable = false)
     private Instant generatedAt;
+
+    @Column(name = "output_version", nullable = false, length = 120)
+    private String outputVersion;
 
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(
@@ -85,12 +89,44 @@ public class IssueGuideJpaEntity {
         List<String> sideEffects,
         Instant generatedAt
     ) {
+        this(
+            issueId,
+            guideline,
+            pseudoCode,
+            filePaths,
+            sideEffects,
+            generatedAt,
+            IssueGuideOutputContract.CURRENT_VERSION
+        );
+    }
+
+    IssueGuideJpaEntity(
+        String issueId,
+        String guideline,
+        String pseudoCode,
+        List<String> filePaths,
+        List<String> sideEffects,
+        String outputVersion
+    ) {
+        this(issueId, guideline, pseudoCode, filePaths, sideEffects, Instant.now(), outputVersion);
+    }
+
+    IssueGuideJpaEntity(
+        String issueId,
+        String guideline,
+        String pseudoCode,
+        List<String> filePaths,
+        List<String> sideEffects,
+        Instant generatedAt,
+        String outputVersion
+    ) {
         this.issueId = issueId;
         this.guideline = guideline;
         this.pseudoCode = pseudoCode;
         this.filePaths = new ArrayList<>(filePaths == null ? List.of() : filePaths);
-        this.sideEffects = new ArrayList<>(sideEffects);
+        this.sideEffects = new ArrayList<>(sideEffects == null ? List.of() : sideEffects);
         this.generatedAt = generatedAt == null ? Instant.now() : generatedAt;
+        this.outputVersion = normalizeOutputVersion(outputVersion);
     }
 
     @PrePersist
@@ -98,6 +134,7 @@ public class IssueGuideJpaEntity {
         if (generatedAt == null) {
             generatedAt = Instant.now();
         }
+        outputVersion = normalizeOutputVersion(outputVersion);
     }
 
     String getIssueId() {
@@ -116,11 +153,21 @@ public class IssueGuideJpaEntity {
         return generatedAt;
     }
 
+    String getOutputVersion() {
+        return outputVersion;
+    }
+
     List<String> getFilePaths() {
         return List.copyOf(filePaths);
     }
 
     List<String> getSideEffects() {
         return List.copyOf(sideEffects);
+    }
+
+    private static String normalizeOutputVersion(String outputVersion) {
+        return outputVersion == null || outputVersion.isBlank()
+            ? IssueGuideOutputContract.CURRENT_VERSION
+            : outputVersion.trim();
     }
 }

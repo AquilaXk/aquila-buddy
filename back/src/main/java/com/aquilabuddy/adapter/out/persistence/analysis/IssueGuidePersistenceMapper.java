@@ -25,7 +25,7 @@ final class IssueGuidePersistenceMapper {
     }
 
     static CachedIssueGuide toCachedDomain(IssueGuideJpaEntity entity) {
-        return new CachedIssueGuide(toDomain(entity), entity.getGeneratedAt());
+        return new CachedIssueGuide(toDomain(entity), entity.getGeneratedAt(), entity.getOutputVersion());
     }
 
     static IssueGuideJpaEntity toEntity(IssueGuide guide) {

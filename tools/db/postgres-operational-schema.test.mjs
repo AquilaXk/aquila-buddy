@@ -19,6 +19,10 @@ test("operational schema patch restores columns missing from existing OCI databa
   assert.match(operationalSql, /fk_refresh_token_sessions_profile/);
   assert.match(operationalSql, /ALTER TABLE pr_drafts\s+ADD COLUMN IF NOT EXISTS owner_github_id BIGINT/);
   assert.match(operationalSql, /ALTER TABLE pr_drafts\s+ALTER COLUMN owner_github_id SET NOT NULL/);
+  assert.match(operationalSql, /ALTER TABLE issue_guides\s+ADD COLUMN IF NOT EXISTS output_version VARCHAR\(120\)/);
+  assert.match(operationalSql, /UPDATE issue_guides\s+SET output_version = 'legacy'\s+WHERE output_version IS NULL/);
+  assert.match(operationalSql, /ALTER TABLE issue_guides\s+ALTER COLUMN output_version SET DEFAULT 'issue-guide-output-v2026-05-21'/);
+  assert.match(operationalSql, /ALTER TABLE issue_guides\s+ALTER COLUMN output_version SET NOT NULL/);
   assert.match(operationalSql, /fk_pr_drafts_owner/);
   assert.match(operationalSql, /NOT VALID/);
 });

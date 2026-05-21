@@ -3,6 +3,7 @@ package com.aquilabuddy.adapter.out.ai;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.aquilabuddy.adapter.out.ai.analysis.AiIssueGuideGenerationAdapter;
+import com.aquilabuddy.adapter.out.ai.issue.AiRecommendedIssueSummaryAdapter;
 import com.aquilabuddy.adapter.out.ai.prdraft.AiPullRequestDraftAdapter;
 import com.aquilabuddy.application.port.out.ai.AiClient;
 import com.aquilabuddy.domain.analysis.IssueGuide;
@@ -25,11 +26,11 @@ import org.junit.jupiter.api.Test;
  */
 class AiGeneratedOutputQualityRegressionTest {
 
-    private static final String PROMPT_VERSION = "ai-output-quality-v2026-05-18";
+    private static final String PROMPT_VERSION = "ai-output-quality-v2026-05-21";
     private static final String MODEL_UNDER_TEST = "openai-compatible-contract";
 
     @Test
-    @DisplayName("[prompt=ai-output-quality-v2026-05-18 model=openai-compatible-contract fixture=issue-guide-code-context] issue guide keeps non-empty file paths and implementation sections")
+    @DisplayName("[prompt=ai-output-quality-v2026-05-21 model=openai-compatible-contract fixture=issue-guide-code-context] issue guide keeps non-empty file paths and implementation sections")
     void evaluatesIssueGuideFixtureQuality() {
         CapturingAiClient aiClient = new CapturingAiClient("""
             GUIDELINE: ValidationController에서 validation error example 실패 조건을 regression test로 재현한 뒤 API error envelope 메시지를 update하고 controller test로 verify합니다.
@@ -50,7 +51,12 @@ class AiGeneratedOutputQualityRegressionTest {
         assertQualityMetadata("issue-guide-code-context");
         assertThat(guide.filePaths()).containsExactly("src/main/java/demo/ValidationController.java");
         assertThat(guide.guideline()).contains("ValidationController").contains("regression test").isNotBlank();
-        assertThat(guide.pseudoCode()).contains("regression test").isNotBlank();
+        assertThat(guide.pseudoCode())
+            .contains("GIVEN")
+            .contains("CALL")
+            .contains("ASSERT")
+            .contains("regression test")
+            .isNotBlank();
         assertThat(guide.sideEffects()).hasSize(2).allSatisfy(sideEffect -> assertThat(sideEffect).isNotBlank());
         assertThat(aiClient.userPrompt)
             .contains("Repository code context")
@@ -58,7 +64,7 @@ class AiGeneratedOutputQualityRegressionTest {
     }
 
     @Test
-    @DisplayName("[prompt=ai-output-quality-v2026-05-18 model=openai-compatible-contract fixture=pr-draft-markdown-close] PR draft keeps markdown sections, close line, diff, issue, and analysis context")
+    @DisplayName("[prompt=ai-output-quality-v2026-05-21 model=openai-compatible-contract fixture=pr-draft-markdown-close] PR draft keeps markdown sections, close line, diff, issue, and analysis context")
     void evaluatesPullRequestDraftFixtureQuality() {
         CapturingAiClient aiClient = new CapturingAiClient("""
             TITLE: docs: improve validation guide
@@ -93,7 +99,7 @@ class AiGeneratedOutputQualityRegressionTest {
     }
 
     @Test
-    @DisplayName("[prompt=ai-output-quality-v2026-05-18 model=openai-compatible-contract fixture=pr-translation-english] translation returns English title/body for submission")
+    @DisplayName("[prompt=ai-output-quality-v2026-05-21 model=openai-compatible-contract fixture=pr-translation-english] translation returns English title/body for submission")
     void evaluatesPullRequestTranslationFixtureQuality() {
         CapturingAiClient aiClient = new CapturingAiClient("""
             TITLE: docs: prepare validation guide update
@@ -124,7 +130,7 @@ class AiGeneratedOutputQualityRegressionTest {
     }
 
     @Test
-    @DisplayName("[prompt=ai-output-quality-v2026-05-18 model=openai-compatible-contract fixture=pr-draft-parser-fallback] malformed PR draft response returns rule based markdown")
+    @DisplayName("[prompt=ai-output-quality-v2026-05-21 model=openai-compatible-contract fixture=pr-draft-parser-fallback] malformed PR draft response returns rule based markdown")
     void evaluatesPullRequestDraftParserFallbackQuality() {
         AiPullRequestDraftAdapter adapter = new AiPullRequestDraftAdapter(new CapturingAiClient("plain text"));
 
@@ -141,7 +147,7 @@ class AiGeneratedOutputQualityRegressionTest {
     }
 
     @Test
-    @DisplayName("[prompt=ai-output-quality-v2026-05-18 model=openai-compatible-contract fixture=issue-guide-parser-fallback] malformed issue guide response returns rule based guide")
+    @DisplayName("[prompt=ai-output-quality-v2026-05-21 model=openai-compatible-contract fixture=issue-guide-parser-fallback] malformed issue guide response returns rule based guide")
     void evaluatesIssueGuideParserFallbackQuality() {
         AiIssueGuideGenerationAdapter adapter = new AiIssueGuideGenerationAdapter(new CapturingAiClient("plain text"));
 
@@ -155,7 +161,7 @@ class AiGeneratedOutputQualityRegressionTest {
     }
 
     @Test
-    @DisplayName("[prompt=ai-output-quality-v2026-05-18 model=openai-compatible-contract fixture=issue-guide-provider-fallback] provider failure returns rule based guide")
+    @DisplayName("[prompt=ai-output-quality-v2026-05-21 model=openai-compatible-contract fixture=issue-guide-provider-fallback] provider failure returns rule based guide")
     void evaluatesIssueGuideProviderFallbackQuality() {
         AiIssueGuideGenerationAdapter adapter = new AiIssueGuideGenerationAdapter(new ThrowingAiClient());
 
@@ -166,6 +172,24 @@ class AiGeneratedOutputQualityRegressionTest {
         assertThat(guide.filePaths()).containsExactly("src/main/java/demo/ValidationController.java");
         assertThat(guide.guideline()).contains("ValidationController");
         assertThat(guide.pseudoCode()).contains("ValidationController");
+    }
+
+    @Test
+    @DisplayName("[prompt=ai-output-quality-v2026-05-21 model=openai-compatible-contract fixture=recommendation-summary-korean] recommendation cards keep Korean meaning summaries")
+    void evaluatesRecommendationSummaryFixtureQuality() {
+        AiRecommendedIssueSummaryAdapter adapter = new AiRecommendedIssueSummaryAdapter(new CapturingAiClient(
+            "SUMMARY: 템플릿 값이 공백만 있어도 검증을 통과해 나중에 Thymeleaf 렌더링 단계에서 실패하는 문제입니다."
+        ));
+
+        RecommendedIssue result = adapter.summarizeRecommendedIssues(List.of(issue())).getFirst();
+
+        assertQualityMetadata("recommendation-summary-korean");
+        assertThat(result.summary())
+            .contains("공백")
+            .contains("Thymeleaf")
+            .containsPattern("[가-힣]")
+            .doesNotContain("Problem Snapshot")
+            .doesNotContain("**Description**");
     }
 
     private static void assertSubmittableIssueGuide(IssueGuide guide) {
@@ -184,7 +208,7 @@ class AiGeneratedOutputQualityRegressionTest {
     }
 
     private static void assertQualityMetadata(String fixtureName) {
-        assertThat(PROMPT_VERSION).isEqualTo("ai-output-quality-v2026-05-18");
+        assertThat(PROMPT_VERSION).isEqualTo("ai-output-quality-v2026-05-21");
         assertThat(MODEL_UNDER_TEST).isEqualTo("openai-compatible-contract");
         assertThat(fixtureName).isNotBlank();
     }
