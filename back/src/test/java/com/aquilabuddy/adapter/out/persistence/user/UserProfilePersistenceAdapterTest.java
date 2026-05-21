@@ -162,6 +162,11 @@ class UserProfilePersistenceAdapterTest {
 
     @Test
     void upsertingAuthenticatedUserProfileMigratesExistingLoginOwnerToCanonicalGithubId() {
+        jdbcTemplate.update(
+            "UPDATE user_profiles SET profile_embedding = ? WHERE github_id = ?",
+            "[0.1,0.2,0.3]",
+            10001L
+        );
         jdbcTemplate.update("""
             INSERT INTO refresh_token_sessions (
                 token_hash,
@@ -224,6 +229,11 @@ class UserProfilePersistenceAdapterTest {
             Long.class,
             "draft-login-conflict"
         )).isEqualTo(186246795L);
+        assertThat(jdbcTemplate.queryForObject(
+            "SELECT profile_embedding FROM user_profiles WHERE github_id = ?",
+            String.class,
+            186246795L
+        )).isEqualTo("[0.1,0.2,0.3]");
     }
 
     @Test
@@ -285,8 +295,13 @@ class UserProfilePersistenceAdapterTest {
             true,
             "2026-05-15T09:00:00Z"
         );
-        existing.updateProfileEmbedding("[0.9,0.8,0.7]");
         repository.save(existing);
+        repository.flush();
+        jdbcTemplate.update(
+            "UPDATE user_profiles SET profile_embedding = ? WHERE github_id = ?",
+            "[0.9,0.8,0.7]",
+            20002L
+        );
 
         EmbeddingBackfillResult result = adapter.backfillMissingProfileEmbeddings(10);
         repository.flush();

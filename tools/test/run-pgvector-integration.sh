@@ -71,7 +71,7 @@ if [[ "$DRY_RUN" == "true" ]]; then
   echo "compose_file=$COMPOSE_FILE"
   echo "compose_project=$COMPOSE_PROJECT_NAME"
   echo "db_url=$PGVECTOR_TEST_DB_URL"
-  echo "gradle_test=PgvectorRecommendedIssueSimilarityIntegrationTest"
+  echo "gradle_tests=PgvectorRecommendedIssueSimilarityIntegrationTest,UserProfilePgvectorPersistenceIntegrationTest"
   exit 0
 fi
 
@@ -84,4 +84,5 @@ export PGVECTOR_INTEGRATION_TESTS="${PGVECTOR_INTEGRATION_TESTS:-true}"
 
 ./back/gradlew -p back test \
   --tests com.aquilabuddy.adapter.out.persistence.issue.PgvectorRecommendedIssueSimilarityIntegrationTest \
+  --tests com.aquilabuddy.adapter.out.persistence.user.UserProfilePgvectorPersistenceIntegrationTest \
   --no-daemon
