@@ -161,6 +161,72 @@ class UserProfilePersistenceAdapterTest {
     }
 
     @Test
+    void upsertingAuthenticatedUserProfileMigratesExistingLoginOwnerToCanonicalGithubId() {
+        jdbcTemplate.update("""
+            INSERT INTO refresh_token_sessions (
+                token_hash,
+                family_id,
+                github_id,
+                issued_at,
+                expires_at
+            ) VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            """,
+            "legacy-token-hash",
+            "legacy-family-id",
+            10001L
+        );
+        jdbcTemplate.update("""
+            INSERT INTO pr_drafts (
+                draft_id,
+                owner_github_id,
+                upstream_repo,
+                github_issue_number,
+                base_branch,
+                head_branch,
+                title,
+                body,
+                created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            """,
+            "draft-login-conflict",
+            10001L,
+            "aquila/demo",
+            7L,
+            "main",
+            "fix/profile",
+            "docs: update profile",
+            "close #7"
+        );
+
+        adapter.upsertAuthenticatedUserProfile(new AuthenticatedUserProfile(
+            186246795L,
+            "aquila-dev",
+            "Aquila",
+            "aquila@example.com",
+            "https://avatars.githubusercontent.com/u/186246795?v=4"
+        ));
+
+        assertThat(adapter.loadUserProfileByGithubId(10001L)).isEmpty();
+        UserProfile profile = adapter.loadUserProfileByGithubId(186246795L).orElseThrow();
+        assertThat(profile.login()).isEqualTo("aquila-dev");
+        assertThat(profile.name()).isEqualTo("Aquila");
+        assertThat(profile.avatarUrl()).isEqualTo("https://avatars.githubusercontent.com/u/186246795?v=4");
+        assertThat(profile.profileReady()).isTrue();
+        assertThat(profile.primaryLanguages()).containsExactly("Java", "TypeScript", "SQL");
+        assertThat(profile.topics()).containsExactly("spring", "nextjs", "open-source");
+        assertThat(jdbcTemplate.queryForObject(
+            "SELECT github_id FROM refresh_token_sessions WHERE token_hash = ?",
+            Long.class,
+            "legacy-token-hash"
+        )).isEqualTo(186246795L);
+        assertThat(jdbcTemplate.queryForObject(
+            "SELECT owner_github_id FROM pr_drafts WHERE draft_id = ?",
+            Long.class,
+            "draft-login-conflict"
+        )).isEqualTo(186246795L);
+    }
+
+    @Test
     void refreshesCurrentUserProfileVectorState() {
         Instant beforeRefresh = Instant.now();
 

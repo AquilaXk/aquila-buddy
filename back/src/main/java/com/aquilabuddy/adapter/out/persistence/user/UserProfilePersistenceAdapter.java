@@ -21,6 +21,7 @@ import java.util.Optional;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,6 +41,7 @@ public class UserProfilePersistenceAdapter implements
     private static final int MAX_FAILURE_REASON_SAMPLES = 10;
 
     private final UserProfileJpaRepository repository;
+    private final JdbcTemplate jdbcTemplate;
     private final CurrentUserGithubIdPort currentUserGithubIdPort;
     private final GitHubApiClient gitHubApiClient;
     private final ObjectProvider<EmbeddingClient> embeddingClientProvider;
@@ -48,6 +50,7 @@ public class UserProfilePersistenceAdapter implements
 
     public UserProfilePersistenceAdapter(
         UserProfileJpaRepository repository,
+        JdbcTemplate jdbcTemplate,
         CurrentUserGithubIdPort currentUserGithubIdPort,
         GitHubApiClient gitHubApiClient,
         ObjectProvider<EmbeddingClient> embeddingClientProvider,
@@ -55,6 +58,7 @@ public class UserProfilePersistenceAdapter implements
         @Value("${app.embedding.expected-dimensions:1536}") int expectedEmbeddingDimensions
     ) {
         this.repository = repository;
+        this.jdbcTemplate = jdbcTemplate;
         this.currentUserGithubIdPort = currentUserGithubIdPort;
         this.gitHubApiClient = gitHubApiClient;
         this.embeddingClientProvider = embeddingClientProvider;
@@ -92,11 +96,17 @@ public class UserProfilePersistenceAdapter implements
 
     @Override
     public void upsertAuthenticatedUserProfile(AuthenticatedUserProfile profile) {
-        UserProfileJpaEntity entity = repository.findById(profile.githubId())
-            .map(existing -> {
-                existing.updateIdentity(profile.login(), profile.name(), profile.email(), profile.avatarUrl());
-                return existing;
-            })
+        Optional<UserProfileJpaEntity> existingByGithubId = repository.findById(profile.githubId());
+        if (existingByGithubId.isPresent()) {
+            UserProfileJpaEntity entity = existingByGithubId.get();
+            retireConflictingLoginOwner(profile.login(), profile.githubId());
+            entity.updateIdentity(profile.login(), profile.name(), profile.email(), profile.avatarUrl());
+            repository.save(entity);
+            return;
+        }
+
+        UserProfileJpaEntity entity = repository.findByLogin(profile.login())
+            .map(existing -> migrateLoginOwnerToCanonicalGithubId(existing, profile))
             .orElseGet(() -> new UserProfileJpaEntity(
                 profile.githubId(),
                 profile.login(),
@@ -108,8 +118,78 @@ public class UserProfilePersistenceAdapter implements
                 false,
                 INITIAL_VECTOR_UPDATED_AT
             ));
-
         repository.save(entity);
+    }
+
+    private UserProfileJpaEntity migrateLoginOwnerToCanonicalGithubId(
+        UserProfileJpaEntity existing,
+        AuthenticatedUserProfile profile
+    ) {
+        Long previousGithubId = existing.getGithubId();
+        List<String> primaryLanguages = existing.getPrimaryLanguages();
+        List<String> topics = existing.getTopics();
+        boolean profileReady = existing.isProfileReady();
+        String vectorUpdatedAt = existing.getVectorUpdatedAt();
+
+        releaseLogin(existing, previousGithubId);
+
+        UserProfileJpaEntity canonical = new UserProfileJpaEntity(
+            profile.githubId(),
+            profile.login(),
+            profile.name(),
+            profile.email(),
+            profile.avatarUrl(),
+            primaryLanguages,
+            topics,
+            profileReady,
+            vectorUpdatedAt == null ? INITIAL_VECTOR_UPDATED_AT : vectorUpdatedAt
+        );
+        repository.saveAndFlush(canonical);
+        migrateOwnedRows(previousGithubId, profile.githubId());
+        repository.delete(existing);
+        repository.flush();
+        return canonical;
+    }
+
+    private void retireConflictingLoginOwner(String login, long canonicalGithubId) {
+        repository.findByLogin(login)
+            .filter(existing -> existing.getGithubId() != canonicalGithubId)
+            .ifPresent(existing -> {
+                Long previousGithubId = existing.getGithubId();
+                releaseLogin(existing, previousGithubId);
+                migrateOwnedRows(previousGithubId, canonicalGithubId);
+                repository.delete(existing);
+                repository.flush();
+            });
+    }
+
+    private void releaseLogin(UserProfileJpaEntity existing, long previousGithubId) {
+        // OAuth 이전의 synthetic/default 프로필이 같은 login을 점유하면 실제 GitHub id가 login을 갖도록 비웁니다.
+        existing.updateIdentity(
+            replacedLogin(existing.getLogin(), previousGithubId),
+            existing.getName(),
+            existing.getEmail(),
+            existing.getAvatarUrl()
+        );
+        repository.saveAndFlush(existing);
+    }
+
+    private void migrateOwnedRows(long previousGithubId, long canonicalGithubId) {
+        jdbcTemplate.update(
+            "UPDATE refresh_token_sessions SET github_id = ? WHERE github_id = ?",
+            canonicalGithubId,
+            previousGithubId
+        );
+        jdbcTemplate.update(
+            "UPDATE pr_drafts SET owner_github_id = ? WHERE owner_github_id = ?",
+            canonicalGithubId,
+            previousGithubId
+        );
+        jdbcTemplate.update(
+            "UPDATE issue_guide_generation_requests SET user_github_id = ? WHERE user_github_id = ?",
+            canonicalGithubId,
+            previousGithubId
+        );
     }
 
     @Override
@@ -254,6 +334,13 @@ public class UserProfilePersistenceAdapter implements
 
     private static String profileLabel(UserProfileJpaEntity entity) {
         return entity.getGithubId() + "/" + entity.getLogin();
+    }
+
+    private static String replacedLogin(String login, long previousGithubId) {
+        String suffix = "-replaced-" + previousGithubId;
+        int maxLoginLength = 255;
+        int prefixLength = Math.min(login.length(), maxLoginLength - suffix.length());
+        return login.substring(0, prefixLength) + suffix;
     }
 
     private static void addFailureReason(List<String> failureReasons, String reason) {

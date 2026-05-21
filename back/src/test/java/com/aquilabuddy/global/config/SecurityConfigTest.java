@@ -23,6 +23,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -43,6 +44,9 @@ class SecurityConfigTest {
 
     @Autowired
     private JwtProvider jwtProvider;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
     @MockitoBean
     private GitHubOAuthClient gitHubOAuthClient;
@@ -257,7 +261,23 @@ class SecurityConfigTest {
     }
 
     @Test
-    void callbackProfileSyncFailureRedirectsWithSpecificErrorCode() throws Exception {
+    void callbackMigratesExistingLoginProfileAndRedirectsToFrontendCallback() throws Exception {
+        jdbcTemplate.update("""
+            INSERT INTO user_profiles (
+                github_id,
+                login,
+                name,
+                email,
+                profile_ready,
+                vector_updated_at
+            ) VALUES (?, ?, ?, ?, TRUE, ?)
+            """,
+            77777L,
+            "oauth-conflict-login",
+            "Legacy OAuth User",
+            "legacy-oauth@example.com",
+            "2026-05-15T09:00:00Z"
+        );
         MvcResult authorization = mockMvc.perform(get("/oauth2/authorization/github"))
             .andExpect(status().isFound())
             .andReturn();
@@ -269,17 +289,26 @@ class SecurityConfigTest {
         org.mockito.BDDMockito.given(gitHubOAuthClient.exchangeCode(org.mockito.ArgumentMatchers.eq("code-123"), org.mockito.ArgumentMatchers.anyString()))
             .willReturn(new GitHubOAuthAccessToken("gho_token"));
         org.mockito.BDDMockito.given(gitHubOAuthClient.loadUser("gho_token"))
-            .willReturn(new GitHubOAuthUser(12345L, "aquila-dev", "Aquila", "aquila@example.com"));
+            .willReturn(new GitHubOAuthUser(88888L, "oauth-conflict-login", "Aquila", "aquila@example.com"));
 
-        mockMvc.perform(get("/login/oauth2/code/github")
+        MvcResult callback = mockMvc.perform(get("/login/oauth2/code/github")
                 .param("code", "code-123")
                 .param("state", state)
                 .cookie(authorizationCookie))
             .andExpect(status().isFound())
             .andExpect(header().string(
                 HttpHeaders.LOCATION,
-                "https://buddy.aquilaxk.site/oauth/callback?error=profile_sync_failed"
-            ));
+                "https://buddy.aquilaxk.site/oauth/callback"
+            ))
+            .andReturn();
+
+        Cookie authCookie = callback.getResponse().getCookie(JwtCookieSupport.AUTH_COOKIE_NAME);
+        assertThat(authCookie).isNotNull();
+        mockMvc.perform(get("/api/v1/users/me")
+            .cookie(authCookie))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.githubId").value(88888))
+            .andExpect(jsonPath("$.data.login").value("oauth-conflict-login"));
     }
 
     @Test
