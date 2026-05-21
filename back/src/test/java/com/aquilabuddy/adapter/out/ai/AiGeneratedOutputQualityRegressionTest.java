@@ -148,6 +148,8 @@ class AiGeneratedOutputQualityRegressionTest {
         assertQualityMetadata("issue-guide-parser-fallback");
         assertSubmittableIssueGuide(guide);
         assertThat(guide.filePaths()).containsExactly("src/main/java/demo/ValidationController.java");
+        assertThat(guide.guideline()).contains("ValidationController");
+        assertThat(guide.pseudoCode()).contains("ValidationController");
     }
 
     @Test
@@ -160,6 +162,8 @@ class AiGeneratedOutputQualityRegressionTest {
         assertQualityMetadata("issue-guide-provider-fallback");
         assertSubmittableIssueGuide(guide);
         assertThat(guide.filePaths()).containsExactly("src/main/java/demo/ValidationController.java");
+        assertThat(guide.guideline()).contains("ValidationController");
+        assertThat(guide.pseudoCode()).contains("ValidationController");
     }
 
     private static void assertSubmittableIssueGuide(IssueGuide guide) {

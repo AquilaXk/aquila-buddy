@@ -8,6 +8,7 @@ import com.aquilabuddy.domain.issue.RecommendedIssue;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
@@ -22,14 +23,18 @@ public class AiIssueGuideGenerationAdapter implements GenerateIssueGuidePort {
 
     private static final String SYSTEM_PROMPT = """
         You are an issue guide generator for an open-source contribution assistant.
+        Write GUIDELINE, PSEUDO_CODE, and SIDE_EFFECTS in Korean.
         Use only the provided issue metadata and repository code context.
         Base GUIDELINE, PSEUDO_CODE, and SIDE_EFFECTS on repository code context when it is present.
+        When repository code context is present, mention at least one exact file name, class, method, function, or config key from that context.
+        Do not invent validation, error handling, database, UI, or test behavior that is not visible in the issue metadata or code context.
+        If the provided code context is too thin to determine the exact implementation point, say what must be inspected next instead of pretending it is known.
         Return exactly this marker format.
-        GUIDELINE: <one focused implementation guideline>
+        GUIDELINE: <2-4 concrete sentences with target file or symbol and first verification>
         PSEUDO_CODE:
-        <numbered implementation steps>
+        <4-6 numbered implementation steps grounded in the target file or symbol>
         SIDE_EFFECTS:
-        - <side effect or verification concern>
+        - <2-4 concrete side effect or verification concern>
         """;
 
     private final AiClient aiClient;
@@ -56,7 +61,7 @@ public class AiIssueGuideGenerationAdapter implements GenerateIssueGuidePort {
         try {
             return parseGuide(
                 issue.id(),
-                selectedFilePaths(safeContext),
+                safeContext,
                 aiClient.complete(SYSTEM_PROMPT, buildPrompt(issue, safeContext))
             );
         } catch (RuntimeException exception) {
@@ -81,7 +86,7 @@ public class AiIssueGuideGenerationAdapter implements GenerateIssueGuidePort {
         return String.join("\n", lines);
     }
 
-    private static IssueGuide parseGuide(String issueId, List<String> filePaths, String response) {
+    private static IssueGuide parseGuide(String issueId, RepositoryCodeContext codeContext, String response) {
         String normalized = Objects.requireNonNull(response, "AI response must not be null.").trim();
         int guidelineIndex = normalized.indexOf("GUIDELINE:");
         int pseudoCodeIndex = normalized.indexOf("PSEUDO_CODE:");
@@ -98,7 +103,28 @@ public class AiIssueGuideGenerationAdapter implements GenerateIssueGuidePort {
             throw new IllegalStateException("AI issue guide response sections must not be blank.");
         }
 
-        return new IssueGuide(issueId, filePaths, guideline, pseudoCode, sideEffects);
+        IssueGuide guide = new IssueGuide(issueId, selectedFilePaths(codeContext), guideline, pseudoCode, sideEffects);
+        requireGroundedInCodeContext(guide, codeContext);
+        return guide;
+    }
+
+    private static void requireGroundedInCodeContext(IssueGuide guide, RepositoryCodeContext codeContext) {
+        List<String> anchors = IssueGuideCodeContextAnchors.groundingAnchors(codeContext);
+        if (anchors.isEmpty()) {
+            return;
+        }
+
+        String guideText = String.join("\n",
+            guide.guideline(),
+            guide.pseudoCode(),
+            String.join("\n", guide.sideEffects())
+        ).toLowerCase(Locale.ROOT);
+        boolean grounded = anchors.stream()
+            .map(anchor -> anchor.toLowerCase(Locale.ROOT))
+            .anyMatch(guideText::contains);
+        if (!grounded) {
+            throw new IllegalStateException("AI issue guide response must reference repository code context.");
+        }
     }
 
     private static List<String> selectedFilePaths(RepositoryCodeContext codeContext) {
