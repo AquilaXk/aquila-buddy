@@ -80,9 +80,12 @@ class AiOperationalModeIntegrationTest {
         assertThat(aiProperties.providerOrDefault()).isEqualTo("openai-compatible");
         assertThat(openAiCompatibleProperties.apiKeyOrBlank()).isEqualTo("test-key");
         enqueueChat("""
-            GUIDELINE: Keep the change focused around validation.
+            GUIDELINE: validation error example 실패 조건을 재현 테스트로 고정한 뒤 validation 응답 메시지를 수정하고 provider 통합 테스트로 검증합니다.
             PSEUDO_CODE:
-            1. Add a regression test
+            GIVEN issue = Refine validation error example
+            WHEN validation error is reproduced
+            CALL add_regression_test(issue)
+            ASSERT provider_response_uses_clearer_validation_message()
             SIDE_EFFECTS:
             - API wording can change
             """);

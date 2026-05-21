@@ -34,9 +34,11 @@ class AiGeneratedOutputQualityRegressionTest {
         CapturingAiClient aiClient = new CapturingAiClient("""
             GUIDELINE: ValidationController에서 validation error example 실패 조건을 regression test로 재현한 뒤 API error envelope 메시지를 update하고 controller test로 verify합니다.
             PSEUDO_CODE:
-            1. Open ValidationController and locate the invalid input branch.
-            2. Add a regression test for the new message.
-            3. Return the existing response envelope with the clearer detail.
+            GIVEN controller = ValidationController
+            WHEN invalid input reaches validation branch
+            CALL add_regression_test(controller)
+            RETURN existing_response_envelope_with_clearer_detail()
+            ASSERT validation regression test passes
             SIDE_EFFECTS:
             - Existing API clients may assert the previous message text.
             - Documentation examples should use the same wording.

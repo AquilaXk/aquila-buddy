@@ -34,11 +34,12 @@ public class RuleBasedIssueGuideGenerationAdapter implements GenerateIssueGuideP
                     + "에서 확인 가능한 책임 안에서 수정 방향을 적용하고 " + focus.methodSummary()
                     + " 정상/실패 입력을 첫 검증으로 다시 확인합니다. 코드 맥락만으로 실패 조건이 보이지 않으면 새 동작을 단정하지 말고 추가 조사 지점을 분리합니다.",
                 String.join("\n",
-                    "1. " + focus.path() + "에서 " + focus.primarySymbol() + "의 " + focus.methodSummary() + " 현재 호출/반환 계약을 테스트로 고정한다.",
-                    "2. 이슈 제목 \"" + issue.title() + "\"와 " + firstLabel + " 라벨 요구를 " + focus.fileName() + " 책임에 맞는 변경 조건으로 좁힌다.",
-                    "3. " + focus.primarySymbol() + "의 기존 port/API 호출 흐름을 유지하면서 테스트를 통과하는 최소 구현을 적용한다.",
-                    "4. " + focus.methodSummary() + " 관련 정상 입력과 실패 입력을 함께 재검증한다.",
-                    "5. 저장된 IssueGuide와 화면 표시 문구가 같은 파일/심볼 이름을 사용하도록 확인한다."
+                    "GIVEN target_file = \"" + focus.path() + "\"",
+                    "AND target_symbol = \"" + focus.primarySymbol() + "\"",
+                    "WHEN issue_failure = \"" + issue.title() + "\" is reproduced",
+                    "CALL preserve_existing_flow(target_symbol, \"" + focus.methodSummary() + "\")",
+                    "CALL apply_smallest_change(target_file, issue_failure, label=\"" + firstLabel + "\")",
+                    "ASSERT \"" + focus.methodSummary() + "\" handles normal_input and failing_input"
                 ),
                 List.of(
                     focus.fileName() + "의 응답 계약이 바뀌면 관련 controller/service 테스트 기대값도 함께 바뀔 수 있습니다.",
@@ -53,10 +54,11 @@ public class RuleBasedIssueGuideGenerationAdapter implements GenerateIssueGuideP
             issue.repoFullName() + " #" + issue.issueNumber() + "의 " + firstLabel
                 + " 범위를 작게 나누고 현재 테스트 계약을 먼저 고정합니다.",
             String.join("\n",
-                "1. 이슈 제목과 요약에서 변경 대상 흐름을 확인한다.",
-                "2. 현재 동작을 재현하는 최소 테스트를 작성한다.",
-                "3. 테스트를 통과하는 가장 작은 구현을 적용한다.",
-                "4. 관련 API 응답과 PR 초안 맥락에 같은 용어가 쓰이는지 검증한다."
+                "GIVEN issue = \"" + issue.repoFullName() + "#" + issue.issueNumber() + "\"",
+                "WHEN issue_title = \"" + issue.title() + "\" is reproduced",
+                "CALL write_minimal_regression_test(issue_title)",
+                "CALL apply_smallest_change(issue_title)",
+                "ASSERT related_api_response_and_pr_context_use_same_terms()"
             ),
             List.of(
                 "응답 문구가 바뀌면 프론트엔드 표시와 문서 예시가 함께 영향을 받을 수 있습니다.",
