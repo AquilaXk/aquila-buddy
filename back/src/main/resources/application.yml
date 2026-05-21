@@ -69,6 +69,10 @@ app:
       project-id: ${GOOGLE_CLOUD_PROJECT_ID:}
       location: ${VERTEX_AI_LOCATION:us-central1}
       model: ${VERTEX_AI_MODEL:gemini-2.5-pro}
+      issue-summary-model: ${VERTEX_AI_ISSUE_SUMMARY_MODEL:gemini-2.5-flash}
+      issue-guide-model: ${VERTEX_AI_ISSUE_GUIDE_MODEL:gemini-2.5-pro}
+      pr-draft-model: ${VERTEX_AI_PR_DRAFT_MODEL:gemini-2.5-flash}
+      pr-translation-model: ${VERTEX_AI_PR_TRANSLATION_MODEL:gemini-2.5-flash}
       embedding-model: ${VERTEX_AI_EMBEDDING_MODEL:gemini-embedding-001}
       embedding-dimensions: ${VERTEX_AI_EMBEDDING_DIMENSIONS:1536}
       credentials-path: ${VERTEX_AI_CREDENTIALS_PATH:${GOOGLE_APPLICATION_CREDENTIALS:./vertex-key.json}}

@@ -1,5 +1,6 @@
 package com.aquilabuddy.global.ai;
 
+import com.aquilabuddy.application.port.out.ai.AiCompletionUseCase;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties(prefix = "app.ai.vertex")
@@ -7,6 +8,10 @@ public record VertexAiProperties(
     String projectId,
     String location,
     String model,
+    String issueSummaryModel,
+    String issueGuideModel,
+    String prDraftModel,
+    String prTranslationModel,
     String embeddingModel,
     Integer embeddingDimensions,
     String credentialsPath
@@ -14,6 +19,7 @@ public record VertexAiProperties(
 
     private static final String DEFAULT_LOCATION = "us-central1";
     private static final String DEFAULT_MODEL = "gemini-2.5-pro";
+    private static final String DEFAULT_FAST_MODEL = "gemini-2.5-flash";
     private static final String DEFAULT_EMBEDDING_MODEL = "gemini-embedding-001";
     private static final int DEFAULT_EMBEDDING_DIMENSIONS = 1536;
 
@@ -32,6 +38,33 @@ public record VertexAiProperties(
         return hasText(model) ? model.trim() : DEFAULT_MODEL;
     }
 
+    public String issueSummaryModelOrDefault() {
+        return modelOrDefault(issueSummaryModel, DEFAULT_FAST_MODEL);
+    }
+
+    public String issueGuideModelOrDefault() {
+        return modelOrDefault(issueGuideModel, DEFAULT_MODEL);
+    }
+
+    public String prDraftModelOrDefault() {
+        return modelOrDefault(prDraftModel, DEFAULT_FAST_MODEL);
+    }
+
+    public String prTranslationModelOrDefault() {
+        return modelOrDefault(prTranslationModel, DEFAULT_FAST_MODEL);
+    }
+
+    public String completionModelOrDefault(AiCompletionUseCase useCase) {
+        AiCompletionUseCase safeUseCase = useCase == null ? AiCompletionUseCase.GENERAL : useCase;
+        return switch (safeUseCase) {
+            case ISSUE_SUMMARY -> issueSummaryModelOrDefault();
+            case ISSUE_GUIDE -> issueGuideModelOrDefault();
+            case PR_DRAFT -> prDraftModelOrDefault();
+            case PR_TRANSLATION -> prTranslationModelOrDefault();
+            case GENERAL -> modelOrDefault();
+        };
+    }
+
     public String embeddingModelOrDefault() {
         return hasText(embeddingModel) ? embeddingModel.trim() : DEFAULT_EMBEDDING_MODEL;
     }
@@ -46,5 +79,9 @@ public record VertexAiProperties(
 
     private static boolean hasText(String value) {
         return value != null && !value.trim().isBlank();
+    }
+
+    private static String modelOrDefault(String value, String defaultModel) {
+        return hasText(value) ? value.trim() : defaultModel;
     }
 }

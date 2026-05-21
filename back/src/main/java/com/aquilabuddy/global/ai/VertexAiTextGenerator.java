@@ -6,4 +6,8 @@ package com.aquilabuddy.global.ai;
 public interface VertexAiTextGenerator {
 
     String generate(String prompt);
+
+    default String generate(String model, String prompt) {
+        return generate(prompt);
+    }
 }

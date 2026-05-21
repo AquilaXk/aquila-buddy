@@ -1,6 +1,7 @@
 package com.aquilabuddy.adapter.out.ai.analysis;
 
 import com.aquilabuddy.application.port.out.ai.AiClient;
+import com.aquilabuddy.application.port.out.ai.AiCompletionUseCase;
 import com.aquilabuddy.application.port.out.analysis.GenerateIssueGuidePort;
 import com.aquilabuddy.domain.analysis.IssueGuide;
 import com.aquilabuddy.domain.analysis.RepositoryCodeContext;
@@ -62,7 +63,7 @@ public class AiIssueGuideGenerationAdapter implements GenerateIssueGuidePort {
             return parseGuide(
                 issue.id(),
                 safeContext,
-                aiClient.complete(SYSTEM_PROMPT, buildPrompt(issue, safeContext))
+                aiClient.complete(AiCompletionUseCase.ISSUE_GUIDE, SYSTEM_PROMPT, buildPrompt(issue, safeContext))
             );
         } catch (RuntimeException exception) {
             // 운영 AI 응답 형식이 흔들려도 사용자는 제출 가능한 기본 가이드를 받아야 합니다.

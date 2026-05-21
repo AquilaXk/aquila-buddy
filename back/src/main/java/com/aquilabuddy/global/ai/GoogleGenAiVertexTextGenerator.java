@@ -22,12 +22,10 @@ public class GoogleGenAiVertexTextGenerator implements VertexAiTextGenerator, Au
     private static final List<String> CLOUD_PLATFORM_SCOPE = List.of("https://www.googleapis.com/auth/cloud-platform");
 
     private final VertexAiProperties properties;
-    private final String model;
     private volatile Client client;
 
     public GoogleGenAiVertexTextGenerator(VertexAiProperties properties) {
         this.properties = Objects.requireNonNull(properties, "properties must not be null.");
-        this.model = this.properties.modelOrDefault();
     }
 
     private static Client buildClient(VertexAiProperties properties) {
@@ -44,9 +42,15 @@ public class GoogleGenAiVertexTextGenerator implements VertexAiTextGenerator, Au
 
     @Override
     public String generate(String prompt) {
+        return generate(properties.modelOrDefault(), prompt);
+    }
+
+    @Override
+    public String generate(String model, String prompt) {
+        String selectedModel = requireModel(model);
         String normalizedPrompt = requirePrompt(prompt);
         try {
-            GenerateContentResponse response = client().models.generateContent(model, normalizedPrompt, null);
+            GenerateContentResponse response = client().models.generateContent(selectedModel, normalizedPrompt, null);
             return response == null ? null : response.text();
         } catch (RuntimeException exception) {
             throw new IllegalStateException("Vertex AI completion request failed.", exception);
@@ -65,6 +69,14 @@ public class GoogleGenAiVertexTextGenerator implements VertexAiTextGenerator, Au
         String normalized = Objects.requireNonNull(prompt, "prompt must not be null.").trim();
         if (normalized.isBlank()) {
             throw new IllegalStateException("prompt must not be blank.");
+        }
+        return normalized;
+    }
+
+    private static String requireModel(String model) {
+        String normalized = Objects.requireNonNull(model, "model must not be null.").trim();
+        if (normalized.isBlank()) {
+            throw new IllegalStateException("model must not be blank.");
         }
         return normalized;
     }

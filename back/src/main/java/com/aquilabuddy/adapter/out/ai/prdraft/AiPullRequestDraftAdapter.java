@@ -3,6 +3,7 @@ package com.aquilabuddy.adapter.out.ai.prdraft;
 import com.aquilabuddy.application.port.out.prdraft.GeneratePullRequestDraftPort;
 import com.aquilabuddy.application.port.out.prdraft.TranslatePullRequestDraftPort;
 import com.aquilabuddy.application.port.out.ai.AiClient;
+import com.aquilabuddy.application.port.out.ai.AiCompletionUseCase;
 import com.aquilabuddy.domain.prdraft.PullRequestDraft;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftRequest;
 import com.aquilabuddy.domain.prdraft.StoredPullRequestDraft;
@@ -48,7 +49,7 @@ public class AiPullRequestDraftAdapter implements GeneratePullRequestDraftPort, 
     public PullRequestDraft generate(PullRequestDraftRequest request) {
         String response;
         try {
-            response = aiClient.complete(DRAFT_SYSTEM_PROMPT, buildDraftPrompt(request));
+            response = aiClient.complete(AiCompletionUseCase.PR_DRAFT, DRAFT_SYSTEM_PROMPT, buildDraftPrompt(request));
         } catch (RuntimeException exception) {
             return ensureClosingIssueLine(fallbackDraft(request), request.githubIssueNumber());
         }
@@ -63,7 +64,11 @@ public class AiPullRequestDraftAdapter implements GeneratePullRequestDraftPort, 
         String normalizedLanguage = normalizeTargetLanguage(targetLanguage);
         String response;
         try {
-            response = aiClient.complete(TRANSLATION_SYSTEM_PROMPT, buildTranslationPrompt(draft, normalizedLanguage));
+            response = aiClient.complete(
+                AiCompletionUseCase.PR_TRANSLATION,
+                TRANSLATION_SYSTEM_PROMPT,
+                buildTranslationPrompt(draft, normalizedLanguage)
+            );
         } catch (RuntimeException exception) {
             return ensureClosingIssueLine(fallbackTranslation(draft), draft.githubIssueNumber());
         }
