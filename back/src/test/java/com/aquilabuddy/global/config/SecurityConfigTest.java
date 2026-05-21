@@ -301,7 +301,10 @@ class SecurityConfigTest {
                 .param("code", "code-123")
                 .param("state", "missing-state"))
             .andExpect(status().isFound())
-            .andExpect(header().string(HttpHeaders.LOCATION, "https://buddy.aquilaxk.site/oauth/callback?error=oauth_failed"));
+            .andExpect(header().string(
+                HttpHeaders.LOCATION,
+                "https://buddy.aquilaxk.site/oauth/callback?error=authorization_request_not_found"
+            ));
     }
 
     private static String stateFromLocation(String location) {

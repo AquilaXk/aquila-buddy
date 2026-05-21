@@ -18,6 +18,8 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
+import org.springframework.security.oauth2.core.OAuth2Error;
 
 class OAuth2HandlerTest {
 
@@ -83,6 +85,35 @@ class OAuth2HandlerTest {
 
         handler.onAuthenticationFailure(new MockHttpServletRequest(), response, new AuthenticationException("failed") {
         });
+
+        assertThat(response.getRedirectedUrl()).isEqualTo("http://localhost:3000/oauth/callback?error=oauth_failed");
+    }
+
+    @Test
+    void failureHandlerPreservesSafeOAuth2ErrorCode() throws Exception {
+        OAuth2FailureHandler handler = new OAuth2FailureHandler("http://localhost:3000/oauth/callback");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        handler.onAuthenticationFailure(
+            new MockHttpServletRequest(),
+            response,
+            new OAuth2AuthenticationException(new OAuth2Error("token_exchange_failed"), "failed")
+        );
+
+        assertThat(response.getRedirectedUrl())
+            .isEqualTo("http://localhost:3000/oauth/callback?error=token_exchange_failed");
+    }
+
+    @Test
+    void failureHandlerFallsBackWhenOAuth2ErrorCodeIsUnsafeForQuery() throws Exception {
+        OAuth2FailureHandler handler = new OAuth2FailureHandler("http://localhost:3000/oauth/callback");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        handler.onAuthenticationFailure(
+            new MockHttpServletRequest(),
+            response,
+            new OAuth2AuthenticationException(new OAuth2Error("token exchange failed"), "failed")
+        );
 
         assertThat(response.getRedirectedUrl()).isEqualTo("http://localhost:3000/oauth/callback?error=oauth_failed");
     }
