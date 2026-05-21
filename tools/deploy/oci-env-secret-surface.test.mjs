@@ -34,6 +34,13 @@ test("runtime deploy rejects duplicate env keys before sourcing secrets", () => 
   assert.match(deployScript, /reject_duplicate_env_keys "\$env_file"/);
 });
 
+test("runtime deploy requires GitHub OAuth credentials before starting backend", () => {
+  assert.match(deployScript, /require_var GITHUB_CLIENT_ID/);
+  assert.match(deployScript, /require_var GITHUB_CLIENT_SECRET/);
+  assert.match(validator, /require_contains deploy\/oci\/run-aquila-buddy\.sh 'require_var GITHUB_CLIENT_ID'/);
+  assert.match(validator, /require_contains deploy\/oci\/run-aquila-buddy\.sh 'require_var GITHUB_CLIENT_SECRET'/);
+});
+
 test("frontend container does not receive the full private env file", () => {
   const frontendRunBlock = deployScript.slice(deployScript.indexOf('remove_container "$AQUILA_BUDDY_FRONTEND_CONTAINER"'));
   assert.doesNotMatch(frontendRunBlock, /--env-file "\$env_file"/);

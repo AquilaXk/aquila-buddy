@@ -109,6 +109,8 @@ require_contains deploy/oci/run-aquila-buddy.sh 'back/src/main/resources/schema-
 require_contains deploy/oci/run-aquila-buddy.sh 'back/src/main/resources/schema-postgres-pgvector.sql'
 require_contains deploy/oci/run-aquila-buddy.sh 'back/src/main/resources/schema-postgres-rls.sql'
 require_contains deploy/oci/run-aquila-buddy.sh 'reject_duplicate_env_keys'
+require_contains deploy/oci/run-aquila-buddy.sh 'require_var GITHUB_CLIENT_ID'
+require_contains deploy/oci/run-aquila-buddy.sh 'require_var GITHUB_CLIENT_SECRET'
 require_contains deploy/oci/run-aquila-buddy.sh 'NEXT_PUBLIC_BACKEND_OAUTH_URL=$NEXT_PUBLIC_BACKEND_OAUTH_URL'
 require_contains deploy/oci/run-aquila-buddy.sh 'DB_USER must be a non-superuser app role distinct from POSTGRES_USER'
 require_contains deploy/oci/run-aquila-buddy.sh 'NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS'
