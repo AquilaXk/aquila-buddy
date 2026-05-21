@@ -12,9 +12,11 @@ import com.aquilabuddy.application.port.out.issue.LoadRecommendedIssuesPort;
 import com.aquilabuddy.application.port.out.issue.RankRecommendedIssuesPort;
 import com.aquilabuddy.application.port.out.issue.SaveRecommendedIssuesPort;
 import com.aquilabuddy.application.port.out.issue.SearchRecommendedIssuesPort;
+import com.aquilabuddy.application.port.out.issue.SummarizeRecommendedIssuePort;
 import com.aquilabuddy.domain.issue.RecommendedIssue;
 import com.aquilabuddy.domain.issue.RecommendedIssueHistory;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -39,6 +41,7 @@ public class RecommendedIssueService implements
     private final SaveRecommendedIssuesPort saveRecommendedIssuesPort;
     private final SearchRecommendedIssuesPort searchRecommendedIssuesPort;
     private final RankRecommendedIssuesPort rankRecommendedIssuesPort;
+    private final SummarizeRecommendedIssuePort summarizeRecommendedIssuePort;
 
     @Autowired
     public RecommendedIssueService(
@@ -47,7 +50,8 @@ public class RecommendedIssueService implements
         FindRecommendedIssuePort findRecommendedIssuePort,
         SaveRecommendedIssuesPort saveRecommendedIssuesPort,
         SearchRecommendedIssuesPort searchRecommendedIssuesPort,
-        RankRecommendedIssuesPort rankRecommendedIssuesPort
+        RankRecommendedIssuesPort rankRecommendedIssuesPort,
+        SummarizeRecommendedIssuePort summarizeRecommendedIssuePort
     ) {
         this.loadRecommendedIssuesPort = loadRecommendedIssuesPort;
         this.loadCollectedIssuesPort = loadCollectedIssuesPort;
@@ -55,6 +59,26 @@ public class RecommendedIssueService implements
         this.saveRecommendedIssuesPort = saveRecommendedIssuesPort;
         this.searchRecommendedIssuesPort = searchRecommendedIssuesPort;
         this.rankRecommendedIssuesPort = rankRecommendedIssuesPort;
+        this.summarizeRecommendedIssuePort = summarizeRecommendedIssuePort;
+    }
+
+    public RecommendedIssueService(
+        LoadRecommendedIssuesPort loadRecommendedIssuesPort,
+        LoadCollectedIssuesPort loadCollectedIssuesPort,
+        FindRecommendedIssuePort findRecommendedIssuePort,
+        SaveRecommendedIssuesPort saveRecommendedIssuesPort,
+        SearchRecommendedIssuesPort searchRecommendedIssuesPort,
+        RankRecommendedIssuesPort rankRecommendedIssuesPort
+    ) {
+        this(
+            loadRecommendedIssuesPort,
+            loadCollectedIssuesPort,
+            findRecommendedIssuePort,
+            saveRecommendedIssuesPort,
+            searchRecommendedIssuesPort,
+            rankRecommendedIssuesPort,
+            List::copyOf
+        );
     }
 
     public RecommendedIssueService(
@@ -70,6 +94,7 @@ public class RecommendedIssueService implements
             findRecommendedIssuePort,
             saveRecommendedIssuesPort,
             searchRecommendedIssuesPort,
+            List::copyOf,
             List::copyOf
         );
     }
@@ -80,7 +105,7 @@ public class RecommendedIssueService implements
     @Override
     public List<RecommendedIssue> recommend() {
         try {
-            List<RecommendedIssue> searchedIssues = searchRecommendedIssuesPort.searchRecommendedIssues();
+            List<RecommendedIssue> searchedIssues = summarizeSafely(searchRecommendedIssuesPort.searchRecommendedIssues());
             if (!searchedIssues.isEmpty()) {
                 saveRecommendedIssuesPort.saveRecommendedIssues(searchedIssues);
                 return rankRecommendedIssuesPort.rankRecommendedIssues(searchedIssues);
@@ -96,7 +121,7 @@ public class RecommendedIssueService implements
      */
     @Override
     public List<RecommendedIssue> crawlSearchIssues(String query) {
-        List<RecommendedIssue> searchedIssues = searchRecommendedIssuesPort.searchRecommendedIssues(query);
+        List<RecommendedIssue> searchedIssues = summarizeSafely(searchRecommendedIssuesPort.searchRecommendedIssues(query));
         saveRecommendedIssuesPort.saveRecommendedIssues(searchedIssues);
         return searchedIssues;
     }
@@ -134,5 +159,15 @@ public class RecommendedIssueService implements
     @Override
     public Optional<RecommendedIssue> lookup(String repoFullName, long issueNumber) {
         return findRecommendedIssuePort.findByRepoFullNameAndIssueNumber(repoFullName, issueNumber);
+    }
+
+    private List<RecommendedIssue> summarizeSafely(List<RecommendedIssue> issues) {
+        List<RecommendedIssue> safeIssues = List.copyOf(Objects.requireNonNullElse(issues, List.of()));
+        try {
+            List<RecommendedIssue> summarizedIssues = summarizeRecommendedIssuePort.summarizeRecommendedIssues(safeIssues);
+            return summarizedIssues == null ? safeIssues : List.copyOf(summarizedIssues);
+        } catch (RuntimeException ignored) {
+            return safeIssues;
+        }
     }
 }
