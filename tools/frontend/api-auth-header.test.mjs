@@ -154,6 +154,7 @@ test("getUserProfile includes cookie credentials when no token is stored", async
 test("updateUserProfile keeps JSON content type while adding the Bearer authorization header", async () => {
   process.env.NEXT_PUBLIC_API_URL = "https://api.example.test";
   installBrowserStorage("fixture-token");
+  installDocumentCookie("aquila_buddy_csrf=csrf-token");
   const requests = [];
   globalThis.fetch = async (url, init = {}) => {
     requests.push({ url, init });
@@ -205,6 +206,41 @@ test("mutating requests bootstrap a missing CSRF cookie before sending the API r
   assert.equal(requests.length, 2);
   assert.equal(requests[0].url, "https://api.example.test/api/v1/auth/refresh");
   assert.equal(requests[1].url, "https://api.example.test/api/v1/users/me");
+  assert.equal(readHeader(requests[1].init.headers, "X-Aquila-CSRF-Token"), "issued-csrf");
+});
+
+test("mutating requests bootstrap a missing CSRF cookie even when a stored Bearer token exists", async () => {
+  process.env.NEXT_PUBLIC_API_URL = "https://api.example.test";
+  installBrowserStorage("stale-token");
+  installDocumentCookie("");
+  const requests = [];
+  globalThis.fetch = async (url, init = {}) => {
+    requests.push({ url, init });
+
+    if (String(url).endsWith("/api/v1/auth/refresh")) {
+      installDocumentCookie("aquila_buddy_csrf=issued-csrf");
+      return successResponse(null);
+    }
+
+    if (String(url).endsWith("/api/v1/users/me")) {
+      return successResponse(profileFixture);
+    }
+
+    throw new Error(`Unexpected request: ${url}`);
+  };
+
+  const api = loadApiModule();
+  await api.updateUserProfile({
+    name: "Aquila",
+    email: "aquila@example.com",
+    primaryLanguages: [],
+    topics: []
+  });
+
+  assert.equal(requests.length, 2);
+  assert.equal(requests[0].url, "https://api.example.test/api/v1/auth/refresh");
+  assert.equal(requests[1].url, "https://api.example.test/api/v1/users/me");
+  assert.equal(readHeader(requests[1].init.headers, "Authorization"), "Bearer stale-token");
   assert.equal(readHeader(requests[1].init.headers, "X-Aquila-CSRF-Token"), "issued-csrf");
 });
 

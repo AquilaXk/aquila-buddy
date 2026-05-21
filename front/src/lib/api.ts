@@ -94,7 +94,7 @@ function shouldBootstrapCsrf(input: RequestInfo | URL, init: ApiFetchInit, metho
   }
 
   const headers = new Headers(init.headers);
-  if (getToken() !== null || headers.has("Authorization") || headers.has(csrfHeaderName)) {
+  if (headers.has(csrfHeaderName)) {
     return false;
   }
 
