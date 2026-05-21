@@ -521,6 +521,9 @@ class AiEnvironmentExamplesTest {
             .contains("\"promptVersion\": \"ai-output-quality-v2026-05-21\"")
             .contains("\"fixture\": \"issue-guide-code-context\"")
             .contains("\"fixture\": \"recommendation-summary-korean\"")
+            .contains("\"fixture\": \"recommendation-summary-bad-raw-copy\"")
+            .contains("\"fixture\": \"issue-guide-guideline-bad-symbol-list\"")
+            .contains("\"fixture\": \"issue-guide-pseudocode-bad-placeholder\"")
             .contains("\"fixture\": \"pr-draft-markdown-close\"")
             .contains("\"fixture\": \"pr-translation-english\"")
             .contains("\"fixture\": \"pr-draft-parser-fallback\"")
@@ -532,7 +535,10 @@ class AiEnvironmentExamplesTest {
             .contains("\"requires\": [\"TITLE\", \"BODY\", \"close #2\", \"## Summary\"]")
             .contains("\"forbids\": [\"README 안내를 보완합니다\"]")
             .contains("apply_smallest_change")
-            .contains("\"forbids\": [\"Problem Snapshot\", \"**Description**\", \"GitHub Search\", \"수집된 후보\", \"1. \"]");
+            .contains("\"forbids\": [\"Problem Snapshot\", \"**Description**\", \"GitHub Search\", \"수집된 후보\", \"1. \"]")
+            .contains("\"expectedResult\": \"failed\"")
+            .contains("\"mockOutput\"")
+            .contains("ProductListTest와 shouldRenderProductList(), of(), setVariable()");
     }
 
     @Test
@@ -551,15 +557,25 @@ class AiEnvironmentExamplesTest {
             .contains("AI prompt evaluation path:")
             .contains("issue-guide-code-context")
             .contains("recommendation-summary-korean")
+            .contains("recommendation-summary-bad-raw-copy")
+            .contains("issue-guide-guideline-bad-symbol-list")
+            .contains("issue-guide-pseudocode-bad-placeholder")
             .contains("pr-draft-markdown-close")
             .contains("pr-translation-english");
         assertThat(Files.readString(evidenceFile))
             .contains("# AI Prompt Evaluation Evidence")
             .contains("- prompt_version: ai-output-quality-v2026-05-21")
             .contains("- model: gpt-test")
-            .contains("| issue-guide-code-context | planned |")
-            .contains("| recommendation-summary-korean | planned |")
-            .contains("| pr-draft-parser-fallback | planned |")
+            .contains("- target: fixture://ai-prompt-evaluation-fixtures")
+            .contains("| issue-guide-code-context | issue-guide | planned | pass | planned |")
+            .contains("| recommendation-summary-korean | recommendation-summary | planned | pass | planned |")
+            .contains("| recommendation-summary-bad-raw-copy | recommendation-summary | failed | failed | pass |")
+            .contains("| issue-guide-guideline-bad-symbol-list | issue-guide | failed | failed | pass |")
+            .contains("| issue-guide-pseudocode-bad-placeholder | issue-guide | failed | failed | pass |")
+            .contains("forbidden output token(s): Problem Snapshot")
+            .contains("forbidden output token(s): apply_smallest_change")
+            .contains("expected_result")
+            .contains("expectation_result")
             .contains("parser_result");
     }
 
