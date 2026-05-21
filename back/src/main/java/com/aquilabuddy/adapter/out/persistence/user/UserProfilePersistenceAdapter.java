@@ -20,6 +20,7 @@ import java.util.NoSuchElementException;
 import java.util.Optional;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DataAccessException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
@@ -47,6 +48,7 @@ public class UserProfilePersistenceAdapter implements
     private final ObjectProvider<EmbeddingClient> embeddingClientProvider;
     private final boolean userContextEnabled;
     private final int expectedEmbeddingDimensions;
+    private Boolean pgvectorProfileEmbeddingColumn;
 
     public UserProfilePersistenceAdapter(
         UserProfileJpaRepository repository,
@@ -130,6 +132,7 @@ public class UserProfilePersistenceAdapter implements
         List<String> topics = existing.getTopics();
         boolean profileReady = existing.isProfileReady();
         String vectorUpdatedAt = existing.getVectorUpdatedAt();
+        String profileEmbedding = loadProfileEmbeddingLiteral(previousGithubId);
 
         releaseLogin(existing, previousGithubId);
 
@@ -145,6 +148,7 @@ public class UserProfilePersistenceAdapter implements
             vectorUpdatedAt == null ? INITIAL_VECTOR_UPDATED_AT : vectorUpdatedAt
         );
         repository.saveAndFlush(canonical);
+        updateProfileEmbedding(profile.githubId(), profileEmbedding);
         migrateOwnedRows(previousGithubId, profile.githubId());
         repository.delete(existing);
         repository.flush();
@@ -207,9 +211,11 @@ public class UserProfilePersistenceAdapter implements
         } else {
             entity.refreshVector(refreshedAt);
         }
-        entity.updateProfileEmbedding(createProfileEmbedding(entity));
+        String profileEmbedding = createProfileEmbedding(entity);
+        repository.saveAndFlush(entity);
+        updateProfileEmbedding(entity.getGithubId(), profileEmbedding);
 
-        return UserProfilePersistenceMapper.toDomain(repository.save(entity));
+        return UserProfilePersistenceMapper.toDomain(entity);
     }
 
     @Override
@@ -256,14 +262,13 @@ public class UserProfilePersistenceAdapter implements
                     );
                     continue;
                 }
-                entity.updateProfileEmbedding(vector.toPgvectorLiteral());
+                updateProfileEmbedding(entity.getGithubId(), vector.toPgvectorLiteral());
                 updated++;
             } catch (RuntimeException exception) {
                 failed++;
                 addFailureReason(failureReasons, profileLabel(entity) + ": " + exception.getClass().getSimpleName());
             }
         }
-        repository.saveAll(candidates);
 
         return new EmbeddingBackfillResult(
             "profiles",
@@ -294,6 +299,62 @@ public class UserProfilePersistenceAdapter implements
         } catch (RuntimeException exception) {
             return null;
         }
+    }
+
+    private String loadProfileEmbeddingLiteral(long githubId) {
+        return jdbcTemplate.query(
+            "SELECT CAST(profile_embedding AS VARCHAR) FROM user_profiles WHERE github_id = ?",
+            preparedStatement -> preparedStatement.setLong(1, githubId),
+            resultSet -> resultSet.next() ? resultSet.getString(1) : null
+        );
+    }
+
+    private void updateProfileEmbedding(long githubId, String profileEmbedding) {
+        if (profileEmbedding == null) {
+            jdbcTemplate.update(
+                "UPDATE user_profiles SET profile_embedding = NULL WHERE github_id = ?",
+                githubId
+            );
+            return;
+        }
+
+        if (profileEmbeddingColumnUsesPgvector()) {
+            jdbcTemplate.update(
+                "UPDATE user_profiles SET profile_embedding = CAST(? AS vector) WHERE github_id = ?",
+                profileEmbedding,
+                githubId
+            );
+            return;
+        }
+
+        jdbcTemplate.update(
+            "UPDATE user_profiles SET profile_embedding = ? WHERE github_id = ?",
+            profileEmbedding,
+            githubId
+        );
+    }
+
+    private boolean profileEmbeddingColumnUsesPgvector() {
+        if (pgvectorProfileEmbeddingColumn != null) {
+            return pgvectorProfileEmbeddingColumn;
+        }
+
+        try {
+            Boolean result = jdbcTemplate.queryForObject("""
+                SELECT CASE WHEN COUNT(*) > 0 THEN TRUE ELSE FALSE END
+                FROM information_schema.columns
+                WHERE table_schema = 'public'
+                    AND table_name = 'user_profiles'
+                    AND column_name = 'profile_embedding'
+                    AND udt_name = 'vector'
+                """,
+                Boolean.class
+            );
+            pgvectorProfileEmbeddingColumn = Boolean.TRUE.equals(result);
+        } catch (DataAccessException exception) {
+            pgvectorProfileEmbeddingColumn = false;
+        }
+        return pgvectorProfileEmbeddingColumn;
     }
 
     private static String buildProfileEmbeddingInput(UserProfileJpaEntity entity) {
