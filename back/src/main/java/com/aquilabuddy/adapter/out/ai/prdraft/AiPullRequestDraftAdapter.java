@@ -6,6 +6,7 @@ import com.aquilabuddy.application.port.out.ai.AiClient;
 import com.aquilabuddy.application.port.out.ai.AiCompletionUseCase;
 import com.aquilabuddy.domain.prdraft.PullRequestDraft;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftRequest;
+import com.aquilabuddy.domain.prdraft.PullRequestDraftRepositoryFormat;
 import com.aquilabuddy.domain.prdraft.StoredPullRequestDraft;
 import java.util.ArrayList;
 import java.util.List;
@@ -54,7 +55,7 @@ public class AiPullRequestDraftAdapter implements GeneratePullRequestDraftPort, 
             return ensureClosingIssueLine(fallbackDraft(request), request.githubIssueNumber());
         }
         return ensureClosingIssueLine(
-            parseDraftOrFallback(response, () -> fallbackDraft(request)),
+            parseDraftOrFallback(response, () -> fallbackDraft(request), request.repositoryGuideContext().draftFormat()),
             request.githubIssueNumber()
         );
     }
@@ -92,6 +93,7 @@ public class AiPullRequestDraftAdapter implements GeneratePullRequestDraftPort, 
         appendSection(lines, "Repository guide summary", request.repositoryGuideContext().guideSummaryLines());
         appendSection(lines, "Repository guide context", request.repositoryGuideContext().guidePromptLines());
         appendRepositoryGuideQualityRules(lines, request);
+        appendSection(lines, "Repository draft format", request.repositoryGuideContext().draftFormat().promptLines());
         appendDraftQualityRequirements(lines);
         appendSection(lines, "Issue context", request.issueContext().contextSummaryLines());
         appendSection(lines, "Analysis context", request.analysisContext().contextSummaryLines());
@@ -129,9 +131,10 @@ public class AiPullRequestDraftAdapter implements GeneratePullRequestDraftPort, 
 
         lines.add("");
         lines.add("Repository guide quality rules:");
-        lines.add("- Preserve PR template headings when a PR template is present.");
+        lines.add("- Use PR template headings and checkboxes as required body structure when a PR template is present.");
+        lines.add("- If there is no PR template, follow the common heading order inferred from merged PR samples.");
         lines.add("- Follow CONTRIBUTING instructions without inventing repository rules.");
-        lines.add("- Use merged PR samples only as tone and structure references.");
+        lines.add("- Use merged PR samples as structure references only when a PR template is absent.");
     }
 
     private static void appendDraftQualityRequirements(List<String> lines) {
@@ -160,8 +163,21 @@ public class AiPullRequestDraftAdapter implements GeneratePullRequestDraftPort, 
     }
 
     private static PullRequestDraft parseDraftOrFallback(String response, Supplier<PullRequestDraft> fallback) {
+        return parseDraftOrFallback(
+            response,
+            fallback,
+            PullRequestDraftRepositoryFormat.generic("repository format validation is not required")
+        );
+    }
+
+    private static PullRequestDraft parseDraftOrFallback(
+        String response,
+        Supplier<PullRequestDraft> fallback,
+        PullRequestDraftRepositoryFormat format
+    ) {
         try {
-            return parseDraft(response);
+            PullRequestDraft draft = parseDraft(response);
+            return format.isSatisfiedBy(draft.body()) ? draft : fallback.get();
         } catch (IllegalStateException | NullPointerException ignored) {
             return fallback.get();
         }
@@ -185,21 +201,79 @@ public class AiPullRequestDraftAdapter implements GeneratePullRequestDraftPort, 
 
     private static PullRequestDraft fallbackDraft(PullRequestDraftRequest request) {
         String title = "docs: " + request.upstreamRepo() + "#" + request.githubIssueNumber() + " 변경 초안";
+        PullRequestDraftRepositoryFormat format = request.repositoryGuideContext().draftFormat();
+        if (format.source() == PullRequestDraftRepositoryFormat.Source.TEMPLATE) {
+            return new PullRequestDraft(title, repositoryTemplateFallbackBody(request, format));
+        }
+        if (format.source() == PullRequestDraftRepositoryFormat.Source.MERGED_PULL_REQUEST_SAMPLES) {
+            return new PullRequestDraft(title, inferredRepositoryFormatFallbackBody(request, format));
+        }
+
         List<String> lines = new ArrayList<>(List.of(
             "close #" + request.githubIssueNumber(),
             "",
             "## Summary",
-            "- " + request.upstreamRepo() + " #" + request.githubIssueNumber() + " 변경 초안입니다.",
-            "",
-            "## Changes",
-            "- " + firstMeaningfulLine(request.diffContent(), "요청된 변경 내용을 정리합니다."),
-            "",
-            "## Tests",
-            "- 변경 후 관련 검증을 실행합니다."
+            "- " + request.upstreamRepo() + " #" + request.githubIssueNumber() + " 변경 초안입니다."
         ));
+        appendFallbackChangeAndTests(lines, request);
         appendFallbackIssueContext(lines, request);
         appendFallbackAnalysisContext(lines, request);
         return new PullRequestDraft(title, String.join("\n", lines));
+    }
+
+    private static String repositoryTemplateFallbackBody(
+        PullRequestDraftRequest request,
+        PullRequestDraftRepositoryFormat format
+    ) {
+        List<String> lines = new ArrayList<>(List.of(
+            "close #" + request.githubIssueNumber(),
+            ""
+        ));
+        format.templateBody().lines()
+            .map(String::stripTrailing)
+            .forEach(lines::add);
+        appendFallbackChangeAndTests(lines, request);
+        appendFallbackIssueContext(lines, request);
+        appendFallbackAnalysisContext(lines, request);
+        return String.join("\n", lines);
+    }
+
+    private static String inferredRepositoryFormatFallbackBody(
+        PullRequestDraftRequest request,
+        PullRequestDraftRepositoryFormat format
+    ) {
+        List<String> lines = new ArrayList<>(List.of("close #" + request.githubIssueNumber()));
+        for (String heading : format.requiredHeadings()) {
+            lines.add("");
+            lines.add(heading);
+            lines.add("- " + fallbackLineForHeading(heading, request));
+        }
+        appendFallbackIssueContext(lines, request);
+        appendFallbackAnalysisContext(lines, request);
+        return String.join("\n", lines);
+    }
+
+    private static void appendFallbackChangeAndTests(List<String> lines, PullRequestDraftRequest request) {
+        lines.add("");
+        lines.add("## Changes");
+        lines.add("- " + firstMeaningfulLine(request.diffContent(), "요청된 변경 내용을 정리합니다."));
+        lines.add("");
+        lines.add("## Tests");
+        lines.add("- 변경 후 관련 검증을 실행합니다.");
+    }
+
+    private static String fallbackLineForHeading(String heading, PullRequestDraftRequest request) {
+        String normalizedHeading = heading.toLowerCase(Locale.ROOT);
+        if (normalizedHeading.contains("test") || normalizedHeading.contains("검증")) {
+            return "변경 후 관련 검증을 실행합니다.";
+        }
+        if (normalizedHeading.contains("why") || normalizedHeading.contains("reason")) {
+            return request.issueContext().hasIssue()
+                ? request.issueContext().reason()
+                : request.upstreamRepo() + " #" + request.githubIssueNumber() + " 변경 목적을 정리합니다.";
+        }
+        return firstMeaningfulLine(request.diffContent(), request.upstreamRepo() + " #"
+            + request.githubIssueNumber() + " 변경 내용을 정리합니다.");
     }
 
     private static PullRequestDraft fallbackTranslation(StoredPullRequestDraft draft) {

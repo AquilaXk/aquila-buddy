@@ -34,6 +34,10 @@ public record PullRequestDraftRepositoryGuideContext(
         return contributing != null || pullRequestTemplate != null || !mergedPullRequestSamples.isEmpty();
     }
 
+    public PullRequestDraftRepositoryFormat draftFormat() {
+        return PullRequestDraftRepositoryFormat.from(pullRequestTemplate, mergedPullRequestSamples);
+    }
+
     public List<String> guideSummaryLines() {
         return Stream.of(
                 contributing == null ? null : "CONTRIBUTING: " + firstLine(contributing),

@@ -7,7 +7,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.aquilabuddy.application.port.out.prdraft.LoadPullRequestDraftRepositoryGuideContextPort;
 import com.aquilabuddy.application.port.out.prdraft.LoadPullRequestDraftDiffPort;
+import com.aquilabuddy.domain.prdraft.PullRequestDraftRepositoryGuideContext;
 import com.jayway.jsonpath.JsonPath;
 import com.aquilabuddy.adapter.out.persistence.prdraft.PullRequestDraftJpaRepository;
 import com.aquilabuddy.adapter.out.persistence.prdraft.PullRequestDraftTranslationJpaRepository;
@@ -604,6 +606,12 @@ class PullRequestDraftControllerTest {
 
                 return "diff --git a/docs.adoc b/docs.adoc\n+Loaded from GitHub compare";
             };
+        }
+
+        @Bean
+        @Primary
+        LoadPullRequestDraftRepositoryGuideContextPort loadPullRequestDraftRepositoryGuideContextPort() {
+            return request -> PullRequestDraftRepositoryGuideContext.empty();
         }
     }
 }

@@ -57,6 +57,65 @@ class RuleBasedPullRequestDraftAdapterTest {
     }
 
     @Test
+    void appliesPullRequestTemplateFormatWhenAvailable() {
+        RuleBasedPullRequestDraftAdapter adapter = new RuleBasedPullRequestDraftAdapter();
+
+        PullRequestDraft draft = adapter.generate(new PullRequestDraftRequest(
+            "spring-projects/spring-boot",
+            2,
+            "main",
+            "feat/validation-docs",
+            "diff --git a/docs.adoc b/docs.adoc\n+Add validation example",
+            new PullRequestDraftRepositoryGuideContext(
+                null,
+                """
+                ## Summary
+                - Describe changes
+
+                ## Checklist
+                - [ ] Tests added or updated
+                """,
+                List.of()
+            )
+        ));
+
+        assertThat(draft.body())
+            .contains("## Summary")
+            .contains("## Checklist")
+            .contains("- [ ] Tests added or updated")
+            .contains("Add validation example");
+    }
+
+    @Test
+    void appliesInferredMergedPullRequestHeadingsWhenTemplateIsMissing() {
+        RuleBasedPullRequestDraftAdapter adapter = new RuleBasedPullRequestDraftAdapter();
+
+        PullRequestDraft draft = adapter.generate(new PullRequestDraftRequest(
+            "spring-projects/spring-boot",
+            2,
+            "main",
+            "feat/validation-docs",
+            "diff --git a/docs.adoc b/docs.adoc\n+Add validation example",
+            new PullRequestDraftRepositoryGuideContext(
+                null,
+                null,
+                List.of(
+                    "## What changed\n- Improve docs\n\n## Test plan\n- Run tests",
+                    "## What changed\n- Fix validation\n\n## Test plan\n- Run focused tests",
+                    "## What changed\n- Add examples\n\n## Test plan\n- Run check"
+                )
+            )
+        ));
+
+        assertThat(draft.body())
+            .contains("## What changed")
+            .contains("## Test plan")
+            .contains("Add validation example");
+        assertThat(draft.body().indexOf("## What changed"))
+            .isLessThan(draft.body().indexOf("## Test plan"));
+    }
+
+    @Test
     void includesIssueContextWhenAvailable() {
         RuleBasedPullRequestDraftAdapter adapter = new RuleBasedPullRequestDraftAdapter();
 

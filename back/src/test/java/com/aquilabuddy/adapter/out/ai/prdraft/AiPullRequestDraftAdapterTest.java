@@ -61,9 +61,34 @@ class AiPullRequestDraftAdapterTest {
             .contains("CONTRIBUTING, PR template, merged PR sample");
         assertThat(aiClient.userPrompt)
             .contains("Repository guide quality rules:")
-            .contains("- Preserve PR template headings when a PR template is present.")
+            .contains("- Use PR template headings and checkboxes as required body structure when a PR template is present.")
+            .contains("- If there is no PR template, follow the common heading order inferred from merged PR samples.")
             .contains("- Follow CONTRIBUTING instructions without inventing repository rules.")
-            .contains("- Use merged PR samples only as tone and structure references.");
+            .contains("- Use merged PR samples as structure references only when a PR template is absent.");
+    }
+
+    @Test
+    void draftPromptIncludesRepositoryDraftFormatContract() {
+        CapturingAiClient aiClient = new CapturingAiClient("""
+            TITLE: docs: improve validation guide
+            BODY: ## Summary
+            - Improve the validation guide.
+
+            ## Checklist
+            - [ ] Tests added or updated
+            """);
+        AiPullRequestDraftAdapter adapter = new AiPullRequestDraftAdapter(aiClient);
+
+        adapter.generate(requestWithTemplateFormat());
+
+        assertThat(aiClient.userPrompt)
+            .contains("Repository draft format:")
+            .contains("Repository draft format source: PR template")
+            .contains("Required PR headings:")
+            .contains("- ## Checklist")
+            .contains("Required PR checkboxes:")
+            .contains("- - [ ] Tests added or updated")
+            .contains("- If the generated BODY misses required repository format lines, deterministic fallback is used.");
     }
 
     @Test
@@ -186,6 +211,41 @@ class AiPullRequestDraftAdapterTest {
     }
 
     @Test
+    void fallsBackWhenGeneratedDraftMissesRepositoryTemplateFormat() {
+        CapturingAiClient aiClient = new CapturingAiClient("""
+            TITLE: docs: improve validation guide
+            BODY: ## Summary
+            - Improve the validation guide without the repository checklist.
+            """);
+        AiPullRequestDraftAdapter adapter = new AiPullRequestDraftAdapter(aiClient);
+
+        PullRequestDraft draft = adapter.generate(requestWithTemplateFormat());
+
+        assertThat(draft.body())
+            .contains("close #2")
+            .contains("## Summary")
+            .contains("## Checklist")
+            .contains("- [ ] Tests added or updated")
+            .contains("Add validation example");
+    }
+
+    @Test
+    void fallbackDraftUsesInferredMergedPullRequestHeadingsWhenTemplateIsMissing() {
+        CapturingAiClient aiClient = new CapturingAiClient("plain response without markers");
+        AiPullRequestDraftAdapter adapter = new AiPullRequestDraftAdapter(aiClient);
+
+        PullRequestDraft draft = adapter.generate(requestWithMergedPullRequestFormat());
+
+        assertThat(draft.body())
+            .contains("close #2")
+            .contains("## What changed")
+            .contains("## Test plan")
+            .contains("Add validation example");
+        assertThat(draft.body().indexOf("## What changed"))
+            .isLessThan(draft.body().indexOf("## Test plan"));
+    }
+
+    @Test
     void fallsBackToDeterministicDraftWhenAiResponseHasBlankTitleMarker() {
         CapturingAiClient aiClient = new CapturingAiClient("""
             TITLE:
@@ -241,6 +301,66 @@ class AiPullRequestDraftAdapterTest {
                 "Run tests before PR.",
                 "## Summary\n- Describe changes",
                 List.of("## Summary\n- Improve docs")
+            ),
+            new PullRequestDraftIssueContext(
+                "Fix validation message",
+                "Error message should explain invalid input.",
+                "Matches Java validation topic"
+            ),
+            new PullRequestDraftAnalysisContext(
+                "Follow validation guide.",
+                "if invalid then return helpful message",
+                List.of("Update documentation examples.")
+            )
+        );
+    }
+
+    private static PullRequestDraftRequest requestWithTemplateFormat() {
+        return new PullRequestDraftRequest(
+            "spring-projects/spring-boot",
+            2,
+            "main",
+            "feat/validation-docs",
+            "diff --git a/docs.adoc b/docs.adoc\n+Add validation example",
+            new PullRequestDraftRepositoryGuideContext(
+                "Run tests before PR.",
+                """
+                ## Summary
+                - Describe changes
+
+                ## Checklist
+                - [ ] Tests added or updated
+                """,
+                List.of()
+            ),
+            new PullRequestDraftIssueContext(
+                "Fix validation message",
+                "Error message should explain invalid input.",
+                "Matches Java validation topic"
+            ),
+            new PullRequestDraftAnalysisContext(
+                "Follow validation guide.",
+                "if invalid then return helpful message",
+                List.of("Update documentation examples.")
+            )
+        );
+    }
+
+    private static PullRequestDraftRequest requestWithMergedPullRequestFormat() {
+        return new PullRequestDraftRequest(
+            "spring-projects/spring-boot",
+            2,
+            "main",
+            "feat/validation-docs",
+            "diff --git a/docs.adoc b/docs.adoc\n+Add validation example",
+            new PullRequestDraftRepositoryGuideContext(
+                null,
+                null,
+                List.of(
+                    "## What changed\n- Improve docs\n\n## Test plan\n- Run tests",
+                    "## What changed\n- Fix validation\n\n## Test plan\n- Run focused tests",
+                    "## What changed\n- Add examples\n\n## Test plan\n- Run check"
+                )
             ),
             new PullRequestDraftIssueContext(
                 "Fix validation message",
