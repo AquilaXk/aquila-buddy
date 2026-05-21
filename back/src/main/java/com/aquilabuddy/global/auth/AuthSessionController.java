@@ -58,6 +58,10 @@ public class AuthSessionController {
                 )
                 .header(
                     HttpHeaders.SET_COOKIE,
+                    CsrfCookieSupport.csrfCookie(CsrfCookieSupport.newToken(), jwtProperties.expiration()).toString()
+                )
+                .header(
+                    HttpHeaders.SET_COOKIE,
                     RefreshTokenCookieSupport.refreshCookie(
                         rotatedSession.refreshToken(),
                         refreshTokenProperties.expiration()

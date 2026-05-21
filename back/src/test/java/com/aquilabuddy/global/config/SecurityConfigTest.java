@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.aquilabuddy.global.auth.csrf.CsrfCookieSupport;
 import com.aquilabuddy.global.auth.jwt.JwtCookieSupport;
 import com.aquilabuddy.global.auth.jwt.JwtProvider;
 import com.aquilabuddy.global.auth.oauth.CookieOAuth2AuthorizationRequestRepository;
@@ -325,6 +326,25 @@ class SecurityConfigTest {
         assertThat(rotatedRefreshCookie.getValue()).isNotEqualTo(refreshCookie.getValue());
         assertThat(refresh.getResponse().getHeaders(HttpHeaders.SET_COOKIE))
             .anySatisfy(setCookie -> assertThat(setCookie).contains(JwtCookieSupport.AUTH_COOKIE_NAME + "="));
+        assertThat(refresh.getResponse().getHeaders(HttpHeaders.SET_COOKIE))
+            .anySatisfy(setCookie -> assertThat(setCookie)
+                .contains(CsrfCookieSupport.CSRF_COOKIE_NAME + "=")
+                .contains("Max-Age=")
+                .contains("Path=/")
+                .contains("Secure")
+                .contains("SameSite=Lax")
+                .doesNotContain("HttpOnly"));
+        Cookie authCookie = refresh.getResponse().getCookie(JwtCookieSupport.AUTH_COOKIE_NAME);
+        Cookie csrfCookie = refresh.getResponse().getCookie(CsrfCookieSupport.CSRF_COOKIE_NAME);
+        assertThat(authCookie).isNotNull();
+        assertThat(csrfCookie).isNotNull();
+
+        mockMvc.perform(post("/api/v1/issues/crawl/search")
+                .param("q", "language:java label:\"good first issue\" state:open")
+                .cookie(authCookie, csrfCookie)
+                .header(CsrfCookieSupport.CSRF_HEADER_NAME, csrfCookie.getValue()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true));
 
         mockMvc.perform(post("/api/v1/auth/refresh")
                 .cookie(refreshCookie))
