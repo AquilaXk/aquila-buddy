@@ -66,6 +66,8 @@ public class SecurityConfig {
             .authorizeHttpRequests(authorize -> authorize
                 .requestMatchers(HttpMethod.OPTIONS, "/**")
                 .permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/v1/issues/crawl/search")
+                .permitAll()
                 .requestMatchers(
                     "/api/v1/health",
                     "/api/v1/auth/logout",
