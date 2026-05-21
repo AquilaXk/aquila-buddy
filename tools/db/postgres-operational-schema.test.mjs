@@ -13,6 +13,25 @@ test("operational schema patch restores columns missing from existing OCI databa
   assert.match(operationalSql, /NOT VALID/);
 });
 
+test("operational schema patch restores tables missing from existing OCI databases", () => {
+  for (const tableName of [
+    "refresh_token_sessions",
+    "user_profile_primary_languages",
+    "user_profile_topics",
+    "recommended_issues",
+    "recommended_issue_labels",
+    "issue_guides",
+    "issue_guide_generation_requests",
+    "ai_call_observations",
+    "pr_drafts",
+    "pr_draft_translations",
+    "issue_guide_side_effects",
+    "issue_guide_file_paths",
+  ]) {
+    assert.match(operationalSql, new RegExp(`CREATE TABLE IF NOT EXISTS ${tableName}\\s*\\(`));
+  }
+});
+
 test("OCI deploy applies operational schema patch without requiring destructive reset", () => {
   assert.match(deployScript, /schema-postgres-operational\.sql/);
   assert.match(deployScript, /operational_sql/);
