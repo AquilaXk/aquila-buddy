@@ -34,6 +34,10 @@ public class CookieCsrfProtectionFilter extends OncePerRequestFilter {
         HttpMethod.PUT.name(),
         HttpMethod.DELETE.name()
     );
+    private static final Set<String> SESSION_ENDPOINTS = Set.of(
+        "/api/v1/auth/refresh",
+        "/api/v1/auth/logout"
+    );
     private static final String DEFAULT_ALLOWED_ORIGINS =
         "http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001";
 
@@ -70,7 +74,9 @@ public class CookieCsrfProtectionFilter extends OncePerRequestFilter {
     }
 
     private boolean requiresCsrfProtection(HttpServletRequest request) {
-        return PROTECTED_METHODS.contains(request.getMethod()) && request.getRequestURI().startsWith("/api/");
+        return PROTECTED_METHODS.contains(request.getMethod())
+            && request.getRequestURI().startsWith("/api/")
+            && !SESSION_ENDPOINTS.contains(request.getRequestURI());
     }
 
     private boolean hasAuthenticationCookie(HttpServletRequest request) {

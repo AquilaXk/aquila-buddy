@@ -79,9 +79,26 @@ function requestUrl(input: RequestInfo | URL) {
   return input.url;
 }
 
-function shouldAttemptRefresh(input: RequestInfo | URL, init: ApiFetchInit) {
+function isAuthSessionEndpoint(input: RequestInfo | URL) {
   const url = requestUrl(input);
-  return init.skipAuthRefresh !== true && !url.endsWith("/api/v1/auth/refresh") && !url.endsWith("/api/v1/auth/logout");
+  return url.endsWith("/api/v1/auth/refresh") || url.endsWith("/api/v1/auth/logout");
+}
+
+function shouldAttemptRefresh(input: RequestInfo | URL, init: ApiFetchInit) {
+  return init.skipAuthRefresh !== true && !isAuthSessionEndpoint(input);
+}
+
+function shouldBootstrapCsrf(input: RequestInfo | URL, init: ApiFetchInit, method: string) {
+  if (init.skipAuthRefresh === true || !mutatingMethods.has(method) || isAuthSessionEndpoint(input)) {
+    return false;
+  }
+
+  const headers = new Headers(init.headers);
+  if (getToken() !== null || headers.has("Authorization") || headers.has(csrfHeaderName)) {
+    return false;
+  }
+
+  return readCookieValue(csrfCookieName) === null;
 }
 
 async function refreshSession() {
@@ -113,6 +130,11 @@ async function refreshSessionOnce() {
 async function apiFetch(input: RequestInfo | URL, init: ApiFetchInit = {}) {
   const { skipAuthRefresh, ...fetchInit } = init;
   const method = resolveRequestMethod(input, fetchInit);
+
+  if (shouldBootstrapCsrf(input, init, method)) {
+    await refreshSessionOnce();
+  }
+
   const response = await fetch(input, {
     ...fetchInit,
     credentials: fetchInit.credentials ?? "include",
