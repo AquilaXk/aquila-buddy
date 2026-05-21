@@ -25,7 +25,7 @@ public class RuleBasedRecommendedIssueSummaryAdapter implements SummarizeRecomme
         if (!RecommendedIssueCopyQuality.needsRefresh(issue)) {
             return issue.withCurrentCopyOutputVersion();
         }
-        String summary = "한국어 요약: " + issue.title()
+        String summary = issue.title()
             + " 이슈는 저장소 " + issue.repoFullName()
             + "의 #" + issue.issueNumber()
             + "에서 확인된 문제를 작은 범위로 재현하고 수정하는 작업입니다.";

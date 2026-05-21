@@ -12,6 +12,10 @@ public final class RecommendedIssueCopyQuality {
 
     private static final Pattern HANGUL = Pattern.compile("\\p{IsHangul}");
     private static final Pattern LATIN = Pattern.compile("[A-Za-z]");
+    private static final Pattern SUMMARY_DISPLAY_LABEL = Pattern.compile(
+        "^(?:한국어\\s*요약|요약|summary)\\s*[:：]",
+        Pattern.CASE_INSENSITIVE
+    );
     private static final int MAX_REASON_LENGTH = 240;
 
     private RecommendedIssueCopyQuality() {
@@ -61,6 +65,9 @@ public final class RecommendedIssueCopyQuality {
         if (text.isBlank()) {
             reasons.add(fieldName + " is blank");
             return;
+        }
+        if ("summary".equals(fieldName) && SUMMARY_DISPLAY_LABEL.matcher(text).find()) {
+            reasons.add(fieldName + " has display label");
         }
         String normalized = text.toLowerCase(Locale.ROOT);
         if (normalized.contains("github search") || normalized.contains("good first issue 조건으로 수집")) {
