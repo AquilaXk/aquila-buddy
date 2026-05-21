@@ -69,4 +69,26 @@ class CookieCsrfProtectionFilterTest {
 
         assertThat(response.getStatus()).isEqualTo(200);
     }
+
+    @Test
+    void skipsSessionRefreshWithoutCsrfToken() throws ServletException, IOException {
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/v1/auth/refresh");
+        request.setCookies(new Cookie(JwtCookieSupport.AUTH_COOKIE_NAME, "jwt-token"));
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        filter.doFilter(request, response, new MockFilterChain());
+
+        assertThat(response.getStatus()).isEqualTo(200);
+    }
+
+    @Test
+    void skipsLogoutWithoutCsrfToken() throws ServletException, IOException {
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/v1/auth/logout");
+        request.setCookies(new Cookie(JwtCookieSupport.AUTH_COOKIE_NAME, "jwt-token"));
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        filter.doFilter(request, response, new MockFilterChain());
+
+        assertThat(response.getStatus()).isEqualTo(200);
+    }
 }
