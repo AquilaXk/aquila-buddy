@@ -9,6 +9,7 @@ import java.net.InetSocketAddress;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -23,6 +24,89 @@ class GitHubRecommendedIssueSearchAdapterTest {
         if (server != null) {
             server.stop(0);
         }
+    }
+
+    @Test
+    void retriesWithoutAuthorizationWhenConfiguredTokenIsUnauthorized() throws IOException {
+        AtomicInteger requests = new AtomicInteger();
+        AtomicReference<String> retryAuthorization = new AtomicReference<>();
+        server = HttpServer.create(new InetSocketAddress(0), 0);
+        server.createContext("/search/issues", exchange -> {
+            int attempt = requests.incrementAndGet();
+            String authorization = exchange.getRequestHeaders().getFirst("Authorization");
+            if (attempt == 1) {
+                byte[] body = "{\"message\":\"Bad credentials\"}".getBytes(StandardCharsets.UTF_8);
+                exchange.getResponseHeaders().add("Content-Type", "application/json");
+                exchange.sendResponseHeaders(401, body.length);
+                exchange.getResponseBody().write(body);
+                exchange.close();
+                return;
+            }
+
+            retryAuthorization.set(authorization);
+            byte[] body = """
+                {
+                  "items": [
+                    {
+                      "id": 789,
+                      "number": 11,
+                      "title": "Fix TypeScript docs",
+                      "body": "Good first issue for TypeScript contributors.",
+                      "repository_url": "https://api.github.com/repos/example/typescript-lib",
+                      "labels": [
+                        {"name": "good first issue"}
+                      ]
+                    }
+                  ]
+                }
+                """.getBytes(StandardCharsets.UTF_8);
+            exchange.getResponseHeaders().add("Content-Type", "application/json");
+            exchange.sendResponseHeaders(200, body.length);
+            exchange.getResponseBody().write(body);
+            exchange.close();
+        });
+        server.start();
+        GitHubRecommendedIssueSearchAdapter adapter = new GitHubRecommendedIssueSearchAdapter(
+            RestClient.builder(),
+            "http://localhost:" + server.getAddress().getPort(),
+            "expired-token",
+            true,
+            "label:\"good first issue\"",
+            1
+        );
+
+        List<RecommendedIssue> issues = adapter.searchRecommendedIssues("language:typescript label:\"good first issue\"");
+
+        assertThat(requests).hasValue(2);
+        assertThat(retryAuthorization.get()).isNull();
+        assertThat(issues)
+            .extracting(RecommendedIssue::repoFullName)
+            .containsExactly("example/typescript-lib");
+    }
+
+    @Test
+    void returnsEmptyListWhenGitHubSearchStillFails() throws IOException {
+        server = HttpServer.create(new InetSocketAddress(0), 0);
+        server.createContext("/search/issues", exchange -> {
+            byte[] body = "{\"message\":\"rate limited\"}".getBytes(StandardCharsets.UTF_8);
+            exchange.getResponseHeaders().add("Content-Type", "application/json");
+            exchange.sendResponseHeaders(403, body.length);
+            exchange.getResponseBody().write(body);
+            exchange.close();
+        });
+        server.start();
+        GitHubRecommendedIssueSearchAdapter adapter = new GitHubRecommendedIssueSearchAdapter(
+            RestClient.builder(),
+            "http://localhost:" + server.getAddress().getPort(),
+            "",
+            true,
+            "label:\"good first issue\"",
+            1
+        );
+
+        List<RecommendedIssue> issues = adapter.searchRecommendedIssues("language:java label:\"good first issue\"");
+
+        assertThat(issues).isEmpty();
     }
 
     @Test
