@@ -173,7 +173,7 @@ bash tools/smoke/run-ai-provider-smoke.sh
 
 dry-run은 OpenAI-compatible chat completion, OpenAI-compatible embedding, Vertex AI text generation, Vertex AI embedding, provider timeout/error observation, provider fallback path 순서를 출력합니다. live mode는 OpenAI-compatible endpoint를 직접 호출하며 Vertex AI live smoke는 credential이 주입된 backend/provider E2E smoke에서 확인합니다.
 
-AI prompt evaluation smoke는 `tools/smoke/ai-prompt-evaluation-fixtures.json` 샘플을 기준으로 이슈 가이드, PR 초안, 번역, parser fallback, provider failure 구분을 평가합니다. dry-run은 샘플별 planned evidence만 남기고, live mode는 OpenAI-compatible 응답에서 required/forbidden token, parser result, latency, token usage, failure reason을 기록합니다.
+AI prompt evaluation smoke는 `tools/smoke/ai-prompt-evaluation-fixtures.json` 샘플을 기준으로 이슈 가이드, PR 초안, 번역, parser fallback, provider failure 구분을 평가합니다. dry-run은 기본 샘플의 planned evidence와 negative-control 샘플의 품질 실패 사유를 함께 남깁니다. live mode는 OpenAI-compatible 응답에서 required/forbidden token, parser result, latency, token usage, target, failure reason을 기록합니다. `expected_result=failed` 샘플은 raw English 요약, generic 추천 이유, 과도한 symbol 나열, 추상 의사코드가 evaluator에서 거부되는지 확인하는 회귀 샘플입니다.
 
 ```bash
 AI_PROMPT_EVAL_ENABLED=true \

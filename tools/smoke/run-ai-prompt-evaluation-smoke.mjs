@@ -19,12 +19,20 @@ if (!["dry-run", "live"].includes(mode)) {
 
 const provider = process.env.AI_PROVIDER ?? "vertex-ai";
 const model = process.env.AI_CHAT_MODEL ?? process.env.VERTEX_AI_MODEL ?? "unknown";
+const target = process.env.AI_PROMPT_EVAL_TARGET_URL
+  ?? process.env.AI_API_BASE_URL
+  ?? "fixture://ai-prompt-evaluation-fixtures";
 
 printPlan();
 
 if (mode === "dry-run") {
-  const rows = rowsFor("planned", "dry-run");
-  await writeEvidence("dry-run", rows);
+  const rows = rowsForDryRun();
+  const expectationFailures = rows.filter((row) => row.expectationResult === "failed");
+  await writeEvidence(expectationFailures.length === 0 ? "pass" : "failed", rows);
+  if (expectationFailures.length > 0) {
+    console.error(`AI prompt evaluation dry-run failed for ${expectationFailures.length} expectation(s).`);
+    process.exit(1);
+  }
   console.log(`AI prompt evaluation dry-run completed for provider=${provider} model=${model}`);
   process.exit(0);
 }
@@ -50,6 +58,16 @@ if (missing.length > 0) {
 
 const rows = [];
 for (const sample of fixtureSet.samples) {
+  if (sample.mockOutput) {
+    const parserResult = evaluateContent(sample.mockOutput, sample);
+    rows.push(rowFor(sample, {
+      result: parserResult.ok ? "pass" : "failed",
+      parserResult: parserResult.ok ? "pass" : "failed",
+      failureReason: parserResult.reason,
+    }));
+    continue;
+  }
+
   if (sample.operation === "parser-fallback" || sample.operation === "provider-failure") {
     rows.push(rowFor(sample, {
       result: "planned",
@@ -83,10 +101,10 @@ for (const sample of fixtureSet.samples) {
   }
 }
 
-const failed = rows.filter((row) => row.result === "failed");
-await writeEvidence(failed.length === 0 ? "pass" : "failed", rows);
-if (failed.length > 0) {
-  console.error(`AI prompt evaluation failed for ${failed.length} fixture(s).`);
+const expectationFailures = rows.filter((row) => row.expectationResult === "failed");
+await writeEvidence(expectationFailures.length === 0 ? "pass" : "failed", rows);
+if (expectationFailures.length > 0) {
+  console.error(`AI prompt evaluation failed for ${expectationFailures.length} expectation(s).`);
   process.exit(1);
 }
 
@@ -162,11 +180,33 @@ function rowsFor(result, reason) {
   }));
 }
 
+function rowsForDryRun() {
+  return fixtureSet.samples.map((sample) => {
+    if (!sample.mockOutput) {
+      return rowFor(sample, {
+        result: "planned",
+        parserResult: "planned",
+        failureReason: "dry-run",
+      });
+    }
+    const parserResult = evaluateContent(sample.mockOutput, sample);
+    return rowFor(sample, {
+      result: parserResult.ok ? "pass" : "failed",
+      parserResult: parserResult.ok ? "pass" : "failed",
+      failureReason: parserResult.reason,
+    });
+  });
+}
+
 function rowFor(sample, overrides = {}) {
+  const result = overrides.result ?? "planned";
+  const expectedResult = sample.expectedResult ?? "pass";
   return {
     fixture: sample.fixture,
     operation: sample.operation,
-    result: overrides.result ?? "planned",
+    result,
+    expectedResult,
+    expectationResult: overrides.expectationResult ?? expectationFor(result, expectedResult),
     promptVersion: fixtureSet.promptVersion,
     model,
     latencyMillis: overrides.latencyMillis ?? "",
@@ -175,6 +215,13 @@ function rowFor(sample, overrides = {}) {
     parserResult: overrides.parserResult ?? "planned",
     failureReason: overrides.failureReason ?? "none",
   };
+}
+
+function expectationFor(result, expectedResult) {
+  if (result === "planned" || result === "skipped") {
+    return result;
+  }
+  return result === expectedResult ? "pass" : "failed";
 }
 
 async function writeEvidence(result, rows) {
@@ -191,15 +238,19 @@ async function writeEvidence(result, rows) {
     `- provider: ${provider}`,
     `- model: ${model}`,
     `- mode: ${mode}`,
+    `- target: ${target}`,
     `- result: ${result}`,
     "",
     "## smoke 결과",
     "",
-    "| fixture | result | prompt_version | model | latency_ms | input_tokens | output_tokens | parser_result | failure_reason |",
-    "| --- | --- | --- | --- | --- | --- | --- | --- | --- |",
+    "| fixture | operation | result | expected_result | expectation_result | prompt_version | model | latency_ms | input_tokens | output_tokens | parser_result | failure_reason |",
+    "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
     ...rows.map((row) => [
       row.fixture,
+      row.operation,
       row.result,
+      row.expectedResult,
+      row.expectationResult,
       row.promptVersion,
       row.model,
       row.latencyMillis,
