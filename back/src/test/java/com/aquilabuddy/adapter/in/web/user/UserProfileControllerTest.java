@@ -116,6 +116,24 @@ class UserProfileControllerTest {
     }
 
     @Test
+    void updatesCurrentUserProfileWhenTopicsAreEmpty() throws Exception {
+        mockMvc.perform(patch("/api/v1/users/me")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                      "name": "Aquila Maintainer",
+                      "email": "maintainer@example.com",
+                      "primaryLanguages": ["Java", "TypeScript"],
+                      "topics": []
+                    }
+                    """))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.topics").isArray())
+            .andExpect(jsonPath("$.data.topics").isEmpty());
+    }
+
+    @Test
     void updatesCurrentUserProfileWithQueryParameters() throws Exception {
         mockMvc.perform(patch("/api/v1/users/me")
                 .param("name", "Aquila Query Maintainer")

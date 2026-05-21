@@ -12,6 +12,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.http.HttpStatus;
@@ -122,7 +123,7 @@ public class UserProfileController {
         String email,
         @NotEmpty(message = "primaryLanguages는 비어 있을 수 없습니다.")
         List<@NotBlank(message = "primaryLanguages 항목은 비어 있을 수 없습니다.") String> primaryLanguages,
-        @NotEmpty(message = "topics는 비어 있을 수 없습니다.")
+        @NotNull(message = "topics는 null일 수 없습니다.")
         List<@NotBlank(message = "topics 항목은 비어 있을 수 없습니다.") String> topics
     ) {
 
