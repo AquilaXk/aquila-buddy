@@ -73,7 +73,7 @@ export default function IssueDetailPage() {
     setGuideError(null);
 
     try {
-      setGuide(await getIssueGuide(issueId));
+      setGuide(normalizeIssueGuide(await getIssueGuide(issueId)));
     } catch (caught) {
       setGuideError(caught instanceof Error ? caught.message : "가이드를 불러오지 못했습니다.");
     } finally {
@@ -86,7 +86,7 @@ export default function IssueDetailPage() {
     setPseudoError(null);
 
     try {
-      setPseudo(await getIssuePseudoCode(issueId));
+      setPseudo(normalizeIssuePseudoCode(await getIssuePseudoCode(issueId)));
     } catch (caught) {
       setPseudoError(caught instanceof Error ? caught.message : "의사 코드를 불러오지 못했습니다.");
     } finally {
@@ -283,13 +283,15 @@ export default function IssueDetailPage() {
   );
 }
 
-function FilePathList({ filePaths }: { filePaths: string[] }) {
+function FilePathList({ filePaths }: { filePaths?: string[] | null }) {
+  const safeFilePaths = normalizeStringArray(filePaths);
+
   return (
     <div>
       <p className="mb-2 text-xs font-semibold text-github-muted">수정 대상 파일</p>
-      {filePaths.length > 0 ? (
+      {safeFilePaths.length > 0 ? (
         <div className="space-y-1">
-          {filePaths.map((filePath) => (
+          {safeFilePaths.map((filePath) => (
             <code
               className="block rounded-md bg-github-bg px-3 py-1.5 text-xs font-semibold text-github-accent"
               key={filePath}
@@ -305,6 +307,27 @@ function FilePathList({ filePaths }: { filePaths: string[] }) {
       )}
     </div>
   );
+}
+
+function normalizeIssueGuide(guide: IssueGuide): IssueGuide {
+  return {
+    ...guide,
+    filePaths: normalizeStringArray(guide.filePaths),
+    sideEffects: normalizeStringArray(guide.sideEffects)
+  };
+}
+
+function normalizeIssuePseudoCode(pseudo: IssuePseudoCode): IssuePseudoCode {
+  return {
+    ...pseudo,
+    filePaths: normalizeStringArray(pseudo.filePaths)
+  };
+}
+
+function normalizeStringArray(value: unknown) {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string" && item.trim().length > 0)
+    : [];
 }
 
 async function loadIssueById(issueId: string): Promise<IssueDetailIssue | null> {

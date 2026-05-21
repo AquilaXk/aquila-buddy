@@ -54,6 +54,9 @@ assertIncludes(navbar, "export default function Navbar()", "Navbar must be the d
 assertIncludes(navbar, "aria-label=\"Primary\"", "Navbar must keep an accessible primary navigation label.");
 assertIncludes(navbar, "sticky top-0 z-50 border-b border-github-border", "Navbar root shell class changed.");
 assertIncludes(navbar, "bg-github-surface/95", "Navbar must keep the gothic surface treatment.");
+assertIncludes(navbar, "min-h-16", "Navbar must allow the mobile header height to grow instead of squeezing labels.");
+assertIncludes(navbar, "flex-wrap", "Navbar must wrap actions on narrow mobile viewports.");
+assertIncludes(navbar, "sm:flex-row", "Navbar must restore the horizontal desktop layout at the small breakpoint.");
 assertIncludes(navbar, "/brand-mascot-bank.png", "Navbar must render the brand image.");
 assertIncludes(navbar, "aquila buddy", "Navbar must show the service name.");
 assertIncludes(navbar, "clearAuthState();", "Navbar logout must clear the local auth marker.");

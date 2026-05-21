@@ -45,6 +45,11 @@ assertIncludes("getIssueGuide", "Issue detail page must request the guide on dem
 assertIncludes("getIssuePseudoCode", "Issue detail page must request pseudo code on demand.");
 assertIncludes("handleGetGuide", "Issue detail page must expose a guide request handler.");
 assertIncludes("handleGetPseudo", "Issue detail page must expose a pseudo code request handler.");
+assertIncludes("normalizeIssueGuide", "Issue detail page must normalize guide responses before rendering optional arrays.");
+assertIncludes("normalizeIssuePseudoCode", "Issue detail page must normalize pseudo-code responses before rendering optional arrays.");
+assertIncludes("setGuide(normalizeIssueGuide(await getIssueGuide(issueId)))", "Guide handler must store a normalized guide response.");
+assertIncludes("setPseudo(normalizeIssuePseudoCode(await getIssuePseudoCode(issueId)))", "Pseudo handler must store a normalized pseudo-code response.");
+assertIncludes("Array.isArray", "Issue detail page must guard optional array fields with Array.isArray.");
 assertIncludes("이슈를 찾을 수 없습니다.", "Issue detail page must keep the not-found state.");
 assertIncludes("← 추천 이슈 목록", "Issue detail page must link back to the issues list.");
 assertIncludes("추천 이유", "Issue detail page must show the recommendation reason.");

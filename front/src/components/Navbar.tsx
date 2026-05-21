@@ -37,10 +37,10 @@ export default function Navbar() {
       aria-label="Primary"
       className="sticky top-0 z-50 border-b border-github-border bg-github-surface/95 shadow-[0_14px_30px_rgba(0,0,0,0.32)]"
     >
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
+      <div className="mx-auto flex min-h-16 max-w-6xl flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:py-0">
         <Link
           href="/dashboard"
-          className="focus-ring flex items-center gap-3 text-lg font-bold text-github-text transition-colors hover:text-github-purple-light"
+          className="focus-ring flex shrink-0 items-center gap-3 text-lg font-bold text-github-text transition-colors hover:text-github-purple-light"
         >
           <span className="grid h-9 w-9 place-items-center rounded-md border border-github-accent/70 bg-github-bg shadow-inner shadow-black/40">
             <img alt="" className="h-7 w-7 object-contain" height="28" src="/brand-mascot-bank.png" width="28" />
@@ -48,7 +48,7 @@ export default function Navbar() {
           <span>aquila buddy</span>
         </Link>
 
-        <div className="flex items-center gap-1">
+        <div className="flex w-full flex-wrap items-center gap-1 sm:w-auto sm:justify-end">
           {navLinks.map((link) => (
             <Link
               key={link.href}
@@ -63,7 +63,7 @@ export default function Navbar() {
             </Link>
           ))}
           <button
-            className="ml-3 rounded-md border border-transparent px-3 py-1.5 text-sm font-semibold text-github-muted transition-colors hover:border-red-400/30 hover:bg-red-500/10 hover:text-red-400"
+            className="rounded-md border border-transparent px-3 py-1.5 text-sm font-semibold text-github-muted transition-colors hover:border-red-400/30 hover:bg-red-500/10 hover:text-red-400 sm:ml-3"
             onClick={handleLogout}
             type="button"
           >

@@ -41,8 +41,8 @@ export default function DashboardPage() {
   }, []);
 
   const displayName = user?.name || user?.login || (user?.githubId ? String(user.githubId) : "");
-  const vectorUpdatedAt = user?.profileReady && user.vectorUpdatedAt ? user.vectorUpdatedAt : null;
-  const hasVector = Boolean(vectorUpdatedAt);
+  const vectorUpdatedAt = user?.vectorUpdatedAt ?? null;
+  const hasVector = Boolean(user?.profileReady || user?.vectorUpdatedAt);
 
   return (
     <ProtectedLayout>
