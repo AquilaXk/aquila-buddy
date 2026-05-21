@@ -41,6 +41,7 @@ export default function DashboardPage() {
   }, []);
 
   const displayName = user?.name || user?.login || (user?.githubId ? String(user.githubId) : "");
+  const greetingTarget = loading ? "..." : displayName ? `${displayName}님` : "사용자님";
   const vectorUpdatedAt = user?.vectorUpdatedAt ?? null;
   const hasVector = Boolean(user?.profileReady || user?.vectorUpdatedAt);
 
@@ -48,8 +49,9 @@ export default function DashboardPage() {
     <ProtectedLayout>
       <section className="mb-8 space-y-3">
         <p className="text-sm font-semibold uppercase tracking-wide text-github-muted">Dashboard</p>
-        <h1 className="text-3xl font-bold leading-tight text-github-text">
-          안녕하세요, {loading ? "..." : displayName ? `${displayName}님` : "사용자님"}
+        <h1 className="text-2xl sm:text-3xl font-bold leading-tight text-github-text">
+          <span>안녕하세요,</span>{" "}
+          <span className="inline-block max-w-full break-words align-bottom">{greetingTarget}</span>
         </h1>
         <p className="max-w-2xl text-base leading-7 text-github-muted">
           aquila buddy — OpenSource contribution assistant 대시보드
