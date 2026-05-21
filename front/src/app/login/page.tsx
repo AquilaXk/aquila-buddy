@@ -45,10 +45,6 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             로그인하면 GitHub 프로필 정보를 사용에 동의하는 것으로 간주합니다.
           </p>
         </section>
-
-        <p className="mt-4 text-center text-xs text-github-muted">
-          백엔드 서버: <span className="text-github-accent">localhost:8080</span>
-        </p>
       </div>
     </main>
   );
