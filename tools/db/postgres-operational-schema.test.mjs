@@ -7,6 +7,16 @@ const deployScript = readFileSync("deploy/oci/run-aquila-buddy.sh", "utf8");
 
 test("operational schema patch restores columns missing from existing OCI databases", () => {
   assert.match(operationalSql, /ALTER TABLE user_profiles\s+ADD COLUMN IF NOT EXISTS avatar_url VARCHAR\(1000\)/);
+  assert.match(operationalSql, /ALTER TABLE refresh_token_sessions\s+ADD COLUMN IF NOT EXISTS family_id VARCHAR\(64\)/);
+  assert.match(operationalSql, /ALTER TABLE refresh_token_sessions\s+ADD COLUMN IF NOT EXISTS github_id BIGINT/);
+  assert.match(operationalSql, /ALTER TABLE refresh_token_sessions\s+ADD COLUMN IF NOT EXISTS issued_at TIMESTAMP/);
+  assert.match(operationalSql, /ALTER TABLE refresh_token_sessions\s+ADD COLUMN IF NOT EXISTS expires_at TIMESTAMP/);
+  assert.match(operationalSql, /ALTER TABLE refresh_token_sessions\s+ADD COLUMN IF NOT EXISTS replaced_by_token_hash VARCHAR\(64\)/);
+  assert.match(operationalSql, /ALTER TABLE refresh_token_sessions\s+ALTER COLUMN family_id SET NOT NULL/);
+  assert.match(operationalSql, /ALTER TABLE refresh_token_sessions\s+ALTER COLUMN github_id SET NOT NULL/);
+  assert.match(operationalSql, /ALTER TABLE refresh_token_sessions\s+ALTER COLUMN issued_at SET NOT NULL/);
+  assert.match(operationalSql, /ALTER TABLE refresh_token_sessions\s+ALTER COLUMN expires_at SET NOT NULL/);
+  assert.match(operationalSql, /fk_refresh_token_sessions_profile/);
   assert.match(operationalSql, /ALTER TABLE pr_drafts\s+ADD COLUMN IF NOT EXISTS owner_github_id BIGINT/);
   assert.match(operationalSql, /ALTER TABLE pr_drafts\s+ALTER COLUMN owner_github_id SET NOT NULL/);
   assert.match(operationalSql, /fk_pr_drafts_owner/);

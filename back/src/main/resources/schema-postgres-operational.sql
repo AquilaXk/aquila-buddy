@@ -16,6 +16,98 @@ CREATE TABLE IF NOT EXISTS refresh_token_sessions (
         ON DELETE CASCADE
 );
 
+ALTER TABLE refresh_token_sessions
+    ADD COLUMN IF NOT EXISTS token_hash VARCHAR(64);
+
+ALTER TABLE refresh_token_sessions
+    ADD COLUMN IF NOT EXISTS family_id VARCHAR(64);
+
+ALTER TABLE refresh_token_sessions
+    ADD COLUMN IF NOT EXISTS github_id BIGINT;
+
+ALTER TABLE refresh_token_sessions
+    ADD COLUMN IF NOT EXISTS issued_at TIMESTAMP;
+
+ALTER TABLE refresh_token_sessions
+    ADD COLUMN IF NOT EXISTS expires_at TIMESTAMP;
+
+ALTER TABLE refresh_token_sessions
+    ADD COLUMN IF NOT EXISTS rotated_at TIMESTAMP;
+
+ALTER TABLE refresh_token_sessions
+    ADD COLUMN IF NOT EXISTS revoked_at TIMESTAMP;
+
+ALTER TABLE refresh_token_sessions
+    ADD COLUMN IF NOT EXISTS replaced_by_token_hash VARCHAR(64);
+
+UPDATE refresh_token_sessions
+SET family_id = token_hash
+WHERE family_id IS NULL
+    AND token_hash IS NOT NULL;
+
+UPDATE refresh_token_sessions
+SET issued_at = CURRENT_TIMESTAMP
+WHERE issued_at IS NULL;
+
+UPDATE refresh_token_sessions
+SET expires_at = CURRENT_TIMESTAMP
+WHERE expires_at IS NULL;
+
+DELETE FROM refresh_token_sessions
+WHERE token_hash IS NULL
+    OR family_id IS NULL
+    OR github_id IS NULL
+    OR issued_at IS NULL
+    OR expires_at IS NULL;
+
+ALTER TABLE refresh_token_sessions
+    ALTER COLUMN token_hash SET NOT NULL;
+
+ALTER TABLE refresh_token_sessions
+    ALTER COLUMN family_id SET NOT NULL;
+
+ALTER TABLE refresh_token_sessions
+    ALTER COLUMN github_id SET NOT NULL;
+
+ALTER TABLE refresh_token_sessions
+    ALTER COLUMN issued_at SET NOT NULL;
+
+ALTER TABLE refresh_token_sessions
+    ALTER COLUMN expires_at SET NOT NULL;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conrelid = 'public.refresh_token_sessions'::regclass
+            AND contype = 'p'
+    ) THEN
+        ALTER TABLE refresh_token_sessions
+            ADD CONSTRAINT refresh_token_sessions_pkey
+            PRIMARY KEY (token_hash);
+    END IF;
+END
+$$;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'fk_refresh_token_sessions_profile'
+            AND conrelid = 'public.refresh_token_sessions'::regclass
+    ) THEN
+        ALTER TABLE refresh_token_sessions
+            ADD CONSTRAINT fk_refresh_token_sessions_profile
+            FOREIGN KEY (github_id)
+            REFERENCES user_profiles(github_id)
+            ON DELETE CASCADE
+            NOT VALID;
+    END IF;
+END
+$$;
+
 CREATE TABLE IF NOT EXISTS user_profile_primary_languages (
     user_github_id BIGINT NOT NULL,
     language_order INTEGER NOT NULL,

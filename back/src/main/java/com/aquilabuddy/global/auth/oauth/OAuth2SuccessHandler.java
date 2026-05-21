@@ -16,6 +16,8 @@ import java.io.IOException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
+import org.springframework.security.oauth2.core.OAuth2Error;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
 
@@ -52,8 +54,14 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
         Authentication authentication
     ) throws IOException, ServletException {
         OAuthPrincipal principal = (OAuthPrincipal) authentication.getPrincipal();
-        String token = jwtProvider.generateToken(principal.githubId());
-        RefreshTokenSession refreshTokenSession = refreshTokenSessionService.issue(principal.githubId());
+        String token;
+        RefreshTokenSession refreshTokenSession;
+        try {
+            token = jwtProvider.generateToken(principal.githubId());
+            refreshTokenSession = refreshTokenSessionService.issue(principal.githubId());
+        } catch (RuntimeException exception) {
+            throw oauthException("refresh_session_failed", "OAuth refresh session 발급에 실패했습니다.", exception);
+        }
 
         response.addHeader(
             HttpHeaders.SET_COOKIE,
@@ -71,5 +79,9 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
             ).toString()
         );
         response.sendRedirect(redirectUri);
+    }
+
+    private static OAuth2AuthenticationException oauthException(String code, String description, Throwable cause) {
+        return new OAuth2AuthenticationException(new OAuth2Error(code, description, null), description, cause);
     }
 }

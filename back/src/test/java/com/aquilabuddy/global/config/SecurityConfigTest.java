@@ -257,6 +257,32 @@ class SecurityConfigTest {
     }
 
     @Test
+    void callbackProfileSyncFailureRedirectsWithSpecificErrorCode() throws Exception {
+        MvcResult authorization = mockMvc.perform(get("/oauth2/authorization/github"))
+            .andExpect(status().isFound())
+            .andReturn();
+        MockHttpServletResponse authorizationResponse = authorization.getResponse();
+        Cookie authorizationCookie = authorizationResponse.getCookie(
+            CookieOAuth2AuthorizationRequestRepository.AUTHORIZATION_REQUEST_COOKIE_NAME
+        );
+        String state = stateFromLocation(authorizationResponse.getHeader(HttpHeaders.LOCATION));
+        org.mockito.BDDMockito.given(gitHubOAuthClient.exchangeCode(org.mockito.ArgumentMatchers.eq("code-123"), org.mockito.ArgumentMatchers.anyString()))
+            .willReturn(new GitHubOAuthAccessToken("gho_token"));
+        org.mockito.BDDMockito.given(gitHubOAuthClient.loadUser("gho_token"))
+            .willReturn(new GitHubOAuthUser(12345L, "aquila-dev", "Aquila", "aquila@example.com"));
+
+        mockMvc.perform(get("/login/oauth2/code/github")
+                .param("code", "code-123")
+                .param("state", state)
+                .cookie(authorizationCookie))
+            .andExpect(status().isFound())
+            .andExpect(header().string(
+                HttpHeaders.LOCATION,
+                "https://buddy.aquilaxk.site/oauth/callback?error=profile_sync_failed"
+            ));
+    }
+
+    @Test
     void refreshRotatesRefreshCookieAndRejectsReuse() throws Exception {
         Cookie refreshCookie = loginAndExtractRefreshCookie();
 
