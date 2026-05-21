@@ -87,6 +87,7 @@ CREATE TABLE issue_guides (
     issue_id VARCHAR(100) PRIMARY KEY,
     guideline VARCHAR(4000) NOT NULL,
     pseudo_code VARCHAR(4000) NOT NULL,
+    output_version VARCHAR(120) NOT NULL DEFAULT 'issue-guide-output-v2026-05-21',
     generated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 

@@ -113,7 +113,12 @@ public class RecommendedIssueService implements
         } catch (RuntimeException ignored) {
             // 외부 검색 장애가 추천 API 전체 실패로 번지지 않도록 저장 데이터 fallback을 유지합니다.
         }
-        return rankRecommendedIssuesPort.rankRecommendedIssues(loadRecommendedIssuesPort.loadRecommendedIssues());
+        List<RecommendedIssue> storedIssues = List.copyOf(loadRecommendedIssuesPort.loadRecommendedIssues());
+        List<RecommendedIssue> summarizedStoredIssues = summarizeSafely(storedIssues);
+        if (!summarizedStoredIssues.equals(storedIssues)) {
+            saveRecommendedIssuesPort.saveRecommendedIssues(summarizedStoredIssues);
+        }
+        return rankRecommendedIssuesPort.rankRecommendedIssues(summarizedStoredIssues);
     }
 
     /**

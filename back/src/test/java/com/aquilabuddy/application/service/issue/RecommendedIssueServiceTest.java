@@ -208,6 +208,39 @@ class RecommendedIssueServiceTest {
     }
 
     @Test
+    void summarizesStoredFallbackIssuesBeforeSavingRankingAndReturningWhenSearchFails() {
+        RecommendedIssue stored = issue(
+            "stored-english",
+            "suzumiyaaoba/thymeleaf-snapshot",
+            6,
+            "Problem Snapshot validates by checking isEmpty(), so whitespace input passes and fails later."
+        );
+        RecommendedIssue summarized = withSummary(
+            stored,
+            "템플릿 입력값이 공백만 있어도 검증을 통과해 나중에 Thymeleaf 처리 단계에서 실패하는 문제입니다."
+        );
+        RecordingSaveRecommendedIssuesPort savePort = new RecordingSaveRecommendedIssuesPort();
+        RecordingRankRecommendedIssuesPort rankPort = new RecordingRankRecommendedIssuesPort(List.of(summarized));
+        RecordingSummarizeRecommendedIssuePort summaryPort = new RecordingSummarizeRecommendedIssuePort(List.of(summarized));
+        RecommendedIssueService service = new RecommendedIssueService(
+            new CountingLoadRecommendedIssuesPort(List.of(stored)),
+            new CountingLoadRecommendedIssuesPort(List.of(stored)),
+            new InMemoryFindRecommendedIssuePort(List.of(stored)),
+            savePort,
+            failingSearchPort(),
+            rankPort,
+            summaryPort
+        );
+
+        List<RecommendedIssue> result = service.recommend();
+
+        assertThat(result).containsExactly(summarized);
+        assertThat(summaryPort.receivedIssues()).containsExactly(stored);
+        assertThat(savePort.savedIssues()).containsExactly(summarized);
+        assertThat(rankPort.receivedIssues()).containsExactly(summarized);
+    }
+
+    @Test
     void returnsStoredIssuesAsRecommendationHistory() {
         RecommendedIssue stored = issue("stored", "vercel/next.js", 1);
         RecommendedIssueService service = new RecommendedIssueService(

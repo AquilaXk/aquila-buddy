@@ -518,15 +518,18 @@ class AiEnvironmentExamplesTest {
         String fixtures = Files.readString(Path.of("../tools/smoke/ai-prompt-evaluation-fixtures.json"));
 
         assertThat(fixtures)
-            .contains("\"promptVersion\": \"ai-output-quality-v2026-05-18\"")
+            .contains("\"promptVersion\": \"ai-output-quality-v2026-05-21\"")
             .contains("\"fixture\": \"issue-guide-code-context\"")
+            .contains("\"fixture\": \"recommendation-summary-korean\"")
             .contains("\"fixture\": \"pr-draft-markdown-close\"")
             .contains("\"fixture\": \"pr-translation-english\"")
             .contains("\"fixture\": \"pr-draft-parser-fallback\"")
             .contains("\"fixture\": \"provider-failure-observation\"")
-            .contains("\"requires\": [\"GUIDELINE\", \"PSEUDO_CODE\", \"SIDE_EFFECTS\"]")
+            .contains("\"requires\": [\"GUIDELINE\", \"PSEUDO_CODE\", \"SIDE_EFFECTS\", \"GIVEN\", \"CALL\", \"ASSERT\"]")
+            .contains("\"requiresRegex\": [\"[가-힣]\"]")
             .contains("\"requires\": [\"TITLE\", \"BODY\", \"close #2\", \"## Summary\"]")
-            .contains("\"forbids\": [\"README 안내를 보완합니다\"]");
+            .contains("\"forbids\": [\"README 안내를 보완합니다\"]")
+            .contains("\"forbids\": [\"Problem Snapshot\", \"**Description**\", \"1. \"]");
     }
 
     @Test
@@ -544,13 +547,15 @@ class AiEnvironmentExamplesTest {
         assertThat(result.output())
             .contains("AI prompt evaluation path:")
             .contains("issue-guide-code-context")
+            .contains("recommendation-summary-korean")
             .contains("pr-draft-markdown-close")
             .contains("pr-translation-english");
         assertThat(Files.readString(evidenceFile))
             .contains("# AI Prompt Evaluation Evidence")
-            .contains("- prompt_version: ai-output-quality-v2026-05-18")
+            .contains("- prompt_version: ai-output-quality-v2026-05-21")
             .contains("- model: gpt-test")
             .contains("| issue-guide-code-context | planned |")
+            .contains("| recommendation-summary-korean | planned |")
             .contains("| pr-draft-parser-fallback | planned |")
             .contains("parser_result");
     }

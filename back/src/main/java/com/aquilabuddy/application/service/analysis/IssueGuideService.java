@@ -11,6 +11,7 @@ import com.aquilabuddy.application.port.out.analysis.SaveIssueGuidePort;
 import com.aquilabuddy.application.port.out.issue.FindRecommendedIssuePort;
 import com.aquilabuddy.domain.analysis.CachedIssueGuide;
 import com.aquilabuddy.domain.analysis.IssueGuide;
+import com.aquilabuddy.domain.analysis.IssueGuideOutputContract;
 import com.aquilabuddy.domain.analysis.IssueGuideWorkflow;
 import com.aquilabuddy.domain.analysis.IssuePseudoCode;
 import com.aquilabuddy.domain.analysis.RepositoryCodeContext;
@@ -126,6 +127,11 @@ public class IssueGuideService implements GetIssueGuideUseCase, GetIssuePseudoCo
     }
 
     private boolean canReuseCachedGuide(String issueId, CachedIssueGuide cachedGuide) {
+        // 출력 계약이 바뀐 뒤에는 TTL이 남아 있어도 기존 저품질 캐시를 재생성한다.
+        if (!IssueGuideOutputContract.isCurrent(cachedGuide.outputVersion())) {
+            return false;
+        }
+
         Instant expiresAt = cachedGuide.generatedAt().plus(cacheTtl);
         if (!expiresAt.isBefore(clock.instant())) {
             return true;

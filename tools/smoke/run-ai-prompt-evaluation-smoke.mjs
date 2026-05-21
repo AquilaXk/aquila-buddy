@@ -135,13 +135,21 @@ function evaluateContent(content, sample) {
   if (!content.trim()) {
     return { ok: false, reason: "empty provider response" };
   }
-  const missing = sample.requires.filter((token) => !content.includes(token));
+  const missing = (sample.requires ?? []).filter((token) => !content.includes(token));
   if (missing.length > 0) {
     return { ok: false, reason: `missing required output token(s): ${missing.join(", ")}` };
   }
-  const forbidden = sample.forbids.filter((token) => content.includes(token));
+  const missingRegex = (sample.requiresRegex ?? []).filter((pattern) => !new RegExp(pattern, "u").test(content));
+  if (missingRegex.length > 0) {
+    return { ok: false, reason: `missing required output pattern(s): ${missingRegex.join(", ")}` };
+  }
+  const forbidden = (sample.forbids ?? []).filter((token) => content.includes(token));
   if (forbidden.length > 0) {
     return { ok: false, reason: `forbidden output token(s): ${forbidden.join(", ")}` };
+  }
+  const forbiddenRegex = (sample.forbidsRegex ?? []).filter((pattern) => new RegExp(pattern, "u").test(content));
+  if (forbiddenRegex.length > 0) {
+    return { ok: false, reason: `forbidden output pattern(s): ${forbiddenRegex.join(", ")}` };
   }
   return { ok: true, reason: "none" };
 }

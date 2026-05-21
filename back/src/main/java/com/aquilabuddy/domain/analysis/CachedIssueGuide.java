@@ -8,11 +8,19 @@ import java.util.Objects;
  */
 public record CachedIssueGuide(
     IssueGuide guide,
-    Instant generatedAt
+    Instant generatedAt,
+    String outputVersion
 ) {
+
+    public CachedIssueGuide(IssueGuide guide, Instant generatedAt) {
+        this(guide, generatedAt, IssueGuideOutputContract.CURRENT_VERSION);
+    }
 
     public CachedIssueGuide {
         guide = Objects.requireNonNull(guide, "guide must not be null");
         generatedAt = generatedAt == null ? Instant.EPOCH : generatedAt;
+        outputVersion = outputVersion == null || outputVersion.isBlank()
+            ? IssueGuideOutputContract.LEGACY_VERSION
+            : outputVersion.trim();
     }
 }

@@ -47,7 +47,7 @@ INSERT INTO recommended_issues (
     'vercel/next.js',
     1,
     'Improve contributor-facing documentation',
-    '문서 중심 첫 기여 흐름을 확인하기 좋은 이슈입니다.',
+    '첫 기여자가 문서를 따라가며 막히는 부분을 줄이도록 기여 안내 문장과 예시를 더 명확하게 정리하는 이슈입니다.',
     0.91,
     'OPEN',
     '프론트엔드와 문서 작업으로 첫 PR 흐름을 작게 검증할 수 있습니다.'
@@ -57,7 +57,7 @@ INSERT INTO recommended_issues (
     'spring-projects/spring-boot',
     2,
     'Refine validation error example',
-    'Java/Spring 관심사와 맞는 validation 예시 개선 이슈입니다.',
+    '검증 실패 응답과 예시 코드가 실제 동작을 잘 설명하도록 Java/Spring validation 흐름을 보완하는 이슈입니다.',
     0.87,
     'OPEN',
     '현재 Java 21 + Spring 작업 스택과 직접 맞닿아 있습니다.'
@@ -76,23 +76,27 @@ INSERT INTO recommended_issue_labels (
 INSERT INTO issue_guides (
     issue_id,
     guideline,
-    pseudo_code
+    pseudo_code,
+    output_version
 ) VALUES
 (
     'demo-1',
-    '변경 범위를 작게 유지하면서 현재 문서 흐름과 실제 첫 기여 절차가 어긋나는 지점을 보완합니다.',
-    '1. 상세 화면에서 제공하는 이슈 요약과 라벨을 확인한다.
-2. 누락된 안내 문장을 테스트 가능한 단위로 나눈다.
-3. 한 번에 하나의 문단 또는 예시만 수정한다.
-4. 변경 후 화면과 테스트에서 동일한 용어가 쓰이는지 확인한다.'
+    'front/src/app/issues/[id]/page.tsx의 상세 안내 문구가 실제 첫 기여 흐름과 어긋나는 조건을 먼저 확인하고, 누락된 안내를 작은 문단 단위로 보완합니다.',
+    'GIVEN issue detail page renders contributor guidance
+WHEN the current copy skips the first contribution step
+CALL update_guidance_copy_with_matching_terms()
+ASSERT issue detail page and related API text use the same wording',
+    'issue-guide-output-v2026-05-21'
 ),
 (
     'demo-2',
-    '입력 검증 흐름을 따라가며 실패 응답 메시지와 예시 코드를 함께 정리합니다.',
-    '1. 검증 대상 입력과 실패 조건을 확인한다.
-2. 현재 실패 응답 형식을 테스트로 고정한다.
-3. 예시 코드와 설명을 같은 용어로 맞춘다.
-4. 정상 입력과 실패 입력을 모두 재검증한다.'
+    'IssueGuideController의 입력 검증 실패 조건을 테스트로 고정한 뒤, 실패 응답 메시지와 예시 코드가 같은 용어를 쓰도록 정리합니다.',
+    'GIVEN IssueGuideController receives invalid guide input
+WHEN validation returns the failure response
+CALL add_regression_test_for_error_message()
+CALL align_example_code_with_response_terms()
+ASSERT valid and invalid inputs are both verified',
+    'issue-guide-output-v2026-05-21'
 );
 
 INSERT INTO issue_guide_side_effects (

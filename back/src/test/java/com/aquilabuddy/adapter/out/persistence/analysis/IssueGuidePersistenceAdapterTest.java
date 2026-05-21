@@ -2,7 +2,9 @@ package com.aquilabuddy.adapter.out.persistence.analysis;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.aquilabuddy.domain.analysis.CachedIssueGuide;
 import com.aquilabuddy.domain.analysis.IssueGuide;
+import com.aquilabuddy.domain.analysis.IssueGuideOutputContract;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -69,5 +71,36 @@ class IssueGuidePersistenceAdapterTest {
 
         assertThat(guide.filePaths()).isEmpty();
         assertThat(guide.guideline()).contains("기존 저장 데이터");
+    }
+
+    @Test
+    void loadsCurrentOutputVersionForSavedIssueGuideCache() {
+        IssueGuide guide = new IssueGuide(
+            "demo-current",
+            "검증 흐름의 실패 조건을 먼저 테스트로 고정합니다.",
+            "GIVEN validation controller\nWHEN blank input is submitted\nCALL validation endpoint\nASSERT bad request",
+            List.of("응답 메시지 기대값이 바뀔 수 있습니다.")
+        );
+
+        adapter.saveIssueGuide(guide);
+
+        CachedIssueGuide cachedGuide = adapter.loadCachedIssueGuide("demo-current");
+        assertThat(cachedGuide.outputVersion()).isEqualTo(IssueGuideOutputContract.CURRENT_VERSION);
+    }
+
+    @Test
+    void loadsLegacyOutputVersionForOldIssueGuideCache() {
+        repository.save(new IssueGuideJpaEntity(
+            "legacy-version",
+            "기존 저장 데이터는 낮은 품질일 수 있습니다.",
+            "1. 기존 설명을 읽는다.\n2. 그대로 표시한다.",
+            List.of(),
+            List.of(),
+            IssueGuideOutputContract.LEGACY_VERSION
+        ));
+
+        CachedIssueGuide cachedGuide = adapter.loadCachedIssueGuide("legacy-version");
+
+        assertThat(cachedGuide.outputVersion()).isEqualTo(IssueGuideOutputContract.LEGACY_VERSION);
     }
 }
