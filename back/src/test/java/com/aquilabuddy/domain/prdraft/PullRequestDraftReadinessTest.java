@@ -44,6 +44,32 @@ class PullRequestDraftReadinessTest {
     }
 
     @Test
+    void recognizesEnglishTestsHeadingAsTestPlan() {
+        StoredPullRequestDraft draft = new StoredPullRequestDraft(
+            "draft-english-tests",
+            "spring-projects/spring-boot",
+            2,
+            "main",
+            "feat/validation-docs",
+            "docs: spring-projects/spring-boot#2 update",
+            """
+                ## Summary
+                - Improve validation docs.
+
+                ## Tests
+                - ./gradlew check
+                """,
+            "issue-2",
+            Instant.parse("2026-05-15T00:00:00Z")
+        );
+
+        PullRequestDraftReadiness readiness = PullRequestDraftReadiness.from(draft);
+
+        assertThat(readiness.readyCount()).isEqualTo(4);
+        assertThat(readiness.items().get(3).status()).isEqualTo(PullRequestDraftReadinessStatus.READY);
+    }
+
+    @Test
     void marksChecklistItemsActionRequiredWhenDraftNeedsReview() {
         StoredPullRequestDraft draft = new StoredPullRequestDraft(
             "draft-2",

@@ -21,7 +21,7 @@ public record PullRequestDraftReadiness(
         boolean hasBranchFlow = !draft.baseBranch().equals(draft.headBranch());
         boolean hasSubmitTitle = draft.title().length() <= 120;
         boolean hasStructuredBody = draft.body().contains("## ") && draft.body().lines().count() >= 3;
-        boolean hasTestPlan = containsAny(draft.body(), "테스트", "test plan");
+        boolean hasTestPlan = containsAny(draft.body(), "테스트", "검증", "test plan", "tests", "testing");
 
         List<PullRequestDraftReadinessItem> items = List.of(
             new PullRequestDraftReadinessItem(
@@ -71,10 +71,14 @@ public record PullRequestDraftReadiness(
         return ready ? PullRequestDraftReadinessStatus.READY : PullRequestDraftReadinessStatus.ACTION_REQUIRED;
     }
 
-    private static boolean containsAny(String body, String firstNeedle, String secondNeedle) {
+    private static boolean containsAny(String body, String... needles) {
         String normalized = body.toLowerCase(Locale.ROOT);
 
-        return normalized.contains(firstNeedle.toLowerCase(Locale.ROOT))
-            || normalized.contains(secondNeedle.toLowerCase(Locale.ROOT));
+        for (String needle : needles) {
+            if (normalized.contains(needle.toLowerCase(Locale.ROOT))) {
+                return true;
+            }
+        }
+        return false;
     }
 }

@@ -71,6 +71,9 @@ class AiGeneratedOutputQualityRegressionTest {
             BODY: ## Summary
             - Clarify the validation message for the linked issue.
 
+            ## Checklist
+            - [ ] Tests added or updated
+
             ## Changes
             - Add validation example from the diff.
             - Apply the issue guide implementation note.
@@ -86,6 +89,8 @@ class AiGeneratedOutputQualityRegressionTest {
         assertSubmittablePullRequestDraft(draft, 2);
         assertThat(draft.body())
             .contains("## Summary")
+            .contains("## Checklist")
+            .contains("- [ ] Tests added or updated")
             .contains("## Changes")
             .contains("## Tests")
             .contains("validation message")
@@ -94,6 +99,8 @@ class AiGeneratedOutputQualityRegressionTest {
         assertThat(aiClient.userPrompt)
             .contains("Diff:")
             .contains("+Add validation example")
+            .contains("Repository draft format")
+            .contains("Required PR checkboxes:")
             .contains("Issue context:")
             .contains("Analysis context:");
     }
@@ -229,7 +236,7 @@ class AiGeneratedOutputQualityRegressionTest {
             "diff --git a/docs.adoc b/docs.adoc\n+Add validation example",
             new PullRequestDraftRepositoryGuideContext(
                 "Run tests before PR.",
-                "## Summary\n- Describe changes",
+                "## Summary\n- Describe changes\n\n## Checklist\n- [ ] Tests added or updated",
                 List.of("## Summary\n- Improve docs")
             ),
             new PullRequestDraftIssueContext(
