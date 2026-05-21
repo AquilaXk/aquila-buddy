@@ -19,15 +19,6 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/AquilaXk/aquila-buddy/actions/workflows/ci.yml">
-    <img src="https://github.com/AquilaXk/aquila-buddy/actions/workflows/ci.yml/badge.svg" alt="CI" />
-  </a>
-  <a href="https://github.com/AquilaXk/aquila-buddy/actions/workflows/provider-e2e-smoke.yml">
-    <img src="https://github.com/AquilaXk/aquila-buddy/actions/workflows/provider-e2e-smoke.yml/badge.svg" alt="Provider E2E Smoke" />
-  </a>
-  <a href="https://github.com/AquilaXk/aquila-buddy/actions/workflows/extension-github-live-smoke.yml">
-    <img src="https://github.com/AquilaXk/aquila-buddy/actions/workflows/extension-github-live-smoke.yml/badge.svg" alt="Extension GitHub Live Smoke" />
-  </a>
   <img src="https://img.shields.io/badge/Java-21-007396?style=flat-square" alt="Java 21" />
   <img src="https://img.shields.io/badge/Spring_Boot-3.5.9-6DB33F?style=flat-square" alt="Spring Boot 3.5.9" />
   <img src="https://img.shields.io/badge/Next.js-16.2.6-black?style=flat-square" alt="Next.js 16.2.6" />
@@ -61,6 +52,45 @@
 ## 프로젝트 개요
 
 ![Aquila Buddy service preview](front/public/images/aquila-buddy-service-preview.png)
+
+### 서비스 화면
+
+Aquila Buddy는 GitHub 프로필 분석에서 추천 이슈 탐색, 이슈별 수정 힌트, PR 초안 작성까지 이어지는 기여 준비 흐름을 제공합니다.
+
+<table>
+  <tr>
+    <td width="50%">
+      <img src="front/public/images/readme-dashboard.png" alt="프로필 분석 상태와 서비스 단계가 보이는 대시보드" />
+      <br />
+      <strong>대시보드</strong>
+      <br />
+      프로필 벡터 상태와 다음 작업 단계를 한 번에 확인합니다.
+    </td>
+    <td width="50%">
+      <img src="front/public/images/readme-issues.png" alt="기술 스택 기반 추천 이슈 목록" />
+      <br />
+      <strong>추천 이슈</strong>
+      <br />
+      기술 스택과 GitHub 활동을 바탕으로 맞춤 이슈 후보를 비교합니다.
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <img src="front/public/images/readme-issue-detail.png" alt="이슈 수정 가이드와 의사 코드 힌트 화면" />
+      <br />
+      <strong>이슈 분석</strong>
+      <br />
+      선택한 이슈의 수정 방향, 주의 사항, 의사 코드 힌트를 확인합니다.
+    </td>
+    <td width="50%">
+      <img src="front/public/images/readme-pr-draft.png" alt="브랜치 입력 후 생성된 PR 초안과 제출 보조 화면" />
+      <br />
+      <strong>PR 초안</strong>
+      <br />
+      브랜치 정보를 입력해 PR 제목과 본문 초안을 만들고 제출 전 문안을 점검합니다.
+    </td>
+  </tr>
+</table>
 
 ### 배경
 
