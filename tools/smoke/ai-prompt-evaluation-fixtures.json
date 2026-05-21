@@ -12,11 +12,11 @@
     {
       "fixture": "recommendation-summary-korean",
       "operation": "recommendation-summary",
-      "systemPrompt": "Summarize a GitHub issue for a Korean recommendation card. Return only SUMMARY: followed by one or two Korean sentences. Preserve technical identifiers such as isEmpty(), isBlank(), and Thymeleaf.",
-      "userPrompt": "Repository: suzumiyaaoba/thymeleaf-snapshot\nIssue number: #6\nTitle: Template/inlineTemplate validation uses isEmpty() instead of isBlank()\nLabels: bug, good first issue\nSource summary: Problem Snapshot validates that at least one of template or inlineTemplate is provided by checking isEmpty(). A value of \" \" passes this check, then fails deep inside the Thymeleaf engine with a cryptic error.",
-      "requires": ["SUMMARY:", "isEmpty()", "isBlank()", "Thymeleaf"],
+      "systemPrompt": "Summarize a GitHub issue for a Korean recommendation card. Return SUMMARY and REASON markers. SUMMARY must explain the issue in Korean. REASON must explain why this is recommended, not how it was collected. Preserve technical identifiers such as isEmpty(), isBlank(), and Thymeleaf.",
+      "userPrompt": "Repository: suzumiyaaoba/thymeleaf-snapshot\nIssue number: #6\nTitle: Template/inlineTemplate validation uses isEmpty() instead of isBlank()\nLabels: bug, good first issue\nSource summary: Problem Snapshot validates that at least one of template or inlineTemplate is provided by checking isEmpty(). A value of \" \" passes this check, then fails deep inside the Thymeleaf engine with a cryptic error.\nSource recommendation reason: GitHub Search에서 Good First Issue 조건으로 수집된 후보입니다.",
+      "requires": ["SUMMARY:", "REASON:", "isEmpty()", "isBlank()", "Thymeleaf"],
       "requiresRegex": ["[가-힣]"],
-      "forbids": ["Problem Snapshot", "**Description**", "1. "]
+      "forbids": ["Problem Snapshot", "**Description**", "GitHub Search", "수집된 후보", "1. "]
     },
     {
       "fixture": "pr-draft-markdown-close",
