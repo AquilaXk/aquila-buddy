@@ -30,8 +30,10 @@ public class AiIssueGuideGenerationAdapter implements GenerateIssueGuidePort {
         When repository code context is present, mention at least one exact file name, class, method, function, or config key from that context.
         Do not invent validation, error handling, database, UI, or test behavior that is not visible in the issue metadata or code context.
         If the provided code context is too thin to determine the exact implementation point, say what must be inspected next instead of pretending it is known.
+        GUIDELINE must include the target file or symbol, the issue-specific failure condition, the intended edit direction, and the first verification.
+        Do not write generic GUIDELINE text such as "follow the validation flow" unless it names the concrete failing condition and edit.
         Return exactly this marker format.
-        GUIDELINE: <2-4 concrete sentences with target file or symbol and first verification>
+        GUIDELINE: <2-4 concrete Korean sentences with target, failure condition, edit direction, and first verification>
         PSEUDO_CODE:
         <4-6 numbered implementation steps grounded in the target file or symbol>
         SIDE_EFFECTS:
@@ -61,7 +63,7 @@ public class AiIssueGuideGenerationAdapter implements GenerateIssueGuidePort {
         RepositoryCodeContext safeContext = codeContext == null ? RepositoryCodeContext.empty() : codeContext;
         try {
             return parseGuide(
-                issue.id(),
+                issue,
                 safeContext,
                 aiClient.complete(AiCompletionUseCase.ISSUE_GUIDE, SYSTEM_PROMPT, buildPrompt(issue, safeContext))
             );
@@ -87,7 +89,7 @@ public class AiIssueGuideGenerationAdapter implements GenerateIssueGuidePort {
         return String.join("\n", lines);
     }
 
-    private static IssueGuide parseGuide(String issueId, RepositoryCodeContext codeContext, String response) {
+    private static IssueGuide parseGuide(RecommendedIssue issue, RepositoryCodeContext codeContext, String response) {
         String normalized = Objects.requireNonNull(response, "AI response must not be null.").trim();
         int guidelineIndex = normalized.indexOf("GUIDELINE:");
         int pseudoCodeIndex = normalized.indexOf("PSEUDO_CODE:");
@@ -104,8 +106,9 @@ public class AiIssueGuideGenerationAdapter implements GenerateIssueGuidePort {
             throw new IllegalStateException("AI issue guide response sections must not be blank.");
         }
 
-        IssueGuide guide = new IssueGuide(issueId, selectedFilePaths(codeContext), guideline, pseudoCode, sideEffects);
+        IssueGuide guide = new IssueGuide(issue.id(), selectedFilePaths(codeContext), guideline, pseudoCode, sideEffects);
         requireGroundedInCodeContext(guide, codeContext);
+        requireActionableGuideline(guide, issue, codeContext);
         return guide;
     }
 
@@ -126,6 +129,43 @@ public class AiIssueGuideGenerationAdapter implements GenerateIssueGuidePort {
         if (!grounded) {
             throw new IllegalStateException("AI issue guide response must reference repository code context.");
         }
+    }
+
+    private static void requireActionableGuideline(IssueGuide guide, RecommendedIssue issue, RepositoryCodeContext codeContext) {
+        if (codeContext == null || !codeContext.hasFiles()) {
+            return;
+        }
+
+        String guideline = guide.guideline().toLowerCase(Locale.ROOT);
+        if (!containsAny(guideline, issueTerms(issue))) {
+            throw new IllegalStateException("AI issue guide GUIDELINE must mention an issue-specific failure or requirement.");
+        }
+        if (!containsAny(guideline, editSignals())) {
+            throw new IllegalStateException("AI issue guide GUIDELINE must include an edit direction.");
+        }
+        if (!containsAny(guideline, verificationSignals())) {
+            throw new IllegalStateException("AI issue guide GUIDELINE must include first verification.");
+        }
+    }
+
+    private static List<String> issueTerms(RecommendedIssue issue) {
+        return Arrays.stream((issue.title() + " " + issue.summary()).split("[^\\p{L}\\p{N}_#()./-]+"))
+            .map(term -> term.toLowerCase(Locale.ROOT).trim())
+            .filter(term -> term.length() >= 4)
+            .distinct()
+            .toList();
+    }
+
+    private static List<String> editSignals() {
+        return List.of("수정", "변경", "교체", "적용", "개선", "fix", "update", "change", "replace", "implement", "adjust");
+    }
+
+    private static List<String> verificationSignals() {
+        return List.of("검증", "테스트", "재현", "확인", "test", "verify", "regression", "assert");
+    }
+
+    private static boolean containsAny(String value, List<String> terms) {
+        return terms.stream().anyMatch(value::contains);
     }
 
     private static List<String> selectedFilePaths(RepositoryCodeContext codeContext) {

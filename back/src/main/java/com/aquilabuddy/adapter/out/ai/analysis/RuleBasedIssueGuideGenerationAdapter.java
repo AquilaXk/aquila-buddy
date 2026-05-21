@@ -29,9 +29,10 @@ public class RuleBasedIssueGuideGenerationAdapter implements GenerateIssueGuideP
                 issue.id(),
                 selectedFilePaths(codeContext),
                 focus.fileName() + "의 " + focus.primarySymbol() + "와 " + focus.methodSummary()
-                    + " 흐름을 기준으로 \"" + issue.title()
-                    + "\" 요구를 먼저 재현 테스트로 고정합니다. 코드 맥락만으로 실패 조건이 보이지 않으면 새 동작을 단정하지 말고 "
-                    + focus.path() + "에서 확인 가능한 책임과 추가 조사 지점을 분리합니다.",
+                    + " 흐름에서 \"" + issue.title()
+                    + "\" 실패 조건을 먼저 재현 테스트로 고정합니다. 이후 " + focus.path()
+                    + "에서 확인 가능한 책임 안에서 수정 방향을 적용하고 " + focus.methodSummary()
+                    + " 정상/실패 입력을 첫 검증으로 다시 확인합니다. 코드 맥락만으로 실패 조건이 보이지 않으면 새 동작을 단정하지 말고 추가 조사 지점을 분리합니다.",
                 String.join("\n",
                     "1. " + focus.path() + "에서 " + focus.primarySymbol() + "의 " + focus.methodSummary() + " 현재 호출/반환 계약을 테스트로 고정한다.",
                     "2. 이슈 제목 \"" + issue.title() + "\"와 " + firstLabel + " 라벨 요구를 " + focus.fileName() + " 책임에 맞는 변경 조건으로 좁힌다.",
