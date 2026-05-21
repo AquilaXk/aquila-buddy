@@ -17,8 +17,10 @@ class AiIssueGuideGenerationAdapterTest {
         CapturingAiClient aiClient = new CapturingAiClient(String.join("\n",
             "GUIDELINE: Validate the request contract before changing implementation.",
             "PSEUDO_CODE:",
-            "1. Find validation entry point",
-            "2. Add focused regression test",
+            "GIVEN issue = \"Refine validation error example\"",
+            "WHEN invalid input reaches validation entry point",
+            "CALL addRegressionTest(issue)",
+            "ASSERT response message explains invalid input",
             "SIDE_EFFECTS:",
             "- API error wording can change",
             "- Documentation examples may need the same term"
@@ -30,7 +32,7 @@ class AiIssueGuideGenerationAdapterTest {
         assertThat(guide.issueKey()).isEqualTo("demo-2");
         assertThat(guide.filePaths()).isEmpty();
         assertThat(guide.guideline()).contains("Validate the request contract");
-        assertThat(guide.pseudoCode()).contains("Find validation entry point");
+        assertThat(guide.pseudoCode()).contains("GIVEN").contains("ASSERT");
         assertThat(guide.sideEffects()).containsExactly(
             "API error wording can change",
             "Documentation examples may need the same term"
@@ -47,7 +49,10 @@ class AiIssueGuideGenerationAdapterTest {
         CapturingAiClient aiClient = new CapturingAiClient(String.join("\n",
             "GUIDELINE: ValidationController에서 invalid input 실패 조건을 재현 테스트로 고정한 뒤 API 응답 메시지를 수정하고 controller 테스트로 검증합니다.",
             "PSEUDO_CODE:",
-            "1. Inspect ValidationController",
+            "GIVEN controller = ValidationController",
+            "WHEN invalid input reaches controller",
+            "CALL updateValidationMessage(controller)",
+            "ASSERT response uses clearer detail",
             "SIDE_EFFECTS:",
             "- Controller response wording can change"
         ));
@@ -69,6 +74,27 @@ class AiIssueGuideGenerationAdapterTest {
             .contains("File: src/main/java/ValidationController.java")
             .contains("class ValidationController {}");
         assertThat(guide.filePaths()).containsExactly("src/main/java/ValidationController.java");
+    }
+
+    @Test
+    void fallsBackWhenPseudoCodeIsNumberedChecklistInsteadOfCodeLikeFlow() {
+        AiIssueGuideGenerationAdapter adapter = new AiIssueGuideGenerationAdapter(new CapturingAiClient(String.join("\n",
+            "GUIDELINE: IssueGuideController에서 Refine validation error example 실패 조건을 재현 테스트로 고정한 뒤 응답 예시 문구를 수정하고 controller 테스트로 검증합니다.",
+            "PSEUDO_CODE:",
+            "1. IssueGuideController를 연다.",
+            "2. guide 흐름을 확인한다.",
+            "3. 테스트를 추가한다.",
+            "SIDE_EFFECTS:",
+            "- IssueGuideController 응답이 바뀔 수 있습니다."
+        )));
+
+        IssueGuide guide = adapter.generateIssueGuide(issue(), issueGuideControllerContext());
+
+        assertThat(guide.pseudoCode())
+            .contains("GIVEN")
+            .contains("CALL")
+            .contains("ASSERT")
+            .doesNotContain("1. IssueGuideController를 연다.");
     }
 
     @Test

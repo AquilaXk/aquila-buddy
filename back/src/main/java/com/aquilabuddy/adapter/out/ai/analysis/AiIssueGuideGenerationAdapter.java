@@ -32,10 +32,12 @@ public class AiIssueGuideGenerationAdapter implements GenerateIssueGuidePort {
         If the provided code context is too thin to determine the exact implementation point, say what must be inspected next instead of pretending it is known.
         GUIDELINE must include the target file or symbol, the issue-specific failure condition, the intended edit direction, and the first verification.
         Do not write generic GUIDELINE text such as "follow the validation flow" unless it names the concrete failing condition and edit.
+        PSEUDO_CODE must be language-neutral pseudocode, not a numbered explanation checklist.
+        PSEUDO_CODE must use code-like lines such as GIVEN, WHEN, IF, CALL, RETURN, ASSERT, or VERIFY.
         Return exactly this marker format.
         GUIDELINE: <2-4 concrete Korean sentences with target, failure condition, edit direction, and first verification>
         PSEUDO_CODE:
-        <4-6 numbered implementation steps grounded in the target file or symbol>
+        <4-8 lines of code-like pseudocode grounded in the target file or symbol; do not number the lines>
         SIDE_EFFECTS:
         - <2-4 concrete side effect or verification concern>
         """;
@@ -105,6 +107,7 @@ public class AiIssueGuideGenerationAdapter implements GenerateIssueGuidePort {
         if (guideline.isBlank() || pseudoCode.isBlank() || sideEffects.isEmpty()) {
             throw new IllegalStateException("AI issue guide response sections must not be blank.");
         }
+        requireCodeLikePseudoCode(pseudoCode);
 
         IssueGuide guide = new IssueGuide(issue.id(), selectedFilePaths(codeContext), guideline, pseudoCode, sideEffects);
         requireGroundedInCodeContext(guide, codeContext);
@@ -146,6 +149,27 @@ public class AiIssueGuideGenerationAdapter implements GenerateIssueGuidePort {
         if (!containsAny(guideline, verificationSignals())) {
             throw new IllegalStateException("AI issue guide GUIDELINE must include first verification.");
         }
+    }
+
+    private static void requireCodeLikePseudoCode(String pseudoCode) {
+        List<String> lines = Arrays.stream(pseudoCode.split("\\R"))
+            .map(String::trim)
+            .filter(line -> !line.isBlank())
+            .toList();
+        String upperPseudoCode = pseudoCode.toUpperCase(Locale.ROOT);
+        long numberedLines = lines.stream()
+            .filter(line -> line.matches("^\\d+[.)]\\s+.*"))
+            .count();
+        if (!containsAny(upperPseudoCode, codeLikeSignals())) {
+            throw new IllegalStateException("AI issue guide PSEUDO_CODE must contain code-like control or assertion lines.");
+        }
+        if (numberedLines >= Math.max(2, lines.size() / 2)) {
+            throw new IllegalStateException("AI issue guide PSEUDO_CODE must not be a numbered checklist.");
+        }
+    }
+
+    private static List<String> codeLikeSignals() {
+        return List.of("GIVEN", "WHEN", "IF", "ELSE", "CALL", "RETURN", "ASSERT", "VERIFY", "THEN", "->", "=");
     }
 
     private static List<String> issueTerms(RecommendedIssue issue) {
