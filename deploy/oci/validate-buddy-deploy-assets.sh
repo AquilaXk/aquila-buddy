@@ -33,6 +33,7 @@ for file in \
   deploy/oci/aquila-buddy.env.example \
   deploy/oci/bootstrap-github-runner.sh \
   deploy/oci/build-aquila-buddy-images.sh \
+  deploy/oci/prepare-buddy-runner-storage.sh \
   deploy/oci/run-aquila-buddy.sh \
   deploy/oci/render-nginx-config.sh \
   deploy/oci/install-nginx-config.sh \
@@ -46,6 +47,7 @@ done
 for file in \
   deploy/oci/build-aquila-buddy-images.sh \
   deploy/oci/bootstrap-github-runner.sh \
+  deploy/oci/prepare-buddy-runner-storage.sh \
   deploy/oci/run-aquila-buddy.sh \
   deploy/oci/render-nginx-config.sh \
   deploy/oci/install-nginx-config.sh
@@ -86,6 +88,7 @@ require_contains .github/workflows/oci-buddy-cd.yml 'OCI_A1_BUDDY_ENV_B64'
 require_contains .github/workflows/oci-buddy-cd.yml 'OCI_A1_VERTEX_KEY_JSON_B64'
 require_contains .github/workflows/oci-buddy-cd.yml 'managed_runtime_keys_regex'
 require_contains .github/workflows/oci-buddy-cd.yml 'aquila-buddy.private.env'
+require_contains .github/workflows/oci-buddy-cd.yml 'deploy/oci/prepare-buddy-runner-storage.sh'
 require_contains .github/workflows/oci-buddy-cd.yml 'deploy/oci/build-aquila-buddy-images.sh'
 require_contains .github/workflows/oci-buddy-cd.yml 'deploy/oci/run-aquila-buddy.sh'
 require_contains .github/workflows/oci-buddy-cd.yml 'buddy.aquilaxk.site'
@@ -100,9 +103,15 @@ require_contains deploy/oci/bootstrap-github-runner.sh 'GITHUB_RUNNER_TOKEN'
 require_contains deploy/oci/bootstrap-github-runner.sh 'AquilaXk/aquila-buddy'
 require_contains deploy/oci/bootstrap-github-runner.sh 'oci-a1-buddy'
 require_contains deploy/oci/bootstrap-github-runner.sh 'oci-a1-staging,aquila-buddy'
+require_contains deploy/oci/bootstrap-github-runner.sh 'CONTAINERD_ROOT'
+require_contains deploy/oci/bootstrap-github-runner.sh 'root = "$CONTAINERD_ROOT/root"'
+require_contains deploy/oci/bootstrap-github-runner.sh 'state = "$CONTAINERD_ROOT/state"'
 require_contains deploy/oci/bootstrap-github-runner.sh 'aquila-buddy-install-nginx-config'
 require_contains deploy/oci/install-nginx-config.sh 'aquila-buddy-install-nginx-config'
 
+require_contains deploy/oci/prepare-buddy-runner-storage.sh 'AQUILA_BUDDY_MIN_ROOT_FREE_GIB'
+require_contains deploy/oci/prepare-buddy-runner-storage.sh 'system prune -af'
+require_contains deploy/oci/prepare-buddy-runner-storage.sh 'assert_min_free_gib /var/lib/aquila-data'
 require_contains deploy/oci/build-aquila-buddy-images.sh '"${DOCKER[@]}" build'
 require_contains deploy/oci/build-aquila-buddy-images.sh 'NEXT_PUBLIC_BACKEND_OAUTH_URL'
 require_contains deploy/oci/run-aquila-buddy.sh 'pgvector/pgvector:pg16'

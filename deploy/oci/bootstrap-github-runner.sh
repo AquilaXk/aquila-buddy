@@ -14,6 +14,8 @@ Environment:
   RUNNER_USER            Linux user for the runner service. Default: actions-runner
   RUNNER_HOME            Runner installation directory. Default: /opt/actions-runner/aquila-buddy
   DEPLOY_ROOT            aquila-buddy runtime private directory. Default: /opt/aquila-buddy
+  DOCKER_DATA_ROOT       Docker data-root. Default: /var/lib/aquila-data/docker
+  CONTAINERD_ROOT        containerd root/state parent. Default: /var/lib/aquila-data/containerd
 USAGE
 }
 
@@ -31,6 +33,7 @@ RUNNER_USER="${RUNNER_USER:-actions-runner}"
 RUNNER_HOME="${RUNNER_HOME:-/opt/actions-runner/aquila-buddy}"
 DEPLOY_ROOT="${DEPLOY_ROOT:-/opt/aquila-buddy}"
 DOCKER_DATA_ROOT="${DOCKER_DATA_ROOT:-/var/lib/aquila-data/docker}"
+CONTAINERD_ROOT="${CONTAINERD_ROOT:-/var/lib/aquila-data/containerd}"
 NGINX_DEPLOY_WRAPPER="${NGINX_DEPLOY_WRAPPER:-/usr/local/sbin/aquila-buddy-install-nginx-config}"
 
 if [[ -z "$GITHUB_RUNNER_TOKEN" ]]; then
@@ -68,16 +71,24 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
   sudo \
   tar
 
-log "ensuring docker service"
-sudo install -d "$DOCKER_DATA_ROOT"
+log "ensuring docker and containerd storage"
+sudo install -d "$DOCKER_DATA_ROOT" "$CONTAINERD_ROOT/root" "$CONTAINERD_ROOT/state"
+sudo install -d /etc/containerd
+sudo tee /etc/containerd/config.toml >/dev/null <<TOML
+version = 2
+root = "$CONTAINERD_ROOT/root"
+state = "$CONTAINERD_ROOT/state"
+TOML
+
 sudo install -d /etc/docker
-if [[ ! -f /etc/docker/daemon.json ]]; then
-  sudo tee /etc/docker/daemon.json >/dev/null <<JSON
+sudo tee /etc/docker/daemon.json >/dev/null <<JSON
 {
-  "data-root": "$DOCKER_DATA_ROOT"
+  "data-root": "$DOCKER_DATA_ROOT",
+  "live-restore": true
 }
 JSON
-fi
+sudo systemctl enable containerd
+sudo systemctl restart containerd
 sudo systemctl enable docker
 sudo systemctl restart docker
 
