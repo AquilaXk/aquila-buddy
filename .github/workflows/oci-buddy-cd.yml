@@ -156,6 +156,13 @@ jobs:
       - name: Validate deploy assets
         run: bash deploy/oci/validate-buddy-deploy-assets.sh
 
+      - name: Prepare runner storage
+        shell: bash
+        env:
+          AQUILA_BUDDY_MIN_DATA_FREE_GIB: "20"
+          AQUILA_BUDDY_MIN_ROOT_FREE_GIB: "8"
+        run: bash deploy/oci/prepare-buddy-runner-storage.sh
+
       - name: Build and push ARM64 images
         shell: bash
         env:
