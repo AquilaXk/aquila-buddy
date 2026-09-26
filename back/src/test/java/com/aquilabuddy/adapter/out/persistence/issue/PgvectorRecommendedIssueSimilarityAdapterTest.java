@@ -72,6 +72,84 @@ class PgvectorRecommendedIssueSimilarityAdapterTest {
             .containsExactly("score-first", "score-second");
     }
 
+    @Test
+    void appliesHybridRankingPromotingLanguageMatchOverHigherCosineDistance() {
+        RecommendedIssue javaIssue = new RecommendedIssue(
+            "java-issue",
+            "spring-projects/spring-boot",
+            101,
+            "Fix Java issue",
+            "Java issue summary",
+            0.70,
+            List.of("good first issue", "java"),
+            "OPEN",
+            "GitHub 수집 후보"
+        );
+        RecommendedIssue pythonIssue = new RecommendedIssue(
+            "python-issue",
+            "psf/requests",
+            202,
+            "Fix Python issue",
+            "Python issue summary",
+            0.80,
+            List.of("good first issue", "python"),
+            "OPEN",
+            "GitHub 수집 후보"
+        );
+
+        List<RecommendedIssue> ranked = PgvectorRecommendedIssueSimilarityAdapter.applyHybridRanking(
+            List.of(pythonIssue, javaIssue),
+            List.of("Java")
+        );
+
+        // 코사인 점수는 python(0.80)이 java(0.70)보다 높았으나,
+        // 사용자 주 언어(Java) 일치 가중치(0.25) 결합으로 javaIssue가 1위로 최적화되어야 합니다.
+        assertThat(ranked)
+            .extracting(RecommendedIssue::id)
+            .containsExactly("java-issue", "python-issue");
+        assertThat(ranked.getFirst().reason()).contains("주 사용 언어 일치: Java");
+        assertThat(ranked.getFirst().score()).isEqualTo(0.775); // 0.70 * 0.75 + 0.25 = 0.775
+        assertThat(ranked.get(1).score()).isEqualTo(0.6); // 0.80 * 0.75 = 0.600
+    }
+
+    @Test
+    void preservesCosineRankingWhenBothOrNeitherMatchLanguage() {
+        RecommendedIssue near = issue("near-issue", 0.90);
+        RecommendedIssue far = issue("far-issue", 0.50);
+
+        List<RecommendedIssue> ranked = PgvectorRecommendedIssueSimilarityAdapter.applyHybridRanking(
+            List.of(far, near),
+            List.of("Rust")
+        );
+
+        assertThat(ranked)
+            .extracting(RecommendedIssue::id)
+            .containsExactly("near-issue", "far-issue");
+    }
+
+    @Test
+    void handlesNullFieldsGracefullyWithoutThrowingNullPointerException() {
+        RecommendedIssue issueWithNulls = new RecommendedIssue(
+            "null-issue",
+            null,
+            1,
+            null,
+            null,
+            0.5,
+            null,
+            "OPEN",
+            null
+        );
+
+        List<RecommendedIssue> ranked = PgvectorRecommendedIssueSimilarityAdapter.applyHybridRanking(
+            List.of(issueWithNulls),
+            List.of("Java")
+        );
+
+        assertThat(ranked).hasSize(1);
+        assertThat(ranked.getFirst().id()).isEqualTo("null-issue");
+    }
+
     private static RecommendedIssue issue(String id, double score) {
         return new RecommendedIssue(
             id,

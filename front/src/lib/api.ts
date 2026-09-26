@@ -194,7 +194,7 @@ export type RecommendedIssue = {
   reason: string;
 };
 
-export type RecommendedIssueHistory = Omit<RecommendedIssue, "reason"> & {
+export type RecommendedIssueHistory = RecommendedIssue & {
   isAnalyzed: boolean;
   analysisResultId: string | null;
 };

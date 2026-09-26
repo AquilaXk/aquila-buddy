@@ -255,4 +255,210 @@ class GitHubRecommendedIssueSearchAdapterTest {
             .extracting(RecommendedIssue::repoFullName)
             .containsExactly("example/java-lib");
     }
+
+    @Test
+    void collectsUnassignedIssuesWithStarAndCommitMetadataViaGraphQL() throws IOException {
+        AtomicReference<String> authorization = new AtomicReference<>();
+        server = HttpServer.create(new InetSocketAddress(0), 0);
+        server.createContext("/graphql", exchange -> {
+            authorization.set(exchange.getRequestHeaders().getFirst("Authorization"));
+            byte[] body = """
+                {
+                  "data": {
+                    "search": {
+                      "issueCount": 2,
+                      "nodes": [
+                        {
+                          "id": "I_kw123",
+                          "number": 101,
+                          "title": "Onboarding task for new contributors",
+                          "body": "Welcome to open source! Fix this beginner issue.",
+                          "url": "https://github.com/spring-projects/spring-boot/issues/101",
+                          "state": "OPEN",
+                          "assignees": { "totalCount": 0 },
+                          "labels": {
+                            "nodes": [
+                              { "name": "good first issue" },
+                              { "name": "java" }
+                            ]
+                          },
+                          "repository": {
+                            "nameWithOwner": "spring-projects/spring-boot",
+                            "stargazerCount": 1250,
+                            "defaultBranchRef": {
+                              "target": {
+                                "committedDate": "2026-05-18T10:00:00Z"
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "id": "I_kw456",
+                          "number": 102,
+                          "title": "Already assigned issue",
+                          "body": "Someone is already working on this.",
+                          "url": "https://github.com/spring-projects/spring-boot/issues/102",
+                          "state": "OPEN",
+                          "assignees": { "totalCount": 1 },
+                          "labels": {
+                            "nodes": [
+                              { "name": "good first issue" }
+                            ]
+                          },
+                          "repository": {
+                            "nameWithOwner": "spring-projects/spring-boot",
+                            "stargazerCount": 1250,
+                            "defaultBranchRef": {
+                              "target": {
+                                "committedDate": "2026-05-18T10:00:00Z"
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+                """.getBytes(StandardCharsets.UTF_8);
+            exchange.getResponseHeaders().add("Content-Type", "application/json");
+            exchange.sendResponseHeaders(200, body.length);
+            exchange.getResponseBody().write(body);
+            exchange.close();
+        });
+        server.start();
+
+        GitHubRecommendedIssueSearchAdapter adapter = new GitHubRecommendedIssueSearchAdapter(
+            RestClient.builder(),
+            "http://localhost:" + server.getAddress().getPort(),
+            "valid-graphql-token",
+            true,
+            "label:\"good first issue\"",
+            2
+        );
+
+        List<RecommendedIssue> issues = adapter.searchRecommendedIssues("language:java label:\"good first issue\"");
+
+        assertThat(authorization.get()).isEqualTo("Bearer valid-graphql-token");
+        // 미할당 이슈만 수집되고 할당된 이슈(totalCount: 1)는 필터링되어야 합니다.
+        assertThat(issues).hasSize(1);
+        RecommendedIssue issue = issues.getFirst();
+        assertThat(issue.id()).isEqualTo("I_kw123");
+        assertThat(issue.repoFullName()).isEqualTo("spring-projects/spring-boot");
+        assertThat(issue.issueNumber()).isEqualTo(101);
+        assertThat(issue.title()).isEqualTo("Onboarding task for new contributors");
+        assertThat(issue.labels()).containsExactly("good first issue", "java");
+        assertThat(issue.reason()).contains("미할당");
+        assertThat(issue.reason()).contains("스타수: 1.3k");
+        assertThat(issue.reason()).contains("최근 커밋: 2026-05-18");
+    }
+
+    @Test
+    void fallsBackToRestWhenGraphQLFails() throws IOException {
+        server = HttpServer.create(new InetSocketAddress(0), 0);
+        server.createContext("/graphql", exchange -> {
+            byte[] body = "{\"message\":\"GraphQL internal error\"}".getBytes(StandardCharsets.UTF_8);
+            exchange.getResponseHeaders().add("Content-Type", "application/json");
+            exchange.sendResponseHeaders(500, body.length);
+            exchange.getResponseBody().write(body);
+            exchange.close();
+        });
+        server.createContext("/search/issues", exchange -> {
+            byte[] body = """
+                {
+                  "items": [
+                    {
+                      "id": 999,
+                      "number": 55,
+                      "title": "REST fallback issue",
+                      "body": "Collected via REST fallback when GraphQL fails.",
+                      "repository_url": "https://api.github.com/repos/example/rest-fallback",
+                      "labels": [
+                        {"name": "good first issue"}
+                      ]
+                    }
+                  ]
+                }
+                """.getBytes(StandardCharsets.UTF_8);
+            exchange.getResponseHeaders().add("Content-Type", "application/json");
+            exchange.sendResponseHeaders(200, body.length);
+            exchange.getResponseBody().write(body);
+            exchange.close();
+        });
+        server.start();
+
+        GitHubRecommendedIssueSearchAdapter adapter = new GitHubRecommendedIssueSearchAdapter(
+            RestClient.builder(),
+            "http://localhost:" + server.getAddress().getPort(),
+            "token-with-failing-graphql",
+            true,
+            "label:\"good first issue\"",
+            1
+        );
+
+        List<RecommendedIssue> issues = adapter.searchRecommendedIssues();
+
+        assertThat(issues).hasSize(1);
+        assertThat(issues.getFirst().repoFullName()).isEqualTo("example/rest-fallback");
+        assertThat(issues.getFirst().reason()).isEqualTo("GitHub Search에서 Good First Issue 조건으로 수집된 후보입니다.");
+    }
+
+    @Test
+    void ignoresNullAndNonIssueNodesInGraphQLSearchResults() throws IOException {
+        server = HttpServer.create(new InetSocketAddress(0), 0);
+        server.createContext("/graphql", exchange -> {
+            byte[] body = """
+                {
+                  "data": {
+                    "search": {
+                      "issueCount": 3,
+                      "nodes": [
+                        null,
+                        {
+                          "id": "PR_123",
+                          "number": null,
+                          "title": null
+                        },
+                        {
+                          "id": "I_valid",
+                          "number": 200,
+                          "title": "Valid unassigned issue",
+                          "body": "Valid description",
+                          "url": "https://github.com/valid/repo/issues/200",
+                          "state": "OPEN",
+                          "assignees": { "totalCount": 0 },
+                          "labels": { "nodes": [] },
+                          "repository": {
+                            "nameWithOwner": "valid/repo",
+                            "stargazerCount": 50,
+                            "defaultBranchRef": null
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+                """.getBytes(StandardCharsets.UTF_8);
+            exchange.getResponseHeaders().add("Content-Type", "application/json");
+            exchange.sendResponseHeaders(200, body.length);
+            exchange.getResponseBody().write(body);
+            exchange.close();
+        });
+        server.start();
+
+        GitHubRecommendedIssueSearchAdapter adapter = new GitHubRecommendedIssueSearchAdapter(
+            RestClient.builder(),
+            "http://localhost:" + server.getAddress().getPort(),
+            "valid-token",
+            true,
+            "label:\"good first issue\"",
+            5
+        );
+
+        List<RecommendedIssue> issues = adapter.searchRecommendedIssues();
+
+        assertThat(issues).hasSize(1);
+        assertThat(issues.getFirst().id()).isEqualTo("I_valid");
+        assertThat(issues.getFirst().repoFullName()).isEqualTo("valid/repo");
+        assertThat(issues.getFirst().issueNumber()).isEqualTo(200);
+    }
 }

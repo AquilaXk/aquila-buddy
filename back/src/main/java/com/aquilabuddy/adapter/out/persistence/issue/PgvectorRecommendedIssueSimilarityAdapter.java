@@ -25,6 +25,9 @@ import org.springframework.stereotype.Component;
 @ConditionalOnProperty(prefix = "app.recommendation.similarity", name = "provider", havingValue = "pgvector")
 public class PgvectorRecommendedIssueSimilarityAdapter implements RankRecommendedIssuesPort {
 
+    private static final double COSINE_WEIGHT = 0.75;
+    private static final double LANGUAGE_MATCH_BONUS = 0.25;
+
     private final JdbcClient jdbcClient;
     private final EmbeddingClient embeddingClient;
     private final LoadUserProfilePort loadUserProfilePort;
@@ -55,17 +58,117 @@ public class PgvectorRecommendedIssueSimilarityAdapter implements RankRecommende
                 .map(RecommendedIssue::id)
                 .toList();
 
-            List<RecommendedIssue> rankedIssues = jdbcClient.sql(PgvectorRecommendedIssueSimilaritySql.rankByIssueIds())
+            List<RecommendedIssue> queryResults = jdbcClient.sql(PgvectorRecommendedIssueSimilaritySql.rankByIssueIds())
                 .param("queryVector", queryVector.toPgvectorLiteral())
                 .param("issueIds", issueIds)
                 .param("limit", Math.min(limit, issueIds.size()))
                 .query(this::mapIssue)
                 .list();
 
-            return mergeRankedWithScoreFallback(issues, rankedIssues);
+            // 코사인 유사도 점수와 주 사용 언어 일치 가중치를 결합한 하이브리드 랭킹 적용
+            List<RecommendedIssue> hybridRankedIssues = applyHybridRanking(queryResults, profile.primaryLanguages());
+            return mergeRankedWithScoreFallback(issues, hybridRankedIssues);
         } catch (RuntimeException exception) {
             return List.copyOf(issues);
         }
+    }
+
+    /**
+     * 임베딩 기반 코사인 유사도 점수와 사용자의 주 사용 언어 일치 여부를 결합하여 다면 하이브리드 점수를 계산하고 랭킹을 최적화합니다.
+     */
+    static List<RecommendedIssue> applyHybridRanking(
+        List<RecommendedIssue> rankedIssues,
+        List<String> primaryLanguages
+    ) {
+        if (rankedIssues.isEmpty()) {
+            return List.of();
+        }
+
+        List<String> normalizedLanguages = primaryLanguages == null
+            ? List.of()
+            : primaryLanguages.stream()
+                .filter(lang -> lang != null && !lang.isBlank())
+                .map(String::trim)
+                .map(String::toLowerCase)
+                .toList();
+
+        List<HybridScoreHolder> scoredList = new ArrayList<>();
+        for (RecommendedIssue issue : rankedIssues) {
+            double rawSimilarity = Math.max(0.0, Math.min(1.0, issue.score()));
+            String matchedLanguage = findMatchingLanguage(issue, normalizedLanguages);
+            boolean isLanguageMatched = matchedLanguage != null;
+
+            double hybridScore = isLanguageMatched
+                ? Math.min(1.0, rawSimilarity * COSINE_WEIGHT + LANGUAGE_MATCH_BONUS)
+                : rawSimilarity * COSINE_WEIGHT;
+
+            String baseReason = issue.reason() == null ? "" : issue.reason();
+            String updatedReason = isLanguageMatched && !baseReason.contains("주 사용 언어 일치")
+                ? (baseReason.isBlank() ? "[주 사용 언어 일치: " + matchedLanguage + "]" : baseReason + " [주 사용 언어 일치: " + matchedLanguage + "]")
+                : baseReason;
+
+            RecommendedIssue updatedIssue = new RecommendedIssue(
+                issue.id(),
+                issue.repoFullName(),
+                issue.issueNumber(),
+                issue.title(),
+                issue.summary(),
+                Math.round(hybridScore * 10000.0) / 10000.0,
+                issue.labels(),
+                issue.status(),
+                updatedReason,
+                issue.copyOutputVersion()
+            );
+
+            scoredList.add(new HybridScoreHolder(updatedIssue, hybridScore, issue.issueNumber()));
+        }
+
+        scoredList.sort((a, b) -> {
+            int scoreCompare = Double.compare(b.hybridScore(), a.hybridScore());
+            if (scoreCompare != 0) {
+                return scoreCompare;
+            }
+            return Long.compare(a.issueNumber(), b.issueNumber());
+        });
+
+        return scoredList.stream()
+            .map(HybridScoreHolder::issue)
+            .toList();
+    }
+
+    private static String findMatchingLanguage(RecommendedIssue issue, List<String> normalizedLanguages) {
+        if (normalizedLanguages.isEmpty() || issue == null) {
+            return null;
+        }
+
+        List<String> labels = issue.labels() == null ? List.of() : issue.labels();
+        for (String lang : normalizedLanguages) {
+            for (String label : labels) {
+                if (label == null || label.isBlank()) {
+                    continue;
+                }
+                String labelLower = label.toLowerCase();
+                if (labelLower.equals(lang) || labelLower.contains(lang)) {
+                    return capitalize(lang);
+                }
+            }
+            String repoLower = issue.repoFullName() != null ? issue.repoFullName().toLowerCase() : "";
+            String titleLower = issue.title() != null ? issue.title().toLowerCase() : "";
+            if (repoLower.contains(lang) || titleLower.contains(lang)) {
+                return capitalize(lang);
+            }
+        }
+        return null;
+    }
+
+    private static String capitalize(String text) {
+        if (text == null || text.isBlank()) {
+            return text;
+        }
+        return Character.toUpperCase(text.charAt(0)) + text.substring(1);
+    }
+
+    private record HybridScoreHolder(RecommendedIssue issue, double hybridScore, long issueNumber) {
     }
 
     static List<RecommendedIssue> mergeRankedWithScoreFallback(

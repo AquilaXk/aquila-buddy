@@ -9,8 +9,10 @@ import com.aquilabuddy.application.port.out.issue.SearchRecommendedIssuesPort;
 import com.aquilabuddy.application.port.out.issue.FindRecommendedIssuePort;
 import com.aquilabuddy.application.port.out.issue.RankRecommendedIssuesPort;
 import com.aquilabuddy.application.port.out.issue.SummarizeRecommendedIssuePort;
+import com.aquilabuddy.application.port.out.user.LoadUserProfilePort;
 import com.aquilabuddy.domain.issue.RecommendedIssue;
 import com.aquilabuddy.domain.issue.RecommendedIssueHistory;
+import com.aquilabuddy.domain.user.UserProfile;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
@@ -347,6 +349,97 @@ class RecommendedIssueServiceTest {
         Optional<RecommendedIssue> result = service.getRecommendedIssue("stored");
 
         assertThat(result).contains(stored);
+    }
+
+    @Test
+    void providesTechStackCuratedIssuesForColdStartUserWhenStoredIssuesEmpty() {
+        UserProfile newUser = new UserProfile(
+            10001L,
+            "cold-user",
+            "Cold User",
+            "cold@example.com",
+            List.of("Java"),
+            List.of("spring"),
+            false,
+            ""
+        );
+        RecordingSaveRecommendedIssuesPort savePort = new RecordingSaveRecommendedIssuesPort();
+        RecommendedIssueService service = new RecommendedIssueService(
+            new CountingLoadRecommendedIssuesPort(List.of()),
+            new CountingLoadRecommendedIssuesPort(List.of()),
+            new InMemoryFindRecommendedIssuePort(List.of()),
+            savePort,
+            List::of,
+            List::copyOf,
+            List::copyOf,
+            () -> newUser
+        );
+
+        List<RecommendedIssue> result = service.recommend();
+
+        assertThat(result).isNotEmpty();
+        assertThat(result).allMatch(issue -> issue.reason().contains("Java") && issue.reason().contains("입문 큐레이션"));
+        assertThat(savePort.savedIssues()).isEqualTo(result);
+    }
+
+    @Test
+    void providesCuratedIssuesWhenNewUserHasNoMatchingStoredIssues() {
+        UserProfile newUser = new UserProfile(
+            10002L,
+            "ts-dev",
+            "TS Dev",
+            "ts@example.com",
+            List.of("TypeScript"),
+            List.of("react"),
+            false,
+            ""
+        );
+        RecommendedIssue unrelatedStored = issue("stored-python", "psf/requests", 99);
+        RecordingSaveRecommendedIssuesPort savePort = new RecordingSaveRecommendedIssuesPort();
+        RecommendedIssueService service = new RecommendedIssueService(
+            new CountingLoadRecommendedIssuesPort(List.of(unrelatedStored)),
+            new CountingLoadRecommendedIssuesPort(List.of(unrelatedStored)),
+            new InMemoryFindRecommendedIssuePort(List.of(unrelatedStored)),
+            savePort,
+            List::of,
+            List::copyOf,
+            List::copyOf,
+            () -> newUser
+        );
+
+        List<RecommendedIssue> result = service.recommend();
+
+        assertThat(result).isNotEmpty();
+        assertThat(result).allMatch(issue -> issue.reason().contains("TypeScript") && issue.reason().contains("입문 큐레이션"));
+    }
+
+    @Test
+    void providesDefaultCuratedIssuesWhenColdStartUserHasNoPrimaryLanguages() {
+        UserProfile newUser = new UserProfile(
+            10003L,
+            "general-dev",
+            "General Dev",
+            "general@example.com",
+            List.of(),
+            List.of(),
+            false,
+            ""
+        );
+        RecommendedIssueService service = new RecommendedIssueService(
+            new CountingLoadRecommendedIssuesPort(List.of()),
+            new CountingLoadRecommendedIssuesPort(List.of()),
+            new InMemoryFindRecommendedIssuePort(List.of()),
+            new RecordingSaveRecommendedIssuesPort(),
+            List::of,
+            List::copyOf,
+            List::copyOf,
+            () -> newUser
+        );
+
+        List<RecommendedIssue> result = service.recommend();
+
+        assertThat(result).isNotEmpty();
+        assertThat(result).allMatch(issue -> issue.reason().contains("입문 큐레이션"));
     }
 
     private static SearchRecommendedIssuesPort failingSearchPort() {
