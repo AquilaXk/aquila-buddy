@@ -176,7 +176,7 @@ export default function IssueDetailPage() {
           href="/issues"
         >
           <ArrowLeft className="h-4 w-4" />
-          <span>← 추천 이슈 목록</span>
+          <span>추천 이슈 목록</span>
         </Link>
       </div>
 
@@ -191,7 +191,6 @@ export default function IssueDetailPage() {
           >
             <span>{issue.repoFullName} #{issue.issueNumber}</span>
             <ExternalLink className="h-3 w-3" />
-            <span>↗</span>
           </a>
           {issue.score > 0 ? (
             <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-xs font-semibold text-emerald-400">

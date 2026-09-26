@@ -238,7 +238,7 @@ export default function PrDetailPage() {
           href="/pr-draft"
         >
           <ArrowLeft className="h-4 w-4" />
-          <span>← PR 초안 목록</span>
+          <span>PR 초안 목록</span>
         </Link>
         <div className="flex items-center gap-2">
           {!editing ? (

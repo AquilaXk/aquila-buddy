@@ -91,6 +91,15 @@ Aquila Buddy는 GitHub 프로필 분석에서 추천 이슈 탐색, 이슈별 �
       upstream 마크다운 템플릿 시맨틱 파싱, 7대 기여 준비도 게이트(Branch Flow, Issue Link, Clean Diff 등) 및 한/영 번역 탭을 활용합니다.
     </td>
   </tr>
+  <tr>
+    <td colspan="2">
+      <img src="front/public/images/readme-chrome-extension.png" alt="GitHub 웹에 Closed Shadow DOM으로 주입되는 Chrome Extension 사이드바 및 1-Click PR 자동 입력" />
+      <br />
+      <strong>Chrome 확장 프로그램</strong>
+      <br />
+      Primer CSS 격리(Closed Shadow DOM), GitHub 이슈 목록 내 추천 뱃지, 실시간 사이드바 분석 및 1-Click PR 자동 입력(Synthetic Bubbling Events)을 지원합니다.
+    </td>
+  </tr>
 </table>
 
 ### 배경
