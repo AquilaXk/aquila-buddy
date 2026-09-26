@@ -215,7 +215,7 @@ function PrDraftContent() {
             href={`/issues/${encodeURIComponent(draftInput.issueId)}`}
           >
             <ArrowLeft className="h-4 w-4" />
-            <span>← 이슈로 돌아가기</span>
+            <span>이슈로 돌아가기</span>
           </Link>
         ) : (
           <Link
@@ -223,7 +223,7 @@ function PrDraftContent() {
             href="/issues"
           >
             <ArrowLeft className="h-4 w-4" />
-            <span>← 추천 이슈</span>
+            <span>추천 이슈</span>
           </Link>
         )}
         <h1 className="text-2xl font-bold text-dark-text">PR 초안 생성</h1>

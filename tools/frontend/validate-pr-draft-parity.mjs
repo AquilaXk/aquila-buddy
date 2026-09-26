@@ -34,8 +34,8 @@ assertIncludes("initialDraftInput.issueId", "PR draft page must trigger lookup f
 assertIncludes("mergeDraftInputWithIssue", "PR draft page must isolate query-first source issue merging.");
 assertIncludes("currentInput.upstreamRepo || issue.repoFullName", "PR draft page must keep query repo before detail API repo.");
 assertIncludes("PR 초안 생성", "PR draft page must show the target title.");
-assertIncludes("← 이슈로 돌아가기", "PR draft page must link back to the source issue.");
-assertIncludes("← 추천 이슈", "PR draft page must link back to issue recommendations.");
+assertIncludes("이슈로 돌아가기", "PR draft page must link back to the source issue.");
+assertIncludes("추천 이슈", "PR draft page must link back to issue recommendations.");
 assertIncludes("선택된 이슈", "PR draft page must show the selected issue card.");
 assertIncludes("Base 브랜치", "PR draft page must show the base branch input.");
 assertIncludes("Head 브랜치", "PR draft page must show the head branch input.");

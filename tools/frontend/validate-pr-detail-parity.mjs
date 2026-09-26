@@ -44,7 +44,7 @@ assertIncludes("updatePullRequestDraft", "PR detail page must update the draft."
 assertIncludes("deletePullRequestDraft", "PR detail page must delete the draft.");
 assertIncludes("translatePullRequestDraft", "PR detail page must translate the draft.");
 assertIncludes("PR 초안을 찾을 수 없습니다.", "PR detail page must keep the not-found state.");
-assertIncludes("← PR 초안 목록", "PR detail page must link back to draft list.");
+assertIncludes("PR 초안 목록", "PR detail page must link back to draft list.");
 assertIncludes("연결된 이슈", "PR detail page must show connected issue context.");
 assertFileIncludes(apiClient, "sourceIssueId?: string;", "PR draft create API request must accept sourceIssueId.");
 assertFileIncludes(apiClient, "sourceIssueId: string | null;", "Stored PR draft API type must expose sourceIssueId.");
