@@ -9,10 +9,24 @@ import java.util.stream.Stream;
 public record PullRequestDraftRepositoryGuideContext(
     String contributing,
     String pullRequestTemplate,
-    List<String> mergedPullRequestSamples
+    List<String> mergedPullRequestSamples,
+    List<PullRequestTemplateSection> templateSections
 ) {
 
     private static final int MAX_MERGED_PULL_REQUEST_SAMPLES = 3;
+
+    public PullRequestDraftRepositoryGuideContext(
+        String contributing,
+        String pullRequestTemplate,
+        List<String> mergedPullRequestSamples
+    ) {
+        this(
+            contributing,
+            pullRequestTemplate,
+            mergedPullRequestSamples,
+            PullRequestTemplateSection.parseAll(pullRequestTemplate)
+        );
+    }
 
     public PullRequestDraftRepositoryGuideContext {
         contributing = optionalText(contributing);
@@ -24,14 +38,21 @@ public record PullRequestDraftRepositoryGuideContext(
                 .filter(item -> item != null)
                 .limit(MAX_MERGED_PULL_REQUEST_SAMPLES)
                 .toList();
+        templateSections = templateSections == null
+            ? PullRequestTemplateSection.parseAll(pullRequestTemplate)
+            : List.copyOf(templateSections);
     }
 
     public static PullRequestDraftRepositoryGuideContext empty() {
-        return new PullRequestDraftRepositoryGuideContext(null, null, List.of());
+        return new PullRequestDraftRepositoryGuideContext(null, null, List.of(), List.of());
     }
 
     public boolean hasAnyGuide() {
         return contributing != null || pullRequestTemplate != null || !mergedPullRequestSamples.isEmpty();
+    }
+
+    public boolean hasTemplateSections() {
+        return !templateSections.isEmpty();
     }
 
     public PullRequestDraftRepositoryFormat draftFormat() {

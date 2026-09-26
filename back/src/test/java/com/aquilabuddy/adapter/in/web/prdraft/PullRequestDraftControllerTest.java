@@ -220,8 +220,8 @@ class PullRequestDraftControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.success").value(true))
             .andExpect(jsonPath("$.data.draftId").value(id))
-            .andExpect(jsonPath("$.data.readyCount").value(4))
-            .andExpect(jsonPath("$.data.items[0].key").value("metadata"))
+            .andExpect(jsonPath("$.data.readyCount").value(7))
+            .andExpect(jsonPath("$.data.items[0].key").value("branch-flow"))
             .andExpect(jsonPath("$.data.items[0].status").value("READY"))
             .andExpect(jsonPath("$.data.items[3].key").value("test-plan"));
     }
@@ -237,7 +237,7 @@ class PullRequestDraftControllerTest {
             .andExpect(jsonPath("$.data.items[0].key").value("context-captured"))
             .andExpect(jsonPath("$.data.items[0].status").value("DONE"))
             .andExpect(jsonPath("$.data.items[2].key").value("readiness-reviewed"))
-            .andExpect(jsonPath("$.data.items[2].detail").value("4/4 readiness items ready"))
+            .andExpect(jsonPath("$.data.items[2].detail").value("7/7 readiness items ready"))
             .andExpect(jsonPath("$.data.items[3].key").value("submission-prepared"))
             .andExpect(jsonPath("$.data.items[3].status").value("READY"));
     }
@@ -253,8 +253,8 @@ class PullRequestDraftControllerTest {
             .andExpect(jsonPath("$.data.draftId").value(id))
             .andExpect(jsonPath("$.data.upstreamRepo").value("spring-projects/spring-boot"))
             .andExpect(jsonPath("$.data.githubIssueNumber").value(2))
-            .andExpect(jsonPath("$.data.readinessReadyCount").value(4))
-            .andExpect(jsonPath("$.data.readinessTotalCount").value(4))
+            .andExpect(jsonPath("$.data.readinessReadyCount").value(7))
+            .andExpect(jsonPath("$.data.readinessTotalCount").value(7))
             .andExpect(jsonPath("$.data.translationCount").value(1))
             .andExpect(jsonPath("$.data.latestTranslation.translationId").value(translationId))
             .andExpect(jsonPath("$.data.latestTranslation.targetLanguage").value("en"));

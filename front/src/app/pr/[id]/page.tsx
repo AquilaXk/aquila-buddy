@@ -3,13 +3,29 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Copy, Check, Edit2, Trash2, Globe, ExternalLink, Save, X } from "lucide-react";
+import {
+  ArrowLeft,
+  Copy,
+  Check,
+  Edit2,
+  Trash2,
+  Globe,
+  ExternalLink,
+  Save,
+  X,
+  CheckCircle2,
+  AlertCircle,
+  Loader2
+} from "lucide-react";
 import ProtectedLayout from "@/components/ProtectedLayout";
 import {
   deletePullRequestDraft,
   getPullRequestDraft,
+  getPullRequestDraftReadiness,
+  getPullRequestDraftTranslations,
   translatePullRequestDraft,
   updatePullRequestDraft,
+  type PullRequestDraftReadiness,
   type PullRequestDraftTranslateResult,
   type StoredPullRequestDraft
 } from "@/lib/api";
@@ -19,6 +35,9 @@ export default function PrDetailPage() {
   const router = useRouter();
   const prId = params.id;
   const [draft, setDraft] = useState<StoredPullRequestDraft | null>(null);
+  const [readiness, setReadiness] = useState<PullRequestDraftReadiness | null>(null);
+  const [activeLangTab, setActiveLangTab] = useState<"ko" | "en">("ko");
+  const [readinessFilter, setReadinessFilter] = useState<"all" | "action-required">("all");
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -47,12 +66,39 @@ export default function PrDetailPage() {
         setDraft(loadedDraft);
         setEditTitle(loadedDraft.title);
         setEditBody(loadedDraft.body);
+
+        try {
+          const loadedReadiness = await getPullRequestDraftReadiness(prId);
+          if (isMounted) {
+            setReadiness(loadedReadiness);
+          }
+        } catch {
+          if (isMounted) {
+            setReadiness(null);
+          }
+        }
+
+        try {
+          const loadedTranslations = await getPullRequestDraftTranslations(prId);
+          if (isMounted && loadedTranslations.length > 0) {
+            const latest = loadedTranslations[loadedTranslations.length - 1];
+            setTranslated({
+              titleEn: latest.title,
+              bodyEn: latest.body,
+              sourceIssueId: latest.sourceIssueId,
+              githubUrl: `https://github.com/${loadedDraft.upstreamRepo}/compare/${encodeURIComponent(loadedDraft.baseBranch)}...${encodeURIComponent(loadedDraft.headBranch)}?expand=1&title=${encodeURIComponent(latest.title)}&body=${encodeURIComponent(latest.body)}`
+            });
+          }
+        } catch {
+          // 저장된 번역이 없는 경우 무시하고 원본 초안으로 진행합니다.
+        }
       } catch {
         if (!isMounted) {
           return;
         }
 
         setDraft(null);
+        setReadiness(null);
         setNotFound(true);
       } finally {
         if (isMounted) {
@@ -83,7 +129,12 @@ export default function PrDetailPage() {
       });
       setDraft(updatedDraft);
       setTranslated(null);
+      setActiveLangTab("ko");
       setEditing(false);
+
+      getPullRequestDraftReadiness(prId)
+        .then(setReadiness)
+        .catch(() => setReadiness(null));
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "저장에 실패했습니다.");
     } finally {
@@ -113,7 +164,9 @@ export default function PrDetailPage() {
     setError(null);
 
     try {
-      setTranslated(await translatePullRequestDraft(prId));
+      const result = await translatePullRequestDraft(prId);
+      setTranslated(result);
+      setActiveLangTab("en");
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "번역에 실패했습니다.");
     } finally {
@@ -122,9 +175,15 @@ export default function PrDetailPage() {
   }
 
   async function copyToClipboard(text: string, type: "title" | "body") {
-    await navigator.clipboard.writeText(text);
-    setCopied(type);
-    window.setTimeout(() => setCopied(null), 2000);
+    try {
+      if (navigator.clipboard) {
+        await navigator.clipboard.writeText(text);
+      }
+      setCopied(type);
+      window.setTimeout(() => setCopied(null), 2000);
+    } catch {
+      // clipboard access fallback
+    }
   }
 
   function cancelEdit() {
@@ -168,8 +227,9 @@ export default function PrDetailPage() {
     );
   }
 
-  const displayTitle = translated?.titleEn ?? draft.title;
-  const displayBody = translated?.bodyEn ?? draft.body;
+  const isEnglishTab = activeLangTab === "en";
+  const displayTitle = isEnglishTab && translated ? translated.titleEn : draft.title;
+  const displayBody = isEnglishTab && translated ? translated.bodyEn : draft.body;
 
   return (
     <ProtectedLayout>
@@ -182,10 +242,13 @@ export default function PrDetailPage() {
           <span>← PR 초안 목록</span>
         </Link>
         <div className="flex items-center gap-2">
-          {!editing && !translated ? (
+          {!editing ? (
             <button
               className="focus-ring inline-flex items-center gap-1.5 rounded-xl border border-dark-border bg-dark-surface px-3.5 py-1.5 text-xs font-semibold text-dark-muted hover:text-dark-text hover:bg-dark-elevated transition-colors"
-              onClick={() => setEditing(true)}
+              onClick={() => {
+                setActiveLangTab("ko");
+                setEditing(true);
+              }}
               type="button"
             >
               <Edit2 className="h-3.5 w-3.5" />
@@ -239,6 +302,41 @@ export default function PrDetailPage() {
           ) : null}
         </div>
       </section>
+
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-base font-semibold text-dark-text">PR 초안 내용</h2>
+        <div className="flex items-center gap-1 rounded-xl border border-dark-border bg-dark-scaffold p-1">
+          <button
+            className={`focus-ring rounded-lg px-3 py-1 text-xs font-semibold transition-all ${
+              activeLangTab === "ko"
+                ? "bg-brand-500 text-white shadow-sm"
+                : "text-dark-muted hover:text-dark-text"
+            } disabled:cursor-not-allowed disabled:opacity-50`}
+            disabled={editing}
+            onClick={() => setActiveLangTab("ko")}
+            type="button"
+          >
+            한국어 원본
+          </button>
+          <button
+            className={`focus-ring rounded-lg px-3 py-1 text-xs font-semibold transition-all ${
+              activeLangTab === "en"
+                ? "bg-brand-500 text-white shadow-sm"
+                : "text-dark-muted hover:text-dark-text"
+            } disabled:cursor-not-allowed disabled:opacity-50`}
+            disabled={editing}
+            onClick={() => {
+              setActiveLangTab("en");
+              if (!translated && !translating) {
+                handleTranslate();
+              }
+            }}
+            type="button"
+          >
+            English {translated ? "✓" : ""}
+          </button>
+        </div>
+      </div>
 
       <section className="surface mb-4 rounded-xl p-5">
         <div className="mb-2 flex items-center justify-between gap-3">
@@ -317,6 +415,91 @@ export default function PrDetailPage() {
         </section>
       ) : null}
 
+      {readiness ? (
+        <section className="surface mb-5 rounded-xl p-5 space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-brand-400">
+                7대 기여 준비도
+              </h3>
+              <span className="rounded-md border border-dark-border bg-dark-surface px-2 py-0.5 font-mono text-xs font-semibold text-dark-text">
+                {readiness.readyCount} / {readiness.items.length} 준비 완료
+              </span>
+            </div>
+            <div className="flex items-center gap-1 text-xs">
+              <button
+                className={`focus-ring rounded-lg px-2.5 py-1 font-semibold transition-colors ${
+                  readinessFilter === "all"
+                    ? "border border-dark-border bg-dark-elevated text-dark-text"
+                    : "text-dark-muted hover:text-dark-text"
+                }`}
+                onClick={() => setReadinessFilter("all")}
+                type="button"
+              >
+                전체 ({readiness.items.length})
+              </button>
+              <button
+                className={`focus-ring rounded-lg px-2.5 py-1 font-semibold transition-colors ${
+                  readinessFilter === "action-required"
+                    ? "border border-dark-border bg-dark-elevated text-dark-text"
+                    : "text-dark-muted hover:text-dark-text"
+                }`}
+                onClick={() => setReadinessFilter("action-required")}
+                type="button"
+              >
+                확인 필요 ({readiness.items.filter((item) => item.status === "ACTION_REQUIRED").length})
+              </button>
+            </div>
+          </div>
+
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-dark-surface">
+            <div
+              className="h-full rounded-full bg-brand-500 transition-all duration-300"
+              style={{
+                width: `${(readiness.readyCount / Math.max(readiness.items.length, 1)) * 100}%`
+              }}
+            />
+          </div>
+
+          <div className="divide-y divide-dark-border/60">
+            {readiness.items.filter((item) => readinessFilter === "all" || item.status === "ACTION_REQUIRED").length === 0 ? (
+              <p className="py-3 text-center text-xs text-dark-muted">
+                확인 필요한 항목이 없습니다. 모든 준비도 게이트를 통과했습니다.
+              </p>
+            ) : null}
+            {readiness.items
+              .filter((item) => readinessFilter === "all" || item.status === "ACTION_REQUIRED")
+              .map((item) => (
+                <div className="flex items-start gap-2.5 py-2.5 first:pt-1 last:pb-1" key={item.key}>
+                  {item.status === "READY" ? (
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
+                  ) : (
+                    <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-xs font-semibold text-dark-text">{item.label}</span>
+                      <span
+                        className={`rounded border px-1.5 py-0.5 text-[10px] font-semibold ${
+                          item.status === "READY"
+                            ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+                            : "border-amber-500/30 bg-amber-500/10 text-amber-400"
+                        }`}
+                      >
+                        {item.status === "READY" ? "준비됨" : "확인 필요"}
+                      </span>
+                    </div>
+                    <p className="mt-0.5 text-[11px] leading-relaxed text-dark-muted">{item.description}</p>
+                    <p className="mt-1 break-words rounded border border-dark-border/40 bg-dark-surface/60 px-2 py-1 font-mono text-[11px] text-dark-text/80">
+                      {item.detail}
+                    </p>
+                  </div>
+                </div>
+              ))}
+          </div>
+        </section>
+      ) : null}
+
       {editing ? (
         <div className="flex flex-wrap gap-3">
           <button
@@ -356,8 +539,17 @@ export default function PrDetailPage() {
               onClick={handleTranslate}
               type="button"
             >
-              <Globe className="h-4 w-4" />
-              <span>{translating ? "번역 중..." : "영어로 번역하기"}</span>
+              {translating ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>번역 중...</span>
+                </>
+              ) : (
+                <>
+                  <Globe className="h-4 w-4" />
+                  <span>영어로 번역하기</span>
+                </>
+              )}
             </button>
           )}
         </div>
