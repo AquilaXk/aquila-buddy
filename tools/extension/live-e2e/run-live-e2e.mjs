@@ -18,7 +18,7 @@ try {
           issueNumber: 42,
           title: "Improve onboarding copy",
           labels: ["good first issue"],
-          summary: '문서 기여로 시작하기 좋습니다. <img src=x onerror="window.__omosXss=true">',
+          summary: '문서 기여로 시작하기 좋습니다. <img src=x onerror="window.__aquilaBuddyXss=true">',
         },
       ],
     },
@@ -30,19 +30,19 @@ try {
       },
     },
   });
-  await page.click("#omos-toggle");
+  await page.click("#aquila-buddy-toggle");
   const badgeText = await page.textContent(
-    'a[href="/AquilaXk/aquila-buddy/issues/42"] .omos-badge'
+    'a[href="/AquilaXk/aquila-buddy/issues/42"] .aquila-buddy-badge'
   );
-  assertEqual(badgeText, "✦ OMOS", "recommended issue badge text");
-  await page.click("#omos-close");
-  await page.click("#omos-toggle");
+  assertEqual(badgeText, "✦ Aquila Buddy", "recommended issue badge text");
+  await page.click("#aquila-buddy-close");
+  await page.click("#aquila-buddy-toggle");
   const badgeCount = await page.evaluate(
-    `document.querySelectorAll('a[href="/AquilaXk/aquila-buddy/issues/42"] .omos-badge').length`
+    `document.querySelectorAll('a[href="/AquilaXk/aquila-buddy/issues/42"] .aquila-buddy-badge').length`
   );
   assertEqual(badgeCount, 1, "recommended issue badge must not be duplicated");
   const unrelatedBadgeCount = await page.evaluate(
-    `document.querySelectorAll('a[href="/AquilaXk/aquila-buddy/issues/77"] .omos-badge').length`
+    `document.querySelectorAll('a[href="/AquilaXk/aquila-buddy/issues/77"] .aquila-buddy-badge').length`
   );
   assertEqual(unrelatedBadgeCount, 0, "unrelated issue badge count");
   await page.evaluate(`
@@ -50,13 +50,23 @@ try {
     history.pushState({}, "", "/AquilaXk/aquila-buddy/issues/42");
     document.dispatchEvent(new Event("turbo:load"));
   `);
-  const toggleCountAfterTurbo = await page.evaluate(`document.querySelectorAll("#omos-toggle").length`);
-  const sidebarCountAfterTurbo = await page.evaluate(`document.querySelectorAll("#omos-sidebar").length`);
+  const rootCountAfterTurbo = await page.evaluate(`document.querySelectorAll("aquila-buddy-root").length`);
+  const toggleCountAfterTurbo = await page.evaluate(
+    `document.querySelector("aquila-buddy-root")?._shadowRoot?.querySelectorAll("#aquila-buddy-toggle").length ?? 0`
+  );
+  const sidebarCountAfterTurbo = await page.evaluate(
+    `document.querySelector("aquila-buddy-root")?._shadowRoot?.querySelectorAll("#aquila-buddy-sidebar").length ?? 0`
+  );
+  assertEqual(rootCountAfterTurbo, 1, "turbo navigation root count");
   assertEqual(toggleCountAfterTurbo, 1, "turbo navigation toggle count");
   assertEqual(sidebarCountAfterTurbo, 1, "turbo navigation sidebar count");
-  await page.click("#omos-toggle");
-  await page.click("#omos-guide-btn");
-  const turboGuideline = await page.textContent("#omos-analysis-result .omos-result-text");
+
+  await page.evaluate(`document.dispatchEvent(new Event("turbo:render"))`);
+  const rootCountAfterTurboRender = await page.evaluate(`document.querySelectorAll("aquila-buddy-root").length`);
+  assertEqual(rootCountAfterTurboRender, 1, "turbo render root count idempotency");
+  await page.click("#aquila-buddy-toggle");
+  await page.click("#aquila-buddy-guide-btn");
+  const turboGuideline = await page.textContent("#aquila-buddy-analysis-result .aquila-buddy-result-text");
   assertIncludes(turboGuideline, "첫 기여 흐름", "turbo issue guide result");
 
   const detailPage = await chrome.newPage(`${server.origin}/AquilaXk/aquila-buddy/issues/42`);
@@ -68,7 +78,7 @@ try {
           issueNumber: 42,
           title: "Improve onboarding copy",
           labels: ["good first issue"],
-          summary: '문서 기여로 시작하기 좋습니다. <img src=x onerror="window.__omosXss=true">',
+          summary: '문서 기여로 시작하기 좋습니다. <img src=x onerror="window.__aquilaBuddyXss=true">',
         },
       ],
     },
@@ -86,19 +96,19 @@ try {
       },
     },
   });
-  await detailPage.click("#omos-toggle");
-  const reasonText = await detailPage.textContent("#omos-rec-reason .omos-reason-text");
+  await detailPage.click("#aquila-buddy-toggle");
+  const reasonText = await detailPage.textContent("#aquila-buddy-rec-reason .aquila-buddy-reason-text");
   assertIncludes(reasonText, "문서 기여로 시작하기 좋습니다.", "escaped recommendation reason text");
   const reasonInjectedNodeCount = await detailPage.evaluate(
-    `document.querySelectorAll("#omos-rec-reason img, #omos-rec-reason script").length`
+    `document.querySelector("aquila-buddy-root")?._shadowRoot?.querySelectorAll("#aquila-buddy-rec-reason img, #aquila-buddy-rec-reason script").length ?? 0`
   );
   assertEqual(reasonInjectedNodeCount, 0, "recommendation reason injected node count");
-  await detailPage.click("#omos-guide-btn");
-  const guideline = await detailPage.textContent("#omos-analysis-result .omos-result-text");
+  await detailPage.click("#aquila-buddy-guide-btn");
+  const guideline = await detailPage.textContent("#aquila-buddy-analysis-result .aquila-buddy-result-text");
   assertIncludes(guideline, "첫 기여 흐름", "issue guide result");
 
-  await detailPage.click("#omos-pseudo-btn");
-  const pseudoCode = await detailPage.textContent("#omos-analysis-result .omos-code-block");
+  await detailPage.click("#aquila-buddy-pseudo-btn");
+  const pseudoCode = await detailPage.textContent("#aquila-buddy-analysis-result .aquila-buddy-code-block");
   assertIncludes(pseudoCode, "render first contribution CTA", "issue pseudo result");
 
   const errorPage = await chrome.newPage(`${server.origin}/AquilaXk/aquila-buddy/issues/42`);
@@ -111,9 +121,9 @@ try {
       error: "TOKEN_EXPIRED",
     },
   });
-  await errorPage.click("#omos-toggle");
-  await errorPage.click("#omos-guide-btn");
-  const errorText = await errorPage.textContent("#omos-analysis-result .omos-error");
+  await errorPage.click("#aquila-buddy-toggle");
+  await errorPage.click("#aquila-buddy-guide-btn");
+  const errorText = await errorPage.textContent("#aquila-buddy-analysis-result .aquila-buddy-error");
   assertIncludes(errorText, "세션이 만료", "issue guide error state");
 
   const prPage = await chrome.newPage(
@@ -123,8 +133,8 @@ try {
     prDraft: {
       data: {
         id: 901,
-        title: '[Test] Chrome extension live 검증 추가 <img src=x onerror="window.__omosXss=true">',
-        body: "## 관련 이슈\nclose #219\n\n## 요약\nExtension live 검증을 추가합니다.\n<script>window.__omosXss=true</script>",
+        title: '[Test] Chrome extension live 검증 추가 <img src=x onerror="window.__aquilaBuddyXss=true">',
+        body: "## 관련 이슈\nclose #219\n\n## 요약\nExtension live 검증을 추가합니다.\n<script>window.__aquilaBuddyXss=true</script>",
       },
     },
     prTranslation: {
@@ -134,23 +144,42 @@ try {
       },
     },
   });
-  await prPage.click("#omos-toggle");
-  await prPage.fill("#omos-issue-number", "219");
-  await prPage.click("#omos-draft-btn");
-  const draftTitle = await prPage.textContent(".omos-draft-title");
+  await prPage.click("#aquila-buddy-toggle");
+  await prPage.fill("#aquila-buddy-issue-number", "219");
+  await prPage.click("#aquila-buddy-draft-btn");
+  const draftTitle = await prPage.textContent(".aquila-buddy-draft-title");
   assertIncludes(draftTitle, "live 검증", "draft title preview");
   const draftInjectedNodeCount = await prPage.evaluate(
-    `document.querySelectorAll(".omos-draft-title img, #omos-draft-result script").length`
+    `document.querySelector("aquila-buddy-root")?._shadowRoot?.querySelectorAll(".aquila-buddy-draft-title img, #aquila-buddy-draft-result script").length ?? 0`
   );
   assertEqual(draftInjectedNodeCount, 0, "draft preview injected node count");
 
-  await prPage.click("#omos-apply-btn");
+  await prPage.evaluate(`
+    window.__formEvents = [];
+    ['input', 'change'].forEach((type) => {
+      document.querySelector('#pull_request_title').addEventListener(type, (e) => {
+        window.__formEvents.push({ field: 'title', type: e.type, bubbles: e.bubbles });
+      });
+      document.querySelector('#pull_request_body').addEventListener(type, (e) => {
+        window.__formEvents.push({ field: 'body', type: e.type, bubbles: e.bubbles });
+      });
+    });
+  `);
+
+  await prPage.click("#aquila-buddy-apply-btn");
   const appliedTitle = await prPage.inputValue("#pull_request_title");
   const appliedBody = await prPage.inputValue("#pull_request_body");
   assertEqual(appliedTitle, "Add Chrome extension live validation", "applied PR title");
   assertIncludes(appliedBody, "close #219", "applied PR body issue link");
+  const formEvents = await prPage.evaluate("window.__formEvents");
+  assertDeepEqual(formEvents, [
+    { field: "title", type: "input", bubbles: true },
+    { field: "title", type: "change", bubbles: true },
+    { field: "body", type: "input", bubbles: true },
+    { field: "body", type: "change", bubbles: true },
+  ], "PR form input and change bubbling events");
   const prMessages = await prPage.evaluate(
-    `window.__omosMessages.map((message) => ({ type: message.type, payload: message.payload ?? null, draftId: message.draftId ?? null }))`
+    `window.__aquilaBuddyMessages.map((message) => ({ type: message.type, payload: message.payload ?? null, draftId: message.draftId ?? null }))`
   );
   assertDeepEqual(prMessages, [
     {

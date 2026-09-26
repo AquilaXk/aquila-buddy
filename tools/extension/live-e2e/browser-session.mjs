@@ -217,6 +217,11 @@ async function createCdpClient(webSocketDebuggerUrl) {
   };
 }
 
+function elementLocator(selector) {
+  const primary = JSON.stringify(selector);
+  return `(document.querySelector(${primary}) || document.querySelector("aquila-buddy-root")?._shadowRoot?.querySelector(${primary}))`;
+}
+
 function createPage(client) {
   return {
     async installContentScript(fixtures) {
@@ -226,23 +231,23 @@ function createPage(client) {
       ]);
 
       await evaluate(client, `
-        window.__omosFixtures = ${JSON.stringify(fixtures)};
-        window.__omosMessages = [];
+        window.__aquilaBuddyFixtures = ${JSON.stringify(fixtures)};
+        window.__aquilaBuddyMessages = [];
         window.chrome = {
           runtime: {
             sendMessage(message, callback) {
-              window.__omosMessages.push(message);
-              const response = resolveOmosMessage(message, window.__omosFixtures);
+              window.__aquilaBuddyMessages.push(message);
+              const response = resolveAquilaBuddyMessage(message, window.__aquilaBuddyFixtures);
               queueMicrotask(() => callback(response));
             },
             onMessage: {
               addListener(listener) {
-                window.__omosRuntimeListener = listener;
+                window.__aquilaBuddyRuntimeListener = listener;
               }
             }
           }
         };
-        function resolveOmosMessage(message, fixtures) {
+        function resolveAquilaBuddyMessage(message, fixtures) {
           if (message.type === "GET_CACHED_RECOMMENDATIONS") {
             return asFixtureResponse(fixtures.cachedRecommendations);
           }
@@ -276,18 +281,21 @@ function createPage(client) {
       await evaluate(client, contentScript);
     },
     async click(selector) {
-      await waitForFunction(client, `Boolean(document.querySelector(${JSON.stringify(selector)}))`);
-      await evaluate(client, `document.querySelector(${JSON.stringify(selector)}).click()`);
+      const locator = elementLocator(selector);
+      await waitForFunction(client, `Boolean(${locator})`);
+      await evaluate(client, `${locator}.click()`);
     },
     async textContent(selector) {
-      await waitForFunction(client, `Boolean(document.querySelector(${JSON.stringify(selector)}))`);
-      return evaluate(client, `document.querySelector(${JSON.stringify(selector)}).textContent`);
+      const locator = elementLocator(selector);
+      await waitForFunction(client, `Boolean(${locator})`);
+      return evaluate(client, `${locator}.textContent`);
     },
     async fill(selector, value) {
-      await waitForFunction(client, `Boolean(document.querySelector(${JSON.stringify(selector)}))`);
+      const locator = elementLocator(selector);
+      await waitForFunction(client, `Boolean(${locator})`);
       await evaluate(client, `
         {
-          const input = document.querySelector(${JSON.stringify(selector)});
+          const input = ${locator};
           input.value = ${JSON.stringify(value)};
           input.dispatchEvent(new Event("input", { bubbles: true }));
           input.dispatchEvent(new Event("change", { bubbles: true }));
@@ -295,8 +303,9 @@ function createPage(client) {
       `);
     },
     async inputValue(selector) {
-      await waitForFunction(client, `Boolean(document.querySelector(${JSON.stringify(selector)}))`);
-      return evaluate(client, `document.querySelector(${JSON.stringify(selector)}).value`);
+      const locator = elementLocator(selector);
+      await waitForFunction(client, `Boolean(${locator})`);
+      return evaluate(client, `${locator}.value`);
     },
     async evaluate(expression) {
       return evaluate(client, expression);
