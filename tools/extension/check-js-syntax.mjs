@@ -10,7 +10,14 @@ const files = [
   "extension/popup.js",
 ];
 
+import { readFileSync } from "node:fs";
+
 for (const file of files) {
+  const content = readFileSync(resolve(repoRoot, file), "utf8");
+  if (content.toLowerCase().includes("omos")) {
+    throw new Error(`${file} must not contain old service name (OMOS)`);
+  }
+
   const result = spawnSync(process.execPath, ["--check", resolve(repoRoot, file)], {
     encoding: "utf8",
   });

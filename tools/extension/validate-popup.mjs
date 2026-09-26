@@ -7,7 +7,8 @@ const repoRoot = resolve(scriptDir, "..", "..");
 const popupPath = resolve(repoRoot, "extension", "popup.html");
 const html = readFileSync(popupPath, "utf8");
 
-assertIncludes(html, "<span>✦ OMOS</span>", "popup brand mark");
+assertIncludes(html, "<span>✦ Aquila Buddy</span>", "popup brand mark");
+assertNotIncludes(html, "OMOS", "popup brand mark must not include old service name");
 assertMatches(html, /<div id="rec-list"><\/div>/, "empty recommendation list container");
 assertIncludes(html, '<script src="popup.js"></script>', "popup script include");
 assertNotIncludes(html, "로그인 후 추천 이슈를 확인할 수 있습니다.", "static empty recommendation copy");

@@ -8,16 +8,20 @@ const manifestPath = resolve(repoRoot, "extension", "manifest.json");
 const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
 
 assertEqual(manifest.manifest_version, 3, "manifest_version must be 3");
-assertText(manifest.name, "name");
+assertEqual(manifest.name, "Aquila Buddy", "manifest.name");
 assertText(manifest.version, "version");
 assertText(manifest.description, "description");
 assertText(manifest.action?.default_popup, "action.default_popup");
-assertText(manifest.action?.default_title, "action.default_title");
+assertEqual(manifest.action?.default_title, "Aquila Buddy", "action.default_title");
 assertText(manifest.background?.service_worker, "background.service_worker");
 assertIncludes(manifest.permissions, "storage", "permissions");
 assertIncludes(manifest.permissions, "tabs", "permissions");
 assertIncludes(manifest.host_permissions, "https://github.com/*", "host_permissions");
 assertIncludes(manifest.host_permissions, "http://localhost:8080/*", "host_permissions");
+
+if (JSON.stringify(manifest).toLowerCase().includes("omos")) {
+  fail("manifest must not include old service name (OMOS)");
+}
 
 const githubContentScript = manifest.content_scripts?.find((script) =>
   Array.isArray(script.matches) && script.matches.includes("https://github.com/*")
