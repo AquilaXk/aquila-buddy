@@ -35,9 +35,8 @@ assertIncludes("bg-github-purple", "Login button must use the target purple acti
 assertIncludes("<GitHubIcon />", "Login button must include the GitHub icon.");
 assertIncludes("GitHub으로 로그인", "Login button label changed.");
 assertIncludes("로그인하면 GitHub 프로필 정보를 사용에 동의하는 것으로 간주합니다.", "Consent copy changed.");
-assertIncludes("백엔드 서버:", "Backend server hint must be visible.");
-assertIncludes("localhost:8080", "Backend server hint must keep the local backend address.");
-
+assertNotIncludes("localhost:8080", "Login page must not expose hardcoded local backend address.");
+assertNotIncludes("백엔드 서버:", "Login page must not expose obsolete backend server hint.");
 assertNotIncludes("GitHub 로그인", "Login page must not use the old GitHub-specific heading.");
 assertNotIncludes("GitHub로 계속하기", "Login page must not use the old CTA label.");
 assertNotIncludes("bg-github-accent px-4 py-3", "Login CTA must not use the old accent button style.");
