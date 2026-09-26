@@ -193,7 +193,7 @@ public class AiPullRequestDraftAdapter implements GeneratePullRequestDraftPort, 
 
     private static boolean hasClosingIssueLine(String body, long githubIssueNumber) {
         Pattern closingPattern = Pattern.compile(
-            "(?im)^\\s*(close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved)\\s+#"
+            "(?i)(?:^[\\s-*•]*|\\b)(?:close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved):?\\s+#"
                 + githubIssueNumber + "\\b"
         );
         return closingPattern.matcher(body).find();
@@ -260,6 +260,9 @@ public class AiPullRequestDraftAdapter implements GeneratePullRequestDraftPort, 
         lines.add("");
         lines.add("## Tests");
         lines.add("- 변경 후 관련 검증을 실행합니다.");
+        lines.add("");
+        lines.add("## Breaking Changes");
+        lines.add("- 하위 호환성을 깨뜨리는 변경 사항이 없습니다.");
     }
 
     private static String fallbackLineForHeading(String heading, PullRequestDraftRequest request) {

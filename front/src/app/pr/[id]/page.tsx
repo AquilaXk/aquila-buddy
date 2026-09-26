@@ -3,13 +3,29 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Copy, Check, Edit2, Trash2, Globe, ExternalLink, Save, X } from "lucide-react";
+import {
+  ArrowLeft,
+  Copy,
+  Check,
+  Edit2,
+  Trash2,
+  Globe,
+  ExternalLink,
+  Save,
+  X,
+  Loader2
+} from "lucide-react";
 import ProtectedLayout from "@/components/ProtectedLayout";
+import { PrDraftReadinessSection } from "@/components/PrDraftReadinessSection";
+import { LanguageTabSwitcher } from "@/components/LanguageTabSwitcher";
 import {
   deletePullRequestDraft,
   getPullRequestDraft,
+  getPullRequestDraftReadiness,
+  getPullRequestDraftTranslations,
   translatePullRequestDraft,
   updatePullRequestDraft,
+  type PullRequestDraftReadiness,
   type PullRequestDraftTranslateResult,
   type StoredPullRequestDraft
 } from "@/lib/api";
@@ -19,6 +35,8 @@ export default function PrDetailPage() {
   const router = useRouter();
   const prId = params.id;
   const [draft, setDraft] = useState<StoredPullRequestDraft | null>(null);
+  const [readiness, setReadiness] = useState<PullRequestDraftReadiness | null>(null);
+  const [activeLangTab, setActiveLangTab] = useState<"ko" | "en">("ko");
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -47,12 +65,39 @@ export default function PrDetailPage() {
         setDraft(loadedDraft);
         setEditTitle(loadedDraft.title);
         setEditBody(loadedDraft.body);
+
+        try {
+          const loadedReadiness = await getPullRequestDraftReadiness(prId);
+          if (isMounted) {
+            setReadiness(loadedReadiness);
+          }
+        } catch {
+          if (isMounted) {
+            setReadiness(null);
+          }
+        }
+
+        try {
+          const loadedTranslations = await getPullRequestDraftTranslations(prId);
+          if (isMounted && loadedTranslations.length > 0) {
+            const latest = loadedTranslations[loadedTranslations.length - 1];
+            setTranslated({
+              titleEn: latest.title,
+              bodyEn: latest.body,
+              sourceIssueId: latest.sourceIssueId,
+              githubUrl: `https://github.com/${loadedDraft.upstreamRepo}/compare/${encodeURIComponent(loadedDraft.baseBranch)}...${encodeURIComponent(loadedDraft.headBranch)}?expand=1&title=${encodeURIComponent(latest.title)}&body=${encodeURIComponent(latest.body)}`
+            });
+          }
+        } catch {
+          // 저장된 번역이 없는 경우 무시하고 원본 초안으로 진행합니다.
+        }
       } catch {
         if (!isMounted) {
           return;
         }
 
         setDraft(null);
+        setReadiness(null);
         setNotFound(true);
       } finally {
         if (isMounted) {
@@ -83,7 +128,12 @@ export default function PrDetailPage() {
       });
       setDraft(updatedDraft);
       setTranslated(null);
+      setActiveLangTab("ko");
       setEditing(false);
+
+      getPullRequestDraftReadiness(prId)
+        .then(setReadiness)
+        .catch(() => setReadiness(null));
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "저장에 실패했습니다.");
     } finally {
@@ -113,7 +163,9 @@ export default function PrDetailPage() {
     setError(null);
 
     try {
-      setTranslated(await translatePullRequestDraft(prId));
+      const result = await translatePullRequestDraft(prId);
+      setTranslated(result);
+      setActiveLangTab("en");
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "번역에 실패했습니다.");
     } finally {
@@ -122,9 +174,15 @@ export default function PrDetailPage() {
   }
 
   async function copyToClipboard(text: string, type: "title" | "body") {
-    await navigator.clipboard.writeText(text);
-    setCopied(type);
-    window.setTimeout(() => setCopied(null), 2000);
+    try {
+      if (navigator.clipboard) {
+        await navigator.clipboard.writeText(text);
+      }
+      setCopied(type);
+      window.setTimeout(() => setCopied(null), 2000);
+    } catch {
+      // clipboard access fallback
+    }
   }
 
   function cancelEdit() {
@@ -168,8 +226,9 @@ export default function PrDetailPage() {
     );
   }
 
-  const displayTitle = translated?.titleEn ?? draft.title;
-  const displayBody = translated?.bodyEn ?? draft.body;
+  const isEnglishTab = activeLangTab === "en";
+  const displayTitle = isEnglishTab && translated ? translated.titleEn : draft.title;
+  const displayBody = isEnglishTab && translated ? translated.bodyEn : draft.body;
 
   return (
     <ProtectedLayout>
@@ -182,10 +241,13 @@ export default function PrDetailPage() {
           <span>← PR 초안 목록</span>
         </Link>
         <div className="flex items-center gap-2">
-          {!editing && !translated ? (
+          {!editing ? (
             <button
               className="focus-ring inline-flex items-center gap-1.5 rounded-xl border border-dark-border bg-dark-surface px-3.5 py-1.5 text-xs font-semibold text-dark-muted hover:text-dark-text hover:bg-dark-elevated transition-colors"
-              onClick={() => setEditing(true)}
+              onClick={() => {
+                setActiveLangTab("ko");
+                setEditing(true);
+              }}
               type="button"
             >
               <Edit2 className="h-3.5 w-3.5" />
@@ -239,6 +301,21 @@ export default function PrDetailPage() {
           ) : null}
         </div>
       </section>
+
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-base font-semibold text-dark-text">PR 초안 내용</h2>
+        <LanguageTabSwitcher
+          activeTab={activeLangTab}
+          disabled={editing}
+          hasTranslation={Boolean(translated)}
+          onSelectTab={(tab) => {
+            setActiveLangTab(tab);
+            if (tab === "en" && !translated && !translating) {
+              handleTranslate();
+            }
+          }}
+        />
+      </div>
 
       <section className="surface mb-4 rounded-xl p-5">
         <div className="mb-2 flex items-center justify-between gap-3">
@@ -317,6 +394,8 @@ export default function PrDetailPage() {
         </section>
       ) : null}
 
+      <PrDraftReadinessSection readiness={readiness} />
+
       {editing ? (
         <div className="flex flex-wrap gap-3">
           <button
@@ -356,8 +435,17 @@ export default function PrDetailPage() {
               onClick={handleTranslate}
               type="button"
             >
-              <Globe className="h-4 w-4" />
-              <span>{translating ? "번역 중..." : "영어로 번역하기"}</span>
+              {translating ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>번역 중...</span>
+                </>
+              ) : (
+                <>
+                  <Globe className="h-4 w-4" />
+                  <span>영어로 번역하기</span>
+                </>
+              )}
             </button>
           )}
         </div>

@@ -5,8 +5,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.aquilabuddy.domain.prdraft.PullRequestDraft;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftAnalysisContext;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftIssueContext;
+import com.aquilabuddy.domain.prdraft.PullRequestDraftReadiness;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftRequest;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftRepositoryGuideContext;
+import com.aquilabuddy.domain.prdraft.StoredPullRequestDraft;
+import java.time.Instant;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -162,5 +165,55 @@ class RuleBasedPullRequestDraftAdapterTest {
         assertThat(draft.body()).contains("Guideline: Follow the validation guide.");
         assertThat(draft.body()).contains("Pseudo code: if invalid then return a helpful message");
         assertThat(draft.body()).contains("Side effect: Update documentation examples.");
+    }
+
+    @Test
+    void populatesTemplateSectionsSemanticallyAndPassesReadinessGates() {
+        RuleBasedPullRequestDraftAdapter adapter = new RuleBasedPullRequestDraftAdapter();
+
+        String template = """
+            ## Description
+            <!-- Describe changes -->
+
+            ## Test Plan
+            - [ ] Unit tests
+
+            ## Breaking Changes
+            <!-- Compatibility impact -->
+            """;
+
+        PullRequestDraft draft = adapter.generate(new PullRequestDraftRequest(
+            "spring-projects/spring-boot",
+            42,
+            "main",
+            "feat/validation-docs",
+            "diff --git a/docs.adoc b/docs.adoc\n+Add validation example",
+            new PullRequestDraftRepositoryGuideContext(null, template, List.of())
+        ));
+
+        assertThat(draft.body())
+            .contains("close #42")
+            .contains("## Description")
+            .contains("Add validation example")
+            .contains("## Test Plan")
+            .contains("## Breaking Changes")
+            .contains("하위 호환성을 깨뜨리는 변경 사항이 없습니다.");
+
+        StoredPullRequestDraft storedDraft = new StoredPullRequestDraft(
+            "draft-42",
+            "spring-projects/spring-boot",
+            42,
+            "main",
+            "feat/validation-docs",
+            draft.title(),
+            draft.body(),
+            "issue-42",
+            "Issue #42",
+            "+Add validation example",
+            Instant.parse("2026-05-15T00:00:00Z")
+        );
+
+        PullRequestDraftReadiness readiness = PullRequestDraftReadiness.from(storedDraft);
+        assertThat(readiness.readyCount()).isEqualTo(7);
     }
 }

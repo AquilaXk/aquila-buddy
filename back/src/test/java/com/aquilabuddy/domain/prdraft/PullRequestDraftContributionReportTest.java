@@ -25,8 +25,8 @@ class PullRequestDraftContributionReportTest {
         assertThat(report.sourceIssueId()).isEqualTo("issue-123");
         assertThat(report.baseBranch()).isEqualTo("main");
         assertThat(report.headBranch()).isEqualTo("feat/readme-fix");
-        assertThat(report.readinessReadyCount()).isEqualTo(4);
-        assertThat(report.readinessTotalCount()).isEqualTo(4);
+        assertThat(report.readinessReadyCount()).isEqualTo(7);
+        assertThat(report.readinessTotalCount()).isEqualTo(7);
         assertThat(report.translationCount()).isEqualTo(2);
         assertThat(report.latestTranslation()).isNotNull();
         assertThat(report.latestTranslation().translationId()).isEqualTo("newer");
@@ -49,8 +49,21 @@ class PullRequestDraftContributionReportTest {
             "main",
             "feat/readme-fix",
             "[Docs] README 기여 안내 보완",
-            "## 변경 사항\n- README 안내를 보완합니다.\n\n## 테스트\n- 관련 테스트를 실행합니다.",
+            """
+            close #123
+
+            ## 변경 사항
+            - README 안내를 보완합니다.
+
+            ## 테스트
+            - 관련 테스트를 실행합니다.
+
+            ## 브레이킹 체인지
+            - 하위 호환성을 유지합니다.
+            """,
             "issue-123",
+            "Issue #123",
+            "+Add README docs",
             Instant.parse("2026-05-15T01:00:00Z")
         );
     }

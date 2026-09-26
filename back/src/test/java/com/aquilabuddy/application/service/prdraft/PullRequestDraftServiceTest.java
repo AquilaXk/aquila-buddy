@@ -438,8 +438,8 @@ class PullRequestDraftServiceTest {
 
         assertThat(report).isPresent();
         assertThat(report.get().draftId()).isEqualTo("stored-1");
-        assertThat(report.get().readinessReadyCount()).isEqualTo(2);
-        assertThat(report.get().readinessTotalCount()).isEqualTo(4);
+        assertThat(report.get().readinessReadyCount()).isEqualTo(1);
+        assertThat(report.get().readinessTotalCount()).isEqualTo(7);
         assertThat(report.get().translationCount()).isEqualTo(1);
         assertThat(report.get().latestTranslation().translationId()).isEqualTo("translation-1");
     }

@@ -5,12 +5,16 @@ import { useSearchParams } from "next/navigation";
 import { FormEvent, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowLeft, Copy, Check, Globe, ExternalLink, GitPullRequest, Loader2 } from "lucide-react";
 import ProtectedLayout from "@/components/ProtectedLayout";
+import { PrDraftReadinessSection } from "@/components/PrDraftReadinessSection";
+import { LanguageTabSwitcher } from "@/components/LanguageTabSwitcher";
 import {
   createPullRequestDraft,
   getIssueDetail,
   getPullRequestDraftHistory,
+  getPullRequestDraftReadiness,
   translatePullRequestDraft,
   type PullRequestDraftHistoryPage,
+  type PullRequestDraftReadiness,
   type PullRequestDraftTranslateResult,
   type RecommendedIssue,
   type StoredPullRequestDraft
@@ -47,6 +51,8 @@ function PrDraftContent() {
   const [headBranch, setHeadBranch] = useState(initialDraftInput.headBranch);
   const [draft, setDraft] = useState<StoredPullRequestDraft | null>(null);
   const [translated, setTranslated] = useState<PullRequestDraftTranslateResult | null>(null);
+  const [readiness, setReadiness] = useState<PullRequestDraftReadiness | null>(null);
+  const [activeLangTab, setActiveLangTab] = useState<"ko" | "en">("ko");
   const [error, setError] = useState<string | null>(null);
   const [historyError, setHistoryError] = useState<string | null>(null);
   const [sourceIssueLoading, setSourceIssueLoading] = useState(false);
@@ -145,6 +151,11 @@ function PrDraftContent() {
       });
 
       setDraft(createdDraft);
+      setActiveLangTab("ko");
+      getPullRequestDraftReadiness(createdDraft.id)
+        .then(setReadiness)
+        .catch(() => setReadiness(null));
+
       if (historyPageIndex === 0) {
         await loadDraftHistory(0);
       } else {
@@ -166,7 +177,9 @@ function PrDraftContent() {
     setError(null);
 
     try {
-      setTranslated(await translatePullRequestDraft(draft.id));
+      const translatedResult = await translatePullRequestDraft(draft.id);
+      setTranslated(translatedResult);
+      setActiveLangTab("en");
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "번역에 실패했습니다.");
     } finally {
@@ -175,14 +188,21 @@ function PrDraftContent() {
   }
 
   async function copyDraft(text: string, type: "title" | "body") {
-    await navigator.clipboard.writeText(text);
-    setCopied(type);
-    window.setTimeout(() => setCopied(null), 1600);
+    try {
+      if (navigator.clipboard) {
+        await navigator.clipboard.writeText(text);
+      }
+      setCopied(type);
+      window.setTimeout(() => setCopied(null), 1600);
+    } catch {
+      // clipboard access fallback
+    }
   }
 
   const canSubmit = hasIssueParam && baseBranch.trim() && headBranch.trim();
-  const displayTitle = translated?.titleEn ?? draft?.title ?? "";
-  const displayBody = translated?.bodyEn ?? draft?.body ?? "";
+  const isEnglishTab = activeLangTab === "en";
+  const displayTitle = isEnglishTab && translated ? translated.titleEn : (draft?.title ?? "");
+  const displayBody = isEnglishTab && translated ? translated.bodyEn : (draft?.body ?? "");
   const drafts = historyPage?.content ?? [];
   const totalHistoryPages = Math.max(historyPage?.totalPages ?? 1, 1);
 
@@ -307,7 +327,14 @@ function PrDraftContent() {
 
           {draft ? (
             <div className="space-y-4">
-              <h2 className="text-base font-semibold text-dark-text">생성된 PR 초안</h2>
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-dark-border pb-3">
+                <h2 className="text-base font-semibold text-dark-text">생성된 PR 초안</h2>
+                <LanguageTabSwitcher
+                  activeTab={activeLangTab}
+                  hasTranslation={Boolean(translated)}
+                  onSelectTab={setActiveLangTab}
+                />
+              </div>
 
               <div className="rounded-xl border border-dark-border bg-dark-scaffold/70 p-4">
                 <div className="mb-2 flex items-center justify-between gap-3">
@@ -358,6 +385,8 @@ function PrDraftContent() {
                   {displayBody}
                 </pre>
               </div>
+
+              <PrDraftReadinessSection readiness={readiness} />
 
               {!translated ? (
                 <button
