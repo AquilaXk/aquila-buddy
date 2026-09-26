@@ -81,6 +81,26 @@ function routeFixture(url, method, options) {
     }));
   }
 
+  if (pathname === "/api/v1/issues/issue-1/guide/stream") {
+    res.writeHead(200, {
+      "Content-Type": "text/event-stream; charset=utf-8",
+      "Cache-Control": "no-cache, no-transform",
+      "Connection": "keep-alive"
+    });
+    res.write("event: chunk\ndata: " + JSON.stringify({ step: "ANALYZING", message: "저장소 코드 맥락 분석 중..." }) + "\n\n");
+    res.write("event: chunk\ndata: " + JSON.stringify({ step: "FILES", filePaths: ["front/src/app/issues/[id]/page.tsx"] }) + "\n\n");
+    res.write("event: chunk\ndata: " + JSON.stringify({ step: "GUIDELINE", chunk: "fixture backend와 연결된 화면 smoke를 추가합니다." }) + "\n\n");
+    res.write("event: complete\ndata: " + JSON.stringify({
+      issueKey: "aquila-buddy#261",
+      filePaths: ["front/src/app/issues/[id]/page.tsx"],
+      guideline: "fixture backend와 연결된 화면 smoke를 추가합니다.",
+      pseudoCode: "start fixture backend\nvisit protected routes\nassert envelope rendering",
+      sideEffects: ["CI runtime이 늘어납니다."]
+    }) + "\n\n");
+    res.end();
+    return;
+  }
+
   if (pathname === "/api/v1/issues/issue-1/pseudo") {
     return response(successEnvelope({
       issueKey: "aquila-buddy#261",

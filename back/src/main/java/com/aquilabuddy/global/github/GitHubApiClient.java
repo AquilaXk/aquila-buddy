@@ -2,6 +2,8 @@ package com.aquilabuddy.global.github;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.nio.charset.StandardCharsets;
+import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -12,10 +14,13 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
@@ -72,14 +77,43 @@ public class GitHubApiClient {
         "issue",
         "the"
     );
+    private static final List<String> CANDIDATE_DIR_PREFIXES = List.of(
+        "src",
+        "lib",
+        "app",
+        "packages",
+        "back",
+        "front",
+        "backend",
+        "frontend",
+        "client",
+        "server",
+        "core"
+    );
+
+    private static final Duration DEFAULT_TREE_CACHE_TTL = Duration.ofHours(2);
 
     private final RestClient restClient;
     private final String token;
+    private final Clock clock;
+    private final Duration treeCacheTtl;
+    private final Map<String, CachedTree> treeCache = new ConcurrentHashMap<>();
 
+    @Autowired
     public GitHubApiClient(
         RestClient.Builder restClientBuilder,
         @Value("${app.github.api-base-url:https://api.github.com}") String baseUrl,
         @Value("${app.github.token:}") String token
+    ) {
+        this(restClientBuilder, baseUrl, token, Clock.systemUTC(), DEFAULT_TREE_CACHE_TTL);
+    }
+
+    GitHubApiClient(
+        RestClient.Builder restClientBuilder,
+        String baseUrl,
+        String token,
+        Clock clock,
+        Duration treeCacheTtl
     ) {
         this.restClient = restClientBuilder
             .baseUrl(baseUrl)
@@ -87,6 +121,12 @@ public class GitHubApiClient {
             .defaultHeader("X-GitHub-Api-Version", "2022-11-28")
             .build();
         this.token = token;
+        this.clock = clock == null ? Clock.systemUTC() : clock;
+        this.treeCacheTtl = treeCacheTtl == null ? DEFAULT_TREE_CACHE_TTL : treeCacheTtl;
+    }
+
+    void clearTreeCache() {
+        treeCache.clear();
     }
 
     /**
@@ -374,43 +414,159 @@ public class GitHubApiClient {
         int maxFiles,
         int maxContentChars
     ) {
+        Optional<GitHubRepositoryTreeResponse> treeResponseOpt = fetchRepositoryTree(upstreamRepo);
+        if (treeResponseOpt.isEmpty()) {
+            return List.of();
+        }
+
+        GitHubRepositoryTreeResponse response = treeResponseOpt.get();
+        List<GitHubRepositoryTreeItemResponse> tree = response.tree() == null
+            ? List.of()
+            : response.tree();
+        List<String> queryTokens = codeContextQueryTokens(query);
+
+        List<GitHubRepositoryTreeCandidate> candidates = extractTreeCandidates(tree, queryTokens);
+
+        // recursive tree 응답에 truncated: true가 반환된 경우, 상위 디렉토리 하위 탐색으로 보완합니다.
+        if (response.isTruncated() && candidates.size() < maxFiles) {
+            candidates = fallbackTruncatedTreeCandidates(upstreamRepo, tree, queryTokens, maxFiles, candidates);
+        }
+
+        List<GitHubRepositoryCodeContextFile> files = new ArrayList<>();
+        for (GitHubRepositoryTreeCandidate candidate : candidates) {
+            if (files.size() >= maxFiles) {
+                break;
+            }
+            getContentFile(upstreamRepo, candidate.path())
+                .map(content -> toRepositoryCodeContextFile(candidate.path(), content, maxContentChars))
+                .ifPresent(files::add);
+        }
+        return files;
+    }
+
+    // Git Recursive Tree 응답을 2시간 TTL 동안 캐시하여 GitHub API rate limit을 방어합니다.
+    private Optional<GitHubRepositoryTreeResponse> fetchRepositoryTree(String upstreamRepo) {
+        Instant now = clock.instant();
+        String cacheKey = upstreamRepo.strip().toLowerCase(Locale.ROOT);
+        CachedTree cached = treeCache.get(cacheKey);
+        if (cached != null && !cached.isExpired(now)) {
+            return Optional.of(cached.response());
+        }
+
         try {
             GitHubRepositoryTreeResponse response = restClient.get()
                 .uri(uriBuilder -> uriBuilder
-                    .path("/repos/" + upstreamRepo + "/git/trees/HEAD")
+                    .path("/repos/" + upstreamRepo.strip() + "/git/trees/HEAD")
                     .queryParam("recursive", "1")
                     .build())
                 .headers(this::applyAuthorization)
                 .retrieve()
                 .body(GitHubRepositoryTreeResponse.class);
-            List<GitHubRepositoryTreeItemResponse> tree = response == null || response.tree() == null
-                ? List.of()
-                : response.tree();
-            List<String> queryTokens = codeContextQueryTokens(query);
-            List<GitHubRepositoryTreeCandidate> candidates = tree.stream()
-                .filter(item -> item != null && "blob".equals(item.type()))
-                .filter(item -> isRepositoryTreeCodeCandidate(item.path()))
-                .map(item -> new GitHubRepositoryTreeCandidate(
-                    item.path(),
-                    treeCandidateScore(item.path(), queryTokens)
-                ))
-                .filter(candidate -> queryTokens.isEmpty() || candidate.score() > 0)
-                .sorted(Comparator
-                    .comparingInt(GitHubRepositoryTreeCandidate::score)
-                    .reversed()
-                    .thenComparing(GitHubRepositoryTreeCandidate::path))
-                .toList();
 
-            List<GitHubRepositoryCodeContextFile> files = new ArrayList<>();
-            for (GitHubRepositoryTreeCandidate candidate : candidates) {
-                if (files.size() >= maxFiles) {
-                    break;
-                }
-                getContentFile(upstreamRepo, candidate.path())
-                    .map(content -> toRepositoryCodeContextFile(candidate.path(), content, maxContentChars))
-                    .ifPresent(files::add);
+            if (response != null) {
+                treeCache.put(cacheKey, new CachedTree(now.plus(treeCacheTtl), response));
+                return Optional.of(response);
             }
-            return files;
+            return Optional.empty();
+        } catch (RestClientException exception) {
+            return Optional.empty();
+        }
+    }
+
+    private List<GitHubRepositoryTreeCandidate> extractTreeCandidates(
+        List<GitHubRepositoryTreeItemResponse> tree,
+        List<String> queryTokens
+    ) {
+        return tree.stream()
+            .filter(item -> item != null && "blob".equals(item.type()))
+            .filter(item -> isRepositoryTreeCodeCandidate(item.path()))
+            .map(item -> new GitHubRepositoryTreeCandidate(
+                item.path(),
+                treeCandidateScore(item.path(), queryTokens)
+            ))
+            .filter(candidate -> queryTokens.isEmpty() || candidate.score() > 0)
+            .sorted(Comparator
+                .comparingInt(GitHubRepositoryTreeCandidate::score)
+                .reversed()
+                .thenComparing(GitHubRepositoryTreeCandidate::path))
+            .toList();
+    }
+
+    // truncated 플래그 대응: 10만 개 한도로 잘린 트리에서 주요 소스 디렉토리 하위를 비재귀적으로 조회해 보완합니다.
+    private List<GitHubRepositoryTreeCandidate> fallbackTruncatedTreeCandidates(
+        String upstreamRepo,
+        List<GitHubRepositoryTreeItemResponse> tree,
+        List<String> queryTokens,
+        int maxFiles,
+        List<GitHubRepositoryTreeCandidate> existingCandidates
+    ) {
+        Set<String> seenPaths = existingCandidates.stream()
+            .map(GitHubRepositoryTreeCandidate::path)
+            .collect(Collectors.toCollection(LinkedHashSet::new));
+        List<GitHubRepositoryTreeCandidate> combined = new ArrayList<>(existingCandidates);
+
+        List<GitHubRepositoryTreeItemResponse> dirNodes = tree.stream()
+            .filter(item -> item != null && "tree".equals(item.type()) && hasText(item.path()) && hasText(item.sha()))
+            .filter(item -> isCandidateDirectory(item.path(), queryTokens))
+            .limit(5)
+            .toList();
+
+        for (GitHubRepositoryTreeItemResponse dirNode : dirNodes) {
+            if (combined.size() >= maxFiles) {
+                break;
+            }
+            List<GitHubRepositoryTreeItemResponse> subTree = fetchSubtree(upstreamRepo, dirNode.sha(), dirNode.path());
+            for (GitHubRepositoryTreeCandidate subCandidate : extractTreeCandidates(subTree, queryTokens)) {
+                if (seenPaths.add(subCandidate.path())) {
+                    combined.add(subCandidate);
+                    if (combined.size() >= maxFiles) {
+                        break;
+                    }
+                }
+            }
+        }
+
+        combined.sort(Comparator
+            .comparingInt(GitHubRepositoryTreeCandidate::score)
+            .reversed()
+            .thenComparing(GitHubRepositoryTreeCandidate::path));
+        return combined;
+    }
+
+    private boolean isCandidateDirectory(String dirPath, List<String> queryTokens) {
+        String lower = dirPath.toLowerCase(Locale.ROOT);
+        if (TREE_EXCLUDED_PATH_SEGMENTS.stream().anyMatch(lower::contains)) {
+            return false;
+        }
+        if (queryTokens.stream().anyMatch(lower::contains)) {
+            return true;
+        }
+        return CANDIDATE_DIR_PREFIXES.stream().anyMatch(prefix ->
+            lower.equals(prefix) || lower.startsWith(prefix + "/")
+        );
+    }
+
+    private List<GitHubRepositoryTreeItemResponse> fetchSubtree(String upstreamRepo, String treeSha, String basePath) {
+        try {
+            GitHubRepositoryTreeResponse subtreeResponse = restClient.get()
+                .uri(uriBuilder -> uriBuilder
+                    .path("/repos/" + upstreamRepo.strip() + "/git/trees/" + treeSha.strip())
+                    .queryParam("recursive", "1")
+                    .build())
+                .headers(this::applyAuthorization)
+                .retrieve()
+                .body(GitHubRepositoryTreeResponse.class);
+            if (subtreeResponse == null || subtreeResponse.tree() == null) {
+                return List.of();
+            }
+            return subtreeResponse.tree().stream()
+                .filter(Objects::nonNull)
+                .map(subItem -> new GitHubRepositoryTreeItemResponse(
+                    basePath.isEmpty() ? subItem.path() : basePath + "/" + subItem.path(),
+                    subItem.type(),
+                    subItem.sha()
+                ))
+                .toList();
         } catch (RestClientException exception) {
             return List.of();
         }
@@ -685,19 +841,38 @@ public class GitHubApiClient {
     private record GitHubCodeSearchItemResponse(String path) {
     }
 
-    private record GitHubRepositoryTreeResponse(List<GitHubRepositoryTreeItemResponse> tree) {
+    private record GitHubRepositoryTreeResponse(
+        List<GitHubRepositoryTreeItemResponse> tree,
+        Boolean truncated
+    ) {
+        boolean isTruncated() {
+            return Boolean.TRUE.equals(truncated);
+        }
     }
 
     private record GitHubRepositoryTreeItemResponse(
         String path,
-        String type
+        String type,
+        String sha
     ) {
+        GitHubRepositoryTreeItemResponse(String path, String type) {
+            this(path, type, null);
+        }
     }
 
     private record GitHubRepositoryTreeCandidate(
         String path,
         int score
     ) {
+    }
+
+    private record CachedTree(
+        Instant expiresAt,
+        GitHubRepositoryTreeResponse response
+    ) {
+        boolean isExpired(Instant now) {
+            return !now.isBefore(expiresAt);
+        }
     }
 
     private record GitHubContentResponse(String content) {

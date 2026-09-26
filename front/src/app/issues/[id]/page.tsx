@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ArrowLeft, ExternalLink, Lightbulb, Code2, GitPullRequest } from "lucide-react";
+import { ArrowLeft, ExternalLink, Lightbulb, Code2, GitPullRequest, Radio, Sparkles } from "lucide-react";
 import ProtectedLayout from "@/components/ProtectedLayout";
 import {
   getIssueDetail,
@@ -11,6 +11,7 @@ import {
   getIssuePseudoCode,
   getRecommendedIssueHistory,
   getRecommendedIssues,
+  streamIssueGuide,
   type IssueGuide,
   type IssuePseudoCode,
   type RecommendedIssue,
@@ -28,6 +29,10 @@ export default function IssueDetailPage() {
   const [guide, setGuide] = useState<IssueGuide | null>(null);
   const [guideLoading, setGuideLoading] = useState(false);
   const [guideError, setGuideError] = useState<string | null>(null);
+  const [streamStep, setStreamStep] = useState<string | null>(null);
+  const [streamFilePaths, setStreamFilePaths] = useState<string[]>([]);
+  const [streamGuideline, setStreamGuideline] = useState("");
+  const [streamSideEffects, setStreamSideEffects] = useState<string[]>([]);
   const [pseudo, setPseudo] = useState<IssuePseudoCode | null>(null);
   const [pseudoLoading, setPseudoLoading] = useState(false);
   const [pseudoError, setPseudoError] = useState<string | null>(null);
@@ -49,6 +54,10 @@ export default function IssueDetailPage() {
       setNotFound(!foundIssue);
       setGuide(null);
       setGuideError(null);
+      setStreamStep(null);
+      setStreamFilePaths([]);
+      setStreamGuideline("");
+      setStreamSideEffects([]);
       setPseudo(null);
       setPseudoError(null);
       setLoading(false);
@@ -72,13 +81,42 @@ export default function IssueDetailPage() {
   async function handleGetGuide() {
     setGuideLoading(true);
     setGuideError(null);
+    setStreamStep("ANALYZING");
+    setStreamFilePaths([]);
+    setStreamGuideline("");
+    setStreamSideEffects([]);
 
     try {
-      setGuide(normalizeIssueGuide(await getIssueGuide(issueId)));
-    } catch (caught) {
-      setGuideError(caught instanceof Error ? caught.message : "가이드를 불러오지 못했습니다.");
+      await streamIssueGuide(issueId, {
+        onChunk: (event) => {
+          if (event.step) {
+            setStreamStep(event.step);
+          }
+          if (event.filePaths && Array.isArray(event.filePaths) && event.filePaths.length > 0) {
+            setStreamFilePaths(event.filePaths);
+          }
+          if (event.chunk) {
+            if (event.step === "GUIDELINE") {
+              setStreamGuideline((prev) => prev + event.chunk);
+            }
+          }
+          if (event.sideEffects && Array.isArray(event.sideEffects) && event.sideEffects.length > 0) {
+            setStreamSideEffects(event.sideEffects);
+          }
+        },
+        onComplete: (completedGuide) => {
+          setGuide(normalizeIssueGuide(completedGuide));
+        }
+      });
+    } catch {
+      try {
+        setGuide(normalizeIssueGuide(await getIssueGuide(issueId)));
+      } catch (caught) {
+        setGuideError(caught instanceof Error ? caught.message : "가이드를 불러오지 못했습니다.");
+      }
     } finally {
       setGuideLoading(false);
+      setStreamStep(null);
     }
   }
 
@@ -217,6 +255,75 @@ export default function IssueDetailPage() {
 
         {guideError ? (
           <p className="text-sm font-semibold text-red-400">{guideError}</p>
+        ) : null}
+
+        {guideLoading && !guide ? (
+          <div className="mt-4 space-y-3 rounded-xl border border-brand-500/30 bg-brand-500/5 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-brand-500/20 pb-3">
+              <div className="flex items-center gap-2">
+                <span className="relative flex h-2.5 w-2.5">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-400 opacity-75" />
+                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-brand-500" />
+                </span>
+                <span className="text-xs font-semibold text-brand-400">
+                  {streamStep === "ANALYZING" && "저장소 코드 맥락 분석 중..."}
+                  {streamStep === "FILES" && "수정 대상 파일 분석 완료"}
+                  {streamStep === "GUIDELINE" && "가이드라인 실시간 스트리밍 중..."}
+                  {streamStep === "PSEUDO_CODE" && "의사 코드 생성 중..."}
+                  {streamStep === "SIDE_EFFECTS" && "주의 사항 점검 중..."}
+                  {!streamStep && "가이드 실시간 스트리밍 중..."}
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5 text-[11px] font-medium text-dark-muted">
+                <span className={`rounded-md px-2 py-0.5 ${streamStep === "ANALYZING" ? "bg-brand-500/20 text-brand-300 font-semibold" : "bg-dark-elevated text-dark-muted"}`}>
+                  1. 분석
+                </span>
+                <span className={`rounded-md px-2 py-0.5 ${streamStep === "FILES" ? "bg-brand-500/20 text-brand-300 font-semibold" : streamFilePaths.length > 0 ? "text-emerald-400 font-semibold" : "bg-dark-elevated text-dark-muted"}`}>
+                  2. 파일
+                </span>
+                <span className={`rounded-md px-2 py-0.5 ${streamStep === "GUIDELINE" ? "bg-brand-500/20 text-brand-300 font-semibold" : streamGuideline ? "text-emerald-400 font-semibold" : "bg-dark-elevated text-dark-muted"}`}>
+                  3. 가이드
+                </span>
+                <span className={`rounded-md px-2 py-0.5 ${streamStep === "SIDE_EFFECTS" ? "bg-brand-500/20 text-brand-300 font-semibold" : streamSideEffects.length > 0 ? "text-emerald-400 font-semibold" : "bg-dark-elevated text-dark-muted"}`}>
+                  4. 주의점
+                </span>
+              </div>
+            </div>
+
+            {streamFilePaths.length > 0 ? (
+              <div className="space-y-1">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-dark-muted">수정 대상 파일</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {streamFilePaths.map((fp) => (
+                    <code className="rounded border border-dark-border bg-dark-scaffold px-2 py-0.5 font-mono text-xs font-semibold text-brand-400" key={fp}>
+                      {fp}
+                    </code>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            {streamGuideline ? (
+              <div className="rounded-lg border border-dark-border bg-dark-scaffold/80 p-3">
+                <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-dark-muted">가이드라인</p>
+                <p className="whitespace-pre-wrap text-xs leading-5 text-dark-text">
+                  {streamGuideline}
+                  <span className="inline-block h-3.5 w-1 bg-brand-400 animate-pulse ml-0.5 align-middle" />
+                </p>
+              </div>
+            ) : null}
+
+            {streamSideEffects.length > 0 ? (
+              <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-3">
+                <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-amber-300">주의 사항</p>
+                <ul className="list-disc space-y-1 pl-4 text-xs text-dark-text">
+                  {streamSideEffects.map((se) => (
+                    <li key={se}>{se}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+          </div>
         ) : null}
 
         {guide ? (

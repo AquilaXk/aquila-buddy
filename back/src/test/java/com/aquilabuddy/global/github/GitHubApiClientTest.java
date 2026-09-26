@@ -8,11 +8,16 @@ import com.sun.net.httpserver.HttpServer;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -662,6 +667,148 @@ class GitHubApiClientTest {
         assertThat(context.files())
             .extracting(GitHubApiClient.GitHubRepositoryCodeContextFile::path)
             .containsExactly("src/main/java/ValidationController.java");
+    }
+
+    @Test
+    void cachesRecursiveTreeResponseForTwoHours() {
+        AtomicInteger treeRequestCount = new AtomicInteger(0);
+        route("/search/code", 200, """
+            {
+              "items": []
+            }
+            """);
+        server.createContext("/repos/spring-projects/spring-boot/git/trees/HEAD", exchange -> {
+            treeRequestCount.incrementAndGet();
+            respond(exchange, 200, """
+                {
+                  "tree": [
+                    {
+                      "path": "src/main/java/ValidationController.java",
+                      "type": "blob"
+                    }
+                  ]
+                }
+                """);
+        });
+        route(
+            "/repos/spring-projects/spring-boot/contents/src/main/java/ValidationController.java",
+            200,
+            contentBody("class ValidationController { void validate() {} }")
+        );
+
+        MutableClock testClock = new MutableClock(Instant.parse("2026-09-26T12:00:00Z"));
+        GitHubApiClient client = new GitHubApiClient(
+            RestClient.builder(),
+            baseUrl(),
+            "",
+            testClock,
+            Duration.ofHours(2)
+        );
+
+        // 첫 번째 호출: 트리 엔드포인트 요청 발생 (count = 1)
+        GitHubApiClient.GitHubRepositoryCodeContext context1 =
+            client.loadRepositoryCodeContext("spring-projects/spring-boot", "validation controller", 1, 100);
+        assertThat(context1.files()).hasSize(1);
+        assertThat(treeRequestCount.get()).isEqualTo(1);
+
+        // 1시간 경과 후 두 번째 호출: 2시간 TTL 내이므로 캐시 재사용 (count 유지 = 1)
+        testClock.advance(Duration.ofHours(1));
+        GitHubApiClient.GitHubRepositoryCodeContext context2 =
+            client.loadRepositoryCodeContext("spring-projects/spring-boot", "validation controller", 1, 100);
+        assertThat(context2.files()).hasSize(1);
+        assertThat(treeRequestCount.get()).isEqualTo(1);
+
+        // 1시간 1초 추가 경과 (총 2시간 1초): TTL 만료 후 새 트리 요청 발생 (count = 2)
+        testClock.advance(Duration.ofHours(1).plusSeconds(1));
+        GitHubApiClient.GitHubRepositoryCodeContext context3 =
+            client.loadRepositoryCodeContext("spring-projects/spring-boot", "validation controller", 1, 100);
+        assertThat(context3.files()).hasSize(1);
+        assertThat(treeRequestCount.get()).isEqualTo(2);
+
+        // 대소문자가 다른 동일 저장소 조회 시 캐시 히트 검증 (count 유지 = 2)
+        route(
+            "/repos/Spring-Projects/Spring-Boot/contents/src/main/java/ValidationController.java",
+            200,
+            contentBody("class ValidationController { void validate() {} }")
+        );
+        GitHubApiClient.GitHubRepositoryCodeContext contextCaseInsensitive =
+            client.loadRepositoryCodeContext("Spring-Projects/Spring-Boot", "validation controller", 1, 100);
+        assertThat(contextCaseInsensitive.files()).hasSize(1);
+        assertThat(treeRequestCount.get()).isEqualTo(2);
+    }
+
+    @Test
+    void fallsBackToDirectorySubtreesWhenRecursiveTreeIsTruncated() {
+        route("/search/code", 200, """
+            {
+              "items": []
+            }
+            """);
+        // 루트 재귀 트리는 10만 건 한도로 truncated: true 반환 및 디렉토리 항목만 포함
+        route("/repos/spring-projects/spring-boot/git/trees/HEAD", 200, """
+            {
+              "truncated": true,
+              "tree": [
+                {
+                  "path": "src",
+                  "type": "tree",
+                  "sha": "src_tree_sha_123"
+                }
+              ]
+            }
+            """);
+        // src 하위 비재귀 트리 조회 결과
+        route("/repos/spring-projects/spring-boot/git/trees/src_tree_sha_123", 200, """
+            {
+              "tree": [
+                {
+                  "path": "ValidationController.java",
+                  "type": "blob",
+                  "sha": "blob_sha_456"
+                }
+              ]
+            }
+            """);
+        route(
+            "/repos/spring-projects/spring-boot/contents/src/ValidationController.java",
+            200,
+            contentBody("class ValidationController { void validate() {} }")
+        );
+
+        GitHubApiClient client = client();
+        GitHubApiClient.GitHubRepositoryCodeContext context =
+            client.loadRepositoryCodeContext("spring-projects/spring-boot", "validation controller", 1, 100);
+
+        assertThat(context.files())
+            .extracting(GitHubApiClient.GitHubRepositoryCodeContextFile::path)
+            .containsExactly("src/ValidationController.java");
+    }
+
+    private static class MutableClock extends Clock {
+        private Instant currentInstant;
+
+        MutableClock(Instant initialInstant) {
+            this.currentInstant = initialInstant;
+        }
+
+        void advance(Duration duration) {
+            this.currentInstant = this.currentInstant.plus(duration);
+        }
+
+        @Override
+        public java.time.ZoneId getZone() {
+            return ZoneOffset.UTC;
+        }
+
+        @Override
+        public Clock withZone(java.time.ZoneId zone) {
+            return this;
+        }
+
+        @Override
+        public Instant instant() {
+            return currentInstant;
+        }
     }
 
     private GitHubApiClient client() {

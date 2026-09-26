@@ -1,8 +1,15 @@
 package com.aquilabuddy.domain.analysis;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MvcResult;
 
 import com.aquilabuddy.support.SecurityContextTestUtils;
 import org.junit.jupiter.api.AfterEach;
@@ -65,5 +72,23 @@ class IssueGuideControllerTest {
             .andExpect(jsonPath("$.data.issueKey").value("demo-1"))
             .andExpect(jsonPath("$.data.filePaths[0]").value("front/src/app/issues/[id]/page.tsx"))
             .andExpect(jsonPath("$.data.pseudoCode").isNotEmpty());
+    }
+
+    @Test
+    void streamsIssueGuideOverSse() throws Exception {
+        MvcResult mvcResult = mockMvc.perform(get("/api/v1/issues/demo-1/guide/stream"))
+            .andExpect(request().asyncStarted())
+            .andExpect(status().isOk())
+            .andReturn();
+
+        mockMvc.perform(asyncDispatch(mvcResult))
+            .andExpect(status().isOk())
+            .andExpect(content().contentTypeCompatibleWith(MediaType.TEXT_EVENT_STREAM));
+
+        String content = mvcResult.getResponse().getContentAsString();
+        assertThat(content).contains("event:chunk");
+        assertThat(content).contains("ANALYZING");
+        assertThat(content).contains("event:complete");
+        assertThat(content).contains("demo-1");
     }
 }
