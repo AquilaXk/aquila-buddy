@@ -22,7 +22,7 @@
 | 이슈 상세 | 자동 검증 | `tools/frontend/validate-issue-detail-parity.mjs`, `back/src/test/java/com/aquilabuddy/domain/analysis/IssueGuideControllerTest.java` | guide, pseudo code, workflow, file paths |
 | PR 초안 | 자동 검증 | `tools/frontend/validate-pr-draft-parity.mjs`, `back/src/test/java/com/aquilabuddy/adapter/in/web/prdraft/PullRequestDraftControllerTest.java` | source issue prefill, diff, repository guide, draft 생성 |
 | PR 상세 | 자동 검증 | `tools/frontend/validate-pr-detail-parity.mjs`, `tools/frontend/validate-ui-ux-flow-parity.mjs` | draft detail, diff, edit/delete, submission bundle, translation timeline |
-| shell/brand theme | 자동 검증 | `tools/frontend/validate-shell-parity.mjs`, `tools/frontend/validate-brand-gothic-parity.mjs` | aquila-buddy shell, aquila-bank/aquila-blog asset family, favicon/대표 이미지 |
+| shell/brand theme | 자동 검증 | `tools/frontend/validate-shell-parity.mjs`, `tools/frontend/validate-brand-parity.mjs` | aquila-buddy shell, aquila-bank/aquila-blog asset family, favicon/대표 이미지 |
 
 ## UI UX 구조 동등성 PR 증적
 | 영역 | 상태 | 증거 | 완료 기준 |

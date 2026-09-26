@@ -3,25 +3,47 @@
 @tailwind utilities;
 
 :root {
+  --brand-50: #F8F9FE;
+  --brand-100: #F0F2FD;
+  --brand-200: #E2E5FD;
+  --brand-300: #CCD2FC;
+  --brand-400: #8E9CE6;
+  --brand-500: #5C6BC0;
+  --brand-600: #4D5CB5;
+  --brand-700: #3F4EA3;
+  --brand-800: #333F85;
+  --brand-900: #262F64;
+  --brand-950: #171C3D;
+
+  --bg-scaffold: #F7F8FC;
+  --surface-card: #FFFFFF;
+  --surface-subtle: #F0F2F7;
+  --border-subtle: #E1E4EE;
+  --ink-primary: #18191D;
+  --ink-secondary: #4D536B;
+  --ink-muted: #697089;
+}
+
+.light {
+  color-scheme: light;
+  --bg-scaffold: #F7F8FC;
+  --surface-card: #FFFFFF;
+  --surface-subtle: #F0F2F7;
+  --border-subtle: #E1E4EE;
+  --ink-primary: #18191D;
+  --ink-secondary: #4D536B;
+  --ink-muted: #697089;
+}
+
+.dark {
   color-scheme: dark;
-  --gothic-page: #101214;
-  --gothic-surface: #171a1d;
-  --gothic-surface-muted: #202328;
-  --gothic-iron: #2d3338;
-  --gothic-line: #3b3a32;
-  --gothic-line-strong: #6d5a35;
-  --gothic-parchment: #efe7d3;
-  --gothic-muted: #a8a195;
-  --gothic-brass: #c2a35b;
-  --gothic-brass-strong: #d2b46d;
-  --gothic-brass-soft: #2b2418;
-  --gothic-danger: #ef9a91;
-  --gothic-danger-soft: #2b1716;
-  --gothic-success: #6f9f7b;
-  --gothic-success-soft: #17251d;
-  --gothic-focus: #e5c76f;
-  color: var(--gothic-parchment);
-  background: var(--gothic-page);
+  --bg-scaffold: #18191D;
+  --surface-card: #212529;
+  --surface-subtle: #2A2E33;
+  --border-subtle: #343A40;
+  --ink-primary: #F8F9FA;
+  --ink-secondary: #E5E7EB;
+  --ink-muted: #9CA3AF;
 }
 
 * {
@@ -29,19 +51,16 @@
 }
 
 html {
-  background: var(--gothic-page);
+  background-color: var(--bg-scaffold);
 }
 
 body {
   margin: 0;
-  color: var(--gothic-parchment);
-  background:
-    linear-gradient(180deg, rgba(45, 51, 56, 0.76), rgba(16, 18, 20, 0.98) 34rem),
-    repeating-linear-gradient(0deg, rgba(239, 231, 211, 0.025) 0 1px, transparent 1px 42px),
-    repeating-linear-gradient(90deg, rgba(194, 163, 91, 0.07) 0 1px, transparent 1px 80px),
-    var(--gothic-page);
-  background-attachment: fixed;
-  font-family: "Noto Sans KR", "Malgun Gothic", "Apple SD Gothic Neo", Arial, Helvetica, sans-serif;
+  background-color: var(--bg-scaffold);
+  color: var(--ink-primary);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  overflow-x: hidden;
+  transition: background-color 0.2s ease, color 0.2s ease;
   text-rendering: geometricPrecision;
 }
 
@@ -53,7 +72,8 @@ a {
 
 button,
 input,
-textarea {
+textarea,
+select {
   font: inherit;
 }
 
@@ -63,93 +83,70 @@ a[href] {
 }
 
 ::selection {
-  background: rgba(194, 163, 91, 0.32);
-  color: var(--gothic-parchment);
+  background: rgba(92, 107, 192, 0.32);
+  color: #FFFFFF;
 }
 
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #E5E7EB;
+  border-radius: 4px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #343A40;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #5C6BC0;
+}
+
+/* Glassmorphism utility */
+.glassmorphism {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* Glowing lavender effect */
+.lavender-glow {
+  box-shadow: 0 0 25px -5px rgba(92, 107, 192, 0.35);
+}
+
+.lavender-glow-sm {
+  box-shadow: 0 0 15px -3px rgba(92, 107, 192, 0.25);
+}
+
+/* Hierarchical Card Surface */
 .surface {
-  border: 1px solid var(--gothic-line);
-  border-radius: 8px;
-  background: var(--gothic-surface);
-  box-shadow:
-    inset 0 1px 0 rgba(239, 231, 211, 0.035),
-    0 18px 45px rgba(0, 0, 0, 0.22);
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.75rem; /* rounded-xl */
+  background-color: var(--surface-card);
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.35);
 }
 
 .focus-ring:focus-visible {
-  outline: 2px solid var(--gothic-focus);
+  outline: 2px solid #5C6BC0;
   outline-offset: 2px;
 }
 
 input,
 textarea,
 select {
-  background: var(--gothic-page);
-  color: var(--gothic-parchment);
-  border-color: var(--gothic-line);
+  background-color: var(--bg-scaffold);
+  color: var(--ink-primary);
+  border-color: var(--border-subtle);
 }
 
 input::placeholder,
 textarea::placeholder {
-  color: var(--gothic-muted);
-}
-
-/* 기존 밝은 화면 클래스가 남아 있어도 다크 shell 위에서 읽히도록 호환 색상을 제공한다. */
-.bg-white,
-.bg-neutral-50,
-.bg-neutral-100 {
-  background-color: var(--gothic-surface);
-}
-
-.text-neutral-950,
-.text-neutral-900,
-.text-neutral-800 {
-  color: var(--gothic-parchment);
-}
-
-.text-neutral-700,
-.text-neutral-600,
-.text-neutral-500 {
-  color: var(--gothic-muted);
-}
-
-.border-red-200 {
-  border-color: rgba(239, 154, 145, 0.35);
-}
-
-.bg-red-50 {
-  background-color: var(--gothic-danger-soft);
-}
-
-.text-red-700 {
-  color: var(--gothic-danger);
-}
-
-.border-green-200 {
-  border-color: rgba(111, 159, 123, 0.35);
-}
-
-.bg-green-50 {
-  background-color: var(--gothic-success-soft);
-}
-
-.text-green-800 {
-  color: var(--gothic-success);
-}
-
-::-webkit-scrollbar {
-  width: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: var(--gothic-surface);
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--gothic-line);
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--gothic-brass);
+  color: var(--ink-muted);
 }

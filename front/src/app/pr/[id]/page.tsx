@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
+import { ArrowLeft, Copy, Check, Edit2, Trash2, Globe, ExternalLink, Save, X } from "lucide-react";
 import ProtectedLayout from "@/components/ProtectedLayout";
 import {
   deletePullRequestDraft,
@@ -140,9 +141,9 @@ export default function PrDetailPage() {
     return (
       <ProtectedLayout>
         <div className="space-y-4">
-          <div className="surface h-20 animate-pulse" />
-          <div className="surface h-28 animate-pulse" />
-          <div className="surface h-40 animate-pulse" />
+          <div className="surface rounded-xl h-20 animate-pulse" />
+          <div className="surface rounded-xl h-28 animate-pulse" />
+          <div className="surface rounded-xl h-40 animate-pulse" />
         </div>
       </ProtectedLayout>
     );
@@ -151,13 +152,13 @@ export default function PrDetailPage() {
   if (notFound || !draft) {
     return (
       <ProtectedLayout>
-        <section className="surface py-20 text-center">
-          <h1 className="text-2xl font-bold text-github-text">PR 초안을 찾을 수 없습니다.</h1>
-          <p className="mt-3 text-sm font-semibold text-github-muted">
+        <section className="surface rounded-xl py-20 text-center">
+          <h1 className="text-2xl font-bold text-dark-text">PR 초안을 찾을 수 없습니다.</h1>
+          <p className="mt-3 text-sm font-semibold text-dark-muted">
             저장된 PR 초안 정보를 확인하지 못했습니다.
           </p>
           <Link
-            className="focus-ring mt-6 inline-flex text-sm font-semibold text-github-accent"
+            className="focus-ring mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-400 hover:text-brand-300 transition-colors"
             href="/pr-draft"
           >
             ← PR 초안 목록으로
@@ -174,117 +175,141 @@ export default function PrDetailPage() {
     <ProtectedLayout>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <Link
-          className="focus-ring text-sm font-semibold text-github-muted hover:text-github-text"
+          className="focus-ring inline-flex items-center gap-1.5 text-sm font-semibold text-dark-muted hover:text-dark-text transition-colors"
           href="/pr-draft"
         >
-          ← PR 초안 목록
+          <ArrowLeft className="h-4 w-4" />
+          <span>← PR 초안 목록</span>
         </Link>
         <div className="flex items-center gap-2">
           {!editing && !translated ? (
             <button
-              className="focus-ring rounded-md border border-github-border bg-github-surface px-3 py-1.5 text-xs font-semibold text-github-muted hover:text-github-text"
+              className="focus-ring inline-flex items-center gap-1.5 rounded-xl border border-dark-border bg-dark-surface px-3.5 py-1.5 text-xs font-semibold text-dark-muted hover:text-dark-text hover:bg-dark-elevated transition-colors"
               onClick={() => setEditing(true)}
               type="button"
             >
-              편집
+              <Edit2 className="h-3.5 w-3.5" />
+              <span>편집</span>
             </button>
           ) : null}
           <button
-            className="focus-ring rounded-md border border-red-500/20 bg-red-500/10 px-3 py-1.5 text-xs font-semibold text-red-400 hover:bg-red-500/20 hover:text-red-300 disabled:cursor-not-allowed disabled:opacity-50"
+            className="focus-ring inline-flex items-center gap-1.5 rounded-xl border border-red-500/20 bg-red-500/10 px-3.5 py-1.5 text-xs font-semibold text-red-400 hover:bg-red-500/20 hover:text-red-300 disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
             disabled={deleting}
             onClick={handleDelete}
             type="button"
           >
-            {deleting ? "삭제 중..." : "삭제"}
+            <Trash2 className="h-3.5 w-3.5" />
+            <span>{deleting ? "삭제 중..." : "삭제"}</span>
           </button>
         </div>
       </div>
 
       {error ? (
-        <div className="surface mb-4 border-red-500/30 bg-red-500/10 p-4 text-sm font-semibold text-red-400">
+        <div className="surface mb-4 rounded-xl border-red-500/30 bg-red-500/10 p-4 text-sm font-semibold text-red-400">
           {error}
         </div>
       ) : null}
 
       {translated ? (
-        <div className="surface mb-4 border-github-accent/30 bg-github-accent/10 p-4 text-sm font-semibold text-github-accent">
+        <div className="surface mb-4 rounded-xl border-brand-500/40 bg-brand-500/10 p-4 text-sm font-semibold text-brand-300">
           영어 번역이 완료되었습니다. 아래 내용으로 GitHub PR을 작성하세요.
         </div>
       ) : null}
 
-      <section className="surface mb-5 flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+      <section className="surface mb-5 flex flex-col gap-3 rounded-xl px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-xs font-semibold text-github-muted">연결된 이슈</p>
-          <p className="mt-1 text-sm font-semibold text-github-text">
+          <p className="text-xs font-semibold uppercase tracking-wider text-brand-400">연결된 이슈</p>
+          <p className="mt-1 font-mono text-sm font-semibold text-dark-text">
             {draft.upstreamRepo} #{draft.githubIssueNumber}
           </p>
-          <p className="mt-1 break-all font-mono text-xs text-github-muted">
+          <p className="mt-1 break-all font-mono text-xs text-dark-muted">
             {draft.baseBranch} -&gt; {draft.headBranch}
           </p>
         </div>
         <div className="flex flex-col items-start gap-2 sm:items-end">
-          <p className="text-xs font-semibold text-github-muted">{formatDate(draft.createdAt)}</p>
+          <p className="text-xs font-semibold text-dark-muted">{formatDate(draft.createdAt)}</p>
           {draft.sourceIssueId ? (
             <Link
-              className="focus-ring text-xs font-semibold text-github-accent hover:text-github-accent/80"
+              className="focus-ring inline-flex items-center gap-1 text-xs font-semibold text-brand-400 hover:text-brand-300 transition-colors"
               href={`/issues/${encodeURIComponent(draft.sourceIssueId)}`}
             >
-              원본 이슈 보기
+              <span>원본 이슈 보기</span>
+              <ExternalLink className="h-3 w-3" />
             </Link>
           ) : null}
         </div>
       </section>
 
-      <section className="surface mb-4 p-5">
+      <section className="surface mb-4 rounded-xl p-5">
         <div className="mb-2 flex items-center justify-between gap-3">
-          <p className="text-xs font-semibold text-github-muted">PR 제목</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-dark-muted">PR 제목</p>
           <button
-            className="focus-ring text-xs font-semibold text-github-muted hover:text-github-accent"
+            className="focus-ring inline-flex items-center gap-1 text-xs font-semibold text-dark-muted hover:text-brand-400 transition-colors"
             onClick={() => copyToClipboard(displayTitle, "title")}
             type="button"
           >
-            {copied === "title" ? "복사됨 ✓" : "복사"}
+            {copied === "title" ? (
+              <>
+                <Check className="h-3 w-3 text-emerald-400" />
+                <span>복사됨 ✓</span>
+              </>
+            ) : (
+              <>
+                <Copy className="h-3 w-3" />
+                <span>복사</span>
+              </>
+            )}
           </button>
         </div>
         {editing ? (
           <input
-            className="focus-ring w-full rounded-md border border-github-border px-3 py-2 text-sm"
+            className="focus-ring w-full rounded-xl border border-dark-border bg-dark-scaffold px-3.5 py-2 text-sm text-dark-text focus:border-brand-500"
             onChange={(event) => setEditTitle(event.target.value)}
             value={editTitle}
           />
         ) : (
-          <p className="text-sm font-semibold leading-6 text-github-text">{displayTitle}</p>
+          <p className="text-sm font-semibold leading-6 text-dark-text">{displayTitle}</p>
         )}
       </section>
 
-      <section className="surface mb-4 p-5">
+      <section className="surface mb-4 rounded-xl p-5">
         <div className="mb-2 flex items-center justify-between gap-3">
-          <p className="text-xs font-semibold text-github-muted">PR 본문</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-dark-muted">PR 본문</p>
           <button
-            className="focus-ring text-xs font-semibold text-github-muted hover:text-github-accent"
+            className="focus-ring inline-flex items-center gap-1 text-xs font-semibold text-dark-muted hover:text-brand-400 transition-colors"
             onClick={() => copyToClipboard(displayBody, "body")}
             type="button"
           >
-            {copied === "body" ? "복사됨 ✓" : "복사"}
+            {copied === "body" ? (
+              <>
+                <Check className="h-3 w-3 text-emerald-400" />
+                <span>복사됨 ✓</span>
+              </>
+            ) : (
+              <>
+                <Copy className="h-3 w-3" />
+                <span>복사</span>
+              </>
+            )}
           </button>
         </div>
         {editing ? (
           <textarea
-            className="focus-ring min-h-72 w-full resize-y rounded-md border border-github-border px-3 py-2 font-mono text-xs leading-6"
+            className="focus-ring min-h-72 w-full resize-y rounded-xl border border-dark-border bg-dark-scaffold px-3.5 py-2.5 font-mono text-xs leading-6 text-dark-text focus:border-brand-500"
             onChange={(event) => setEditBody(event.target.value)}
             value={editBody}
           />
         ) : (
-          <pre className="max-h-72 overflow-y-auto whitespace-pre-wrap text-xs leading-6 text-github-text">
+          <pre className="max-h-72 overflow-y-auto whitespace-pre-wrap font-mono text-xs leading-6 text-dark-text">
             {displayBody}
           </pre>
         )}
       </section>
 
       {draft.diffContent ? (
-        <section className="surface mb-5 p-5">
-          <p className="mb-2 text-xs font-semibold text-github-muted">코드 변경 내용 (diff)</p>
-          <pre className="max-h-48 overflow-y-auto whitespace-pre-wrap rounded-md bg-github-bg p-4 font-mono text-xs leading-6 text-github-text">
+        <section className="surface mb-5 rounded-xl p-5">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-dark-muted">코드 변경 내용 (diff)</p>
+          <pre className="max-h-48 overflow-y-auto whitespace-pre-wrap rounded-xl border border-dark-border bg-dark-scaffold p-4 font-mono text-xs leading-6 text-dark-text">
             {draft.diffContent.length > 3000
               ? `${draft.diffContent.slice(0, 3000)}\n... (생략)`
               : draft.diffContent}
@@ -295,40 +320,44 @@ export default function PrDetailPage() {
       {editing ? (
         <div className="flex flex-wrap gap-3">
           <button
-            className="focus-ring rounded-md bg-github-purple px-5 py-2.5 text-sm font-semibold text-white hover:bg-github-purple/90 disabled:cursor-not-allowed disabled:opacity-50"
+            className="focus-ring inline-flex items-center gap-1.5 rounded-xl bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-600 active:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50 transition-all"
             disabled={saving}
             onClick={handleSave}
             type="button"
           >
-            {saving ? "저장 중..." : "저장"}
+            <Save className="h-4 w-4" />
+            <span>{saving ? "저장 중..." : "저장"}</span>
           </button>
           <button
-            className="focus-ring rounded-md border border-github-border px-5 py-2.5 text-sm font-semibold text-github-muted hover:text-github-text"
+            className="focus-ring inline-flex items-center gap-1.5 rounded-xl border border-dark-border bg-dark-surface px-5 py-2.5 text-sm font-semibold text-dark-muted hover:text-dark-text hover:bg-dark-elevated transition-colors"
             onClick={cancelEdit}
             type="button"
           >
-            취소
+            <X className="h-4 w-4" />
+            <span>취소</span>
           </button>
         </div>
       ) : (
         <div className="flex flex-wrap gap-3">
           {translated ? (
             <a
-              className="focus-ring rounded-md bg-github-accent px-5 py-2.5 text-sm font-semibold text-white hover:bg-github-accent/90"
+              className="focus-ring inline-flex items-center gap-2 rounded-xl bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-600 active:bg-brand-700 transition-all"
               href={translated.githubUrl}
               rel="noreferrer"
               target="_blank"
             >
-              GitHub에서 PR 올리기 ↗
+              <ExternalLink className="h-4 w-4" />
+              <span>GitHub에서 PR 올리기 ↗</span>
             </a>
           ) : (
             <button
-              className="focus-ring rounded-md bg-github-purple px-5 py-2.5 text-sm font-semibold text-white hover:bg-github-purple/90 disabled:cursor-not-allowed disabled:opacity-50"
+              className="focus-ring inline-flex items-center gap-2 rounded-xl bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-600 active:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50 transition-all"
               disabled={translating}
               onClick={handleTranslate}
               type="button"
             >
-              {translating ? "번역 중..." : "영어로 번역하기"}
+              <Globe className="h-4 w-4" />
+              <span>{translating ? "번역 중..." : "영어로 번역하기"}</span>
             </button>
           )}
         </div>

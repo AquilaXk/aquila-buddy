@@ -18,7 +18,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         <div className="mb-8 text-center">
           <img
             alt=""
-            className="mx-auto mb-3 h-16 w-16 rounded-2xl"
+            className="mx-auto mb-3 h-16 w-16 rounded-2xl shadow-lg shadow-brand-500/10"
             height="64"
             src="/brand-mascot.png"
             width="64"
@@ -27,7 +27,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           <p className="text-sm text-github-muted">OpenSource contribution assistant</p>
         </div>
 
-        <section className="rounded-xl border border-github-border bg-github-surface p-8 shadow-xl">
+        <section className="rounded-xl border border-github-border bg-github-surface p-8 shadow-2xl lavender-glow-sm">
           <h2 className="mb-2 text-center text-xl font-semibold text-github-text">로그인</h2>
           <p className="mb-8 text-center text-sm text-github-muted">
             GitHub 계정으로 로그인하여 오픈소스 이슈를 탐색하세요
@@ -35,13 +35,13 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
           <a
             href={oauthUrl}
-            className="flex w-full items-center justify-center gap-3 rounded-lg bg-github-purple px-4 py-3 font-medium text-white transition-colors hover:bg-github-purple/90"
+            className="flex w-full items-center justify-center gap-3 rounded-xl bg-github-purple px-4 py-3 font-semibold text-white transition-all hover:bg-brand-600 active:bg-brand-700 shadow-md shadow-brand-500/25"
           >
             <GitHubIcon />
             GitHub으로 로그인
           </a>
 
-          <p className="mt-6 text-center text-xs text-github-muted">
+          <p className="mt-6 text-center text-xs text-github-muted leading-relaxed">
             로그인하면 GitHub 프로필 정보를 사용에 동의하는 것으로 간주합니다.
           </p>
         </section>

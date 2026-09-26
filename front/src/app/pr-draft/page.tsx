@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { FormEvent, Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { ArrowLeft, Copy, Check, Globe, ExternalLink, GitPullRequest, Loader2 } from "lucide-react";
 import ProtectedLayout from "@/components/ProtectedLayout";
 import {
   createPullRequestDraft,
@@ -190,45 +191,47 @@ function PrDraftContent() {
       <div className="mb-6 flex items-center gap-3">
         {draftInput.issueId ? (
           <Link
-            className="focus-ring text-sm font-semibold text-github-muted hover:text-github-text"
+            className="focus-ring inline-flex items-center gap-1.5 text-sm font-semibold text-dark-muted hover:text-dark-text transition-colors"
             href={`/issues/${encodeURIComponent(draftInput.issueId)}`}
           >
-            ← 이슈로 돌아가기
+            <ArrowLeft className="h-4 w-4" />
+            <span>← 이슈로 돌아가기</span>
           </Link>
         ) : (
           <Link
-            className="focus-ring text-sm font-semibold text-github-muted hover:text-github-text"
+            className="focus-ring inline-flex items-center gap-1.5 text-sm font-semibold text-dark-muted hover:text-dark-text transition-colors"
             href="/issues"
           >
-            ← 추천 이슈
+            <ArrowLeft className="h-4 w-4" />
+            <span>← 추천 이슈</span>
           </Link>
         )}
-        <h1 className="text-2xl font-bold text-github-text">PR 초안 생성</h1>
+        <h1 className="text-2xl font-bold text-dark-text">PR 초안 생성</h1>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div className="space-y-4">
           {hasIssueParam || draftInput.issueId ? (
-            <section className="surface p-5">
-              <p className="text-xs font-semibold text-github-muted">선택된 이슈</p>
-              <p className="mt-2 break-all text-xs font-semibold text-github-muted">
+            <section className="surface rounded-xl p-5">
+              <p className="text-xs font-semibold uppercase tracking-wider text-brand-400">선택된 이슈</p>
+              <p className="mt-2 break-all font-mono text-xs font-semibold text-dark-muted">
                 {hasIssueParam ? `${draftInput.upstreamRepo} #${draftInput.githubIssueNumber}` : "이슈 정보를 불러오는 중..."}
               </p>
-              <h2 className="mt-2 text-base font-semibold leading-6 text-github-text">
+              <h2 className="mt-2 text-base font-semibold leading-6 text-dark-text">
                 {draftInput.issueTitle || (hasIssueParam ? `Issue #${draftInput.githubIssueNumber}` : draftInput.issueId)}
               </h2>
               {sourceIssueLoading ? (
-                <p className="mt-3 text-xs font-semibold text-github-muted">이슈 정보를 불러오는 중...</p>
+                <p className="mt-3 text-xs font-semibold text-dark-muted">이슈 정보를 불러오는 중...</p>
               ) : null}
               {sourceIssueError ? (
-                <p className="mt-3 text-xs font-semibold text-yellow-300">{sourceIssueError}</p>
+                <p className="mt-3 text-xs font-semibold text-amber-300">{sourceIssueError}</p>
               ) : null}
             </section>
           ) : (
-            <section className="surface border-yellow-500/30 bg-yellow-500/10 p-5">
-              <p className="text-sm font-semibold text-yellow-300">
+            <section className="surface rounded-xl border-amber-500/30 bg-amber-500/10 p-5">
+              <p className="text-sm font-semibold text-amber-300">
                 이슈 상세 페이지에서 "PR 초안 만들기"를 통해 접근해주세요.{" "}
-                <Link className="underline" href="/issues">
+                <Link className="underline hover:text-amber-200" href="/issues">
                   이슈 목록으로
                 </Link>
               </p>
@@ -238,55 +241,65 @@ function PrDraftContent() {
           {hasIssueParam ? (
             <form className="space-y-4" onSubmit={handleSubmit}>
               <label className="block">
-                <span className="text-xs font-semibold text-github-muted">
+                <span className="text-xs font-semibold uppercase tracking-wide text-dark-muted">
                   Base 브랜치 <span className="text-red-400">*</span>
                 </span>
                 <input
-                  className="focus-ring mt-2 w-full rounded-md border border-github-border px-3 py-2 font-mono text-sm"
+                  className="focus-ring mt-2 w-full rounded-xl border border-dark-border bg-dark-scaffold px-3.5 py-2.5 font-mono text-sm text-dark-text placeholder:text-dark-muted focus:border-brand-500"
                   onChange={(event) => setBaseBranch(event.target.value)}
                   placeholder="main"
                   value={baseBranch}
                 />
-                <span className="mt-1 block text-xs font-semibold text-github-muted">
+                <span className="mt-1 block text-xs text-dark-muted">
                   PR의 대상 브랜치입니다.
                 </span>
               </label>
 
               <label className="block">
-                <span className="text-xs font-semibold text-github-muted">
+                <span className="text-xs font-semibold uppercase tracking-wide text-dark-muted">
                   Head 브랜치 <span className="text-red-400">*</span>
                 </span>
                 <input
-                  className="focus-ring mt-2 w-full rounded-md border border-github-border px-3 py-2 font-mono text-sm"
+                  className="focus-ring mt-2 w-full rounded-xl border border-dark-border bg-dark-scaffold px-3.5 py-2.5 font-mono text-sm text-dark-text placeholder:text-dark-muted focus:border-brand-500"
                   onChange={(event) => setHeadBranch(event.target.value)}
                   placeholder="feat/my-feature"
                   value={headBranch}
                 />
-                <span className="mt-1 block text-xs font-semibold text-github-muted">
+                <span className="mt-1 block text-xs text-dark-muted">
                   내 작업 브랜치입니다.
                 </span>
               </label>
 
               {!draft && error ? (
-                <div className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm font-semibold text-red-400">
+                <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-400">
                   {error}
                 </div>
               ) : null}
 
               <button
-                className="focus-ring flex w-full items-center justify-center rounded-md bg-github-purple px-4 py-3 text-sm font-semibold text-white hover:bg-github-purple/90 disabled:cursor-not-allowed disabled:opacity-50"
+                className="focus-ring flex w-full items-center justify-center gap-2 rounded-xl bg-brand-500 px-4 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:bg-brand-600 active:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50"
                 disabled={submitting || !canSubmit}
                 type="submit"
               >
-                {submitting ? "AI가 PR 초안 생성 중..." : "PR 초안 생성"}
+                {submitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>AI가 PR 초안 생성 중...</span>
+                  </>
+                ) : (
+                  <>
+                    <GitPullRequest className="h-4 w-4" />
+                    <span>PR 초안 생성</span>
+                  </>
+                )}
               </button>
             </form>
           ) : null}
         </div>
 
-        <section className="surface min-h-80 p-5">
+        <section className="surface min-h-80 rounded-xl p-5">
           {draft && error ? (
-            <div className="mb-4 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm font-semibold text-red-400">
+            <div className="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-400">
               <p className="text-xs uppercase tracking-wide text-red-300">PR 초안 작업 오류</p>
               <p className="mt-1">{error}</p>
             </div>
@@ -294,67 +307,98 @@ function PrDraftContent() {
 
           {draft ? (
             <div className="space-y-4">
-              <h2 className="text-base font-semibold text-github-text">생성된 PR 초안</h2>
+              <h2 className="text-base font-semibold text-dark-text">생성된 PR 초안</h2>
 
-              <div className="rounded-md border border-github-border bg-github-bg p-4">
+              <div className="rounded-xl border border-dark-border bg-dark-scaffold/70 p-4">
                 <div className="mb-2 flex items-center justify-between gap-3">
-                  <p className="text-xs font-semibold text-github-muted">PR 제목</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-dark-muted">PR 제목</p>
                   <button
-                    className="focus-ring text-xs font-semibold text-github-muted hover:text-github-accent"
+                    className="focus-ring inline-flex items-center gap-1 text-xs font-semibold text-dark-muted hover:text-brand-400 transition-colors"
                     onClick={() => copyDraft(displayTitle, "title")}
                     type="button"
                   >
-                    {copied === "title" ? "복사됨 ✓" : "복사"}
+                    {copied === "title" ? (
+                      <>
+                        <Check className="h-3 w-3 text-emerald-400" />
+                        <span>복사됨 ✓</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-3 w-3" />
+                        <span>복사</span>
+                      </>
+                    )}
                   </button>
                 </div>
-                <p className="text-sm font-semibold leading-6 text-github-text">{displayTitle}</p>
+                <p className="text-sm font-semibold leading-6 text-dark-text">{displayTitle}</p>
               </div>
 
-              <div className="rounded-md border border-github-border bg-github-bg p-4">
+              <div className="rounded-xl border border-dark-border bg-dark-scaffold/70 p-4">
                 <div className="mb-2 flex items-center justify-between gap-3">
-                  <p className="text-xs font-semibold text-github-muted">PR 본문</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-dark-muted">PR 본문</p>
                   <button
-                    className="focus-ring text-xs font-semibold text-github-muted hover:text-github-accent"
+                    className="focus-ring inline-flex items-center gap-1 text-xs font-semibold text-dark-muted hover:text-brand-400 transition-colors"
                     onClick={() => copyDraft(displayBody, "body")}
                     type="button"
                   >
-                    {copied === "body" ? "복사됨 ✓" : "복사"}
+                    {copied === "body" ? (
+                      <>
+                        <Check className="h-3 w-3 text-emerald-400" />
+                        <span>복사됨 ✓</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-3 w-3" />
+                        <span>복사</span>
+                      </>
+                    )}
                   </button>
                 </div>
-                <pre className="max-h-64 overflow-auto whitespace-pre-wrap text-xs leading-6 text-github-text">
+                <pre className="max-h-64 overflow-auto whitespace-pre-wrap font-mono text-xs leading-6 text-dark-text">
                   {displayBody}
                 </pre>
               </div>
 
               {!translated ? (
                 <button
-                  className="focus-ring flex w-full items-center justify-center rounded-md border border-github-accent/30 bg-github-accent/10 px-4 py-2.5 text-sm font-semibold text-github-accent hover:bg-github-accent/20 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="focus-ring flex w-full items-center justify-center gap-2 rounded-xl border border-brand-500/40 bg-brand-500/10 px-4 py-2.5 text-sm font-semibold text-brand-400 hover:bg-brand-500/20 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                   disabled={translating}
                   onClick={handleTranslate}
                   type="button"
                 >
-                  {translating ? "영어로 번역 중..." : "영어로 번역하기"}
+                  {translating ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>영어로 번역 중...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Globe className="h-4 w-4" />
+                      <span>영어로 번역하기</span>
+                    </>
+                  )}
                 </button>
               ) : (
                 <a
-                  className="focus-ring flex w-full items-center justify-center rounded-md border border-github-accent/30 bg-github-accent/10 px-4 py-3 text-sm font-semibold text-github-accent hover:bg-github-accent/20"
+                  className="focus-ring flex w-full items-center justify-center gap-2 rounded-xl bg-brand-500 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-brand-600 active:bg-brand-700 transition-all"
                   href={translated.githubUrl}
                   rel="noopener noreferrer"
                   target="_blank"
                 >
-                  GitHub에서 PR 올리기 ↗
+                  <ExternalLink className="h-4 w-4" />
+                  <span>GitHub에서 PR 올리기 ↗</span>
                 </a>
               )}
 
               <Link
-                className="focus-ring block text-center text-xs font-semibold text-github-muted hover:text-github-text"
+                className="focus-ring block text-center text-xs font-semibold text-dark-muted hover:text-brand-400 transition-colors"
                 href={`/pr/${draft.id}`}
               >
                 상세 보기 (수정·삭제) →
               </Link>
             </div>
           ) : (
-            <div className="flex h-full min-h-72 items-center justify-center text-center text-sm leading-6 text-github-muted">
+            <div className="flex h-full min-h-72 items-center justify-center text-center text-sm leading-6 text-dark-muted">
               선택한 이슈의 브랜치 정보를 입력하면 PR 초안 결과가 여기에 표시됩니다.
             </div>
           )}
@@ -362,38 +406,38 @@ function PrDraftContent() {
       </div>
 
       <section className="mt-10">
-        <h2 className="mb-4 font-semibold text-github-text">PR 초안 이력</h2>
+        <h2 className="mb-4 font-semibold text-dark-text">PR 초안 이력</h2>
         {historyError ? (
-          <div className="surface mb-4 border-red-500/30 bg-red-500/10 p-4 text-sm font-semibold text-red-400">
+          <div className="surface mb-4 rounded-xl border-red-500/30 bg-red-500/10 p-4 text-sm font-semibold text-red-400">
             {historyError}
           </div>
         ) : null}
         {historyLoading ? (
-          <div className="space-y-2">
-            <div className="surface h-16 animate-pulse" />
-            <div className="surface h-16 animate-pulse" />
-            <div className="surface h-16 animate-pulse" />
+          <div className="space-y-2.5">
+            <div className="surface h-16 rounded-xl animate-pulse" />
+            <div className="surface h-16 rounded-xl animate-pulse" />
+            <div className="surface h-16 rounded-xl animate-pulse" />
           </div>
         ) : drafts.length === 0 ? (
-          <div className="py-8 text-center text-sm font-semibold text-github-muted">
+          <div className="surface rounded-xl py-12 text-center text-sm font-semibold text-dark-muted">
             아직 생성된 PR 초안이 없습니다.
           </div>
         ) : (
           <>
-            <div className="space-y-2">
+            <div className="space-y-2.5">
               {drafts.map((item) => (
                 <Link
-                  className="focus-ring flex items-center justify-between rounded-md border border-github-border bg-github-surface px-5 py-4 hover:border-github-purple/50"
+                  className="focus-ring flex items-center justify-between rounded-xl border border-dark-border bg-dark-surface px-5 py-4 transition-all duration-200 hover:border-brand-500/60 hover:shadow-md hover:shadow-brand-500/5 group"
                   href={`/pr/${item.id}`}
                   key={item.id}
                 >
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-github-text">{item.title}</p>
-                    <p className="mt-1 text-xs font-semibold text-github-muted">
+                    <p className="truncate text-sm font-semibold text-dark-text group-hover:text-brand-300 transition-colors">{item.title}</p>
+                    <p className="mt-1 font-mono text-xs text-dark-muted">
                       {item.upstreamRepo} · {formatDate(item.createdAt)}
                     </p>
                   </div>
-                  <span className="ml-4 shrink-0 text-xs font-semibold text-github-muted">보기 →</span>
+                  <span className="ml-4 shrink-0 text-xs font-semibold text-brand-400 group-hover:translate-x-0.5 transition-transform">보기 →</span>
                 </Link>
               ))}
             </div>
@@ -401,18 +445,18 @@ function PrDraftContent() {
             {totalHistoryPages > 1 ? (
               <div className="mt-4 flex items-center justify-center gap-3">
                 <button
-                  className="focus-ring rounded-md border border-github-border px-3 py-1 text-xs font-semibold text-github-muted hover:text-github-text disabled:opacity-30"
+                  className="focus-ring rounded-xl border border-dark-border bg-dark-surface px-3 py-1 text-xs font-semibold text-dark-muted hover:text-dark-text hover:bg-dark-elevated transition-colors disabled:opacity-30"
                   disabled={historyLoading || historyPage?.first}
                   onClick={() => setHistoryPageIndex((page) => Math.max(0, page - 1))}
                   type="button"
                 >
                   ← 이전
                 </button>
-                <span className="text-xs font-semibold text-github-muted">
+                <span className="text-xs font-semibold text-dark-muted">
                   {(historyPage?.page ?? 0) + 1} / {totalHistoryPages}
                 </span>
                 <button
-                  className="focus-ring rounded-md border border-github-border px-3 py-1 text-xs font-semibold text-github-muted hover:text-github-text disabled:opacity-30"
+                  className="focus-ring rounded-xl border border-dark-border bg-dark-surface px-3 py-1 text-xs font-semibold text-dark-muted hover:text-dark-text hover:bg-dark-elevated transition-colors disabled:opacity-30"
                   disabled={historyLoading || historyPage?.last}
                   onClick={() => setHistoryPageIndex((page) => page + 1)}
                   type="button"
@@ -431,7 +475,7 @@ function PrDraftContent() {
 function PrDraftFallback() {
   return (
     <ProtectedLayout>
-      <div className="surface p-5 text-sm font-semibold text-github-muted">불러오는 중...</div>
+      <div className="surface rounded-xl p-5 text-sm font-semibold text-dark-muted">불러오는 중...</div>
     </ProtectedLayout>
   );
 }
