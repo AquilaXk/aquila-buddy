@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { ArrowLeft, ExternalLink, Lightbulb, Code2, GitPullRequest } from "lucide-react";
 import ProtectedLayout from "@/components/ProtectedLayout";
 import {
   getIssueDetail,
@@ -98,9 +99,9 @@ export default function IssueDetailPage() {
     return (
       <ProtectedLayout>
         <div className="space-y-4">
-          <div className="surface h-24 animate-pulse" />
-          <div className="surface h-32 animate-pulse" />
-          <div className="surface h-32 animate-pulse" />
+          <div className="surface rounded-xl h-24 animate-pulse" />
+          <div className="surface rounded-xl h-32 animate-pulse" />
+          <div className="surface rounded-xl h-32 animate-pulse" />
         </div>
       </ProtectedLayout>
     );
@@ -109,13 +110,13 @@ export default function IssueDetailPage() {
   if (notFound || !issue) {
     return (
       <ProtectedLayout>
-        <section className="surface py-20 text-center">
-          <h1 className="text-2xl font-bold text-github-text">이슈를 찾을 수 없습니다.</h1>
-          <p className="mt-3 text-sm font-semibold text-github-muted">
+        <section className="surface rounded-xl py-20 text-center">
+          <h1 className="text-2xl font-bold text-dark-text">이슈를 찾을 수 없습니다.</h1>
+          <p className="mt-3 text-sm font-semibold text-dark-muted">
             추천 이력에서 선택한 이슈 정보를 확인하지 못했습니다.
           </p>
           <Link
-            className="focus-ring mt-6 inline-flex text-sm font-semibold text-github-accent"
+            className="focus-ring mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-400 hover:text-brand-300"
             href="/issues"
           >
             ← 추천 이슈 목록으로
@@ -133,43 +134,46 @@ export default function IssueDetailPage() {
     <ProtectedLayout>
       <div className="mb-6">
         <Link
-          className="focus-ring text-sm font-semibold text-github-muted hover:text-github-text"
+          className="focus-ring inline-flex items-center gap-1.5 text-sm font-semibold text-dark-muted hover:text-dark-text transition-colors"
           href="/issues"
         >
-          ← 추천 이슈 목록
+          <ArrowLeft className="h-4 w-4" />
+          <span>← 추천 이슈 목록</span>
         </Link>
       </div>
 
-      <section className="surface mb-5 p-6">
+      <section className="surface mb-5 rounded-xl p-6">
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <StatusBadge status={issue.status} />
           <a
-            className="text-xs font-semibold text-github-muted hover:text-github-accent"
+            className="inline-flex items-center gap-1 text-xs font-mono text-dark-muted hover:text-brand-400 transition-colors"
             href={githubUrl}
             rel="noopener noreferrer"
             target="_blank"
           >
-            {issue.repoFullName} #{issue.issueNumber} ↗
+            <span>{issue.repoFullName} #{issue.issueNumber}</span>
+            <ExternalLink className="h-3 w-3" />
+            <span>↗</span>
           </a>
           {issue.score > 0 ? (
-            <span className="rounded-md border border-green-500/20 bg-green-500/10 px-2 py-1 text-xs font-semibold text-green-400">
+            <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-xs font-semibold text-emerald-400">
               매칭 {scorePercent}%
             </span>
           ) : null}
           {"isAnalyzed" in issue ? (
-            <span className="rounded-md border border-github-accent/20 bg-github-accent/10 px-2 py-1 text-xs font-semibold text-github-accent">
+            <span className="rounded-full border border-brand-500/30 bg-brand-500/10 px-2.5 py-0.5 text-xs font-semibold text-brand-400">
               {getIssueAnalysisLabel(issue)}
             </span>
           ) : null}
         </div>
 
-        <h1 className="text-xl font-bold leading-7 text-github-text">{issue.title}</h1>
+        <h1 className="text-xl font-bold leading-7 text-dark-text">{issue.title}</h1>
 
         {issue.labels.length > 0 ? (
           <div className="mt-4 flex flex-wrap gap-2">
             {issue.labels.map((label) => (
               <span
-                className="rounded-md border border-github-accent/20 bg-github-accent/10 px-2 py-1 text-xs font-semibold text-github-accent"
+                className="rounded-full border border-dark-border bg-dark-elevated px-2.5 py-0.5 text-xs text-dark-muted"
                 key={label}
               >
                 {label}
@@ -179,24 +183,29 @@ export default function IssueDetailPage() {
         ) : null}
 
         {"reason" in issue && issue.reason ? (
-          <div className="mt-5 rounded-md bg-github-bg p-4">
-            <p className="text-xs font-semibold text-github-muted">추천 이유</p>
-            <p className="mt-2 text-sm leading-6 text-github-text">{issue.reason}</p>
+          <div className="mt-5 rounded-xl border border-dark-border bg-dark-scaffold/70 p-4">
+            <p className="text-xs font-semibold uppercase tracking-wider text-brand-400">추천 이유</p>
+            <p className="mt-2 text-sm leading-6 text-dark-text">{issue.reason}</p>
           </div>
         ) : null}
       </section>
 
-      <section className="surface mb-4 p-6">
+      <section className="surface mb-4 rounded-xl p-6">
         <div className="mb-3 flex items-start justify-between gap-4">
-          <div>
-            <h2 className="font-semibold text-github-text">1차 힌트 — 수정 가이드</h2>
-            <p className="mt-1 text-xs leading-5 text-github-muted">
-              이슈 해결을 시작하기 전에 수정 방향과 주의 사항을 확인합니다.
-            </p>
+          <div className="flex items-start gap-3">
+            <span className="grid h-8 w-8 place-items-center rounded-lg bg-brand-500/10 text-brand-400 shrink-0 mt-0.5">
+              <Lightbulb className="h-4 w-4" />
+            </span>
+            <div>
+              <h2 className="font-semibold text-dark-text">1차 힌트 — 수정 가이드</h2>
+              <p className="mt-1 text-xs leading-5 text-dark-muted">
+                이슈 해결을 시작하기 전에 수정 방향과 주의 사항을 확인합니다.
+              </p>
+            </div>
           </div>
           {!guide ? (
             <button
-              className="focus-ring shrink-0 rounded-md bg-github-purple/20 px-4 py-2 text-sm font-semibold text-github-purple-light hover:bg-github-purple/30 disabled:cursor-not-allowed disabled:opacity-50"
+              className="focus-ring shrink-0 rounded-xl bg-brand-500/20 px-4 py-2 text-sm font-semibold text-brand-400 hover:bg-brand-500/30 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
               disabled={guideLoading}
               onClick={handleGetGuide}
               type="button"
@@ -211,18 +220,18 @@ export default function IssueDetailPage() {
         ) : null}
 
         {guide ? (
-          <div className="space-y-4">
+          <div className="mt-4 space-y-4">
             <FilePathList filePaths={guide.filePaths} />
-            <div>
-              <p className="mb-2 text-xs font-semibold text-github-muted">가이드라인</p>
-              <p className="whitespace-pre-wrap text-sm leading-6 text-github-text">
+            <div className="rounded-xl border border-dark-border bg-dark-scaffold/60 p-4">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-dark-muted">가이드라인</p>
+              <p className="whitespace-pre-wrap text-sm leading-6 text-dark-text">
                 {guide.guideline}
               </p>
             </div>
             {guide.sideEffects.length > 0 ? (
-              <div>
-                <p className="mb-2 text-xs font-semibold text-github-muted">주의 사항</p>
-                <ul className="list-disc space-y-2 pl-4 text-sm leading-6 text-github-text">
+              <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-amber-300">주의 사항</p>
+                <ul className="list-disc space-y-2 pl-4 text-sm leading-6 text-dark-text">
                   {guide.sideEffects.map((sideEffect) => (
                     <li key={sideEffect}>{sideEffect}</li>
                   ))}
@@ -233,17 +242,22 @@ export default function IssueDetailPage() {
         ) : null}
       </section>
 
-      <section className="surface mb-5 p-6">
+      <section className="surface mb-5 rounded-xl p-6">
         <div className="mb-3 flex items-start justify-between gap-4">
-          <div>
-            <h2 className="font-semibold text-github-text">2차 힌트 — 의사 코드</h2>
-            <p className="mt-1 text-xs leading-5 text-github-muted">
-              구현에 들어가기 전에 구체적인 코드 수정 제안을 확인합니다.
-            </p>
+          <div className="flex items-start gap-3">
+            <span className="grid h-8 w-8 place-items-center rounded-lg bg-brand-500/10 text-brand-400 shrink-0 mt-0.5">
+              <Code2 className="h-4 w-4" />
+            </span>
+            <div>
+              <h2 className="font-semibold text-dark-text">2차 힌트 — 의사 코드</h2>
+              <p className="mt-1 text-xs leading-5 text-dark-muted">
+                구현에 들어가기 전에 구체적인 코드 수정 제안을 확인합니다.
+              </p>
+            </div>
           </div>
           {!pseudo ? (
             <button
-              className="focus-ring shrink-0 rounded-md border border-github-accent/30 bg-github-accent/10 px-4 py-2 text-sm font-semibold text-github-accent hover:bg-github-accent/20 disabled:cursor-not-allowed disabled:opacity-50"
+              className="focus-ring shrink-0 rounded-xl border border-brand-500/40 bg-brand-500/10 px-4 py-2 text-sm font-semibold text-brand-400 hover:bg-brand-500/20 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
               disabled={pseudoLoading}
               onClick={handleGetPseudo}
               type="button"
@@ -258,25 +272,30 @@ export default function IssueDetailPage() {
         ) : null}
 
         {pseudo ? (
-          <div className="space-y-4">
+          <div className="mt-4 space-y-4">
             <FilePathList filePaths={pseudo.filePaths} />
-            <pre className="max-h-96 overflow-auto whitespace-pre-wrap rounded-md bg-github-bg p-4 text-xs leading-6 text-github-text">
+            <pre className="max-h-96 overflow-auto whitespace-pre-wrap rounded-xl border border-dark-border bg-dark-scaffold p-4 font-mono text-xs leading-6 text-dark-text">
               {pseudo.pseudoCode}
             </pre>
           </div>
         ) : null}
       </section>
 
-      <section className="surface border-github-purple/30 p-6">
-        <h2 className="font-semibold text-github-text">PR 초안 생성</h2>
-        <p className="mt-2 text-sm leading-6 text-github-muted">
+      <section className="surface rounded-xl border-brand-500/40 p-6 shadow-md shadow-brand-500/5">
+        <div className="flex items-center gap-3">
+          <span className="grid h-8 w-8 place-items-center rounded-lg bg-brand-500/10 text-brand-400 shrink-0">
+            <GitPullRequest className="h-4 w-4" />
+          </span>
+          <h2 className="font-semibold text-dark-text">PR 초안 생성</h2>
+        </div>
+        <p className="mt-2 text-sm leading-6 text-dark-muted">
           코드 작업이 완료되었다면 선택한 이슈의 맥락으로 PR 초안을 작성하세요.
         </p>
         <Link
-          className="focus-ring mt-5 inline-flex rounded-md bg-github-purple px-5 py-2.5 text-sm font-semibold text-white hover:bg-github-purple/90"
+          className="focus-ring mt-5 inline-flex items-center gap-1.5 rounded-xl bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-600 active:bg-brand-700 transition-all"
           href={prDraftHref}
         >
-          PR 초안 만들기 →
+          <span>PR 초안 만들기 →</span>
         </Link>
       </section>
     </ProtectedLayout>
@@ -288,12 +307,12 @@ function FilePathList({ filePaths }: { filePaths?: string[] | null }) {
 
   return (
     <div>
-      <p className="mb-2 text-xs font-semibold text-github-muted">수정 대상 파일</p>
+      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-dark-muted">수정 대상 파일</p>
       {safeFilePaths.length > 0 ? (
-        <div className="space-y-1">
+        <div className="space-y-1.5">
           {safeFilePaths.map((filePath) => (
             <code
-              className="block rounded-md bg-github-bg px-3 py-1.5 text-xs font-semibold text-github-accent"
+              className="block rounded-lg border border-dark-border bg-dark-scaffold px-3 py-1.5 font-mono text-xs font-semibold text-brand-400"
               key={filePath}
             >
               {filePath}
@@ -301,7 +320,7 @@ function FilePathList({ filePaths }: { filePaths?: string[] | null }) {
           ))}
         </div>
       ) : (
-        <p className="rounded-md bg-github-bg px-3 py-2 text-xs font-semibold text-github-muted">
+        <p className="rounded-lg border border-dark-border bg-dark-scaffold px-3 py-2 text-xs font-semibold text-dark-muted">
           수정 대상 파일 없음
         </p>
       )}
@@ -352,10 +371,10 @@ async function fallbackIssueLookup(issueId: string): Promise<IssueDetailIssue | 
 function StatusBadge({ status }: { status: RecommendedIssue["status"] }) {
   return (
     <span
-      className={`rounded-md px-2 py-1 text-xs font-semibold ${
+      className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
         status === "OPEN"
-          ? "border border-green-500/20 bg-green-500/10 text-green-400"
-          : "border border-github-border bg-github-bg text-github-muted"
+          ? "border border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+          : "border border-dark-border bg-dark-elevated text-dark-muted"
       }`}
     >
       {status === "OPEN" ? "● OPEN" : "○ CLOSED"}

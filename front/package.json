@@ -16,12 +16,13 @@
     "validate:issue-detail": "node ../tools/frontend/validate-issue-detail-parity.mjs",
     "validate:pr-draft": "node ../tools/frontend/validate-pr-draft-parity.mjs",
     "validate:pr-detail": "node ../tools/frontend/validate-pr-detail-parity.mjs",
-    "validate:brand-gothic": "node ../tools/frontend/validate-brand-gothic-parity.mjs",
+    "validate:brand": "node ../tools/frontend/validate-brand-parity.mjs",
     "validate:api-envelope": "node ../tools/frontend/validate-api-envelope-parity.mjs",
     "validate:oauth-callback": "node ../tools/frontend/validate-oauth-callback-parity.mjs",
     "smoke:integration": "node ../tools/frontend/integration-smoke/run-integration-smoke.mjs"
   },
   "dependencies": {
+    "lucide-react": "^1.48.0",
     "next": "16.2.6",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
