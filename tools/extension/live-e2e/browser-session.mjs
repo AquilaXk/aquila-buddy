@@ -325,6 +325,24 @@ function createPage(client) {
         timeoutMs
       );
     },
+    get client() {
+      return client;
+    },
+    async setViewport(width, height, deviceScaleFactor = 1) {
+      await client.send("Emulation.setDeviceMetricsOverride", {
+        width,
+        height,
+        deviceScaleFactor,
+        mobile: false,
+      });
+    },
+    async screenshot(options = {}) {
+      const result = await client.send("Page.captureScreenshot", {
+        format: options.format ?? "png",
+        quality: options.quality,
+      });
+      return Buffer.from(result.data, "base64");
+    },
     async currentUrl() {
       return evaluate(client, "window.location.href");
     },
