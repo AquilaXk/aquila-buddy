@@ -3,8 +3,10 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { FormEvent, Suspense, useCallback, useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Copy, Check, Globe, ExternalLink, GitPullRequest, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { ArrowLeft, Copy, Check, Globe, ExternalLink, GitPullRequest, Loader2 } from "lucide-react";
 import ProtectedLayout from "@/components/ProtectedLayout";
+import { PrDraftReadinessSection } from "@/components/PrDraftReadinessSection";
+import { LanguageTabSwitcher } from "@/components/LanguageTabSwitcher";
 import {
   createPullRequestDraft,
   getIssueDetail,
@@ -51,7 +53,6 @@ function PrDraftContent() {
   const [translated, setTranslated] = useState<PullRequestDraftTranslateResult | null>(null);
   const [readiness, setReadiness] = useState<PullRequestDraftReadiness | null>(null);
   const [activeLangTab, setActiveLangTab] = useState<"ko" | "en">("ko");
-  const [readinessFilter, setReadinessFilter] = useState<"all" | "action-required">("all");
   const [error, setError] = useState<string | null>(null);
   const [historyError, setHistoryError] = useState<string | null>(null);
   const [sourceIssueLoading, setSourceIssueLoading] = useState(false);
@@ -328,30 +329,11 @@ function PrDraftContent() {
             <div className="space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-dark-border pb-3">
                 <h2 className="text-base font-semibold text-dark-text">생성된 PR 초안</h2>
-                <div className="flex items-center gap-1 rounded-xl border border-dark-border bg-dark-scaffold p-1">
-                  <button
-                    className={`focus-ring rounded-lg px-3 py-1 text-xs font-semibold transition-all ${
-                      activeLangTab === "ko"
-                        ? "bg-brand-500 text-white shadow-sm"
-                        : "text-dark-muted hover:text-dark-text"
-                    }`}
-                    onClick={() => setActiveLangTab("ko")}
-                    type="button"
-                  >
-                    한국어 원본
-                  </button>
-                  <button
-                    className={`focus-ring rounded-lg px-3 py-1 text-xs font-semibold transition-all ${
-                      activeLangTab === "en"
-                        ? "bg-brand-500 text-white shadow-sm"
-                        : "text-dark-muted hover:text-dark-text"
-                    }`}
-                    onClick={() => setActiveLangTab("en")}
-                    type="button"
-                  >
-                    English {translated ? "✓" : ""}
-                  </button>
-                </div>
+                <LanguageTabSwitcher
+                  activeTab={activeLangTab}
+                  hasTranslation={Boolean(translated)}
+                  onSelectTab={setActiveLangTab}
+                />
               </div>
 
               <div className="rounded-xl border border-dark-border bg-dark-scaffold/70 p-4">
@@ -404,90 +386,7 @@ function PrDraftContent() {
                 </pre>
               </div>
 
-              {readiness ? (
-                <div className="rounded-xl border border-dark-border bg-dark-scaffold/70 p-4 space-y-3">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-xs font-semibold uppercase tracking-wider text-brand-400">
-                        7대 기여 준비도
-                      </h3>
-                      <span className="rounded-md border border-dark-border bg-dark-surface px-2 py-0.5 font-mono text-xs font-semibold text-dark-text">
-                        {readiness.readyCount} / {readiness.items.length} 준비 완료
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1 text-xs">
-                      <button
-                        className={`focus-ring rounded-lg px-2.5 py-1 font-semibold transition-colors ${
-                          readinessFilter === "all"
-                            ? "border border-dark-border bg-dark-elevated text-dark-text"
-                            : "text-dark-muted hover:text-dark-text"
-                        }`}
-                        onClick={() => setReadinessFilter("all")}
-                        type="button"
-                      >
-                        전체 ({readiness.items.length})
-                      </button>
-                      <button
-                        className={`focus-ring rounded-lg px-2.5 py-1 font-semibold transition-colors ${
-                          readinessFilter === "action-required"
-                            ? "border border-dark-border bg-dark-elevated text-dark-text"
-                            : "text-dark-muted hover:text-dark-text"
-                        }`}
-                        onClick={() => setReadinessFilter("action-required")}
-                        type="button"
-                      >
-                        확인 필요 ({readiness.items.filter((item) => item.status === "ACTION_REQUIRED").length})
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-dark-surface">
-                    <div
-                      className="h-full rounded-full bg-brand-500 transition-all duration-300"
-                      style={{
-                        width: `${(readiness.readyCount / Math.max(readiness.items.length, 1)) * 100}%`
-                      }}
-                    />
-                  </div>
-
-                  <div className="divide-y divide-dark-border/60">
-                    {readiness.items.filter((item) => readinessFilter === "all" || item.status === "ACTION_REQUIRED").length === 0 ? (
-                      <p className="py-3 text-center text-xs text-dark-muted">
-                        확인 필요한 항목이 없습니다. 모든 준비도 게이트를 통과했습니다.
-                      </p>
-                    ) : null}
-                    {readiness.items
-                      .filter((item) => readinessFilter === "all" || item.status === "ACTION_REQUIRED")
-                      .map((item) => (
-                        <div className="flex items-start gap-2.5 py-2.5 first:pt-1 last:pb-1" key={item.key}>
-                          {item.status === "READY" ? (
-                            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
-                          ) : (
-                            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
-                          )}
-                          <div className="min-w-0 flex-1">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <span className="text-xs font-semibold text-dark-text">{item.label}</span>
-                              <span
-                                className={`rounded border px-1.5 py-0.5 text-[10px] font-semibold ${
-                                  item.status === "READY"
-                                    ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
-                                    : "border-amber-500/30 bg-amber-500/10 text-amber-400"
-                                }`}
-                              >
-                                {item.status === "READY" ? "준비됨" : "확인 필요"}
-                              </span>
-                            </div>
-                            <p className="mt-0.5 text-[11px] leading-relaxed text-dark-muted">{item.description}</p>
-                            <p className="mt-1 break-words rounded border border-dark-border/40 bg-dark-surface/60 px-2 py-1 font-mono text-[11px] text-dark-text/80">
-                              {item.detail}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
-                  </div>
-                </div>
-              ) : null}
+              <PrDraftReadinessSection readiness={readiness} />
 
               {!translated ? (
                 <button

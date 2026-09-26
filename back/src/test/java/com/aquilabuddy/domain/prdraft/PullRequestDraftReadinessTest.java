@@ -7,34 +7,56 @@ import org.junit.jupiter.api.Test;
 
 class PullRequestDraftReadinessTest {
 
+    private static final String DEFAULT_BODY = """
+        close #2
+
+        ## 변경 사항
+        - validation 예시를 보강합니다.
+
+        ## 작업 메모
+        - diff 기반으로 초안을 구성했습니다.
+
+        ## 테스트 계획
+        - 관련 테스트를 실행해 주세요.
+
+        ## 브레이킹 체인지
+        - 하위 호환성을 유지하며 변경 사항이 없습니다.
+        """;
+
+    private static StoredPullRequestDraft createDraft(
+        String id,
+        int issueNumber,
+        String baseBranch,
+        String headBranch,
+        String title,
+        String body,
+        String diff
+    ) {
+        return new StoredPullRequestDraft(
+            id,
+            "spring-projects/spring-boot",
+            issueNumber,
+            baseBranch,
+            headBranch,
+            title,
+            body,
+            "issue-" + issueNumber,
+            "Issue #" + issueNumber,
+            diff,
+            Instant.parse("2026-05-15T00:00:00Z")
+        );
+    }
+
     @Test
     void createsReadyChecklistFromCompleteDraft() {
-        StoredPullRequestDraft draft = new StoredPullRequestDraft(
+        StoredPullRequestDraft draft = createDraft(
             "draft-1",
-            "spring-projects/spring-boot",
             2,
             "main",
             "feat/validation-docs",
             "docs: spring-projects/spring-boot#2 변경 초안",
-            """
-                close #2
-
-                ## 변경 사항
-                - validation 예시를 보강합니다.
-
-                ## 작업 메모
-                - diff 기반으로 초안을 구성했습니다.
-
-                ## 테스트 계획
-                - 관련 테스트를 실행해 주세요.
-
-                ## 브레이킹 체인지
-                - 하위 호환성을 유지하며 변경 사항이 없습니다.
-                """,
-            "issue-2",
-            "Issue #2",
-            "diff --git a/docs.adoc b/docs.adoc\n+Add validation example",
-            Instant.parse("2026-05-15T00:00:00Z")
+            DEFAULT_BODY,
+            "diff --git a/docs.adoc b/docs.adoc\n+Add validation example"
         );
 
         PullRequestDraftReadiness readiness = PullRequestDraftReadiness.from(draft);
@@ -60,9 +82,8 @@ class PullRequestDraftReadinessTest {
 
     @Test
     void recognizesEnglishTestsHeadingAsTestPlan() {
-        StoredPullRequestDraft draft = new StoredPullRequestDraft(
+        StoredPullRequestDraft draft = createDraft(
             "draft-english-tests",
-            "spring-projects/spring-boot",
             2,
             "main",
             "feat/validation-docs",
@@ -79,10 +100,7 @@ class PullRequestDraftReadinessTest {
                 ## Breaking Changes
                 - None
                 """,
-            "issue-2",
-            "Issue #2",
-            "+Add test",
-            Instant.parse("2026-05-15T00:00:00Z")
+            "+Add test"
         );
 
         PullRequestDraftReadiness readiness = PullRequestDraftReadiness.from(draft);
@@ -122,18 +140,14 @@ class PullRequestDraftReadinessTest {
 
     @Test
     void detectsGitConflictMarkersInDiff() {
-        StoredPullRequestDraft draft = new StoredPullRequestDraft(
+        StoredPullRequestDraft draft = createDraft(
             "draft-conflict",
-            "spring-projects/spring-boot",
             2,
             "main",
             "feat/validation-docs",
             "docs: spring-projects/spring-boot#2 update",
             "close #2\n## Summary\n- Update\n## Tests\n- Check\n## Breaking Changes\n- None",
-            "issue-2",
-            "Issue #2",
-            "<<<<<<< HEAD\nlocal\n=======\nremote\n>>>>>>>",
-            Instant.parse("2026-05-15T00:00:00Z")
+            "<<<<<<< HEAD\nlocal\n=======\nremote\n>>>>>>>"
         );
 
         PullRequestDraftReadiness readiness = PullRequestDraftReadiness.from(draft);
@@ -146,18 +160,14 @@ class PullRequestDraftReadinessTest {
     @Test
     void rejectsPrefixedIssueNumberMatches() {
         // 이슈 #4인 초안에 "close #42"만 적혀 있는 경우, substring 매칭 버그로 통과되지 않고 ACTION_REQUIRED 처리되어야 합니다.
-        StoredPullRequestDraft draft = new StoredPullRequestDraft(
+        StoredPullRequestDraft draft = createDraft(
             "draft-prefix",
-            "spring-projects/spring-boot",
             4,
             "main",
             "feat/validation-docs",
             "docs: update documentation",
             "close #42\n## Summary\n- Update\n## Tests\n- Check\n## Breaking Changes\n- None",
-            "issue-4",
-            "Issue #4",
-            "+valid diff content",
-            Instant.parse("2026-05-15T00:00:00Z")
+            "+valid diff content"
         );
 
         PullRequestDraftReadiness readiness = PullRequestDraftReadiness.from(draft);
@@ -169,18 +179,14 @@ class PullRequestDraftReadinessTest {
     @Test
     void acceptsIssueLinksWithBulletsAndColons() {
         // "- Fixes: #4" 형태의 마크다운 불릿 및 콜론 문법도 정확하게 인식해야 합니다.
-        StoredPullRequestDraft draft = new StoredPullRequestDraft(
+        StoredPullRequestDraft draft = createDraft(
             "draft-bullet-colon",
-            "spring-projects/spring-boot",
             4,
             "main",
             "feat/validation-docs",
             "docs: update documentation",
             "- Fixes: #4\n## Summary\n- Update\n## Tests\n- Check\n## Breaking Changes\n- None",
-            "issue-4",
-            "Issue #4",
-            "+valid diff content",
-            Instant.parse("2026-05-15T00:00:00Z")
+            "+valid diff content"
         );
 
         PullRequestDraftReadiness readiness = PullRequestDraftReadiness.from(draft);
@@ -192,18 +198,14 @@ class PullRequestDraftReadinessTest {
     @Test
     void detectsConflictMarkersWithUnifiedDiffPrefix() {
         // diff 파일 내 추가 라인(+<<<<<<< HEAD)으로 들어간 충돌 마커를 감지해야 합니다.
-        StoredPullRequestDraft draft = new StoredPullRequestDraft(
+        StoredPullRequestDraft draft = createDraft(
             "draft-unified-diff-conflict",
-            "spring-projects/spring-boot",
             2,
             "main",
             "feat/validation-docs",
             "docs: spring-projects/spring-boot#2 update",
             "close #2\n## Summary\n- Update\n## Tests\n- Check\n## Breaking Changes\n- None",
-            "issue-2",
-            "Issue #2",
-            "diff --git a/App.java b/App.java\n+<<<<<<< HEAD\n+local\n+=======\n+remote\n+>>>>>>> branch",
-            Instant.parse("2026-05-15T00:00:00Z")
+            "diff --git a/App.java b/App.java\n+<<<<<<< HEAD\n+local\n+=======\n+remote\n+>>>>>>> branch"
         );
 
         PullRequestDraftReadiness readiness = PullRequestDraftReadiness.from(draft);
@@ -216,18 +218,14 @@ class PullRequestDraftReadinessTest {
     @Test
     void supportsVariousMarkdownHeadingLevelsInStructuredBody() {
         // # 및 ### 등 다양한 헤딩 레벨로 구성된 본문도 템플릿 준수 게이트를 통과해야 합니다.
-        StoredPullRequestDraft draft = new StoredPullRequestDraft(
+        StoredPullRequestDraft draft = createDraft(
             "draft-headings",
-            "spring-projects/spring-boot",
             2,
             "main",
             "feat/validation-docs",
             "docs: spring-projects/spring-boot#2 update",
             "close #2\n# Overview\n- Detail line 1\n### Verification\n- Tests run",
-            "issue-2",
-            "Issue #2",
-            "+valid diff",
-            Instant.parse("2026-05-15T00:00:00Z")
+            "+valid diff"
         );
 
         PullRequestDraftReadiness readiness = PullRequestDraftReadiness.from(draft);
@@ -239,18 +237,14 @@ class PullRequestDraftReadinessTest {
     @Test
     void recognizesConventionalCommitBreakingChangeTitle() {
         // Conventional Commits의 feat!: 또는 feat(scope)!: 브레이킹 체인지 표기를 인식해야 합니다.
-        StoredPullRequestDraft draft = new StoredPullRequestDraft(
+        StoredPullRequestDraft draft = createDraft(
             "draft-breaking-title",
-            "spring-projects/spring-boot",
             2,
             "main",
             "feat/break-api",
             "feat(api)!: break public signature for spring-projects/spring-boot#2",
             "close #2\n## Summary\n- Update\n## Tests\n- Check",
-            "issue-2",
-            "Issue #2",
-            "+valid diff",
-            Instant.parse("2026-05-15T00:00:00Z")
+            "+valid diff"
         );
 
         PullRequestDraftReadiness readiness = PullRequestDraftReadiness.from(draft);

@@ -161,17 +161,11 @@ public class RuleBasedPullRequestDraftAdapter implements GeneratePullRequestDraf
             bodyLines.add("- " + diffSummary);
         }
 
-        if (!hasTestPlanSection && !containsAny(format.templateBody(), "테스트", "검증", "test", "testing")) {
-            bodyLines.add("");
-            bodyLines.add("## 테스트 계획");
-            bodyLines.add("- 변경 후 관련 테스트를 실행해 주세요.");
-        }
-
-        if (!hasBreakingChangeSection && !containsAny(format.templateBody(), "브레이킹", "호환성", "breaking")) {
-            bodyLines.add("");
-            bodyLines.add("## 브레이킹 체인지");
-            bodyLines.add("- 하위 호환성을 깨뜨리는 변경 사항이 없습니다.");
-        }
+        appendDefaultSections(
+            bodyLines,
+            !hasTestPlanSection && !containsAny(format.templateBody(), "테스트", "검증", "test", "testing"),
+            !hasBreakingChangeSection && !containsAny(format.templateBody(), "브레이킹", "호환성", "breaking")
+        );
 
         appendRepositoryGuideSummary(bodyLines, request);
         return String.join("\n", bodyLines);
@@ -191,16 +185,11 @@ public class RuleBasedPullRequestDraftAdapter implements GeneratePullRequestDraf
         bodyLines.add("");
         bodyLines.add("## 작업 메모");
         bodyLines.add("- " + diffSummary);
-        if (!containsAny(format.templateBody(), "테스트", "검증", "test", "testing")) {
-            bodyLines.add("");
-            bodyLines.add("## 테스트 계획");
-            bodyLines.add("- 변경 후 관련 테스트를 실행해 주세요.");
-        }
-        if (!containsAny(format.templateBody(), "브레이킹", "호환성", "breaking")) {
-            bodyLines.add("");
-            bodyLines.add("## 브레이킹 체인지");
-            bodyLines.add("- 하위 호환성을 깨뜨리는 변경 사항이 없습니다.");
-        }
+        appendDefaultSections(
+            bodyLines,
+            !containsAny(format.templateBody(), "테스트", "검증", "test", "testing"),
+            !containsAny(format.templateBody(), "브레이킹", "호환성", "breaking")
+        );
         appendRepositoryGuideSummary(bodyLines, request);
         return String.join("\n", bodyLines);
     }
@@ -221,18 +210,30 @@ public class RuleBasedPullRequestDraftAdapter implements GeneratePullRequestDraf
             bodyLines.add(heading);
             bodyLines.add("- " + contentForHeading(heading, diffSummary));
         }
-        if (!format.requiredHeadings().stream().anyMatch(h -> h.toLowerCase(Locale.ROOT).contains("test") || h.contains("검증"))) {
+        appendDefaultSections(
+            bodyLines,
+            format.requiredHeadings().stream().noneMatch(h -> h.toLowerCase(Locale.ROOT).contains("test") || h.contains("검증")),
+            format.requiredHeadings().stream().noneMatch(h -> h.toLowerCase(Locale.ROOT).contains("breaking") || h.contains("브레이킹"))
+        );
+        appendRepositoryGuideSummary(bodyLines, request);
+        return String.join("\n", bodyLines);
+    }
+
+    private void appendDefaultSections(
+        List<String> bodyLines,
+        boolean includeTestPlan,
+        boolean includeBreakingChanges
+    ) {
+        if (includeTestPlan) {
             bodyLines.add("");
             bodyLines.add("## 테스트 계획");
             bodyLines.add("- 변경 후 관련 테스트를 실행해 주세요.");
         }
-        if (!format.requiredHeadings().stream().anyMatch(h -> h.toLowerCase(Locale.ROOT).contains("breaking") || h.contains("브레이킹"))) {
+        if (includeBreakingChanges) {
             bodyLines.add("");
             bodyLines.add("## 브레이킹 체인지");
             bodyLines.add("- 하위 호환성을 깨뜨리는 변경 사항이 없습니다.");
         }
-        appendRepositoryGuideSummary(bodyLines, request);
-        return String.join("\n", bodyLines);
     }
 
     private static boolean containsAny(String body, String... needles) {
