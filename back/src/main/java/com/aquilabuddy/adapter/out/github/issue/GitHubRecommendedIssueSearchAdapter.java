@@ -145,8 +145,8 @@ public class GitHubRecommendedIssueSearchAdapter implements SearchRecommendedIss
                     throw exception;
                 }
                 // GraphQL 엔드포인트 미구현(404) 또는 기타 HTTP 오류 시 REST Search API로 graceful fallback 합니다.
-            } catch (RestClientException ignored) {
-                // GraphQL 호출 장애 시 REST Search API로 graceful fallback 합니다.
+            } catch (Exception ignored) {
+                // GraphQL 호출 장애 또는 응답 파싱 실패 시 REST Search API로 graceful fallback 합니다.
             }
         }
         return searchViaRest(query, bearerToken);
@@ -238,6 +238,7 @@ public class GitHubRecommendedIssueSearchAdapter implements SearchRecommendedIss
             ? List.of()
             : item.labels()
                 .stream()
+                .filter(Objects::nonNull)
                 .map(GitHubIssueLabel::name)
                 .filter(name -> name != null && !name.isBlank())
                 .toList();
@@ -259,6 +260,7 @@ public class GitHubRecommendedIssueSearchAdapter implements SearchRecommendedIss
         List<String> labels = node.labels() == null || node.labels().nodes() == null
             ? List.of()
             : node.labels().nodes().stream()
+                .filter(Objects::nonNull)
                 .map(GraphQLLabelNode::name)
                 .filter(name -> name != null && !name.isBlank())
                 .toList();

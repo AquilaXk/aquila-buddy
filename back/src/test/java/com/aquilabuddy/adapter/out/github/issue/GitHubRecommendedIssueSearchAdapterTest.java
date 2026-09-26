@@ -30,7 +30,7 @@ class GitHubRecommendedIssueSearchAdapterTest {
     void retriesWithoutAuthorizationWhenConfiguredTokenIsUnauthorized() throws IOException {
         AtomicInteger requests = new AtomicInteger();
         AtomicReference<String> retryAuthorization = new AtomicReference<>();
-        server = HttpServer.create(new InetSocketAddress(0), 0);
+        server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         server.createContext("/search/issues", exchange -> {
             int attempt = requests.incrementAndGet();
             String authorization = exchange.getRequestHeaders().getFirst("Authorization");
@@ -68,7 +68,7 @@ class GitHubRecommendedIssueSearchAdapterTest {
         server.start();
         GitHubRecommendedIssueSearchAdapter adapter = new GitHubRecommendedIssueSearchAdapter(
             RestClient.builder(),
-            "http://localhost:" + server.getAddress().getPort(),
+            "http://127.0.0.1:" + server.getAddress().getPort(),
             "expired-token",
             true,
             "label:\"good first issue\"",
@@ -86,7 +86,7 @@ class GitHubRecommendedIssueSearchAdapterTest {
 
     @Test
     void returnsEmptyListWhenGitHubSearchStillFails() throws IOException {
-        server = HttpServer.create(new InetSocketAddress(0), 0);
+        server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         server.createContext("/search/issues", exchange -> {
             byte[] body = "{\"message\":\"rate limited\"}".getBytes(StandardCharsets.UTF_8);
             exchange.getResponseHeaders().add("Content-Type", "application/json");
@@ -97,7 +97,7 @@ class GitHubRecommendedIssueSearchAdapterTest {
         server.start();
         GitHubRecommendedIssueSearchAdapter adapter = new GitHubRecommendedIssueSearchAdapter(
             RestClient.builder(),
-            "http://localhost:" + server.getAddress().getPort(),
+            "http://127.0.0.1:" + server.getAddress().getPort(),
             "",
             true,
             "label:\"good first issue\"",
@@ -113,7 +113,7 @@ class GitHubRecommendedIssueSearchAdapterTest {
     void mapsGitHubSearchResponseToRecommendedIssues() throws IOException {
         AtomicReference<String> rawQuery = new AtomicReference<>();
         AtomicReference<String> authorization = new AtomicReference<>();
-        server = HttpServer.create(new InetSocketAddress(0), 0);
+        server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         server.createContext("/search/issues", exchange -> {
             rawQuery.set(exchange.getRequestURI().getRawQuery());
             authorization.set(exchange.getRequestHeaders().getFirst("Authorization"));
@@ -142,7 +142,7 @@ class GitHubRecommendedIssueSearchAdapterTest {
         server.start();
         GitHubRecommendedIssueSearchAdapter adapter = new GitHubRecommendedIssueSearchAdapter(
             RestClient.builder(),
-            "http://localhost:" + server.getAddress().getPort(),
+            "http://127.0.0.1:" + server.getAddress().getPort(),
             "test-token",
             true,
             "label:\"good first issue\"",
@@ -170,7 +170,7 @@ class GitHubRecommendedIssueSearchAdapterTest {
 
     @Test
     void stripsMarkdownNoiseFromSummary() throws IOException {
-        server = HttpServer.create(new InetSocketAddress(0), 0);
+        server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         server.createContext("/search/issues", exchange -> {
             byte[] body = """
                 {
@@ -196,7 +196,7 @@ class GitHubRecommendedIssueSearchAdapterTest {
         server.start();
         GitHubRecommendedIssueSearchAdapter adapter = new GitHubRecommendedIssueSearchAdapter(
             RestClient.builder(),
-            "http://localhost:" + server.getAddress().getPort(),
+            "http://127.0.0.1:" + server.getAddress().getPort(),
             "",
             true,
             "label:\"good first issue\"",
@@ -212,7 +212,7 @@ class GitHubRecommendedIssueSearchAdapterTest {
     @Test
     void searchesWithRequestedQuery() throws IOException {
         AtomicReference<String> rawQuery = new AtomicReference<>();
-        server = HttpServer.create(new InetSocketAddress(0), 0);
+        server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         server.createContext("/search/issues", exchange -> {
             rawQuery.set(exchange.getRequestURI().getRawQuery());
             byte[] body = """
@@ -239,7 +239,7 @@ class GitHubRecommendedIssueSearchAdapterTest {
         server.start();
         GitHubRecommendedIssueSearchAdapter adapter = new GitHubRecommendedIssueSearchAdapter(
             RestClient.builder(),
-            "http://localhost:" + server.getAddress().getPort(),
+            "http://127.0.0.1:" + server.getAddress().getPort(),
             "",
             true,
             "label:\"good first issue\"",
@@ -259,7 +259,7 @@ class GitHubRecommendedIssueSearchAdapterTest {
     @Test
     void collectsUnassignedIssuesWithStarAndCommitMetadataViaGraphQL() throws IOException {
         AtomicReference<String> authorization = new AtomicReference<>();
-        server = HttpServer.create(new InetSocketAddress(0), 0);
+        server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         server.createContext("/graphql", exchange -> {
             authorization.set(exchange.getRequestHeaders().getFirst("Authorization"));
             byte[] body = """
@@ -329,7 +329,7 @@ class GitHubRecommendedIssueSearchAdapterTest {
 
         GitHubRecommendedIssueSearchAdapter adapter = new GitHubRecommendedIssueSearchAdapter(
             RestClient.builder(),
-            "http://localhost:" + server.getAddress().getPort(),
+            "http://127.0.0.1:" + server.getAddress().getPort(),
             "valid-graphql-token",
             true,
             "label:\"good first issue\"",
@@ -354,7 +354,7 @@ class GitHubRecommendedIssueSearchAdapterTest {
 
     @Test
     void fallsBackToRestWhenGraphQLFails() throws IOException {
-        server = HttpServer.create(new InetSocketAddress(0), 0);
+        server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         server.createContext("/graphql", exchange -> {
             byte[] body = "{\"message\":\"GraphQL internal error\"}".getBytes(StandardCharsets.UTF_8);
             exchange.getResponseHeaders().add("Content-Type", "application/json");
@@ -388,7 +388,7 @@ class GitHubRecommendedIssueSearchAdapterTest {
 
         GitHubRecommendedIssueSearchAdapter adapter = new GitHubRecommendedIssueSearchAdapter(
             RestClient.builder(),
-            "http://localhost:" + server.getAddress().getPort(),
+            "http://127.0.0.1:" + server.getAddress().getPort(),
             "token-with-failing-graphql",
             true,
             "label:\"good first issue\"",
@@ -404,7 +404,7 @@ class GitHubRecommendedIssueSearchAdapterTest {
 
     @Test
     void ignoresNullAndNonIssueNodesInGraphQLSearchResults() throws IOException {
-        server = HttpServer.create(new InetSocketAddress(0), 0);
+        server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         server.createContext("/graphql", exchange -> {
             byte[] body = """
                 {
@@ -447,7 +447,7 @@ class GitHubRecommendedIssueSearchAdapterTest {
 
         GitHubRecommendedIssueSearchAdapter adapter = new GitHubRecommendedIssueSearchAdapter(
             RestClient.builder(),
-            "http://localhost:" + server.getAddress().getPort(),
+            "http://127.0.0.1:" + server.getAddress().getPort(),
             "valid-token",
             true,
             "label:\"good first issue\"",
@@ -460,5 +460,114 @@ class GitHubRecommendedIssueSearchAdapterTest {
         assertThat(issues.getFirst().id()).isEqualTo("I_valid");
         assertThat(issues.getFirst().repoFullName()).isEqualTo("valid/repo");
         assertThat(issues.getFirst().issueNumber()).isEqualTo(200);
+    }
+
+    @Test
+    void handlesNullElementsInGraphQLNodesLabelsGracefully() throws IOException {
+        server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/graphql", exchange -> {
+            byte[] body = """
+                {
+                  "data": {
+                    "search": {
+                      "issueCount": 1,
+                      "nodes": [
+                        {
+                          "id": "I_with_null_labels",
+                          "number": 300,
+                          "title": "Issue with null label node",
+                          "body": "Description with null labels in list",
+                          "url": "https://github.com/valid/repo/issues/300",
+                          "state": "OPEN",
+                          "assignees": { "totalCount": 0 },
+                          "labels": {
+                            "nodes": [
+                              null,
+                              { "name": "good first issue" },
+                              null,
+                              { "name": "" }
+                            ]
+                          },
+                          "repository": {
+                            "nameWithOwner": "valid/repo",
+                            "stargazerCount": 100,
+                            "defaultBranchRef": null
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+                """.getBytes(StandardCharsets.UTF_8);
+            exchange.getResponseHeaders().add("Content-Type", "application/json");
+            exchange.sendResponseHeaders(200, body.length);
+            exchange.getResponseBody().write(body);
+            exchange.close();
+        });
+        server.start();
+
+        GitHubRecommendedIssueSearchAdapter adapter = new GitHubRecommendedIssueSearchAdapter(
+            RestClient.builder(),
+            "http://127.0.0.1:" + server.getAddress().getPort(),
+            "valid-token",
+            true,
+            "label:\"good first issue\"",
+            5
+        );
+
+        List<RecommendedIssue> issues = adapter.searchRecommendedIssues();
+
+        assertThat(issues).hasSize(1);
+        assertThat(issues.getFirst().id()).isEqualTo("I_with_null_labels");
+        assertThat(issues.getFirst().labels()).containsExactly("good first issue");
+    }
+
+    @Test
+    void fallsBackToRestWhenGraphQLThrowsMalformedJsonException() throws IOException {
+        server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/graphql", exchange -> {
+            byte[] body = "malformed json response that is not json".getBytes(StandardCharsets.UTF_8);
+            exchange.getResponseHeaders().add("Content-Type", "application/json");
+            exchange.sendResponseHeaders(200, body.length);
+            exchange.getResponseBody().write(body);
+            exchange.close();
+        });
+        server.createContext("/search/issues", exchange -> {
+            byte[] body = """
+                {
+                  "items": [
+                    {
+                      "id": 888,
+                      "number": 88,
+                      "title": "Fallback from malformed GraphQL",
+                      "body": "Recovered from malformed GraphQL payload.",
+                      "repository_url": "https://api.github.com/repos/example/malformed-fallback",
+                      "labels": [
+                        {"name": "good first issue"}
+                      ]
+                    }
+                  ]
+                }
+                """.getBytes(StandardCharsets.UTF_8);
+            exchange.getResponseHeaders().add("Content-Type", "application/json");
+            exchange.sendResponseHeaders(200, body.length);
+            exchange.getResponseBody().write(body);
+            exchange.close();
+        });
+        server.start();
+
+        GitHubRecommendedIssueSearchAdapter adapter = new GitHubRecommendedIssueSearchAdapter(
+            RestClient.builder(),
+            "http://127.0.0.1:" + server.getAddress().getPort(),
+            "valid-token",
+            true,
+            "label:\"good first issue\"",
+            1
+        );
+
+        List<RecommendedIssue> issues = adapter.searchRecommendedIssues();
+
+        assertThat(issues).hasSize(1);
+        assertThat(issues.getFirst().repoFullName()).isEqualTo("example/malformed-fallback");
     }
 }

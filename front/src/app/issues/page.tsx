@@ -76,6 +76,40 @@ export default function IssuesPage() {
     }
   }
 
+function matchesLanguageText(text: string, key: string): boolean {
+  if (!text || !key) return false;
+  const normalizedKey = key.toLowerCase();
+  if (normalizedKey === "c++" || normalizedKey === "cpp") {
+    return /(?:^|[^a-zA-Z0-9])(?:c\+\+|cpp)(?:$|[^a-zA-Z0-9])/i.test(text);
+  }
+  if (normalizedKey === "c#" || normalizedKey === "csharp") {
+    return /(?:^|[^a-zA-Z0-9])(?:c#|csharp)(?:$|[^a-zA-Z0-9])/i.test(text);
+  }
+  if (normalizedKey === "go" || normalizedKey === "golang") {
+    return /\b(?:go|golang)\b/i.test(text);
+  }
+  if (normalizedKey === "java") {
+    return /\bjava\b(?!script)/i.test(text);
+  }
+  if (normalizedKey === "javascript" || normalizedKey === "js") {
+    return /\b(?:javascript|js)\b/i.test(text);
+  }
+  if (normalizedKey === "typescript" || normalizedKey === "ts") {
+    return /\b(?:typescript|ts)\b/i.test(text);
+  }
+  if (normalizedKey === "python" || normalizedKey === "py") {
+    return /\b(?:python|py)\b/i.test(text);
+  }
+  if (normalizedKey === "rust") {
+    return /\brust\b/i.test(text);
+  }
+  if (normalizedKey === "kotlin") {
+    return /\bkotlin\b/i.test(text);
+  }
+  const escaped = normalizedKey.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`\\b${escaped}\\b`, "i").test(text);
+}
+
   const availableLanguages = useMemo(() => {
     const langs = new Set<string>();
     const knownLangs = [
@@ -90,9 +124,9 @@ export default function IssuesPage() {
     ];
     history.forEach((issue) => {
       const labels = Array.isArray(issue.labels) ? issue.labels.filter(Boolean) : [];
-      const text = `${issue.repoFullName ?? ""} ${issue.title ?? ""} ${labels.join(" ")} ${issue.reason ?? ""}`.toLowerCase();
+      const text = `${issue.repoFullName ?? ""} ${issue.title ?? ""} ${labels.join(" ")} ${issue.reason ?? ""}`;
       knownLangs.forEach(({ key, label }) => {
-        if (text.includes(key)) {
+        if (matchesLanguageText(text, key)) {
           langs.add(label);
         }
       });
@@ -119,9 +153,8 @@ export default function IssuesPage() {
     return history.filter((issue) => {
       const labels = Array.isArray(issue.labels) ? issue.labels.filter(Boolean) : [];
       if (selectedLanguage !== "ALL") {
-        const langLower = selectedLanguage.toLowerCase();
-        const text = `${issue.repoFullName ?? ""} ${issue.title ?? ""} ${labels.join(" ")} ${issue.reason ?? ""}`.toLowerCase();
-        if (!text.includes(langLower)) {
+        const text = `${issue.repoFullName ?? ""} ${issue.title ?? ""} ${labels.join(" ")} ${issue.reason ?? ""}`;
+        if (!matchesLanguageText(text, selectedLanguage)) {
           return false;
         }
       }
@@ -366,13 +399,21 @@ function parseRecommendationFacets(issue: RecommendedIssueHistory) {
   const facets: { label: string; key: string }[] = [];
   const reason = issue.reason ?? "";
 
-  if (reason.includes("주 사용 언어 일치") || reason.includes("기술스택 일치")) {
-    const langMatch = reason.match(/주 사용 언어 일치:\s*(\w+)/);
+  const langMatch =
+    reason.match(/(?:주 사용 언어 일치|기술스택(?:\s*일치)?):\s*([^\s\]]+)/) ||
+    reason.match(/\[([A-Za-z+#]+)\s*기술스택/);
+  if (langMatch) {
     facets.push({
-      label: langMatch ? `🎯 ${langMatch[1]} 일치` : "🎯 기술스택 일치",
+      label: `🎯 ${langMatch[1]} 일치`,
+      key: "lang-match",
+    });
+  } else if (reason.includes("주 사용 언어 일치") || reason.includes("기술스택 일치")) {
+    facets.push({
+      label: "🎯 기술스택 일치",
       key: "lang-match",
     });
   }
+
   const labels = Array.isArray(issue.labels) ? issue.labels : [];
   if (
     reason.includes("입문 큐레이션") ||
@@ -449,12 +490,12 @@ function IssueHistoryCard({ issue }: { issue: RecommendedIssueHistory }) {
               💡 {issue.reason}
             </p>
           ) : null}
-          {issue.labels.length > 0 ? (
+          {Array.isArray(issue.labels) && issue.labels.filter(Boolean).length > 0 ? (
             <div className="mt-3 flex flex-wrap gap-1.5">
-              {issue.labels.map((label) => (
+              {Array.from(new Set(issue.labels.filter(Boolean))).map((label, idx) => (
                 <span
                   className="rounded-full border border-dark-border bg-dark-elevated px-2.5 py-0.5 text-xs text-dark-muted"
-                  key={label}
+                  key={`${label}-${idx}`}
                 >
                   {label}
                 </span>

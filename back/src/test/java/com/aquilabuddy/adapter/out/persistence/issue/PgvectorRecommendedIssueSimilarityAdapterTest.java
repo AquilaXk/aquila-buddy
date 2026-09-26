@@ -150,6 +150,91 @@ class PgvectorRecommendedIssueSimilarityAdapterTest {
         assertThat(ranked.getFirst().id()).isEqualTo("null-issue");
     }
 
+    @Test
+    void doesNotFalseMatchLanguageGoOnGoodFirstIssueOrOngoingTitles() {
+        RecommendedIssue javaIssueWithGoodFirstIssue = new RecommendedIssue(
+            "java-spring",
+            "spring-projects/spring-boot",
+            10,
+            "Ongoing refactor for algorithm module",
+            "Refactor ongoing algorithm classes",
+            0.80,
+            List.of("good first issue", "help wanted"),
+            "OPEN",
+            "GitHub 수집 후보"
+        );
+        RecommendedIssue realGoIssue = new RecommendedIssue(
+            "go-runtime",
+            "golang/go",
+            20,
+            "Fix runtime memory leak",
+            "Memory leak in Go runtime scheduler",
+            0.60,
+            List.of("help wanted", "go"),
+            "OPEN",
+            "GitHub 수집 후보"
+        );
+
+        List<RecommendedIssue> ranked = PgvectorRecommendedIssueSimilarityAdapter.applyHybridRanking(
+            List.of(javaIssueWithGoodFirstIssue, realGoIssue),
+            List.of("Go")
+        );
+
+        // realGoIssue는 점수 0.60 * 0.75 + 0.25 = 0.70으로 승격되어 1위가 되어야 합니다.
+        // javaIssue는 'good'이나 'ongoing', 'algorithm'에 'go'가 포함되어 있지만 단어 단위 검사이므로 Go로 오매칭되지 않아야 합니다 (0.80 * 0.75 = 0.60).
+        assertThat(ranked)
+            .extracting(RecommendedIssue::id)
+            .containsExactly("go-runtime", "java-spring");
+        assertThat(ranked.getFirst().reason()).contains("주 사용 언어 일치: Go");
+        assertThat(ranked.get(1).reason()).doesNotContain("주 사용 언어 일치");
+    }
+
+    @Test
+    void doesNotFalseMatchLanguageJavaOnJavaScript() {
+        RecommendedIssue jsIssue = new RecommendedIssue(
+            "react-issue",
+            "facebook/react",
+            10,
+            "Fix JavaScript bundler issue",
+            "JavaScript client issue",
+            0.80,
+            List.of("good first issue", "javascript"),
+            "OPEN",
+            "GitHub 수집 후보"
+        );
+
+        List<RecommendedIssue> ranked = PgvectorRecommendedIssueSimilarityAdapter.applyHybridRanking(
+            List.of(jsIssue),
+            List.of("Java")
+        );
+
+        assertThat(ranked.getFirst().reason()).doesNotContain("주 사용 언어 일치");
+        assertThat(ranked.getFirst().score()).isEqualTo(0.60); // 0.80 * 0.75 = 0.60
+    }
+
+    @Test
+    void matchesCPlusPlusLanguageCorrectly() {
+        RecommendedIssue cppIssue = new RecommendedIssue(
+            "protobuf-issue",
+            "protocolbuffers/protobuf",
+            50,
+            "Fix C++ build issue",
+            "Protobuf C++ build failure",
+            0.70,
+            List.of("good first issue", "c++"),
+            "OPEN",
+            "GitHub 수집 후보"
+        );
+
+        List<RecommendedIssue> ranked = PgvectorRecommendedIssueSimilarityAdapter.applyHybridRanking(
+            List.of(cppIssue),
+            List.of("C++")
+        );
+
+        assertThat(ranked.getFirst().reason()).contains("주 사용 언어 일치: C++");
+        assertThat(ranked.getFirst().score()).isEqualTo(0.775); // 0.70 * 0.75 + 0.25 = 0.775
+    }
+
     private static RecommendedIssue issue(String id, double score) {
         return new RecommendedIssue(
             id,

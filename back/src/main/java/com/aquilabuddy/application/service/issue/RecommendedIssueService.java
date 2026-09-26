@@ -20,8 +20,11 @@ import com.aquilabuddy.domain.issue.RecommendedIssueHistory;
 import com.aquilabuddy.domain.user.UserProfile;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.regex.Pattern;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -149,9 +152,9 @@ public class RecommendedIssueService implements
 
         List<RecommendedIssue> storedIssues = loadRecommendedIssuesPort.loadRecommendedIssues();
 
-        // 콜드 스타트 대응: 저장된 추천 데이터가 없거나, 신규 사용자의 기술스택과 일치하는 후보가 없는 경우
+        // 콜드 스타트 대응: 저장된 추천 데이터가 없거나, 프로필 벡터가 없는 경우 기술스택 기반 입문 큐레이션을 제공합니다.
         boolean isColdStart = storedIssues.isEmpty()
-            || (isNewUser(userProfile) && !hasTechStackMatch(storedIssues, userProfile));
+            || (userProfile != null && isProfileVectorAbsent(userProfile));
 
         if (isColdStart) {
             List<RecommendedIssue> curatedIssues = curateStarterIssues(userProfile);
@@ -281,32 +284,63 @@ public class RecommendedIssueService implements
         }
     }
 
-    private boolean isNewUser(UserProfile profile) {
-        return profile != null && !profile.profileReady();
+    private boolean isProfileVectorAbsent(UserProfile profile) {
+        return profile == null
+            || !profile.profileReady()
+            || profile.vectorUpdatedAt() == null
+            || profile.vectorUpdatedAt().isBlank();
     }
 
-    private boolean hasTechStackMatch(List<RecommendedIssue> issues, UserProfile profile) {
-        if (profile == null || profile.primaryLanguages() == null || profile.primaryLanguages().isEmpty()) {
+    private static final Map<String, Pattern> LANGUAGE_PATTERNS = Map.ofEntries(
+        Map.entry("c++", Pattern.compile("(?i)(?:^|[^a-zA-Z0-9])(?:c\\+\\+|cpp)(?:$|[^a-zA-Z0-9])")),
+        Map.entry("cpp", Pattern.compile("(?i)(?:^|[^a-zA-Z0-9])(?:c\\+\\+|cpp)(?:$|[^a-zA-Z0-9])")),
+        Map.entry("c#", Pattern.compile("(?i)(?:^|[^a-zA-Z0-9])(?:c#|csharp)(?:$|[^a-zA-Z0-9])")),
+        Map.entry("csharp", Pattern.compile("(?i)(?:^|[^a-zA-Z0-9])(?:c#|csharp)(?:$|[^a-zA-Z0-9])")),
+        Map.entry("go", Pattern.compile("(?i)\\b(?:go|golang)\\b")),
+        Map.entry("golang", Pattern.compile("(?i)\\b(?:go|golang)\\b")),
+        Map.entry("java", Pattern.compile("(?i)\\bjava\\b")),
+        Map.entry("javascript", Pattern.compile("(?i)\\b(?:javascript|js)\\b")),
+        Map.entry("js", Pattern.compile("(?i)\\b(?:javascript|js)\\b")),
+        Map.entry("typescript", Pattern.compile("(?i)\\b(?:typescript|ts)\\b")),
+        Map.entry("ts", Pattern.compile("(?i)\\b(?:typescript|ts)\\b")),
+        Map.entry("python", Pattern.compile("(?i)\\b(?:python|py)\\b")),
+        Map.entry("py", Pattern.compile("(?i)\\b(?:python|py)\\b")),
+        Map.entry("rust", Pattern.compile("(?i)\\brust\\b")),
+        Map.entry("kotlin", Pattern.compile("(?i)\\bkotlin\\b"))
+    );
+
+    /**
+     * 짧은 언어명(Go, C 등)이 일반 단어(good first issue, documentation 등)에 오매칭되지 않도록 단어 경계 기반으로 일치를 판정합니다.
+     */
+    static boolean matchesLanguage(String text, String lang) {
+        if (text == null || text.isBlank() || lang == null || lang.isBlank()) {
             return false;
         }
-        return issues.stream().anyMatch(issue -> matchesLanguages(issue, profile.primaryLanguages()));
+        String normalized = lang.trim().toLowerCase(Locale.ROOT);
+        Pattern pattern = LANGUAGE_PATTERNS.get(normalized);
+        if (pattern == null) {
+            pattern = Pattern.compile("(?i)\\b" + Pattern.quote(normalized) + "\\b");
+        }
+        return pattern.matcher(text).find();
     }
 
     private static boolean matchesLanguages(RecommendedIssue issue, List<String> languages) {
+        if (issue == null || languages == null || languages.isEmpty()) {
+            return false;
+        }
         for (String language : languages) {
             if (language == null || language.isBlank()) {
                 continue;
             }
-            String langLower = language.trim().toLowerCase();
             for (String label : issue.labels()) {
-                if (label.toLowerCase().contains(langLower)) {
+                if (matchesLanguage(label, language)) {
                     return true;
                 }
             }
-            if (issue.repoFullName().toLowerCase().contains(langLower)
-                || issue.title().toLowerCase().contains(langLower)
-                || issue.summary().toLowerCase().contains(langLower)
-                || issue.reason().toLowerCase().contains(langLower)) {
+            if (matchesLanguage(issue.repoFullName(), language)
+                || matchesLanguage(issue.title(), language)
+                || matchesLanguage(issue.summary(), language)
+                || matchesLanguage(issue.reason(), language)) {
                 return true;
             }
         }
@@ -344,7 +378,7 @@ public class RecommendedIssueService implements
                 0.90,
                 List.of("good first issue", "java", "starter", "beginner-friendly"),
                 "OPEN",
-                "[입문 큐레이션] Java 기술스택 신규 기여자를 위한 맞춤 추천 이슈입니다."
+                "[입문 큐레이션] [주 사용 언어 일치: Java] [미할당] 신규 기여자를 위한 맞춤 추천 이슈입니다."
             ),
             new RecommendedIssue(
                 "curated-starter-ts-1",
@@ -355,7 +389,7 @@ public class RecommendedIssueService implements
                 0.90,
                 List.of("good first issue", "typescript", "starter", "beginner-friendly"),
                 "OPEN",
-                "[입문 큐레이션] TypeScript 기술스택 신규 기여자를 위한 맞춤 추천 이슈입니다."
+                "[입문 큐레이션] [주 사용 언어 일치: TypeScript] [미할당] 신규 기여자를 위한 맞춤 추천 이슈입니다."
             ),
             new RecommendedIssue(
                 "curated-starter-py-1",
@@ -366,7 +400,7 @@ public class RecommendedIssueService implements
                 0.90,
                 List.of("good first issue", "python", "starter", "beginner-friendly"),
                 "OPEN",
-                "[입문 큐레이션] Python 기술스택 신규 기여자를 위한 맞춤 추천 이슈입니다."
+                "[입문 큐레이션] [주 사용 언어 일치: Python] [미할당] 신규 기여자를 위한 맞춤 추천 이슈입니다."
             ),
             new RecommendedIssue(
                 "curated-starter-go-1",
@@ -377,7 +411,29 @@ public class RecommendedIssueService implements
                 0.90,
                 List.of("good first issue", "go", "starter", "beginner-friendly"),
                 "OPEN",
-                "[입문 큐레이션] Go 기술스택 신규 기여자를 위한 맞춤 추천 이슈입니다."
+                "[입문 큐레이션] [주 사용 언어 일치: Go] [미할당] 신규 기여자를 위한 맞춤 추천 이슈입니다."
+            ),
+            new RecommendedIssue(
+                "curated-starter-rust-1",
+                "rust-lang/rust",
+                505L,
+                "[입문 큐레이션] Rust 언어 첫 기여 온보딩 이슈",
+                "Rust 생태계 입문자를 위한 이슈로, 표준 문서 예제 및 컴파일러 진단 메시지 개선을 다룹니다.",
+                0.90,
+                List.of("good first issue", "rust", "starter", "beginner-friendly"),
+                "OPEN",
+                "[입문 큐레이션] [주 사용 언어 일치: Rust] [미할당] 신규 기여자를 위한 맞춤 추천 이슈입니다."
+            ),
+            new RecommendedIssue(
+                "curated-starter-kt-1",
+                "JetBrains/kotlin",
+                606L,
+                "[입문 큐레이션] Kotlin 오픈소스 생태계 첫 기여 온보딩 이슈",
+                "Kotlin 개발자를 위한 오픈소스 입문 이슈로, 표준 라이브러리 kdoc 문서화 및 예제를 보완합니다.",
+                0.90,
+                List.of("good first issue", "kotlin", "starter", "beginner-friendly"),
+                "OPEN",
+                "[입문 큐레이션] [주 사용 언어 일치: Kotlin] [미할당] 신규 기여자를 위한 맞춤 추천 이슈입니다."
             )
         );
     }
