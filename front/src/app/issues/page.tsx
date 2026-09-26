@@ -12,6 +12,34 @@ import {
   type RecommendedIssueHistory
 } from "@/lib/api";
 
+const LANGUAGE_REGEX_MAP: Record<string, RegExp> = {
+  "c++": /(?:^|[^a-zA-Z0-9])(?:c\+\+|cpp)(?:$|[^a-zA-Z0-9])/i,
+  cpp: /(?:^|[^a-zA-Z0-9])(?:c\+\+|cpp)(?:$|[^a-zA-Z0-9])/i,
+  "c#": /(?:^|[^a-zA-Z0-9])(?:c#|csharp)(?:$|[^a-zA-Z0-9])/i,
+  csharp: /(?:^|[^a-zA-Z0-9])(?:c#|csharp)(?:$|[^a-zA-Z0-9])/i,
+  go: /\b(?:go|golang)\b/i,
+  golang: /\b(?:go|golang)\b/i,
+  java: /\bjava\b(?!script)/i,
+  javascript: /\b(?:javascript|js)\b/i,
+  js: /\b(?:javascript|js)\b/i,
+  typescript: /\b(?:typescript|ts)\b/i,
+  ts: /\b(?:typescript|ts)\b/i,
+  python: /\b(?:python|py)\b/i,
+  py: /\b(?:python|py)\b/i,
+  rust: /\brust\b/i,
+  kotlin: /\bkotlin\b/i
+};
+
+function matchesLanguageText(text: string, key: string): boolean {
+  if (!text || !key) return false;
+  const normalizedKey = key.toLowerCase();
+  const pattern = LANGUAGE_REGEX_MAP[normalizedKey];
+  if (pattern) {
+    return pattern.test(text);
+  }
+  return text.toLowerCase().includes(normalizedKey);
+}
+
 export default function IssuesPage() {
   const [history, setHistory] = useState<RecommendedIssueHistory[]>([]);
   const [loading, setLoading] = useState(true);
@@ -76,40 +104,6 @@ export default function IssuesPage() {
     }
   }
 
-function matchesLanguageText(text: string, key: string): boolean {
-  if (!text || !key) return false;
-  const normalizedKey = key.toLowerCase();
-  if (normalizedKey === "c++" || normalizedKey === "cpp") {
-    return /(?:^|[^a-zA-Z0-9])(?:c\+\+|cpp)(?:$|[^a-zA-Z0-9])/i.test(text);
-  }
-  if (normalizedKey === "c#" || normalizedKey === "csharp") {
-    return /(?:^|[^a-zA-Z0-9])(?:c#|csharp)(?:$|[^a-zA-Z0-9])/i.test(text);
-  }
-  if (normalizedKey === "go" || normalizedKey === "golang") {
-    return /\b(?:go|golang)\b/i.test(text);
-  }
-  if (normalizedKey === "java") {
-    return /\bjava\b(?!script)/i.test(text);
-  }
-  if (normalizedKey === "javascript" || normalizedKey === "js") {
-    return /\b(?:javascript|js)\b/i.test(text);
-  }
-  if (normalizedKey === "typescript" || normalizedKey === "ts") {
-    return /\b(?:typescript|ts)\b/i.test(text);
-  }
-  if (normalizedKey === "python" || normalizedKey === "py") {
-    return /\b(?:python|py)\b/i.test(text);
-  }
-  if (normalizedKey === "rust") {
-    return /\brust\b/i.test(text);
-  }
-  if (normalizedKey === "kotlin") {
-    return /\bkotlin\b/i.test(text);
-  }
-  const escaped = normalizedKey.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return new RegExp(`\\b${escaped}\\b`, "i").test(text);
-}
-
   const availableLanguages = useMemo(() => {
     const langs = new Set<string>();
     const knownLangs = [
@@ -131,7 +125,7 @@ function matchesLanguageText(text: string, key: string): boolean {
         }
       });
     });
-    return Array.from(langs).sort();
+    return Array.from(langs).sort((a, b) => a.localeCompare(b));
   }, [history]);
 
   const availableLabels = useMemo(() => {
