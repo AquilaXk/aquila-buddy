@@ -13,28 +13,6 @@ export async function createFrontendFixtureBackend(options = {}) {
       return;
     }
 
-    if (url.pathname.endsWith("/stream")) {
-      response.writeHead(200, {
-        "Access-Control-Allow-Origin": origin ?? "*",
-        "Access-Control-Allow-Credentials": "true",
-        "Content-Type": "text/event-stream; charset=utf-8",
-        "Cache-Control": "no-cache, no-transform",
-        "Connection": "keep-alive"
-      });
-      response.write("event: chunk\ndata: " + JSON.stringify({ step: "ANALYZING", message: "저장소 코드 맥락 분석 중..." }) + "\n\n");
-      response.write("event: chunk\ndata: " + JSON.stringify({ step: "FILES", filePaths: ["front/src/app/issues/[id]/page.tsx", "back/src/main/java/com/aquilabuddy/domain/analysis/IssueGuideService.java"] }) + "\n\n");
-      response.write("event: chunk\ndata: " + JSON.stringify({ step: "GUIDELINE", chunk: "Signature Lavender 테마 적용과 함께 fixture backend와 연결된 화면 smoke를 구성하고, 7대 기여 준비도 게이트를 점검합니다." }) + "\n\n");
-      response.write("event: complete\ndata: " + JSON.stringify({
-        issueKey: "aquila-buddy#261",
-        filePaths: ["front/src/app/issues/[id]/page.tsx", "back/src/main/java/com/aquilabuddy/domain/analysis/IssueGuideService.java"],
-        guideline: "Signature Lavender 테마 적용과 함께 fixture backend와 연결된 화면 smoke를 구성하고, 7대 기여 준비도 게이트를 점검합니다.",
-        pseudoCode: "GIVEN issue detail page renders contributor guidance\nWHEN user connects to SSE guide stream\nCALL extract_ast_symbol_skeleton()\nCALL stream_issue_guide_chunks()\nASSERT all 7 readiness gates are verified",
-        sideEffects: ["CI 런타임에 브라우저 통합 smoke 검증 단계가 추가됩니다."]
-      }) + "\n\n");
-      response.end();
-      return;
-    }
-
     const payload = routeFixture(url, request.method ?? "GET", state);
     writeJson(response, payload.httpStatus ?? 200, payload.body, origin);
   });
@@ -83,11 +61,11 @@ function routeFixture(url, method, options) {
   }
 
   if (pathname === "/api/v1/issues/recommend/history" || pathname === "/api/v1/issues/recommend") {
-    return response(successEnvelope([issueHistoryFixture(), issueFixture2(), issueFixture3()]));
+    return response(successEnvelope([issueHistoryFixture()]));
   }
 
   if (pathname === "/api/v1/issues" || pathname === "/api/v1/issues/crawl/search") {
-    return response(successEnvelope([issueFixture(), issueFixture2(), issueFixture3()]));
+    return response(successEnvelope([issueFixture()]));
   }
 
   if (pathname === "/api/v1/issues/issue-1") {
@@ -97,15 +75,30 @@ function routeFixture(url, method, options) {
   if (pathname === "/api/v1/issues/issue-1/guide") {
     return response(successEnvelope({
       issueKey: "aquila-buddy#261",
-      filePaths: [
-        "front/src/app/issues/[id]/page.tsx",
-        "back/src/main/java/com/aquilabuddy/domain/analysis/IssueGuideService.java",
-        "tools/frontend/integration-smoke/run-integration-smoke.mjs"
-      ],
-      guideline: "Signature Lavender 디자인 시스템 적용 상태에서 fixture backend와 연결된 화면 smoke를 추가하고, SSE 실시간 스트리밍 가이드를 연동합니다.",
-      pseudoCode: "GIVEN issue detail page renders contributor guidance\nWHEN user connects to SSE guide stream\nCALL extract_ast_symbol_skeleton()\nCALL stream_issue_guide_chunks()\nASSERT all 7 readiness gates are verified",
+      guideline: "fixture backend와 연결된 화면 smoke를 추가합니다.",
+      pseudoCode: "start fixture backend\nvisit protected routes\nassert envelope rendering",
       sideEffects: ["CI runtime이 늘어납니다."],
     }));
+  }
+
+  if (pathname === "/api/v1/issues/issue-1/guide/stream") {
+    res.writeHead(200, {
+      "Content-Type": "text/event-stream; charset=utf-8",
+      "Cache-Control": "no-cache, no-transform",
+      "Connection": "keep-alive"
+    });
+    res.write("event: chunk\ndata: " + JSON.stringify({ step: "ANALYZING", message: "저장소 코드 맥락 분석 중..." }) + "\n\n");
+    res.write("event: chunk\ndata: " + JSON.stringify({ step: "FILES", filePaths: ["front/src/app/issues/[id]/page.tsx"] }) + "\n\n");
+    res.write("event: chunk\ndata: " + JSON.stringify({ step: "GUIDELINE", chunk: "fixture backend와 연결된 화면 smoke를 추가합니다." }) + "\n\n");
+    res.write("event: complete\ndata: " + JSON.stringify({
+      issueKey: "aquila-buddy#261",
+      filePaths: ["front/src/app/issues/[id]/page.tsx"],
+      guideline: "fixture backend와 연결된 화면 smoke를 추가합니다.",
+      pseudoCode: "start fixture backend\nvisit protected routes\nassert envelope rendering",
+      sideEffects: ["CI runtime이 늘어납니다."]
+    }) + "\n\n");
+    res.end();
+    return;
   }
 
   if (pathname === "/api/v1/issues/issue-1/pseudo") {
@@ -304,38 +297,10 @@ function issueFixture() {
     issueNumber: 261,
     title: "프론트 백엔드 통합 smoke 검증 추가",
     summary: "fixture backend와 연결된 smoke를 추가합니다.",
-    score: 0.96,
-    labels: ["good first issue", "test", "frontend"],
+    score: 0.91,
+    labels: ["test", "frontend"],
     status: "OPEN",
     reason: "프론트와 API envelope 통합 검증이 필요합니다.",
-  };
-}
-
-function issueFixture2() {
-  return {
-    id: "issue-2",
-    repoFullName: "AquilaXk/aquila-buddy",
-    issueNumber: 284,
-    title: "AST 심볼 스켈레톤 추출기 토큰 절감 최적화",
-    summary: "Git tree 캐시와 다중 언어 AST 파서를 결합해 LLM 컨텍스트 토큰을 70% 이상 절감합니다.",
-    score: 0.92,
-    labels: ["good first issue", "backend", "java"],
-    status: "OPEN",
-    reason: "Java 및 TypeScript 파일의 핵심 인터페이스 및 메서드 서명만 추출하여 프롬프트 효율을 극대화합니다.",
-  };
-}
-
-function issueFixture3() {
-  return {
-    id: "issue-3",
-    repoFullName: "AquilaXk/aquila-buddy",
-    issueNumber: 290,
-    title: "Signature Lavender 다크 모드 반응형 레이아웃 보완",
-    summary: "다크 차콜(#18191D) 및 시그니처 라벤더(#5C6BC0) 테마의 모바일 드로어 및 접근성을 강화합니다.",
-    score: 0.88,
-    labels: ["good first issue", "ui/ux", "frontend"],
-    status: "OPEN",
-    reason: "모바일 뷰포트에서 상단 네비게이션 드로어가 자연스럽게 닫히도록 터치 인터랙션을 개선합니다.",
   };
 }
 
@@ -356,7 +321,7 @@ function draftFixture() {
     baseBranch: "main",
     headBranch: "test/front-backend-integration-smoke",
     title: "[Test] 프론트 백엔드 통합 smoke 검증 추가",
-    body: "## Related issue\nclose #261\n\n## Summary\n- 프론트엔드 브라우저 integration smoke 검증 추가\n- Signature Lavender 디자인 시스템 및 7대 기여 준비도 게이트 연동\n\n## Test Plan\n- npm --prefix front run smoke:integration\n- ./back/gradlew -p back check\n\n## Breaking Changes\n- None (100% backward compatible)",
+    body: "## 관련 이슈\nclose #261\n\n## 요약\n브라우저 smoke를 추가합니다.",
     createdAt: "2026-05-18T12:00:00Z",
   };
 }
@@ -368,7 +333,7 @@ function translationFixture() {
     sourceIssueId: "issue-1",
     targetLanguage: "en",
     title: "Add frontend backend integration smoke",
-    body: "## Related issue\nclose #261\n\n## Summary\n- Add browser integration smoke verification\n- Connect Signature Lavender design system and 7-gate contribution readiness\n\n## Test Plan\n- npm --prefix front run smoke:integration\n- ./back/gradlew -p back check\n\n## Breaking Changes\n- None",
+    body: "## Related issue\nclose #261\n\n## Summary\nAdd browser smoke.",
     createdAt: "2026-05-18T12:01:00Z",
   };
 }
@@ -377,15 +342,10 @@ function readinessFixture(draftId, sourceIssueId) {
   return {
     draftId,
     sourceIssueId,
-    readyCount: 7,
+    readyCount: 2,
     items: [
-      readinessItem("branch-flow", "Branch Flow", "대상 저장소, 이슈 번호, base/head branch 흐름", "AquilaXk/aquila-buddy #261 / main -> test/front-backend-integration-smoke", "READY"),
-      readinessItem("issue-link", "Issue Link Syntax", "GitHub 이슈 연계 및 종료 구문", "이슈 연계 구문(close #261)이 본문에 포함되어 있습니다.", "READY"),
-      readinessItem("template-compliance", "Template Compliance", "마크다운 섹션 및 템플릿 필수 항목 준수", "본문 section 및 템플릿 필수 항목이 준비되어 있습니다.", "READY"),
-      readinessItem("test-plan", "Test Plan", "검증 방법 및 테스트 계획 명시", "테스트 계획(npm run smoke:integration)이 포함되어 있습니다.", "READY"),
-      readinessItem("clean-diff", "Clean Diff", "충돌 마커 없이 정리된 diff 여부", "충돌 마커 없이 정리된 diff가 확인되었습니다.", "READY"),
-      readinessItem("breaking-changes", "Breaking Changes Check", "하위 호환성 영향 명시 여부", "하위 호환성 영향 없음이 명시되었습니다.", "READY"),
-      readinessItem("title-convention", "Title Convention", "Conventional Commits 제목 규격 준수", "Conventional Commit 규약([Test])을 준수합니다.", "READY"),
+      readinessItem("title", "제목", "PR 제목 확인", "제목이 있습니다.", "READY"),
+      readinessItem("body", "본문", "PR 본문 확인", "close #261이 있습니다.", "READY"),
     ],
   };
 }
