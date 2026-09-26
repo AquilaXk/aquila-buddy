@@ -24,7 +24,7 @@ class GitHubPullRequestDraftDiffAdapterTest {
 
     @BeforeEach
     void startServer() throws IOException {
-        server = HttpServer.create(new InetSocketAddress(0), 0);
+        server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         server.start();
     }
 
@@ -65,7 +65,7 @@ class GitHubPullRequestDraftDiffAdapterTest {
     }
 
     private String baseUrl() {
-        return "http://localhost:" + server.getAddress().getPort();
+        return "http://127.0.0.1:" + server.getAddress().getPort();
     }
 
     private void route(String path, int status, String body) {

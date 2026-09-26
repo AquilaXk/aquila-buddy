@@ -55,6 +55,7 @@ app:
       enabled: ${GITHUB_ISSUE_SEARCH_ENABLED:false}
       query: 'label:"good first issue"'
       limit: 3
+      graphql-enabled: ${GITHUB_ISSUE_SEARCH_GRAPHQL_ENABLED:true}
   ai:
     provider: ${AI_PROVIDER:vertex-ai}
     openai-compatible:

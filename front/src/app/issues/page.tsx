@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { Sparkles, Compass, Loader2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Sparkles, Compass, Loader2, Filter } from "lucide-react";
 import ProtectedLayout from "@/components/ProtectedLayout";
 import {
   crawlSearchIssues,
@@ -12,12 +12,42 @@ import {
   type RecommendedIssueHistory
 } from "@/lib/api";
 
+const LANGUAGE_REGEX_MAP: Record<string, RegExp> = {
+  "c++": /(?:^|[^a-zA-Z0-9])(?:c\+\+|cpp)(?:$|[^a-zA-Z0-9])/i,
+  cpp: /(?:^|[^a-zA-Z0-9])(?:c\+\+|cpp)(?:$|[^a-zA-Z0-9])/i,
+  "c#": /(?:^|[^a-zA-Z0-9])(?:c#|csharp)(?:$|[^a-zA-Z0-9])/i,
+  csharp: /(?:^|[^a-zA-Z0-9])(?:c#|csharp)(?:$|[^a-zA-Z0-9])/i,
+  go: /\b(?:go|golang)\b/i,
+  golang: /\b(?:go|golang)\b/i,
+  java: /\bjava\b(?!script)/i,
+  javascript: /\b(?:javascript|js)\b/i,
+  js: /\b(?:javascript|js)\b/i,
+  typescript: /\b(?:typescript|ts)\b/i,
+  ts: /\b(?:typescript|ts)\b/i,
+  python: /\b(?:python|py)\b/i,
+  py: /\b(?:python|py)\b/i,
+  rust: /\brust\b/i,
+  kotlin: /\bkotlin\b/i
+};
+
+function matchesLanguageText(text: string, key: string): boolean {
+  if (!text || !key) return false;
+  const normalizedKey = key.toLowerCase();
+  const pattern = LANGUAGE_REGEX_MAP[normalizedKey];
+  if (pattern) {
+    return pattern.test(text);
+  }
+  return text.toLowerCase().includes(normalizedKey);
+}
+
 export default function IssuesPage() {
   const [history, setHistory] = useState<RecommendedIssueHistory[]>([]);
   const [loading, setLoading] = useState(true);
   const [recommending, setRecommending] = useState(false);
   const [recommendStep, setRecommendStep] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [selectedLanguage, setSelectedLanguage] = useState<string>("ALL");
+  const [selectedLabel, setSelectedLabel] = useState<string>("ALL");
 
   useEffect(() => {
     loadHistory();
@@ -74,6 +104,63 @@ export default function IssuesPage() {
     }
   }
 
+  const availableLanguages = useMemo(() => {
+    const langs = new Set<string>();
+    const knownLangs = [
+      { key: "java", label: "Java" },
+      { key: "typescript", label: "TypeScript" },
+      { key: "javascript", label: "JavaScript" },
+      { key: "python", label: "Python" },
+      { key: "go", label: "Go" },
+      { key: "rust", label: "Rust" },
+      { key: "c++", label: "C++" },
+      { key: "kotlin", label: "Kotlin" }
+    ];
+    history.forEach((issue) => {
+      const labels = Array.isArray(issue.labels) ? issue.labels.filter(Boolean) : [];
+      const text = `${issue.repoFullName ?? ""} ${issue.title ?? ""} ${labels.join(" ")} ${issue.reason ?? ""}`;
+      knownLangs.forEach(({ key, label }) => {
+        if (matchesLanguageText(text, key)) {
+          langs.add(label);
+        }
+      });
+    });
+    return Array.from(langs).sort((a, b) => a.localeCompare(b));
+  }, [history]);
+
+  const availableLabels = useMemo(() => {
+    const counts = new Map<string, number>();
+    history.forEach((issue) => {
+      if (Array.isArray(issue.labels)) {
+        issue.labels.filter(Boolean).forEach((label) => {
+          counts.set(label, (counts.get(label) ?? 0) + 1);
+        });
+      }
+    });
+    return Array.from(counts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .map(([name]) => name)
+      .slice(0, 6);
+  }, [history]);
+
+  const filteredHistory = useMemo(() => {
+    return history.filter((issue) => {
+      const labels = Array.isArray(issue.labels) ? issue.labels.filter(Boolean) : [];
+      if (selectedLanguage !== "ALL") {
+        const text = `${issue.repoFullName ?? ""} ${issue.title ?? ""} ${labels.join(" ")} ${issue.reason ?? ""}`;
+        if (!matchesLanguageText(text, selectedLanguage)) {
+          return false;
+        }
+      }
+      if (selectedLabel !== "ALL") {
+        if (!labels.includes(selectedLabel)) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }, [history, selectedLanguage, selectedLabel]);
+
   const hasLowDensityHistory = history.length > 0 && history.length < 3;
 
   return (
@@ -126,9 +213,92 @@ export default function IssuesPage() {
       ) : (
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_18rem]">
           <div className="space-y-3">
-            {history.map((issue) => (
-              <IssueHistoryCard issue={issue} key={issue.id} />
-            ))}
+            {/* 언어 및 라벨 필터 바 */}
+            <div className="rounded-xl border border-dark-border bg-dark-surface p-4">
+              <div className="flex flex-col gap-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="flex items-center gap-1 text-xs font-semibold text-dark-muted">
+                    <Filter className="h-3.5 w-3.5" />
+                    언어:
+                  </span>
+                  <button
+                    className={`rounded-lg px-2.5 py-1 text-xs font-medium transition-colors ${
+                      selectedLanguage === "ALL"
+                        ? "border border-brand-500/50 bg-brand-500/20 text-brand-300"
+                        : "border border-dark-border bg-dark-elevated text-dark-muted hover:text-dark-text"
+                    }`}
+                    onClick={() => setSelectedLanguage("ALL")}
+                    type="button"
+                  >
+                    전체
+                  </button>
+                  {availableLanguages.map((lang) => (
+                    <button
+                      className={`rounded-lg px-2.5 py-1 text-xs font-medium transition-colors ${
+                        selectedLanguage === lang
+                          ? "border border-brand-500/50 bg-brand-500/20 text-brand-300"
+                          : "border border-dark-border bg-dark-elevated text-dark-muted hover:text-dark-text"
+                      }`}
+                      key={lang}
+                      onClick={() => setSelectedLanguage(selectedLanguage === lang ? "ALL" : lang)}
+                      type="button"
+                    >
+                      {lang}
+                    </button>
+                  ))}
+                </div>
+                {availableLabels.length > 0 ? (
+                  <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-dark-border/60">
+                    <span className="text-xs font-semibold text-dark-muted">라벨:</span>
+                    <button
+                      className={`rounded-lg px-2 py-0.5 text-xs font-medium transition-colors ${
+                        selectedLabel === "ALL"
+                          ? "border border-brand-500/50 bg-brand-500/20 text-brand-300"
+                          : "border border-dark-border bg-dark-elevated text-dark-muted hover:text-dark-text"
+                      }`}
+                      onClick={() => setSelectedLabel("ALL")}
+                      type="button"
+                    >
+                      전체
+                    </button>
+                    {availableLabels.map((lbl) => (
+                      <button
+                        className={`rounded-lg px-2 py-0.5 text-xs font-medium transition-colors ${
+                          selectedLabel === lbl
+                            ? "border border-brand-500/50 bg-brand-500/20 text-brand-300"
+                            : "border border-dark-border bg-dark-elevated text-dark-muted hover:text-dark-text"
+                        }`}
+                        key={lbl}
+                        onClick={() => setSelectedLabel(selectedLabel === lbl ? "ALL" : lbl)}
+                        type="button"
+                      >
+                        {lbl}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            </div>
+
+            {filteredHistory.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-dark-border bg-dark-surface/50 p-8 text-center">
+                <p className="text-sm font-medium text-dark-muted">선택한 필터 조건에 일치하는 추천 이슈가 없습니다.</p>
+                <button
+                  className="mt-3 text-xs font-semibold text-brand-400 hover:text-brand-300 underline"
+                  onClick={() => {
+                    setSelectedLanguage("ALL");
+                    setSelectedLabel("ALL");
+                  }}
+                  type="button"
+                >
+                  필터 초기화
+                </button>
+              </div>
+            ) : (
+              filteredHistory.map((issue) => (
+                <IssueHistoryCard issue={issue} key={issue.id} />
+              ))
+            )}
           </div>
           {hasLowDensityHistory ? (
             <LowDensityIssueGuide
@@ -219,9 +389,51 @@ function LowDensityIssueGuide({
   );
 }
 
+function parseRecommendationFacets(issue: RecommendedIssueHistory) {
+  const facets: { label: string; key: string }[] = [];
+  const reason = issue.reason ?? "";
+
+  const langMatch =
+    reason.match(/(?:주 사용 언어 일치|기술스택(?:\s*일치)?):\s*([^\s\]]+)/) ||
+    reason.match(/\[([A-Za-z+#]+)\s*기술스택/);
+  if (langMatch) {
+    facets.push({
+      label: `🎯 ${langMatch[1]} 일치`,
+      key: "lang-match",
+    });
+  } else if (reason.includes("주 사용 언어 일치") || reason.includes("기술스택 일치")) {
+    facets.push({
+      label: "🎯 기술스택 일치",
+      key: "lang-match",
+    });
+  }
+
+  const labels = Array.isArray(issue.labels) ? issue.labels : [];
+  if (
+    reason.includes("입문 큐레이션") ||
+    labels.some((l) => typeof l === "string" && (l.toLowerCase() === "starter" || l.toLowerCase() === "beginner-friendly"))
+  ) {
+    facets.push({ label: "🌱 입문 큐레이션", key: "starter" });
+  }
+  if (reason.includes("미할당")) {
+    facets.push({ label: "🔓 미할당", key: "unassigned" });
+  }
+  const starMatch = reason.match(/스타수:\s*([\w.]+)/);
+  if (starMatch) {
+    facets.push({ label: `★ ${starMatch[1]}`, key: "stars" });
+  }
+  const commitMatch = reason.match(/최근 커밋:\s*([\d-]+)/);
+  if (commitMatch) {
+    facets.push({ label: `⚡ 최근 활동 (${commitMatch[1]})`, key: "activity" });
+  }
+
+  return facets;
+}
+
 function IssueHistoryCard({ issue }: { issue: RecommendedIssueHistory }) {
   const scorePercent = Math.round(issue.score * 100);
   const hasSimilarityScore = issue.score > 0.01;
+  const facets = parseRecommendationFacets(issue);
 
   return (
     <Link
@@ -246,18 +458,38 @@ function IssueHistoryCard({ issue }: { issue: RecommendedIssueHistory }) {
               </span>
             ) : null}
           </div>
+
+          {/* 다면 추천 사유 뱃지 (Signature Lavender) */}
+          {facets.length > 0 ? (
+            <div className="mb-2.5 flex flex-wrap items-center gap-1.5">
+              {facets.map((facet) => (
+                <span
+                  className="rounded-full border border-brand-500/30 bg-brand-500/10 px-2.5 py-0.5 text-[11px] font-medium text-brand-300 shadow-sm"
+                  key={facet.key}
+                >
+                  {facet.label}
+                </span>
+              ))}
+            </div>
+          ) : null}
+
           <h3 className="mb-2 line-clamp-1 font-semibold text-dark-text group-hover:text-brand-300 transition-colors">
             {issue.title}
           </h3>
           {issue.summary ? (
             <p className="line-clamp-2 text-xs leading-5 text-dark-muted">{issue.summary}</p>
           ) : null}
-          {issue.labels.length > 0 ? (
+          {issue.reason ? (
+            <p className="mt-2 line-clamp-1 text-xs leading-5 text-brand-300/80">
+              💡 {issue.reason}
+            </p>
+          ) : null}
+          {Array.isArray(issue.labels) && issue.labels.filter(Boolean).length > 0 ? (
             <div className="mt-3 flex flex-wrap gap-1.5">
-              {issue.labels.map((label) => (
+              {Array.from(new Set(issue.labels.filter(Boolean))).map((label, idx) => (
                 <span
                   className="rounded-full border border-dark-border bg-dark-elevated px-2.5 py-0.5 text-xs text-dark-muted"
-                  key={label}
+                  key={`${label}-${idx}`}
                 >
                   {label}
                 </span>

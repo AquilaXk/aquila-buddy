@@ -15,8 +15,24 @@ public record RecommendedIssueHistory(
     List<String> labels,
     String status,
     boolean isAnalyzed,
-    String analysisResultId
+    String analysisResultId,
+    String reason
 ) {
+
+    public RecommendedIssueHistory(
+        String id,
+        String repoFullName,
+        long issueNumber,
+        String title,
+        String summary,
+        double score,
+        List<String> labels,
+        String status,
+        boolean isAnalyzed,
+        String analysisResultId
+    ) {
+        this(id, repoFullName, issueNumber, title, summary, score, labels, status, isAnalyzed, analysisResultId, "");
+    }
 
     /**
      * 분석 결과 persistence가 연결되기 전까지 저장 추천 이슈를 미분석 이력으로 노출합니다.
@@ -32,7 +48,9 @@ public record RecommendedIssueHistory(
             issue.labels(),
             issue.status(),
             false,
-            null
+            null,
+            issue.reason()
         );
     }
 }
+
