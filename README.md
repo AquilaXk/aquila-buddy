@@ -10,7 +10,7 @@
 
 <p align="center">
   <a href="https://buddy.aquilaxk.site">
-    <img src="https://img.shields.io/badge/website-Aquila--Buddy-c9ad63?style=for-the-badge" alt="Live site" />
+    <img src="https://img.shields.io/badge/website-Aquila--Buddy-5C6BC0?style=for-the-badge" alt="Live site" />
   </a>
   &nbsp;
   <a href="https://github.com/AquilaXk/aquila-buddy">
@@ -23,6 +23,8 @@
   <img src="https://img.shields.io/badge/Spring_Boot-3.5.9-6DB33F?style=flat-square" alt="Spring Boot 3.5.9" />
   <img src="https://img.shields.io/badge/Next.js-16.2.6-black?style=flat-square" alt="Next.js 16.2.6" />
   <img src="https://img.shields.io/badge/PostgreSQL-pgvector-336791?style=flat-square" alt="PostgreSQL pgvector" />
+  <img src="https://img.shields.io/badge/Chrome_Extension-MV3-4285F4?style=flat-square" alt="Chrome Extension MV3" />
+  <img src="https://img.shields.io/badge/Design_System-Signature_Lavender-5C6BC0?style=flat-square" alt="Signature Lavender" />
 </p>
 
 ---
@@ -63,14 +65,14 @@ Aquila Buddy는 GitHub 프로필 분석에서 추천 이슈 탐색, 이슈별 �
       <br />
       <strong>대시보드</strong>
       <br />
-      프로필 벡터 상태와 다음 작업 단계를 한 번에 확인합니다.
+      프로필 벡터 상태, 주요 기여 지표, 단계별 기여 동선을 Signature Lavender 패밀리룩 화면에서 한눈에 확인합니다.
     </td>
     <td width="50%">
       <img src="front/public/images/readme-issues.png" alt="기술 스택 기반 추천 이슈 목록" />
       <br />
       <strong>추천 이슈</strong>
       <br />
-      기술 스택과 GitHub 활동을 바탕으로 맞춤 이슈 후보를 비교합니다.
+      GitHub GraphQL 이슈 수집과 pgvector 코사인 거리 + 단어 경계 언어 매칭 가중치를 결합한 하이브리드 추천 목록을 탐색합니다.
     </td>
   </tr>
   <tr>
@@ -79,14 +81,14 @@ Aquila Buddy는 GitHub 프로필 분석에서 추천 이슈 탐색, 이슈별 �
       <br />
       <strong>이슈 분석</strong>
       <br />
-      선택한 이슈의 수정 방향, 주의 사항, 의사 코드 힌트를 확인합니다.
+      TTL 2시간 Git 트리 캐시, AST 심볼 스켈레톤 추출, Spring Boot SSE 실시간 스트리밍으로 이슈 가이드라인과 의사 코드를 확인합니다.
     </td>
     <td width="50%">
       <img src="front/public/images/readme-pr-draft.png" alt="브랜치 입력 후 생성된 PR 초안과 제출 보조 화면" />
       <br />
       <strong>PR 초안</strong>
       <br />
-      브랜치 정보를 입력해 PR 제목과 본문 초안을 만들고 제출 전 문안을 점검합니다.
+      upstream 마크다운 템플릿 시맨틱 파싱, 7대 기여 준비도 게이트(Branch Flow, Issue Link, Clean Diff 등) 및 한/영 번역 탭을 활용합니다.
     </td>
   </tr>
 </table>
@@ -126,15 +128,18 @@ Aquila Buddy는 GitHub 프로필 분석에서 추천 이슈 탐색, 이슈별 �
 
 | 기능 | 설명 |
 |------|------|
-| GitHub OAuth 로그인 | GitHub 계정으로 로그인하고 사용자 profile, nickname, email, avatar를 동기화합니다. |
-| Profile vector 관리 | 관심 topic, 주 언어, GitHub context를 기반으로 profile embedding을 생성하고 갱신합니다. |
-| Good First Issue 수집 | GitHub issue search와 저장된 fixture를 사용해 추천 후보를 수집합니다. |
-| pgvector 추천 | PostgreSQL pgvector 환경에서 profile vector와 issue vector 유사도로 추천 순위를 계산합니다. |
-| 이슈 코드 분석 | repository tree/code search/contents를 바탕으로 guideline, pseudo code, side effect를 생성합니다. |
-| PR 초안 작성 | issue context, analysis context, diff context, PR template을 반영해 title/body 초안을 생성합니다. |
-| 번역과 제출 보조 | PR draft를 영문으로 번역하고 submission bundle, readiness, timeline을 제공합니다. |
-| Chrome extension | GitHub issue/PR 화면에서 badge, sidebar, PR autofill 보조 흐름을 제공합니다. |
-| AI 관측성 | prompt version, model, latency, token usage, 실패 사유를 관측하고 Langfuse 연동 smoke를 제공합니다. |
+| GitHub OAuth & 세션 관리 | GitHub 계정으로 로그인하고 사용자 profile, nickname, email, avatar 및 HttpOnly Refresh Token 세션을 안전하게 동기화합니다. |
+| Profile Vector 생성 및 갱신 | 관심 topic, 주 언어, GitHub 활동 맥락을 기반으로 1536차원 사용자 profile embedding을 생성하고 갱신합니다. |
+| GitHub GraphQL & REST 이슈 수집 | GitHub GraphQL API와 REST search를 결합해 풍부한 맥락의 Good First Issue 및 추천 후보를 실시간 수집합니다. |
+| 하이브리드 pgvector 추천 엔진 | PostgreSQL pgvector 환경에서 profile/issue 코사인 유사도에 단어 경계(Word-boundary) 언어 매칭 가중치를 결합해 정밀한 추천 랭킹을 산출합니다. |
+| Git Tree 캐시 & AST 스켈레톤 추출 | TTL 2시간 Git 재귀 트리 인메모리 캐싱과 다중 언어 AST 파서로 프롬프트에 필수적인 심볼 시그니처만 추출하여 토큰을 70% 이상 절감합니다. |
+| Spring Boot SSE 실시간 가이드 스트리밍 | Spring `SseEmitter`를 통해 단계별(분석, 대상 파일 선별, 가이드라인 작성, 완료) 가이드 청크를 실시간 스트리밍으로 전달합니다. |
+| 마크다운 PR 템플릿 시맨틱 파싱 | upstream 저장소의 PR 템플릿 구조(`Description`, `Test Plan`, `Checklist`, `Breaking Changes`)를 의미론적으로 파싱하여 규격에 맞게 초안을 자동 생성합니다. |
+| 7대 기여 준비도 게이트 | Branch Flow, Issue Link, Template Compliance, Test Plan, Clean Diff, Breaking Changes, Title Convention을 제출 전 자동으로 검증합니다. |
+| 한/영 실시간 탭 전환 & 번역 | 생성된 PR 초안을 영문으로 자동 번역하고, 인터랙티브 탭을 통해 원문과 번역문을 즉시 대조/복사할 수 있는 UI를 제공합니다. |
+| Chrome Extension (Closed Shadow DOM) | GitHub DOM 환경에 `<aquila-buddy-root>` Closed Shadow DOM으로 Primer CSS를 완벽 격리 주입하며, 1-Click 합성 이벤트 버블링 및 Turbo Navigation 세션 복원을 지원합니다. |
+| Signature Lavender 패밀리룩 UI/UX | 시그니처 라벤더(`#5C6BC0`) & 다크 차콜(`#18191D`) 패밀리룩, Lucide React 아이콘 전면 표준화, 반응형 모바일 햄버거 토글 드로어를 제공합니다. |
+| AI 관측성 및 릴리즈 검증 | Prompt version, 모델명, Latency, 토큰 사용량, 실패 사유를 관측하고 Langfuse 연동 smoke 및 결정론적 릴리즈 준비도 레코드를 제공합니다. |
 
 ---
 
@@ -143,30 +148,38 @@ Aquila Buddy는 GitHub 프로필 분석에서 추천 이슈 탐색, 이슈별 �
 ![Aquila Buddy system architecture](front/public/images/aquila-buddy-system-architecture.png)
 
 ```text
-[Browser / Chrome Extension]
-  ├─ Next.js App Router frontend
-  └─ GitHub issue/PR DOM helper
+[Client Layer]
+  ├─ Next.js 16 App Router (React 19, TypeScript, Tailwind CSS, Lucide React)
+  │    └─ Signature Lavender (#5C6BC0) & Dark Charcoal (#18191D) Design System
+  └─ Chrome Extension (Manifest V3)
+       ├─ Closed Shadow DOM (<aquila-buddy-root>) Primer CSS isolation
+       ├─ 1-Click PR Form Autofill with synthetic bubbling events
+       └─ GitHub Turbo Navigation session lifecycle handler
               │
               ▼
-[Spring Boot API]
-  ├─ Auth: GitHub OAuth, access token, HttpOnly refresh token
-  ├─ User: profile, topics, languages, profile vector
-  ├─ Issue: crawl, lookup, recommendation, history
-  ├─ Analysis: code context, issue guide, pseudo code
-  ├─ PR Draft: draft, translation, readiness, submission
-  └─ Observability: AI call records, Langfuse adapter
+[Edge & Routing Layer (Nginx)]
+  ├─ Reverse Proxy, TLS 1.3, Rate Limiting, CORS & Security Headers
+  ├─ /       → Next.js Web Frontend (:3000)
+  └─ /api/*  → Spring Boot API (:8080)
               │
-              ├──────────────► GitHub API
-              ├──────────────► Vertex AI or OpenAI-compatible provider
-              ├──────────────► Langfuse
               ▼
-[PostgreSQL + pgvector]
-  ├─ user_profiles
-  ├─ refresh_token_sessions
-  ├─ recommended_issues
-  ├─ issue_guides
-  ├─ issue_guide_generation_requests
-  ├─ pr_drafts / pr_draft_translations
+[Core Application Layer (Spring Boot 3.5.9 — Java 21 Hexagonal Architecture)]
+  ├─ Auth & Security: GitHub OAuth 2.0, JWT, HttpOnly refresh token session
+  ├─ Hybrid Recommendation Engine: GraphQL crawl + pgvector cosine rank + word-boundary language weight
+  ├─ Code Context & AST Extractor: TTL 2-hour Git recursive tree cache, AST symbol extractor (70%+ token savings)
+  ├─ Real-Time Guide Streaming: Spring Boot SseEmitter SSE streaming, pseudo code & side-effect analysis
+  ├─ PR Draft & 7-Gate Readiness: Semantic template parser, 7-gate contribution readiness engine, bilingual translation
+  └─ Observability: AI call observations (latency, tokens, errors), Langfuse tracing adapter
+              │
+              ├──────────────► GitHub API (GraphQL v4 & REST v3)
+              ├──────────────► Vertex AI (Gemini 1.5 Pro) or OpenAI-compatible provider
+              ├──────────────► Langfuse Tracing
+              ▼
+[Data & External Layer (PostgreSQL 16 + pgvector)]
+  ├─ user_profiles & refresh_token_sessions (RLS isolated)
+  ├─ recommended_issues (1536-dim embedding vector, HNSW cosine index)
+  ├─ issue_guides, pseudo_code, side_effects, file_paths
+  ├─ pr_drafts, pr_draft_readiness, pr_draft_translations
   └─ ai_call_observations
 ```
 
@@ -215,14 +228,14 @@ Langfuse tracing은 선택 기능입니다. 운영에서 켤 때만 `LANGFUSE_EN
 
 | 영역 | 사용 기술 |
 |------|-----------|
-| Frontend | Next.js 16.2.6, React 19, TypeScript, Tailwind CSS, App Router |
-| Backend | Java 21, Spring Boot 3.5.9, Spring Security, Spring Data JPA, WebFlux, Springdoc OpenAPI |
-| Database | PostgreSQL 16 with pgvector, H2 test runtime |
-| AI | Vertex AI Gemini, OpenAI-compatible API, embedding provider, Langfuse |
-| GitHub 연동 | GitHub OAuth, GitHub REST API, issue search, repository contents |
-| Extension | Chrome extension manifest, GitHub DOM smoke, PR autofill |
-| Infra | OCI VM, Docker, Docker Compose, Nginx |
-| CI/CD | GitHub Actions, backend/frontend/extension/pgvector/provider smoke gates |
+| Frontend | Next.js 16.2.6, React 19, TypeScript, Tailwind CSS, Lucide React, Signature Lavender Design System, App Router |
+| Backend | Java 21, Spring Boot 3.5.9, Spring Security, Spring Data JPA, WebFlux (SseEmitter), Springdoc OpenAPI |
+| Database | PostgreSQL 16 with pgvector (0.8.0), HNSW cosine index, H2 test runtime |
+| AI | Vertex AI Gemini 1.5 Pro, OpenAI-compatible API, Text-Embedding-004 / 3-small, Langfuse |
+| GitHub 연동 | GitHub OAuth 2.0, GitHub GraphQL API v4, GitHub REST API v3, Git tree API |
+| Extension | Manifest V3, Closed Shadow DOM (`<aquila-buddy-root>`), Primer CSS isolation, Synthetic Bubbling Events |
+| Infra | OCI A1 Flex VM (ARM64), Docker, Docker Compose, Nginx Reverse Proxy (TLS 1.3) |
+| CI/CD | GitHub Actions (7 path-filtered gates: Backend, Frontend, Extension, Pgvector, Operations, Docs, CI) |
 
 ---
 
