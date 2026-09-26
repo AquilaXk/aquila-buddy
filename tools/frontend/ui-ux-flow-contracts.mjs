@@ -25,7 +25,7 @@ export const UI_UX_FLOW_CONTRACTS = [
     sourceFiles: ["front/src/app/login/page.tsx", "front/src/lib/auth.ts"],
     fixtureStates: ["normal", "error"],
     responsiveViewports: ["mobile", "desktop"],
-    landmarkOrder: ["service-name", "login-title", "oauth-cta", "consent-copy", "backend-hint"],
+    landmarkOrder: ["service-name", "login-title", "oauth-cta", "consent-copy"],
     primaryActions: ["normalize-next", "start-oauth"],
     interactionGuards: ["oauth-cta-enabled", "unsafe-next-normalized"],
   },

@@ -36,7 +36,7 @@ assertIncludes("Promise.all", "Recommendation crawl must keep parallel language 
 assertIncludes("사용자 정보 확인 중...", "Recommendation flow must show the user profile step.");
 assertIncludes("GitHub에서 이슈 수집 중...", "Recommendation flow must show the crawl step.");
 assertIncludes("나에게 맞는 이슈 분석 중...", "Recommendation flow must show the analysis step.");
-assertIncludes("프로필 분석 완료 후", "Empty state must guide profile analysis first.");
+assertIncludes("프로필 분석을 마쳤다면 바로 추천을 실행해 첫 후보를 받아보세요.", "Empty state must guide profile analysis first.");
 assertIncludes("IssueHistoryCard", "Issues page must render history cards.");
 assertIncludes("StatusBadge", "Issues page must render status badges.");
 assertIncludes("매칭 {scorePercent}%", "Issues cards must show match score.");
@@ -49,7 +49,8 @@ for (const text of [
   "Current recommendations",
   "Saved history",
   "Issue Search",
-  "Good First Issue 후보 수집"
+  "Good First Issue 후보 수집",
+  "프로필 분석 완료 후"
 ]) {
   assertNotIncludes(text, `Issues page must not expose old "${text}" structure.`);
 }
