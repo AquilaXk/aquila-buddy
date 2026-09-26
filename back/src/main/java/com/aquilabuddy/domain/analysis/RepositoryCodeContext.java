@@ -56,7 +56,7 @@ public record RepositoryCodeContext(
         for (RepositoryCodeContextFile file : files) {
             lines.add("File: " + file.path());
             lines.add("Content:");
-            lines.add(file.content());
+            lines.add(SymbolSkeletonExtractor.extractSkeleton(file.path(), file.content()));
             if (file.truncated()) {
                 lines.add("Truncated: true");
             }

@@ -207,6 +207,14 @@ export type IssueGuide = {
   sideEffects: string[];
 };
 
+export type IssueGuideStreamEvent = {
+  step?: "ANALYZING" | "FILES" | "GUIDELINE" | "PSEUDO_CODE" | "SIDE_EFFECTS";
+  message?: string;
+  chunk?: string;
+  filePaths?: string[];
+  sideEffects?: string[];
+};
+
 export type IssuePseudoCode = {
   issueKey: string;
   filePaths: string[];
@@ -939,7 +947,16 @@ export async function getIssueGuide(issueId: string): Promise<IssueGuide> {
   });
 
   if (!response.ok) {
-    throw new Error("Failed to fetch issue guide");
+    let errorMessage = "Failed to fetch issue guide";
+    try {
+      const errPayload = await response.json();
+      if (errPayload && typeof errPayload.message === "string") {
+        errorMessage = errPayload.message;
+      }
+    } catch {
+      // ignore json parse error
+    }
+    throw new Error(errorMessage);
   }
 
   const payload = (await response.json()) as ApiResponse<IssueGuide>;
@@ -949,6 +966,83 @@ export async function getIssueGuide(issueId: string): Promise<IssueGuide> {
   }
 
   return payload.data;
+}
+
+export async function streamIssueGuide(
+  issueId: string,
+  callbacks: {
+    onChunk?: (event: IssueGuideStreamEvent) => void;
+    onComplete?: (guide: IssueGuide) => void;
+    onError?: (error: Error) => void;
+  } = {},
+  signal?: AbortSignal
+): Promise<IssueGuide> {
+  const response = await apiFetch(`${API_URL}/api/v1/issues/${encodeURIComponent(issueId)}/guide/stream`, {
+    headers: {
+      Accept: "text/event-stream"
+    },
+    signal,
+    cache: "no-store"
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to stream issue guide: ${response.status}`);
+  }
+
+  if (!response.body) {
+    throw new Error("Streaming response body is null");
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let finalGuide: IssueGuide | null = null;
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() ?? "";
+
+    let currentEvent = "";
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (trimmed.startsWith("event:")) {
+        currentEvent = trimmed.slice(6).trim();
+      } else if (trimmed.startsWith("data:")) {
+        const dataStr = trimmed.slice(5).trim();
+        if (!dataStr) continue;
+        try {
+          const parsed = JSON.parse(dataStr);
+          if (currentEvent === "complete") {
+            finalGuide = parsed as IssueGuide;
+            callbacks.onComplete?.(finalGuide);
+          } else if (currentEvent === "error") {
+            const streamError = new Error(parsed.message ?? "Stream error");
+            callbacks.onError?.(streamError);
+            throw streamError;
+          } else {
+            callbacks.onChunk?.(parsed as IssueGuideStreamEvent);
+          }
+        } catch (e) {
+          if (currentEvent === "error") {
+            throw e;
+          }
+          // ignore non-json ping
+        }
+      } else if (trimmed === "") {
+        currentEvent = "";
+      }
+    }
+  }
+
+  if (finalGuide) {
+    return finalGuide;
+  }
+
+  return await getIssueGuide(issueId);
 }
 
 export async function getIssuePseudoCode(issueId: string): Promise<IssuePseudoCode> {
