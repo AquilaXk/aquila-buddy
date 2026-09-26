@@ -22,9 +22,9 @@
 | 이슈 상세 | 자동 검증 | `tools/frontend/validate-issue-detail-parity.mjs`, `back/src/test/java/com/aquilabuddy/domain/analysis/IssueGuideControllerTest.java` | guide, pseudo code, workflow, file paths |
 | PR 초안 | 자동 검증 | `tools/frontend/validate-pr-draft-parity.mjs`, `back/src/test/java/com/aquilabuddy/adapter/in/web/prdraft/PullRequestDraftControllerTest.java` | source issue prefill, diff, repository guide, draft 생성 |
 | PR 상세 | 자동 검증 | `tools/frontend/validate-pr-detail-parity.mjs`, `tools/frontend/validate-ui-ux-flow-parity.mjs` | draft detail, diff, edit/delete, submission bundle, translation timeline |
-| shell/brand theme | 자동 검증 | `tools/frontend/validate-shell-parity.mjs`, `tools/frontend/validate-brand-parity.mjs` | aquila-buddy shell, aquila-bank/aquila-blog asset family, favicon/대표 이미지 |
+| shell/brand theme | 자동 검증 | `tools/frontend/validate-shell-parity.mjs`, `tools/frontend/validate-brand-parity.mjs` | aquila-buddy shell, Signature Lavender (`#5C6BC0`) & Dark Charcoal (`#18191D`) 패밀리룩, Lucide React 아이콘 전면 적용 |
 
-## UI UX 구조 동등성 PR 증적
+## UI UX 구조 동등성 및 7-Phase 고도화 PR 증적
 | 영역 | 상태 | 증거 | 완료 기준 |
 | --- | --- | --- | --- |
 | 공통 UI UX flow contract | 자동 검증 | PR #300 CI Extension/Frontend/Backend/Pgvector/Operations pass | 페이지 route, CTA, 오류 상태, protected flow가 계약 fixture에 고정됨 |
@@ -32,6 +32,13 @@
 | 대시보드/프로필/추천 진입 | 자동 검증 | PR #302 CI pass | profile 저장 오류와 recommend 진입 흐름이 기존 UI UX와 동일 |
 | 이슈 목록/상세/분석 | 자동 검증 | PR #303 CI pass | issue list, detail, guide/pseudo/file path empty state 구조 유지 |
 | PR 초안/상세 | 자동 검증 | PR #304 CI pass | draft 생성/오류/detail/delete/translation flow 구조 유지 |
+| Phase 1: Frontend Test Parity | 자동 검증 | PR #476 CI pass | 모바일 햄버거 토글 드로어, 프로덕션 로그인, 빈 상태 문구 일치로 test:e2e 100% 통과 |
+| Phase 2: Chrome Extension Overhaul | 자동 검증 | PR #478 CI pass | Aquila Buddy 리브랜딩, Closed Shadow DOM 스타일 격리, PR 폼 1-Click 합성 이벤트 버블링 |
+| Phase 3: Signature Lavender Family Look | 자동 검증 | PR #480 CI pass | easyConvert 기반 Signature Lavender(#5C6BC0) & Dark Charcoal 패밀리룩 및 Lucide React 전면 적용 |
+| Phase 4: Hybrid Recommendation Engine | 자동 검증 | PR #482 CI pass | GraphQL 이슈 수집, 콜드 스타트 입문 큐레이션, 언어 일치 가중치 결합 하이브리드 코사인 랭킹 |
+| Phase 5: Git Tree Cache & SSE Guide Streaming | 자동 검증 | PR #484 CI pass | TTL 2시간 Git Tree 캐싱, AST 심볼 스켈레톤 추출(70% 토큰 절감), Spring SseEmitter 실시간 가이드 스트리밍 |
+| Phase 6: PR Template Parsing & 7-Gate Readiness | 자동 검증 | PR #486 CI pass | 마크다운 PR 템플릿 시맨틱 파싱, 7대 기여 준비도 게이트 및 인터랙티브 필터/한영 탭 UI |
+| Phase 7: Full Lifecycle Integration & Release | 자동 검증 | PR #487 (현재 PR) | 프론트/백/익스텐션/DB/스모크 전 구간 통합 검증 및 릴리즈 준비도 레코드 발행 |
 
 ## API 계약
 | 영역 | 상태 | 검증 | 확인 범위 |
