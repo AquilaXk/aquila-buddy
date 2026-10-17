@@ -1,0 +1,53 @@
+name: "Epic (상위 로드맵)"
+description: "영역별 상위 목표, 하위 작업 항목(Sub-Issues), 수용 기준을 정의하는 에픽 이슈입니다."
+title: "[Feat] "
+labels: ["epic"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        제목은 `[Feat] 한국어 에픽 요약` 형식으로 작성합니다.
+        본문은 한국어 중심으로 작성하고 API, OAuth, SQL, CI처럼 현업 공통 용어만 영어를 유지합니다.
+
+  - type: textarea
+    id: overview
+    attributes:
+      label: 개요
+      description: 이 에픽이 해결하려는 상위 목표와 배경을 설명해 주세요.
+      placeholder: 예) 워크스페이스 전역 디자인 시스템 표준화 및 GitHub 거버넌스 정렬
+    validations:
+      required: true
+
+  - type: textarea
+    id: sub_issues
+    attributes:
+      label: 하위 작업 항목 (Sub-Issues)
+      description: 에픽 아래 연결될 하위 이슈(Sub-Issue) 또는 Vertical-Slice 작업 단위를 체크리스트로 정리해 주세요.
+      placeholder: |
+        - [ ] #이슈번호 — 하위 작업 요약 1
+        - [ ] #이슈번호 — 하위 작업 요약 2
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance_criteria
+    attributes:
+      label: 수용 기준 (Acceptance Criteria)
+      description: 에픽 완료로 판정할 기준을 체크리스트로 적어 주세요.
+      placeholder: |
+        - [ ] 모든 하위 이슈(Sub-Issue) 및 Vertical-Slice PR이 병합되었는가?
+        - [ ] 도메인 계약과 운영 문서가 최신 상태로 동기화되었는가?
+    validations:
+      required: true
+
+  - type: textarea
+    id: verification_plan
+    attributes:
+      label: 검증 계획
+      description: 에픽 수준에서 확인할 결정론적 검증 및 운영 확인 계획을 적어 주세요.
+      placeholder: |
+        - [ ] `./back/gradlew -p back check`
+        - [ ] `npm --prefix front run typecheck && npm --prefix front run build`
+        - [ ] `node tools/extension/validate-extension.mjs`
+    validations:
+      required: true
