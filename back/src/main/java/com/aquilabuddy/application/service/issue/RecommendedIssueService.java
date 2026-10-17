@@ -17,14 +17,12 @@ import com.aquilabuddy.application.port.out.user.LoadUserProfilePort;
 import com.aquilabuddy.domain.issue.RecommendedIssue;
 import com.aquilabuddy.domain.issue.RecommendedIssueCopyQuality;
 import com.aquilabuddy.domain.issue.RecommendedIssueHistory;
+import com.aquilabuddy.domain.issue.RecommendedIssueLanguageMatcher;
 import com.aquilabuddy.domain.user.UserProfile;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.regex.Pattern;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -133,8 +131,8 @@ public class RecommendedIssueService implements
     }
 
     /**
-     * 최신 검색 후보를 우선 반환하고, 검색이 비어 있거나 실패하면 저장된 추천 이슈로 대체합니다.
-     * 신규 사용자이거나 저장된 후보가 부족한 콜드 스타트 시점에는 기술스택 기반 입문 큐레이션을 제공합니다.
+     * 최신 검색 후보를 우선 반환하고, 검색이 비어 있거나 실패하면 실제 저장/수집된 추천 이슈로 대체합니다.
+     * 저장/수집된 실제 이슈도 없으면 임의의 더미 데이터를 생성하지 않고 빈 목록을 반환합니다(Fail-Closed).
      */
     @Override
     public List<RecommendedIssue> recommend() {
@@ -151,22 +149,16 @@ public class RecommendedIssueService implements
         }
 
         List<RecommendedIssue> storedIssues = loadRecommendedIssuesPort.loadRecommendedIssues();
-
-        // 콜드 스타트 대응: 저장된 추천 데이터가 없거나, 프로필 벡터가 없는 경우 기술스택 기반 입문 큐레이션을 제공합니다.
-        boolean isColdStart = storedIssues.isEmpty()
-            || (userProfile != null && isProfileVectorAbsent(userProfile));
-
-        if (isColdStart) {
-            List<RecommendedIssue> curatedIssues = curateStarterIssues(userProfile);
-            if (!curatedIssues.isEmpty()) {
-                List<RecommendedIssue> summarizedCurated = summarizeSafely(curatedIssues);
-                saveRecommendedIssuesPort.saveRecommendedIssues(summarizedCurated);
-                return rankRecommendedIssuesPort.rankRecommendedIssues(summarizedCurated);
-            }
+        if (storedIssues.isEmpty()) {
+            storedIssues = collectAndRecommendIssues(userProfile);
+        }
+        if (storedIssues.isEmpty()) {
+            return List.of();
         }
 
         List<RecommendedIssue> summarizedStoredIssues = summarizeAndPersistIfChanged(storedIssues);
-        return rankRecommendedIssuesPort.rankRecommendedIssues(summarizedStoredIssues);
+        List<RecommendedIssue> candidateIssues = filterByPrimaryLanguagesOnColdStart(summarizedStoredIssues, userProfile);
+        return rankRecommendedIssuesPort.rankRecommendedIssues(candidateIssues);
     }
 
     /**
@@ -291,150 +283,61 @@ public class RecommendedIssueService implements
             || profile.vectorUpdatedAt().isBlank();
     }
 
-    private static final Map<String, Pattern> LANGUAGE_PATTERNS = Map.ofEntries(
-        Map.entry("c++", Pattern.compile("(?i)(?:^|[^a-zA-Z0-9])(?:c\\+\\+|cpp)(?:$|[^a-zA-Z0-9])")),
-        Map.entry("cpp", Pattern.compile("(?i)(?:^|[^a-zA-Z0-9])(?:c\\+\\+|cpp)(?:$|[^a-zA-Z0-9])")),
-        Map.entry("c#", Pattern.compile("(?i)(?:^|[^a-zA-Z0-9])(?:c#|csharp)(?:$|[^a-zA-Z0-9])")),
-        Map.entry("csharp", Pattern.compile("(?i)(?:^|[^a-zA-Z0-9])(?:c#|csharp)(?:$|[^a-zA-Z0-9])")),
-        Map.entry("go", Pattern.compile("(?i)\\b(?:go|golang)\\b")),
-        Map.entry("golang", Pattern.compile("(?i)\\b(?:go|golang)\\b")),
-        Map.entry("java", Pattern.compile("(?i)\\bjava\\b")),
-        Map.entry("javascript", Pattern.compile("(?i)\\b(?:javascript|js)\\b")),
-        Map.entry("js", Pattern.compile("(?i)\\b(?:javascript|js)\\b")),
-        Map.entry("typescript", Pattern.compile("(?i)\\b(?:typescript|ts)\\b")),
-        Map.entry("ts", Pattern.compile("(?i)\\b(?:typescript|ts)\\b")),
-        Map.entry("python", Pattern.compile("(?i)\\b(?:python|py)\\b")),
-        Map.entry("py", Pattern.compile("(?i)\\b(?:python|py)\\b")),
-        Map.entry("rust", Pattern.compile("(?i)\\brust\\b")),
-        Map.entry("kotlin", Pattern.compile("(?i)\\bkotlin\\b"))
-    );
+    private List<RecommendedIssue> collectAndRecommendIssues(UserProfile profile) {
+        List<RecommendedIssue> collectedIssues = List.copyOf(
+            Objects.requireNonNullElse(loadCollectedIssuesPort.loadCollectedIssues(), List.of())
+        );
+        if (!collectedIssues.isEmpty()) {
+            return collectedIssues;
+        }
 
-    /**
-     * 짧은 언어명(Go, C 등)이 일반 단어(good first issue, documentation 등)에 오매칭되지 않도록 단어 경계 기반으로 일치를 판정합니다.
-     */
-    static boolean matchesLanguage(String text, String lang) {
-        if (text == null || text.isBlank() || lang == null || lang.isBlank()) {
-            return false;
-        }
-        String normalized = lang.trim().toLowerCase(Locale.ROOT);
-        Pattern pattern = LANGUAGE_PATTERNS.get(normalized);
-        if (pattern == null) {
-            pattern = Pattern.compile("(?i)\\b" + Pattern.quote(normalized) + "\\b");
-        }
-        return pattern.matcher(text).find();
-    }
-
-    private static boolean matchesLanguages(RecommendedIssue issue, List<String> languages) {
-        if (issue == null || languages == null || languages.isEmpty()) {
-            return false;
-        }
-        for (String language : languages) {
-            if (language == null || language.isBlank()) {
-                continue;
-            }
-            for (String label : issue.labels()) {
-                if (matchesLanguage(label, language)) {
-                    return true;
-                }
-            }
-            if (matchesLanguage(issue.repoFullName(), language)
-                || matchesLanguage(issue.title(), language)
-                || matchesLanguage(issue.summary(), language)
-                || matchesLanguage(issue.reason(), language)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
-     * 신규 사용자 콜드 스타트 시 기술스택(주 사용 언어)에 맞는 엄선된 입문 큐레이션 이슈를 제공합니다.
-     */
-    private List<RecommendedIssue> curateStarterIssues(UserProfile profile) {
         List<String> primaryLanguages = profile != null && profile.primaryLanguages() != null
+            ? profile.primaryLanguages().stream()
+                .filter(lang -> lang != null && !lang.isBlank())
+                .map(String::trim)
+                .toList()
+            : List.of();
+        if (primaryLanguages.isEmpty()) {
+            return List.of();
+        }
+
+        for (String language : primaryLanguages) {
+            try {
+                String query = "language:" + language + " label:\"good first issue\"";
+                List<RecommendedIssue> searched = summarizeSafely(
+                    searchRecommendedIssuesPort.searchRecommendedIssues(query)
+                );
+                if (!searched.isEmpty()) {
+                    saveRecommendedIssuesPort.saveRecommendedIssues(searched);
+                    return searched;
+                }
+            } catch (RuntimeException ignored) {
+                // 개별 언어 검색 실패 시 다음 후보 또는 빈 결과로 진행합니다.
+            }
+        }
+        return List.of();
+    }
+
+    private List<RecommendedIssue> filterByPrimaryLanguagesOnColdStart(
+        List<RecommendedIssue> issues,
+        UserProfile profile
+    ) {
+        if (issues.isEmpty() || profile == null || !isProfileVectorAbsent(profile)) {
+            return issues;
+        }
+        List<String> primaryLanguages = profile.primaryLanguages() != null
             ? profile.primaryLanguages()
             : List.of();
-
-        List<RecommendedIssue> builtin = getBuiltinCuratedStarterIssues();
         if (primaryLanguages.isEmpty()) {
-            return builtin;
+            return issues;
         }
-
-        List<RecommendedIssue> matched = builtin.stream()
-            .filter(issue -> matchesLanguages(issue, primaryLanguages))
+        List<RecommendedIssue> matched = issues.stream()
+            .filter(issue -> RecommendedIssueLanguageMatcher.matchesAnyLanguage(issue, primaryLanguages))
             .toList();
-
-        return matched.isEmpty() ? builtin : matched;
+        return matched.isEmpty() ? issues : matched;
     }
 
-    private static List<RecommendedIssue> getBuiltinCuratedStarterIssues() {
-        return List.of(
-            new RecommendedIssue(
-                "curated-starter-java-1",
-                "spring-projects/spring-boot",
-                101L,
-                "[입문 큐레이션] Java/Spring Boot 시작하기 좋은 Good First Issue",
-                "신규 기여자를 위한 Java 기반 오픈소스 프로젝트 온보딩 이슈입니다. 문서 및 샘플 코드 개선부터 시작할 수 있습니다.",
-                0.90,
-                List.of("good first issue", "java", "starter", "beginner-friendly"),
-                "OPEN",
-                "[입문 큐레이션] [주 사용 언어 일치: Java] [미할당] 신규 기여자를 위한 맞춤 추천 이슈입니다."
-            ),
-            new RecommendedIssue(
-                "curated-starter-ts-1",
-                "facebook/react",
-                202L,
-                "[입문 큐레이션] TypeScript 생태계 첫 기여를 위한 맞춤 온보딩 이슈",
-                "TypeScript 및 프론트엔드 생태계 입문자를 위한 이슈입니다. 타입 정의와 단위 테스트 보강을 경험할 수 있습니다.",
-                0.90,
-                List.of("good first issue", "typescript", "starter", "beginner-friendly"),
-                "OPEN",
-                "[입문 큐레이션] [주 사용 언어 일치: TypeScript] [미할당] 신규 기여자를 위한 맞춤 추천 이슈입니다."
-            ),
-            new RecommendedIssue(
-                "curated-starter-py-1",
-                "psf/requests",
-                303L,
-                "[입문 큐레이션] Python 오픈소스 생태계 첫 기여 가이드 이슈",
-                "Python 오픈소스 기여를 시작하는 개발자를 위한 문서화 및 단위 테스트 개선 이슈입니다.",
-                0.90,
-                List.of("good first issue", "python", "starter", "beginner-friendly"),
-                "OPEN",
-                "[입문 큐레이션] [주 사용 언어 일치: Python] [미할당] 신규 기여자를 위한 맞춤 추천 이슈입니다."
-            ),
-            new RecommendedIssue(
-                "curated-starter-go-1",
-                "golang/go",
-                404L,
-                "[입문 큐레이션] Go 언어 생태계 첫 기여 온보딩 이슈",
-                "Go 개발자를 위한 오픈소스 입문 이슈로, 표준 라이브러리 예제 및 가이드 개선을 다룹니다.",
-                0.90,
-                List.of("good first issue", "go", "starter", "beginner-friendly"),
-                "OPEN",
-                "[입문 큐레이션] [주 사용 언어 일치: Go] [미할당] 신규 기여자를 위한 맞춤 추천 이슈입니다."
-            ),
-            new RecommendedIssue(
-                "curated-starter-rust-1",
-                "rust-lang/rust",
-                505L,
-                "[입문 큐레이션] Rust 언어 첫 기여 온보딩 이슈",
-                "Rust 생태계 입문자를 위한 이슈로, 표준 문서 예제 및 컴파일러 진단 메시지 개선을 다룹니다.",
-                0.90,
-                List.of("good first issue", "rust", "starter", "beginner-friendly"),
-                "OPEN",
-                "[입문 큐레이션] [주 사용 언어 일치: Rust] [미할당] 신규 기여자를 위한 맞춤 추천 이슈입니다."
-            ),
-            new RecommendedIssue(
-                "curated-starter-kt-1",
-                "JetBrains/kotlin",
-                606L,
-                "[입문 큐레이션] Kotlin 오픈소스 생태계 첫 기여 온보딩 이슈",
-                "Kotlin 개발자를 위한 오픈소스 입문 이슈로, 표준 라이브러리 kdoc 문서화 및 예제를 보완합니다.",
-                0.90,
-                List.of("good first issue", "kotlin", "starter", "beginner-friendly"),
-                "OPEN",
-                "[입문 큐레이션] [주 사용 언어 일치: Kotlin] [미할당] 신규 기여자를 위한 맞춤 추천 이슈입니다."
-            )
-        );
+    static boolean matchesLanguage(String text, String lang) {
+        return RecommendedIssueLanguageMatcher.matchesLanguage(text, lang);
     }
 }

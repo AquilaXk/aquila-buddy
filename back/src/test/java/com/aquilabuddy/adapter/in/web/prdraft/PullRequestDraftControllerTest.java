@@ -104,7 +104,7 @@ class PullRequestDraftControllerTest {
 
     @Test
     void createsPullRequestDraftWithFallbackDiffWhenServerDiffLookupFails() throws Exception {
-        mockMvc.perform(post("/api/v1/pr")
+        MvcResult createResult = mockMvc.perform(post("/api/v1/pr")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                     {
@@ -118,7 +118,18 @@ class PullRequestDraftControllerTest {
             .andExpect(jsonPath("$.success").value(true))
             .andExpect(jsonPath("$.data.id").isNotEmpty())
             .andExpect(jsonPath("$.data.diffContent").value(org.hamcrest.Matchers.containsString("Diff를 불러오지 못했습니다.")))
-            .andExpect(jsonPath("$.data.diffContent").value(org.hamcrest.Matchers.containsString("main -> missing-branch")));
+            .andExpect(jsonPath("$.data.diffContent").value(org.hamcrest.Matchers.containsString("main -> missing-branch")))
+            .andReturn();
+
+        String draftId = JsonPath.read(createResult.getResponse().getContentAsString(), "$.data.id");
+
+        mockMvc.perform(get("/api/v1/pr/{id}/readiness", draftId))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.readyCount").value(6))
+            .andExpect(jsonPath("$.data.items[4].key").value("clean-diff"))
+            .andExpect(jsonPath("$.data.items[4].label").value("클린 Diff 검증"))
+            .andExpect(jsonPath("$.data.items[4].status").value("ACTION_REQUIRED"));
     }
 
     @Test
@@ -222,8 +233,11 @@ class PullRequestDraftControllerTest {
             .andExpect(jsonPath("$.data.draftId").value(id))
             .andExpect(jsonPath("$.data.readyCount").value(7))
             .andExpect(jsonPath("$.data.items[0].key").value("branch-flow"))
+            .andExpect(jsonPath("$.data.items[0].label").value("브랜치 흐름"))
+            .andExpect(jsonPath("$.data.items[0].detail").value("spring-projects/spring-boot #2 / main → feat/validation-docs"))
             .andExpect(jsonPath("$.data.items[0].status").value("READY"))
-            .andExpect(jsonPath("$.data.items[3].key").value("test-plan"));
+            .andExpect(jsonPath("$.data.items[3].key").value("test-plan"))
+            .andExpect(jsonPath("$.data.items[3].label").value("테스트 계획"));
     }
 
     @Test

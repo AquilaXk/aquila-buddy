@@ -352,7 +352,7 @@ class RecommendedIssueServiceTest {
     }
 
     @Test
-    void providesTechStackCuratedIssuesForColdStartUserWhenStoredIssuesEmpty() {
+    void returnsEmptyAndDoesNotSaveFakeStarterIssuesWhenColdStartSearchAndStorageAreEmpty() {
         UserProfile newUser = new UserProfile(
             10001L,
             "cold-user",
@@ -377,13 +377,12 @@ class RecommendedIssueServiceTest {
 
         List<RecommendedIssue> result = service.recommend();
 
-        assertThat(result).isNotEmpty();
-        assertThat(result).allMatch(issue -> issue.reason().contains("Java") && issue.reason().contains("입문 큐레이션"));
-        assertThat(savePort.savedIssues()).isEqualTo(result);
+        assertThat(result).isEmpty();
+        assertThat(savePort.savedIssues()).isEmpty();
     }
 
     @Test
-    void providesCuratedIssuesWhenNewUserHasNoMatchingStoredIssues() {
+    void returnsStoredIssuesWithoutFabricatingFakeIssuesWhenColdStartUserHasNoLanguageMatch() {
         UserProfile newUser = new UserProfile(
             10002L,
             "ts-dev",
@@ -409,12 +408,12 @@ class RecommendedIssueServiceTest {
 
         List<RecommendedIssue> result = service.recommend();
 
-        assertThat(result).isNotEmpty();
-        assertThat(result).allMatch(issue -> issue.reason().contains("TypeScript") && issue.reason().contains("입문 큐레이션"));
+        assertThat(result).containsExactly(unrelatedStored);
+        assertThat(savePort.savedIssues()).isEmpty();
     }
 
     @Test
-    void providesDefaultCuratedIssuesWhenColdStartUserHasNoPrimaryLanguages() {
+    void returnsEmptyWhenColdStartUserHasNoPrimaryLanguagesAndNoRealIssuesExist() {
         UserProfile newUser = new UserProfile(
             10003L,
             "general-dev",
@@ -425,11 +424,12 @@ class RecommendedIssueServiceTest {
             false,
             ""
         );
+        RecordingSaveRecommendedIssuesPort savePort = new RecordingSaveRecommendedIssuesPort();
         RecommendedIssueService service = new RecommendedIssueService(
             new CountingLoadRecommendedIssuesPort(List.of()),
             new CountingLoadRecommendedIssuesPort(List.of()),
             new InMemoryFindRecommendedIssuePort(List.of()),
-            new RecordingSaveRecommendedIssuesPort(),
+            savePort,
             List::of,
             List::copyOf,
             List::copyOf,
@@ -438,12 +438,12 @@ class RecommendedIssueServiceTest {
 
         List<RecommendedIssue> result = service.recommend();
 
-        assertThat(result).isNotEmpty();
-        assertThat(result).allMatch(issue -> issue.reason().contains("입문 큐레이션"));
+        assertThat(result).isEmpty();
+        assertThat(savePort.savedIssues()).isEmpty();
     }
 
     @Test
-    void providesCuratedStarterIssuesWhenUserHasNoProfileVectorEvenIfStoredIssuesExist() {
+    void filtersStoredRealIssuesByPrimaryLanguageWhenColdStartUserHasNoProfileVector() {
         UserProfile newUserWithJava = new UserProfile(
             10004L,
             "java-dev",
@@ -454,13 +454,23 @@ class RecommendedIssueServiceTest {
             false,
             ""
         );
-        // DB에 기존 일반 저장 이슈가 있더라도, 프로필 벡터가 없는 신규 콜드스타트 사용자에게는 기술스택 맞춤 입문 큐레이션이 제공되어야 합니다.
-        RecommendedIssue storedDemo = issue("demo-2", "spring-projects/spring-boot", 2);
+        RecommendedIssue storedNextJs = issue("demo-1", "vercel/next.js", 1);
+        RecommendedIssue storedSpringJava = new RecommendedIssue(
+            "demo-2",
+            "spring-projects/spring-boot",
+            2,
+            "Refine Java validation error example",
+            "Java validation 예시 개선 이슈입니다.",
+            0.87,
+            List.of("good first issue", "java"),
+            "OPEN",
+            "GitHub Search 후보입니다."
+        );
         RecordingSaveRecommendedIssuesPort savePort = new RecordingSaveRecommendedIssuesPort();
         RecommendedIssueService service = new RecommendedIssueService(
-            new CountingLoadRecommendedIssuesPort(List.of(storedDemo)),
-            new CountingLoadRecommendedIssuesPort(List.of(storedDemo)),
-            new InMemoryFindRecommendedIssuePort(List.of(storedDemo)),
+            new CountingLoadRecommendedIssuesPort(List.of(storedNextJs, storedSpringJava)),
+            new CountingLoadRecommendedIssuesPort(List.of(storedNextJs, storedSpringJava)),
+            new InMemoryFindRecommendedIssuePort(List.of(storedNextJs, storedSpringJava)),
             savePort,
             List::of,
             List::copyOf,
@@ -470,8 +480,7 @@ class RecommendedIssueServiceTest {
 
         List<RecommendedIssue> result = service.recommend();
 
-        assertThat(result).isNotEmpty();
-        assertThat(result).allMatch(issue -> issue.reason().contains("Java") && issue.reason().contains("입문 큐레이션"));
+        assertThat(result).containsExactly(storedSpringJava);
     }
 
     @Test
@@ -486,10 +495,32 @@ class RecommendedIssueServiceTest {
             false,
             ""
         );
+        RecommendedIssue javaScriptIssue = new RecommendedIssue(
+            "js-1",
+            "facebook/react",
+            10,
+            "Ongoing JavaScript bundler improvement",
+            "Good first issue for ongoing JavaScript algorithm module.",
+            0.91,
+            List.of("good first issue", "javascript"),
+            "OPEN",
+            "GitHub Search 후보입니다."
+        );
+        RecommendedIssue goIssue = new RecommendedIssue(
+            "go-1",
+            "golang/go",
+            20,
+            "Improve Go runtime diagnostics",
+            "Go 표준 라이브러리 진단 메시지를 보완합니다.",
+            0.88,
+            List.of("good first issue", "go"),
+            "OPEN",
+            "GitHub Search 후보입니다."
+        );
         RecommendedIssueService service = new RecommendedIssueService(
-            new CountingLoadRecommendedIssuesPort(List.of()),
-            new CountingLoadRecommendedIssuesPort(List.of()),
-            new InMemoryFindRecommendedIssuePort(List.of()),
+            new CountingLoadRecommendedIssuesPort(List.of(javaScriptIssue, goIssue)),
+            new CountingLoadRecommendedIssuesPort(List.of(javaScriptIssue, goIssue)),
+            new InMemoryFindRecommendedIssuePort(List.of(javaScriptIssue, goIssue)),
             new RecordingSaveRecommendedIssuesPort(),
             List::of,
             List::copyOf,
@@ -499,9 +530,7 @@ class RecommendedIssueServiceTest {
 
         List<RecommendedIssue> result = service.recommend();
 
-        assertThat(result).isNotEmpty();
-        assertThat(result).allMatch(issue -> issue.reason().contains("Go") && issue.labels().contains("go"));
-        assertThat(result).noneMatch(issue -> issue.labels().contains("java"));
+        assertThat(result).containsExactly(goIssue);
     }
 
     private static SearchRecommendedIssuesPort failingSearchPort() {

@@ -5,6 +5,7 @@ import com.aquilabuddy.application.port.out.issue.RankRecommendedIssuesPort;
 import com.aquilabuddy.application.port.out.user.LoadUserProfilePort;
 import com.aquilabuddy.domain.embedding.EmbeddingVector;
 import com.aquilabuddy.domain.issue.RecommendedIssue;
+import com.aquilabuddy.domain.issue.RecommendedIssueLanguageMatcher;
 import com.aquilabuddy.domain.user.UserProfile;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -12,10 +13,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
-import java.util.Map;
 import java.util.Set;
-import java.util.regex.Pattern;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -105,7 +103,7 @@ public class PgvectorRecommendedIssueSimilarityAdapter implements RankRecommende
         List<HybridScoreHolder> scoredList = new ArrayList<>();
         for (RecommendedIssue issue : rankedIssues) {
             double rawSimilarity = Math.max(0.0, Math.min(1.0, issue.score()));
-            String matchedLanguage = findMatchingLanguage(issue, normalizedLanguages);
+            String matchedLanguage = RecommendedIssueLanguageMatcher.findMatchingLanguage(issue, normalizedLanguages);
             boolean isLanguageMatched = matchedLanguage != null;
 
             double hybridScore = isLanguageMatched
@@ -146,76 +144,8 @@ public class PgvectorRecommendedIssueSimilarityAdapter implements RankRecommende
             .toList();
     }
 
-    private static final Map<String, Pattern> LANGUAGE_PATTERNS = Map.ofEntries(
-        Map.entry("c++", Pattern.compile("(?i)(?:^|[^a-zA-Z0-9])(?:c\\+\\+|cpp)(?:$|[^a-zA-Z0-9])")),
-        Map.entry("cpp", Pattern.compile("(?i)(?:^|[^a-zA-Z0-9])(?:c\\+\\+|cpp)(?:$|[^a-zA-Z0-9])")),
-        Map.entry("c#", Pattern.compile("(?i)(?:^|[^a-zA-Z0-9])(?:c#|csharp)(?:$|[^a-zA-Z0-9])")),
-        Map.entry("csharp", Pattern.compile("(?i)(?:^|[^a-zA-Z0-9])(?:c#|csharp)(?:$|[^a-zA-Z0-9])")),
-        Map.entry("go", Pattern.compile("(?i)\\b(?:go|golang)\\b")),
-        Map.entry("golang", Pattern.compile("(?i)\\b(?:go|golang)\\b")),
-        Map.entry("java", Pattern.compile("(?i)\\bjava\\b")),
-        Map.entry("javascript", Pattern.compile("(?i)\\b(?:javascript|js)\\b")),
-        Map.entry("js", Pattern.compile("(?i)\\b(?:javascript|js)\\b")),
-        Map.entry("typescript", Pattern.compile("(?i)\\b(?:typescript|ts)\\b")),
-        Map.entry("ts", Pattern.compile("(?i)\\b(?:typescript|ts)\\b")),
-        Map.entry("python", Pattern.compile("(?i)\\b(?:python|py)\\b")),
-        Map.entry("py", Pattern.compile("(?i)\\b(?:python|py)\\b")),
-        Map.entry("rust", Pattern.compile("(?i)\\brust\\b")),
-        Map.entry("kotlin", Pattern.compile("(?i)\\bkotlin\\b"))
-    );
-
-    /**
-     * 짧은 언어명(Go, C 등)이 일반 단어(good first issue, documentation 등)에 오매칭되지 않도록 단어 경계 기반으로 일치를 판정합니다.
-     */
     static boolean matchesLanguage(String text, String lang) {
-        if (text == null || text.isBlank() || lang == null || lang.isBlank()) {
-            return false;
-        }
-        String normalized = lang.trim().toLowerCase(Locale.ROOT);
-        Pattern pattern = LANGUAGE_PATTERNS.get(normalized);
-        if (pattern == null) {
-            pattern = Pattern.compile("(?i)\\b" + Pattern.quote(normalized) + "\\b");
-        }
-        return pattern.matcher(text).find();
-    }
-
-    private static String findMatchingLanguage(RecommendedIssue issue, List<String> normalizedLanguages) {
-        if (normalizedLanguages.isEmpty() || issue == null) {
-            return null;
-        }
-
-        List<String> labels = issue.labels() == null ? List.of() : issue.labels();
-        for (String lang : normalizedLanguages) {
-            for (String label : labels) {
-                if (matchesLanguage(label, lang)) {
-                    return canonicalLanguageName(lang);
-                }
-            }
-            if (matchesLanguage(issue.repoFullName(), lang)
-                || matchesLanguage(issue.title(), lang)
-                || matchesLanguage(issue.summary(), lang)) {
-                return canonicalLanguageName(lang);
-            }
-        }
-        return null;
-    }
-
-    private static String canonicalLanguageName(String lang) {
-        if (lang == null || lang.isBlank()) {
-            return lang;
-        }
-        return switch (lang.trim().toLowerCase(Locale.ROOT)) {
-            case "c++", "cpp" -> "C++";
-            case "c#", "csharp" -> "C#";
-            case "go", "golang" -> "Go";
-            case "java" -> "Java";
-            case "javascript", "js" -> "JavaScript";
-            case "typescript", "ts" -> "TypeScript";
-            case "python", "py" -> "Python";
-            case "rust" -> "Rust";
-            case "kotlin" -> "Kotlin";
-            default -> Character.toUpperCase(lang.charAt(0)) + lang.substring(1);
-        };
+        return RecommendedIssueLanguageMatcher.matchesLanguage(text, lang);
     }
 
     private record HybridScoreHolder(RecommendedIssue issue, double hybridScore, long issueNumber) {

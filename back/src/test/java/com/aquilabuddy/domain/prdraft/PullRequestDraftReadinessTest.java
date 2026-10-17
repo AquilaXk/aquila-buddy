@@ -76,6 +76,19 @@ class PullRequestDraftReadinessTest {
                 "title"
             );
         assertThat(readiness.items())
+            .extracting(PullRequestDraftReadinessItem::label)
+            .containsExactly(
+                "브랜치 흐름",
+                "이슈 연결 구문",
+                "템플릿 구조 준수",
+                "테스트 계획",
+                "클린 Diff 검증",
+                "브레이킹 체인지 확인",
+                "제목 규격"
+            );
+        assertThat(readiness.items().get(0).detail())
+            .isEqualTo("spring-projects/spring-boot #2 / main → feat/validation-docs");
+        assertThat(readiness.items())
             .extracting(PullRequestDraftReadinessItem::status)
             .containsOnly(PullRequestDraftReadinessStatus.READY);
     }
@@ -251,5 +264,40 @@ class PullRequestDraftReadinessTest {
 
         assertThat(readiness.items().get(5).key()).isEqualTo("breaking-change");
         assertThat(readiness.items().get(5).status()).isEqualTo(PullRequestDraftReadinessStatus.READY);
+    }
+
+    @Test
+    void marksCleanDiffActionRequiredWhenDiffLookupFailedOrLacksDiffLines() {
+        StoredPullRequestDraft fallbackDraft = createDraft(
+            "draft-fallback-diff",
+            2,
+            "main",
+            "missing-branch",
+            "docs: spring-projects/spring-boot#2 update",
+            DEFAULT_BODY,
+            "Diff를 불러오지 못했습니다. 저장소: spring-projects/spring-boot, 브랜치: main -> missing-branch"
+        );
+
+        PullRequestDraftReadiness fallbackReadiness = PullRequestDraftReadiness.from(fallbackDraft);
+
+        assertThat(fallbackReadiness.items().get(4).key()).isEqualTo("clean-diff");
+        assertThat(fallbackReadiness.items().get(4).status()).isEqualTo(PullRequestDraftReadinessStatus.ACTION_REQUIRED);
+        assertThat(fallbackReadiness.items().get(4).detail()).isEqualTo("compare 대상 브랜치 diff를 불러오지 못했습니다.");
+
+        StoredPullRequestDraft nonDiffDraft = createDraft(
+            "draft-non-diff",
+            2,
+            "main",
+            "feat/validation-docs",
+            "docs: spring-projects/spring-boot#2 update",
+            DEFAULT_BODY,
+            "not a unified diff payload"
+        );
+
+        PullRequestDraftReadiness nonDiffReadiness = PullRequestDraftReadiness.from(nonDiffDraft);
+
+        assertThat(nonDiffReadiness.items().get(4).key()).isEqualTo("clean-diff");
+        assertThat(nonDiffReadiness.items().get(4).status()).isEqualTo(PullRequestDraftReadinessStatus.ACTION_REQUIRED);
+        assertThat(nonDiffReadiness.items().get(4).detail()).isEqualTo("유효한 diff 변경 사항을 확인해 주세요.");
     }
 }
