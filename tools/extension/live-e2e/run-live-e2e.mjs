@@ -34,7 +34,7 @@ try {
   const badgeText = await page.textContent(
     'a[href="/AquilaXk/aquila-buddy/issues/42"] .aquila-buddy-badge'
   );
-  assertEqual(badgeText, "✦ Aquila Buddy", "recommended issue badge text");
+  assertEqual(badgeText, "Aquila Buddy", "recommended issue badge text");
   await page.click("#aquila-buddy-close");
   await page.click("#aquila-buddy-toggle");
   const badgeCount = await page.evaluate(
@@ -78,7 +78,8 @@ try {
           issueNumber: 42,
           title: "Improve onboarding copy",
           labels: ["good first issue"],
-          summary: '문서 기여로 시작하기 좋습니다. <img src=x onerror="window.__aquilaBuddyXss=true">',
+          summary: "온보딩 안내 문구를 개선하는 이슈입니다.",
+          reason: '문서 기여로 시작하기 좋습니다. <img src=x onerror="window.__aquilaBuddyXss=true">',
         },
       ],
     },
@@ -97,6 +98,8 @@ try {
     },
   });
   await detailPage.click("#aquila-buddy-toggle");
+  const summaryText = await detailPage.textContent("#aquila-buddy-rec-reason .aquila-buddy-summary-text");
+  assertIncludes(summaryText, "온보딩 안내 문구를 개선하는 이슈입니다.", "recommendation summary text");
   const reasonText = await detailPage.textContent("#aquila-buddy-rec-reason .aquila-buddy-reason-text");
   assertIncludes(reasonText, "문서 기여로 시작하기 좋습니다.", "escaped recommendation reason text");
   const reasonInjectedNodeCount = await detailPage.evaluate(

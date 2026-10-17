@@ -38,9 +38,11 @@ const SHADOW_CSS = `
 :host {
   all: initial;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
-  color: #e6edf3;
-  font-size: 14px;
+  color: #121317;
+  font-size: 13px;
   line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
 }
 
 *, *::before, *::after {
@@ -53,38 +55,47 @@ const SHADOW_CSS = `
   top: 50%;
   transform: translateY(-50%);
   z-index: 9999;
-  background: #238636;
+  background: #121317;
   color: #ffffff;
-  border: none;
-  border-radius: 8px 0 0 8px;
+  border: 1px solid rgba(33, 34, 38, 0.18);
+  border-right: none;
+  border-radius: 6px 0 0 6px;
   width: 32px;
   height: 48px;
-  font-size: 16px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
   cursor: pointer;
-  transition: background 0.2s;
-  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.3);
+  transition: background 0.15s;
+  box-shadow: -2px 0 8px rgba(18, 19, 23, 0.08);
 }
 
 #aquila-buddy-toggle:hover {
-  background: #2ea043;
+  background: #2f3034;
+}
+
+#aquila-buddy-toggle:focus-visible {
+  outline: 2px solid #1a73e8;
+  outline-offset: 2px;
 }
 
 #aquila-buddy-sidebar {
   position: fixed;
   right: 0;
   top: 0;
-  width: 320px;
+  width: 340px;
   height: 100vh;
-  background: #0d1117;
-  color: #e6edf3;
-  border-left: 1px solid #30363d;
+  background: #ffffff;
+  color: #121317;
+  border-left: 1px solid rgba(33, 34, 38, 0.10);
   z-index: 9998;
   display: flex;
   flex-direction: column;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
-  font-size: 14px;
-  transition: transform 0.25s ease;
-  box-shadow: -4px 0 16px rgba(0, 0, 0, 0.4);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  transition: transform 0.2s ease;
+  box-shadow: -4px 0 16px rgba(18, 19, 23, 0.08);
 }
 
 #aquila-buddy-sidebar.aquila-buddy-hidden {
@@ -95,25 +106,36 @@ const SHADOW_CSS = `
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 14px 16px;
-  border-bottom: 1px solid #30363d;
+  padding: 13px 16px;
+  background: #ffffff;
+  border-bottom: 1px solid rgba(33, 34, 38, 0.10);
+  color: #121317;
   font-weight: 600;
-  font-size: 15px;
+  font-size: 14px;
+  letter-spacing: -0.02em;
   flex-shrink: 0;
 }
 
 #aquila-buddy-close {
-  background: none;
-  border: none;
-  color: #8b949e;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: #6a6a71;
   cursor: pointer;
-  font-size: 16px;
+  font-size: 13px;
+  width: 24px;
+  height: 24px;
   padding: 0;
   line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s;
 }
 
 #aquila-buddy-close:hover {
-  color: #e6edf3;
+  background: #eff2f7;
+  color: #121317;
 }
 
 #aquila-buddy-content {
@@ -123,20 +145,24 @@ const SHADOW_CSS = `
 }
 
 .aquila-buddy-loading {
-  color: #8b949e;
-  font-size: 13px;
+  color: #6a6a71;
+  font-size: 12px;
   margin: 0;
 }
 
 .aquila-buddy-empty {
-  color: #8b949e;
-  font-size: 13px;
+  color: #6a6a71;
+  font-size: 12px;
   margin: 0;
 }
 
 .aquila-buddy-error {
-  color: #f85149;
-  font-size: 13px;
+  color: #c5221f;
+  background: #fce8e6;
+  border: 1px solid rgba(197, 34, 31, 0.20);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 12px;
   line-height: 1.6;
   margin: 0;
 }
@@ -144,32 +170,66 @@ const SHADOW_CSS = `
 .aquila-buddy-section-title {
   font-size: 11px;
   font-weight: 600;
-  color: #8b949e;
+  color: #6a6a71;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  margin: 0 0 12px;
+  margin: 0 0 10px;
 }
 
 .aquila-buddy-desc {
-  font-size: 13px;
-  color: #8b949e;
+  font-size: 12px;
+  color: #45474d;
   line-height: 1.6;
   margin: 0 0 12px;
 }
 
+.aquila-buddy-desc-followup {
+  margin-top: 8px;
+}
+
+.aquila-buddy-count {
+  color: #121317;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.aquila-buddy-inline-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 6px;
+  background: #e6f4ea;
+  border: 1px solid rgba(19, 115, 51, 0.20);
+  border-radius: 4px;
+  color: #137333;
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.aquila-buddy-issue-list {
+  margin-top: 12px;
+}
+
 .aquila-buddy-issue-card {
-  background: #161b22;
-  border: 1px solid #30363d;
-  border-radius: 6px;
+  background: #f8f9fc;
+  border: 1px solid rgba(33, 34, 38, 0.10);
+  border-radius: 8px;
   padding: 10px 12px;
   margin-bottom: 8px;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.aquila-buddy-issue-card:hover {
+  background: #eff2f7;
+  border-color: rgba(33, 34, 38, 0.18);
 }
 
 .aquila-buddy-issue-card a {
-  color: #58a6ff;
+  color: #1a73e8;
   text-decoration: none;
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 
 .aquila-buddy-issue-card a:hover {
@@ -178,8 +238,10 @@ const SHADOW_CSS = `
 
 .aquila-buddy-issue-card p {
   font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
   margin: 4px 0 6px;
-  color: #e6edf3;
+  color: #121317;
   line-height: 1.4;
 }
 
@@ -191,55 +253,61 @@ const SHADOW_CSS = `
 
 .aquila-buddy-label {
   display: inline-block;
-  background: #21262d;
-  border: 1px solid #30363d;
-  border-radius: 12px;
-  padding: 1px 8px;
+  background: #eff2f7;
+  border: 1px solid rgba(33, 34, 38, 0.08);
+  border-radius: 4px;
+  padding: 1px 6px;
   font-size: 11px;
-  color: #8b949e;
+  color: #45474d;
+  font-variant-numeric: tabular-nums;
 }
 
-.aquila-buddy-btn {
+.aquila-buddy-btn,
+.aquila-buddy-btn-primary {
   display: block;
   width: 100%;
   padding: 8px 12px;
-  background: #238636;
+  background: #121317;
   color: #ffffff;
-  border: none;
+  border: 1px solid #121317;
   border-radius: 6px;
   cursor: pointer;
   font-size: 13px;
   font-weight: 500;
   margin-bottom: 8px;
   text-align: center;
-  transition: background 0.15s;
+  transition: background 0.15s, border-color 0.15s;
 }
 
-.aquila-buddy-btn:hover {
-  background: #2ea043;
+.aquila-buddy-btn:hover,
+.aquila-buddy-btn-primary:hover {
+  background: #2f3034;
+  border-color: #2f3034;
 }
 
 .aquila-buddy-btn:disabled {
-  background: #21262d;
-  color: #484f58;
+  background: #eff2f7;
+  border-color: rgba(33, 34, 38, 0.08);
+  color: #6a6a71;
   cursor: not-allowed;
 }
 
 .aquila-buddy-btn-secondary {
-  background: #21262d;
-  border: 1px solid #30363d;
-  color: #e6edf3;
+  background: #f8f9fc;
+  border: 1px solid rgba(33, 34, 38, 0.12);
+  color: #121317;
 }
 
 .aquila-buddy-btn-secondary:hover {
-  background: #30363d;
+  background: #eff2f7;
+  border-color: rgba(33, 34, 38, 0.18);
 }
 
 .aquila-buddy-result {
   margin-top: 12px;
-  background: #161b22;
-  border: 1px solid #30363d;
-  border-radius: 6px;
+  background: #f8f9fc;
+  border: 1px solid rgba(33, 34, 38, 0.10);
+  border-radius: 8px;
   padding: 12px;
   display: flex;
   flex-direction: column;
@@ -255,7 +323,7 @@ const SHADOW_CSS = `
 .aquila-buddy-result-label {
   font-size: 11px;
   font-weight: 600;
-  color: #8b949e;
+  color: #6a6a71;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   margin: 0;
@@ -263,7 +331,7 @@ const SHADOW_CSS = `
 
 .aquila-buddy-result-text {
   font-size: 13px;
-  color: #e6edf3;
+  color: #121317;
   line-height: 1.6;
   margin: 0;
   white-space: pre-wrap;
@@ -271,7 +339,11 @@ const SHADOW_CSS = `
 }
 
 .aquila-buddy-result-warning {
-  color: #d29922;
+  color: #b06000;
+  background: #fef7e0;
+  border: 1px solid rgba(176, 96, 0, 0.20);
+  border-radius: 4px;
+  padding: 6px 8px;
 }
 
 .aquila-buddy-file-list {
@@ -280,32 +352,30 @@ const SHADOW_CSS = `
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 4px;
 }
 
 .aquila-buddy-file-item {
   font-size: 12px;
-  color: #58a6ff;
+  color: #1a73e8;
   font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
-  padding: 2px 8px;
-  background: rgba(88, 166, 255, 0.08);
+  padding: 3px 8px;
+  background: rgba(26, 115, 232, 0.10);
+  border: 1px solid rgba(26, 115, 232, 0.18);
   border-radius: 4px;
-}
-
-.aquila-buddy-file-item::before {
-  content: '📄 ';
+  word-break: break-all;
 }
 
 .aquila-buddy-code-block {
   margin: 0;
   white-space: pre-wrap;
   word-break: break-word;
-  color: #e6edf3;
+  color: #121317;
   font-size: 12px;
   line-height: 1.6;
   font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
-  background: #0d1117;
-  border: 1px solid #21262d;
+  background: #ffffff;
+  border: 1px solid rgba(33, 34, 38, 0.10);
   border-radius: 4px;
   padding: 10px 12px;
 }
@@ -318,7 +388,7 @@ const SHADOW_CSS = `
   display: block;
   font-size: 11px;
   font-weight: 600;
-  color: #8b949e;
+  color: #6a6a71;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   margin-bottom: 4px;
@@ -326,40 +396,43 @@ const SHADOW_CSS = `
 
 .aquila-buddy-field-value {
   font-size: 12px;
-  color: #e6edf3;
+  color: #121317;
   font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-variant-numeric: tabular-nums;
   margin: 0;
 }
 
 .aquila-buddy-input {
   width: 100%;
   padding: 6px 10px;
-  background: #0d1117;
-  border: 1px solid #30363d;
+  background: #ffffff;
+  border: 1px solid rgba(33, 34, 38, 0.14);
   border-radius: 6px;
-  color: #e6edf3;
+  color: #121317;
   font-size: 13px;
+  font-variant-numeric: tabular-nums;
   outline: none;
-  transition: border-color 0.15s;
+  transition: border-color 0.15s, box-shadow 0.15s;
   box-sizing: border-box;
 }
 
 .aquila-buddy-input:focus {
-  border-color: #388bfd;
+  border-color: #1a73e8;
+  box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.10);
 }
 
 .aquila-buddy-input::placeholder {
-  color: #484f58;
+  color: #6a6a71;
 }
 
 .aquila-buddy-required {
-  color: #f85149;
+  color: #c5221f;
 }
 
 .aquila-buddy-label-text {
   font-size: 11px;
   font-weight: 600;
-  color: #8b949e;
+  color: #6a6a71;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   margin: 0 0 4px;
@@ -367,29 +440,40 @@ const SHADOW_CSS = `
 
 .aquila-buddy-draft-title {
   font-size: 13px;
-  color: #e6edf3;
+  color: #121317;
   margin: 0;
   font-weight: 500;
 }
 
 .aquila-buddy-reason-card {
-  background: rgba(88, 166, 255, 0.06);
-  border: 1px solid rgba(88, 166, 255, 0.2);
-  border-radius: 6px;
+  background: #f8f9fc;
+  border: 1px solid rgba(33, 34, 38, 0.10);
+  border-radius: 8px;
   padding: 10px 12px;
   margin-bottom: 12px;
 }
 
-.aquila-buddy-reason-text {
+.aquila-buddy-reason-text,
+.aquila-buddy-summary-text {
   font-size: 13px;
-  color: #c9d1d9;
+  color: #45474d;
   line-height: 1.6;
   margin: 0;
 }
 
+.aquila-buddy-success {
+  color: #137333;
+  background: #e6f4ea;
+  border: 1px solid rgba(19, 115, 51, 0.20);
+  border-radius: 4px;
+  padding: 6px 8px;
+  font-weight: 500;
+  margin-top: 4px;
+}
+
 .aquila-buddy-divider {
   border: none;
-  border-top: 1px solid #21262d;
+  border-top: 1px solid rgba(33, 34, 38, 0.10);
   margin: 0 0 16px;
 }
 `;
@@ -410,7 +494,7 @@ function createExtensionUI() {
 
   const toggleBtn = document.createElement('button');
   toggleBtn.id = 'aquila-buddy-toggle';
-  toggleBtn.textContent = '✦';
+  toggleBtn.textContent = 'AB';
   toggleBtn.title = 'Aquila Buddy 열기';
 
   const sidebar = document.createElement('div');
@@ -418,7 +502,7 @@ function createExtensionUI() {
   sidebar.classList.add('aquila-buddy-hidden');
   sidebar.innerHTML = `
     <div id="aquila-buddy-header">
-      <span>✦ Aquila Buddy</span>
+      <span>Aquila Buddy</span>
       <button id="aquila-buddy-close" aria-label="닫기">✕</button>
     </div>
     <div id="aquila-buddy-content">
@@ -432,14 +516,14 @@ function createExtensionUI() {
 
   shadow.getElementById('aquila-buddy-close')?.addEventListener('click', () => {
     sidebar.classList.add('aquila-buddy-hidden');
-    toggleBtn.textContent = '✦';
+    toggleBtn.textContent = 'AB';
     toggleBtn.title = 'Aquila Buddy 열기';
   });
 
   toggleBtn.addEventListener('click', () => {
     const isHidden = sidebar.classList.contains('aquila-buddy-hidden');
     sidebar.classList.toggle('aquila-buddy-hidden');
-    toggleBtn.textContent = isHidden ? '✕' : '✦';
+    toggleBtn.textContent = isHidden ? '✕' : 'AB';
     toggleBtn.title = isHidden ? 'Aquila Buddy 닫기' : 'Aquila Buddy 열기';
     if (isHidden) {
       loadContent(shadow);
@@ -492,7 +576,7 @@ function renderIssueList(el) {
     if (repoIssues.length === 0) {
       el.innerHTML = `
         <p class="aquila-buddy-empty">이 레포에 해당하는 추천 이슈가 없습니다.</p>
-        <p class="aquila-buddy-desc" style="margin-top:8px;">Extension 아이콘 → 새 추천 받기를 눌러 추천을 업데이트하세요.</p>
+        <p class="aquila-buddy-desc aquila-buddy-desc-followup">Extension 아이콘 → 새 추천 받기를 눌러 추천을 업데이트하세요.</p>
       `;
       return;
     }
@@ -500,10 +584,10 @@ function renderIssueList(el) {
     el.innerHTML = `
       <h3 class="aquila-buddy-section-title">이슈 매칭 결과</h3>
       <p class="aquila-buddy-desc">
-        이 레포에서 <strong style="color:#e6edf3">${repoIssues.length}개</strong>의 이슈가 나와 잘 맞습니다.<br>
-        <span style="color:#3fb950">✦ Aquila Buddy</span> 뱃지가 표시된 이슈를 확인하세요.
+        이 레포에서 <strong class="aquila-buddy-count">${repoIssues.length}개</strong>의 이슈가 나와 잘 맞습니다.<br>
+        <span class="aquila-buddy-inline-badge">Aquila Buddy</span> 뱃지가 표시된 이슈를 확인하세요.
       </p>
-      <div style="margin-top:12px;">
+      <div class="aquila-buddy-issue-list">
         ${repoIssues
           .map(
             (issue) => `
@@ -544,7 +628,7 @@ function highlightRecommendedIssues(issues) {
 
     const badge = document.createElement('span');
     badge.className = 'aquila-buddy-badge';
-    badge.textContent = '✦ Aquila Buddy';
+    badge.textContent = 'Aquila Buddy';
     link.appendChild(badge);
   });
 }
@@ -574,6 +658,38 @@ function requestAnalysis(type, loadingText, repoFullName, issueNumber, shadow) {
   });
 }
 
+function renderRecommendationReason(matched) {
+  if (!matched) {
+    return '';
+  }
+
+  const summary = typeof matched.summary === 'string' ? matched.summary.trim() : '';
+  const reason = typeof matched.reason === 'string' ? matched.reason.trim() : '';
+
+  if (summary && reason && summary !== reason) {
+    return `
+      <h3 class="aquila-buddy-section-title">이슈 요약</h3>
+      <div class="aquila-buddy-reason-card">
+        <p class="aquila-buddy-summary-text">${escapeHtml(summary)}</p>
+      </div>
+      <h3 class="aquila-buddy-section-title">추천 이유</h3>
+      <div class="aquila-buddy-reason-card">
+        <p class="aquila-buddy-reason-text">${escapeHtml(reason)}</p>
+      </div>
+      <hr class="aquila-buddy-divider">
+    `;
+  }
+
+  const reasonText = reason || summary || '추천 사유 정보가 없습니다.';
+  return `
+    <h3 class="aquila-buddy-section-title">추천 이유</h3>
+    <div class="aquila-buddy-reason-card">
+      <p class="aquila-buddy-reason-text">${escapeHtml(reasonText)}</p>
+    </div>
+    <hr class="aquila-buddy-divider">
+  `;
+}
+
 function renderIssueDetail(el, shadow) {
   const cleanPath = location.pathname.replace(/\/+$/, '');
   const pathParts = cleanPath.split('/');
@@ -584,7 +700,7 @@ function renderIssueDetail(el, shadow) {
     <div id="aquila-buddy-rec-reason"></div>
     <h3 class="aquila-buddy-section-title">이슈 분석</h3>
     <p class="aquila-buddy-desc">이슈 #${escapeHtml(issueNumber)}에 대한 AI 분석을 제공합니다.</p>
-    <button class="aquila-buddy-btn" id="aquila-buddy-guide-btn">코드 수정 가이드 보기</button>
+    <button class="aquila-buddy-btn aquila-buddy-btn-primary" id="aquila-buddy-guide-btn">코드 수정 가이드 보기</button>
     <button class="aquila-buddy-btn aquila-buddy-btn-secondary" id="aquila-buddy-pseudo-btn">의사 코드 보기</button>
     <div id="aquila-buddy-analysis-result"></div>
   `;
@@ -595,14 +711,8 @@ function renderIssueDetail(el, shadow) {
       (i) => i.repoFullName === repoFullName && String(i.issueNumber) === issueNumber
     );
     const recReasonEl = shadow.getElementById('aquila-buddy-rec-reason');
-    if (recReasonEl && matched?.summary) {
-      recReasonEl.innerHTML = `
-        <h3 class="aquila-buddy-section-title">추천 이유</h3>
-        <div class="aquila-buddy-reason-card">
-          <p class="aquila-buddy-reason-text">${escapeHtml(matched.summary)}</p>
-        </div>
-        <hr class="aquila-buddy-divider">
-      `;
+    if (recReasonEl && matched) {
+      recReasonEl.innerHTML = renderRecommendationReason(matched);
     }
   });
 
@@ -701,7 +811,7 @@ function renderPrCreate(el, shadow) {
       <label class="aquila-buddy-field-label" for="aquila-buddy-issue-number">연결할 이슈 번호 <span class="aquila-buddy-required">*</span></label>
       <input class="aquila-buddy-input" id="aquila-buddy-issue-number" type="number" min="1" placeholder="예: 42" />
     </div>
-    <button class="aquila-buddy-btn" id="aquila-buddy-draft-btn">초안 생성</button>
+    <button class="aquila-buddy-btn aquila-buddy-btn-primary" id="aquila-buddy-draft-btn">초안 생성</button>
     <div id="aquila-buddy-draft-result"></div>
   `;
 
@@ -743,7 +853,7 @@ function renderPrCreate(el, shadow) {
                 <p class="aquila-buddy-result-label">본문</p>
                 <pre class="aquila-buddy-code-block">${escapeHtml(draft?.body)}</pre>
               </div>
-              <button class="aquila-buddy-btn" id="aquila-buddy-apply-btn">PR 폼에 적용</button>
+              <button class="aquila-buddy-btn aquila-buddy-btn-primary" id="aquila-buddy-apply-btn">PR 폼에 적용</button>
               <div id="aquila-buddy-translate-status"></div>
             </div>
           `;
@@ -793,7 +903,7 @@ function translateAndApplyDraft(draftId, statusEl, shadow) {
     }
     const translated = res.data?.data;
     applyDraftToPrForm(translated?.titleEn ?? translated?.title, translated?.bodyEn ?? translated?.body);
-    if (statusEl) statusEl.innerHTML = '<p class="aquila-buddy-desc" style="color:#3fb950">번역 후 PR 폼에 적용됐습니다.</p>';
+    if (statusEl) statusEl.innerHTML = '<p class="aquila-buddy-desc aquila-buddy-success">번역 후 PR 폼에 적용됐습니다.</p>';
   });
 }
 
