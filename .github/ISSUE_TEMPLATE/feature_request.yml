@@ -9,6 +9,13 @@ body:
         본문은 한국어 중심으로 작성하고 API, OAuth, SQL, CI처럼 현업 공통 용어만 영어를 유지합니다.
 
   - type: input
+    id: parent_epic
+    attributes:
+      label: 상위 에픽 (Parent Epic)
+      description: 이 작업이 속한 상위 에픽 이슈 번호를 적어 주세요.
+      placeholder: "#이슈번호 (단독 버그나 에픽 직결이 아닌 경우 생략)"
+
+  - type: input
     id: goal
     attributes:
       label: 목표
