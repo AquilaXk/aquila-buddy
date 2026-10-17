@@ -63,4 +63,44 @@ assert.match(html, /front\/src\/app\/issues\/\[id\]\/page\.tsx/);
 assert.match(html, /&lt;script&gt;alert\(1\)&lt;\/script&gt;/);
 assert.doesNotMatch(html, /<script>alert\(1\)<\/script>/);
 
+assert.doesNotMatch(contentScript, /✦/, "content.js must not include decorative sparkle symbol");
+assert.doesNotMatch(contentScript, /📄/, "content.js must not include file emoji injection");
+assert.doesNotMatch(contentScript, /style="/, "content.js must not include hardcoded inline styles");
+assert.doesNotMatch(contentScript, /#0d1117|#161b22|#238636/, "content.js must not use legacy dark theme colors");
+assert.match(contentScript, /#ffffff/, "content.js must include light-first primary surface");
+assert.match(contentScript, /#121317/, "content.js must include charcoal primary ink/CTA");
+assert.match(contentScript, /tabular-nums/, "content.js must include tabular-nums");
+
+assert.equal(typeof context.renderRecommendationReason, "function");
+
+const bothHtml = context.renderRecommendationReason({
+  summary: "온보딩 문구를 정리하는 이슈입니다.",
+  reason: "TypeScript 및 프론트엔드 기여 이력과 높은 유사도를 보입니다.",
+});
+assert.match(bothHtml, /이슈 요약/);
+assert.match(bothHtml, /온보딩 문구를 정리하는 이슈입니다\./);
+assert.match(bothHtml, /추천 이유/);
+assert.match(bothHtml, /TypeScript 및 프론트엔드 기여 이력과 높은 유사도를 보입니다\./);
+
+const reasonOnlyHtml = context.renderRecommendationReason({
+  summary: "",
+  reason: "Java 21 백엔드 경험과 일치합니다.",
+});
+assert.doesNotMatch(reasonOnlyHtml, /이슈 요약/);
+assert.match(reasonOnlyHtml, /추천 이유/);
+assert.match(reasonOnlyHtml, /Java 21 백엔드 경험과 일치합니다\./);
+
+const fallbackSummaryHtml = context.renderRecommendationReason({
+  summary: "문서 기여로 시작하기 좋습니다.",
+});
+assert.doesNotMatch(fallbackSummaryHtml, /이슈 요약/);
+assert.match(fallbackSummaryHtml, /추천 이유/);
+assert.match(fallbackSummaryHtml, /문서 기여로 시작하기 좋습니다\./);
+
+const emptyFallbackHtml = context.renderRecommendationReason({});
+assert.match(emptyFallbackHtml, /추천 이유/);
+assert.match(emptyFallbackHtml, /추천 사유 정보가 없습니다\./);
+
+assert.equal(context.renderRecommendationReason(null), "");
+
 console.log("extension analysis file paths validation passed");

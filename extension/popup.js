@@ -10,26 +10,26 @@ function setLoggedIn(isLoggedIn) {
   if (isLoggedIn) {
     statusDot.className = "dot on";
     statusLabel.textContent = "로그인됨";
-    loginBtn.style.display = "none";
-    logoutBtn.style.display = "block";
+    loginBtn.classList.add("hidden");
+    logoutBtn.classList.remove("hidden");
     loadHistory();
     return;
   }
 
   statusDot.className = "dot off";
   statusLabel.textContent = "로그인되지 않음";
-  loginBtn.style.display = "block";
-  logoutBtn.style.display = "none";
+  loginBtn.classList.remove("hidden");
+  logoutBtn.classList.add("hidden");
   renderEmptyState("로그인 후 추천 이슈를 확인할 수 있습니다.");
 }
 
 function loadHistory() {
   recLoading.textContent = "불러오는 중...";
-  recLoading.style.display = "block";
+  recLoading.classList.remove("hidden");
   recList.innerHTML = "";
 
   chrome.runtime.sendMessage({ type: "GET_RECOMMEND_HISTORY" }, (response) => {
-    recLoading.style.display = "none";
+    recLoading.classList.add("hidden");
 
     if (!response?.ok) {
       renderEmptyState("이력을 불러오지 못했습니다.");
@@ -50,13 +50,13 @@ function loadHistory() {
 
 function refreshRecommendations() {
   recLoading.textContent = "AI 분석 중... (수 분이 걸릴 수 있습니다)";
-  recLoading.style.display = "block";
+  recLoading.classList.remove("hidden");
   recList.innerHTML = "";
   recHint.textContent = "";
 
   chrome.runtime.sendMessage({ type: "GET_RECOMMEND_ISSUES" }, (response) => {
     if (!response?.ok) {
-      recLoading.style.display = "none";
+      recLoading.classList.add("hidden");
       renderEmptyState("추천 생성에 실패했습니다.");
       appendRefreshButton();
       return;

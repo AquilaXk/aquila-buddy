@@ -45,7 +45,7 @@ try {
   await issueListPage.installContentScript(githubFixtures({ repo, issueNumber }));
   await issueListPage.click("#aquila-buddy-toggle");
   const badgeText = await issueListPage.textContent(`a[href="/${repo}/issues/${issueNumber}"] .aquila-buddy-badge`);
-  assertIncludes(badgeText, "✦ Aquila Buddy", "live issue list badge");
+  assertIncludes(badgeText, "Aquila Buddy", "live issue list badge");
 
   stepState.current = "sidebar";
   const issueDetailPage = await chrome.newPage(`${githubBaseUrl}/${repo}/issues/${issueNumber}`);
