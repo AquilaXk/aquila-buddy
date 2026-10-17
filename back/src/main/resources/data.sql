@@ -81,17 +81,17 @@ INSERT INTO issue_guides (
 ) VALUES
 (
     'demo-1',
-    'front/src/app/issues/[id]/page.tsx의 상세 안내 문구가 실제 첫 기여 흐름과 어긋나는 조건을 먼저 확인하고, 누락된 안내를 작은 문단 단위로 보완합니다.',
-    'GIVEN issue detail page renders contributor guidance
-WHEN the current copy skips the first contribution step
+    'packages/next/src/client/app-next.tsx와 문서 안내 흐름에서 첫 기여자가 따라가는 예제와 실제 진입점 조건이 어긋나는 부분을 확인하고, 누락된 안내를 작은 문단 단위로 보완합니다.',
+    'GIVEN contributor documentation references packages/next/src/client/app-next.tsx
+WHEN the current guide omits the client entry verification step
 CALL update_guidance_copy_with_matching_terms()
-ASSERT issue detail page and related API text use the same wording',
+ASSERT documentation and packages/next/src/client/app-next.tsx entry flow use the same wording',
     'issue-guide-output-v2026-05-21'
 ),
 (
     'demo-2',
-    'IssueGuideController의 입력 검증 실패 조건을 테스트로 고정한 뒤, 실패 응답 메시지와 예시 코드가 같은 용어를 쓰도록 정리합니다.',
-    'GIVEN IssueGuideController receives invalid guide input
+    'WebMvcAutoConfiguration.java 관련 요청 검증 실패 조건을 테스트로 고정한 뒤, 실패 응답 메시지와 예시 코드가 같은 용어를 쓰도록 정리합니다.',
+    'GIVEN WebMvcAutoConfiguration validation flow receives invalid input
 WHEN validation returns the failure response
 CALL add_regression_test_for_error_message()
 CALL align_example_code_with_response_terms()
@@ -114,6 +114,6 @@ INSERT INTO issue_guide_file_paths (
     path_order,
     file_path
 ) VALUES
-('demo-1', 0, 'front/src/app/issues/[id]/page.tsx'),
-('demo-1', 1, 'front/src/lib/api.ts'),
-('demo-2', 0, 'back/src/main/java/com/aquilabuddy/adapter/in/web/analysis/IssueGuideController.java');
+('demo-1', 0, 'packages/next/src/client/app-next.tsx'),
+('demo-1', 1, 'docs/01-app/01-getting-started/01-installation.mdx'),
+('demo-2', 0, 'spring-boot-project/spring-boot-autoconfigure/src/main/java/org/springframework/boot/autoconfigure/web/servlet/WebMvcAutoConfiguration.java');

@@ -6,7 +6,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * 저장된 PR 초안을 upstream 제출 전에 7대 기여 준비도 게이트로 점검할 수 있도록 변환합니다.
+ * 저장된 PR 초안을 upstream 제출 전에 핵심 체크리스트 항목으로 점검할 수 있도록 변환합니다.
  */
 public record PullRequestDraftReadiness(
     String draftId,
@@ -24,6 +24,9 @@ public record PullRequestDraftReadiness(
     private static final Pattern CONFLICT_MARKER_PATTERN = Pattern.compile(
         "(?m)^\\+?\\s*(<{7}|={7}|>{7})"
     );
+    private static final Pattern HAS_DIFF_CHANGE_PATTERN = Pattern.compile(
+        "(?m)^(?:diff --git\\s+|@@\\s+|[+-](?![+-]{2})\\S*)"
+    );
     private static final Pattern MARKDOWN_HEADING_PATTERN = Pattern.compile(
         "(?m)^#{1,6}\\s+\\S+"
     );
@@ -33,7 +36,7 @@ public record PullRequestDraftReadiness(
     }
 
     /**
-     * 7대 기여 준비도(브랜치 흐름, 이슈 링크 구문, 템플릿 필수 항목 준수, 테스트 계획, 클린 diff, 브레이킹 체인지 체크, 제목 규격)를 평가합니다.
+     * 제출 전 핵심 준비도 항목(브랜치 흐름, 이슈 연결 구문, 템플릿 구조 준수, 테스트 계획, 클린 Diff 검증, 브레이킹 체인지 확인, 제목 규격)을 평가합니다.
      */
     public static PullRequestDraftReadiness from(StoredPullRequestDraft draft) {
         // 1. 브랜치 흐름: base/head branch가 비어있지 않고 서로 다름
@@ -41,20 +44,20 @@ public record PullRequestDraftReadiness(
             && !draft.headBranch().isBlank()
             && !draft.baseBranch().equals(draft.headBranch());
 
-        // 2. 이슈 링크 구문: body에 close #N, fix #N 등 연계 구문 포함
+        // 2. 이슈 연결 구문: body에 close #N, fix #N 등 연계 구문 포함
         boolean hasIssueLink = hasClosingIssueLink(draft.body(), draft.githubIssueNumber());
 
-        // 3. 템플릿 필수 항목 준수: 마크다운 섹션 헤딩(#, ## 등) 포함 및 3줄 이상 구조화
+        // 3. 템플릿 구조 준수: 마크다운 섹션 헤딩(#, ## 등) 포함 및 3줄 이상 구조화
         boolean hasStructuredBody = MARKDOWN_HEADING_PATTERN.matcher(draft.body()).find()
             && draft.body().lines().count() >= 3;
 
         // 4. 테스트 계획: 테스트, 검증, test plan 관련 키워드 포함
         boolean hasTestPlan = containsAny(draft.body(), "테스트", "검증", "test plan", "tests", "testing");
 
-        // 5. 클린 diff: diffContent가 존재하고 충돌 마커 및 실패 폴백 문구가 없음
+        // 5. 클린 Diff 검증: 유효한 unified diff 변경 라인이 존재하고 충돌 마커 및 실패 폴백 문구가 없음
         boolean hasCleanDiff = isCleanDiff(draft.diffContent());
 
-        // 6. 브레이킹 체인지 체크: 하위 호환성 영향 또는 브레이킹 체인지 여부 명시
+        // 6. 브레이킹 체인지 확인: 하위 호환성 영향 또는 브레이킹 체인지 여부 명시
         boolean hasBreakingChangeCheck = hasBreakingChangeCheck(draft.body(), draft.title());
 
         // 7. 제목 규격: 120자 이하 및 Conventional Commits 규격 준수
@@ -64,17 +67,17 @@ public record PullRequestDraftReadiness(
         List<PullRequestDraftReadinessItem> items = List.of(
             new PullRequestDraftReadinessItem(
                 "branch-flow",
-                "Branch Flow",
+                "브랜치 흐름",
                 "대상 저장소, 이슈 번호, base/head branch 흐름을 확인합니다.",
                 hasBranchFlow
                     ? draft.upstreamRepo() + " #" + draft.githubIssueNumber() + " / "
-                        + draft.baseBranch() + " -> " + draft.headBranch()
+                        + draft.baseBranch() + " → " + draft.headBranch()
                     : "base/head branch가 같아 제출 전 branch 흐름 확인이 필요합니다.",
                 statusOf(hasBranchFlow)
             ),
             new PullRequestDraftReadinessItem(
                 "issue-link",
-                "Issue Link Syntax",
+                "이슈 연결 구문",
                 "GitHub 이슈 자동 연계 및 종료 구문(close #N, fix #N 등)을 확인합니다.",
                 hasIssueLink
                     ? "이슈 연계 구문(close #" + draft.githubIssueNumber() + ")이 본문에 포함되어 있습니다."
@@ -83,7 +86,7 @@ public record PullRequestDraftReadiness(
             ),
             new PullRequestDraftReadinessItem(
                 "template-compliance",
-                "Template Compliance",
+                "템플릿 구조 준수",
                 "본문이 section 단위로 나뉘어 리뷰어가 빠르게 읽을 수 있는지 확인합니다.",
                 hasStructuredBody
                     ? "본문 section 및 템플릿 필수 항목이 준비되어 있습니다."
@@ -92,7 +95,7 @@ public record PullRequestDraftReadiness(
             ),
             new PullRequestDraftReadinessItem(
                 "test-plan",
-                "Test Plan",
+                "테스트 계획",
                 "검증 방법이나 테스트 계획이 PR 본문에 포함되어 있는지 확인합니다.",
                 hasTestPlan
                     ? "테스트 계획이 포함되어 있습니다."
@@ -101,7 +104,7 @@ public record PullRequestDraftReadiness(
             ),
             new PullRequestDraftReadinessItem(
                 "clean-diff",
-                "Clean Diff",
+                "클린 Diff 검증",
                 "충돌 마커나 오류 없이 유효한 코드 변경 사항(diff)이 존재하는지 확인합니다.",
                 hasCleanDiff
                     ? "충돌 없이 깨끗한 diff가 준비되어 있습니다."
@@ -110,7 +113,7 @@ public record PullRequestDraftReadiness(
             ),
             new PullRequestDraftReadinessItem(
                 "breaking-change",
-                "Breaking Changes",
+                "브레이킹 체인지 확인",
                 "하위 호환성 영향이나 브레이킹 체인지 유무가 명확하게 명시되었는지 확인합니다.",
                 hasBreakingChangeCheck
                     ? "하위 호환성 및 브레이킹 체인지 영향이 명시되었습니다."
@@ -119,7 +122,7 @@ public record PullRequestDraftReadiness(
             ),
             new PullRequestDraftReadinessItem(
                 "title",
-                "Title",
+                "제목 규격",
                 "PR 제목이 제출하기에 충분히 짧고 명확한지 확인합니다.",
                 !hasValidTitleLength
                     ? "제목이 120자를 넘습니다. 핵심 변경만 남겨 주세요."
@@ -142,21 +145,30 @@ public record PullRequestDraftReadiness(
         return ready ? PullRequestDraftReadinessStatus.READY : PullRequestDraftReadinessStatus.ACTION_REQUIRED;
     }
 
-    private static boolean isCleanDiff(String diffContent) {
+    public static boolean isUnavailableDiff(String diffContent) {
         if (diffContent == null || diffContent.isBlank()) {
+            return true;
+        }
+        String normalized = diffContent.toLowerCase(Locale.ROOT);
+        return diffContent.contains("Diff를 불러오지 못했습니다")
+            || normalized.contains("failed to load diff");
+    }
+
+    public static boolean isCleanDiff(String diffContent) {
+        if (isUnavailableDiff(diffContent)) {
             return false;
         }
-        if (diffContent.contains("Diff를 불러오지 못했습니다") || diffContent.toLowerCase(Locale.ROOT).contains("failed to load diff")) {
+        if (CONFLICT_MARKER_PATTERN.matcher(diffContent).find()) {
             return false;
         }
-        return !CONFLICT_MARKER_PATTERN.matcher(diffContent).find();
+        return HAS_DIFF_CHANGE_PATTERN.matcher(diffContent).find();
     }
 
     private static String describeDiffIssue(String diffContent) {
         if (diffContent == null || diffContent.isBlank()) {
             return "코드 변경 사항(diff)이 비어 있습니다.";
         }
-        if (diffContent.contains("Diff를 불러오지 못했습니다") || diffContent.toLowerCase(Locale.ROOT).contains("failed to load diff")) {
+        if (isUnavailableDiff(diffContent)) {
             return "compare 대상 브랜치 diff를 불러오지 못했습니다.";
         }
         if (CONFLICT_MARKER_PATTERN.matcher(diffContent).find()) {

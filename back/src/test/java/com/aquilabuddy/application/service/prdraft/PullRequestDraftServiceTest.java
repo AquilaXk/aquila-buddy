@@ -19,6 +19,8 @@ import com.aquilabuddy.domain.prdraft.PullRequestDraftAnalysisContext;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftContributionReport;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftHistoryPage;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftHistoryQuery;
+import com.aquilabuddy.domain.prdraft.PullRequestDraftReadiness;
+import com.aquilabuddy.domain.prdraft.PullRequestDraftReadinessStatus;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftRequest;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftRepositoryGuideContext;
 import com.aquilabuddy.domain.prdraft.PullRequestDraftTranslation;
@@ -141,6 +143,9 @@ class PullRequestDraftServiceTest {
             .contains("main -> missing-branch");
         assertThat(savePort.savedRequest).isEqualTo(generatePort.generatedRequest);
         assertThat(draft.body()).contains("spring-projects/spring-boot");
+        PullRequestDraftReadiness readiness = PullRequestDraftReadiness.from(draft);
+        assertThat(readiness.items().get(4).key()).isEqualTo("clean-diff");
+        assertThat(readiness.items().get(4).status()).isEqualTo(PullRequestDraftReadinessStatus.ACTION_REQUIRED);
     }
 
     @Test
@@ -736,6 +741,9 @@ class PullRequestDraftServiceTest {
             request.headBranch(),
             draft.title(),
             draft.body(),
+            request.sourceIssueId(),
+            request.issueContext().title(),
+            request.diffContent(),
             Instant.parse("2026-05-15T00:00:00Z")
         );
     }

@@ -41,7 +41,7 @@ public record PullRequestDraftTimeline(
             new PullRequestDraftTimelineItem(
                 "readiness-reviewed",
                 "Readiness Reviewed",
-                "제출 전 7대 기여 준비도(브랜치 흐름, 이슈 링크, 템플릿 준수, 테스트 계획, 클린 diff, 브레이킹 체인지, 제목 규격)를 확인했습니다.",
+                "제출 전 핵심 점검 항목(브랜치 흐름, 이슈 연결 구문, 템플릿 구조 준수, 테스트 계획, 클린 Diff 검증, 브레이킹 체인지 확인, 제목 규격)을 확인했습니다.",
                 readiness.readyCount() + "/" + totalReadinessCount + " readiness items ready",
                 readyForSubmission
                     ? PullRequestDraftTimelineStatus.DONE

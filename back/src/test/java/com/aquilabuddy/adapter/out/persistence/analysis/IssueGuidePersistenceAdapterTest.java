@@ -39,7 +39,7 @@ class IssueGuidePersistenceAdapterTest {
                 "1. 상세 화면에서 제공하는 이슈 요약과 라벨을 확인한다.",
                 "2. 누락된 안내 문장을 테스트 가능한 단위로 나눈다."
             ),
-            List.of("front/src/app/issues/[id]/page.tsx", "front/src/lib/api.ts"),
+            List.of("packages/next/src/client/app-next.tsx", "docs/01-app/01-getting-started/01-installation.mdx"),
             List.of(
                 "문구 변경은 화면 스냅샷이나 문서 테스트 기대값에 영향을 줄 수 있습니다.",
                 "기존 안내와 중복되는 설명이 생기지 않도록 주변 문맥을 확인해야 합니다."
@@ -49,7 +49,10 @@ class IssueGuidePersistenceAdapterTest {
         IssueGuide guide = adapter.loadIssueGuide("demo-1");
 
         assertThat(guide.issueKey()).isEqualTo("demo-1");
-        assertThat(guide.filePaths()).containsExactly("front/src/app/issues/[id]/page.tsx", "front/src/lib/api.ts");
+        assertThat(guide.filePaths()).containsExactly(
+            "packages/next/src/client/app-next.tsx",
+            "docs/01-app/01-getting-started/01-installation.mdx"
+        );
         assertThat(guide.guideline()).contains("변경 범위를 작게 유지");
         assertThat(guide.pseudoCode()).contains("상세 화면");
         assertThat(guide.sideEffects()).containsExactly(

@@ -296,7 +296,7 @@ public class AiPullRequestDraftAdapter implements GeneratePullRequestDraftPort, 
     }
 
     private static String firstMeaningfulLine(String value, String fallback) {
-        if (value == null || value.isBlank()) {
+        if (com.aquilabuddy.domain.prdraft.PullRequestDraftReadiness.isUnavailableDiff(value)) {
             return fallback;
         }
         return value.lines()
