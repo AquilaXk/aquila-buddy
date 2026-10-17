@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ArrowLeft, ExternalLink, Lightbulb, Code2, GitPullRequest, Radio, Sparkles } from "lucide-react";
+import { ArrowLeft, ExternalLink, Lightbulb, Code2, GitPullRequest } from "lucide-react";
 import ProtectedLayout from "@/components/ProtectedLayout";
+import { StatusBadge } from "@/components/StatusBadge";
 import {
   getIssueDetail,
   getIssueGuide,
@@ -137,9 +138,9 @@ export default function IssueDetailPage() {
     return (
       <ProtectedLayout>
         <div className="space-y-4">
-          <div className="surface rounded-xl h-24 animate-pulse" />
-          <div className="surface rounded-xl h-32 animate-pulse" />
-          <div className="surface rounded-xl h-32 animate-pulse" />
+          <div className="surface h-24 animate-pulse bg-dark-elevated" />
+          <div className="surface h-32 animate-pulse bg-dark-elevated" />
+          <div className="surface h-32 animate-pulse bg-dark-elevated" />
         </div>
       </ProtectedLayout>
     );
@@ -148,13 +149,13 @@ export default function IssueDetailPage() {
   if (notFound || !issue) {
     return (
       <ProtectedLayout>
-        <section className="surface rounded-xl py-20 text-center">
-          <h1 className="text-2xl font-bold text-dark-text">이슈를 찾을 수 없습니다.</h1>
-          <p className="mt-3 text-sm font-semibold text-dark-muted">
+        <section className="surface py-20 text-center">
+          <h1 className="text-2xl font-medium text-dark-text">이슈를 찾을 수 없습니다.</h1>
+          <p className="mt-3 text-sm text-dark-muted">
             추천 이력에서 선택한 이슈 정보를 확인하지 못했습니다.
           </p>
           <Link
-            className="focus-ring mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-400 hover:text-brand-300"
+            className="focus-ring mt-6 inline-flex items-center gap-1.5 text-sm font-medium text-brand-500 hover:text-brand-600"
             href="/issues"
           >
             ← 추천 이슈 목록으로
@@ -166,13 +167,13 @@ export default function IssueDetailPage() {
 
   const githubUrl = `https://github.com/${issue.repoFullName}/issues/${issue.issueNumber}`;
   const scorePercent = Math.round(issue.score * 100);
-  const prDraftHref = buildPullRequestDraftHref(issue, guide);
+  const prDraftHref = buildPullRequestDraftHref(issue);
 
   return (
     <ProtectedLayout>
       <div className="mb-6">
         <Link
-          className="focus-ring inline-flex items-center gap-1.5 text-sm font-semibold text-dark-muted hover:text-dark-text transition-colors"
+          className="focus-ring inline-flex items-center gap-1.5 text-sm font-medium text-dark-muted transition-colors hover:text-dark-text"
           href="/issues"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -180,11 +181,11 @@ export default function IssueDetailPage() {
         </Link>
       </div>
 
-      <section className="surface mb-5 rounded-xl p-6">
+      <section className="surface mb-5 p-6">
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <StatusBadge status={issue.status} />
           <a
-            className="inline-flex items-center gap-1 text-xs font-mono text-dark-muted hover:text-brand-400 transition-colors"
+            className="inline-flex items-center gap-1 font-mono text-xs text-dark-muted transition-colors hover:text-brand-500"
             href={githubUrl}
             rel="noopener noreferrer"
             target="_blank"
@@ -193,24 +194,24 @@ export default function IssueDetailPage() {
             <ExternalLink className="h-3 w-3" />
           </a>
           {issue.score > 0 ? (
-            <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-xs font-semibold text-emerald-400">
+            <span className="badge-trim tabular-nums rounded-md border border-[#137333]/20 bg-[#e6f4ea] px-2.5 py-0.5 text-xs font-medium text-[#137333]">
               매칭 {scorePercent}%
             </span>
           ) : null}
           {"isAnalyzed" in issue ? (
-            <span className="rounded-full border border-brand-500/30 bg-brand-500/10 px-2.5 py-0.5 text-xs font-semibold text-brand-400">
+            <span className="badge-trim rounded-md border border-brand-500/20 bg-brand-50 px-2.5 py-0.5 text-xs font-medium text-brand-600">
               {getIssueAnalysisLabel(issue)}
             </span>
           ) : null}
         </div>
 
-        <h1 className="text-xl font-bold leading-7 text-dark-text">{issue.title}</h1>
+        <h1 className="text-xl font-medium leading-7 text-dark-text">{issue.title}</h1>
 
         {issue.labels.length > 0 ? (
-          <div className="mt-4 flex flex-wrap gap-2">
+          <div className="mt-4 flex flex-wrap gap-1.5">
             {issue.labels.map((label) => (
               <span
-                className="rounded-full border border-dark-border bg-dark-elevated px-2.5 py-0.5 text-xs text-dark-muted"
+                className="badge-trim rounded border border-dark-border bg-dark-elevated px-2.5 py-0.5 text-xs text-dark-muted"
                 key={label}
               >
                 {label}
@@ -220,21 +221,21 @@ export default function IssueDetailPage() {
         ) : null}
 
         {"reason" in issue && issue.reason ? (
-          <div className="mt-5 rounded-xl border border-dark-border bg-dark-scaffold/70 p-4">
-            <p className="text-xs font-semibold uppercase tracking-wider text-brand-400">추천 이유</p>
-            <p className="mt-2 text-sm leading-6 text-dark-text">{issue.reason}</p>
+          <div className="mt-5 rounded-lg border border-dark-border bg-dark-elevated p-4">
+            <p className="text-xs font-semibold uppercase tracking-wider text-ink-muted">추천 이유</p>
+            <p className="mt-1.5 text-sm leading-6 text-dark-text">{issue.reason}</p>
           </div>
         ) : null}
       </section>
 
-      <section className="surface mb-4 rounded-xl p-6">
+      <section className="surface mb-4 p-6">
         <div className="mb-3 flex items-start justify-between gap-4">
           <div className="flex items-start gap-3">
-            <span className="grid h-8 w-8 place-items-center rounded-lg bg-brand-500/10 text-brand-400 shrink-0 mt-0.5">
+            <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-md border border-dark-border bg-dark-elevated text-dark-text">
               <Lightbulb className="h-4 w-4" />
             </span>
             <div>
-              <h2 className="font-semibold text-dark-text">1차 힌트 — 수정 가이드</h2>
+              <h2 className="font-medium text-dark-text">1차 힌트 — 수정 가이드</h2>
               <p className="mt-1 text-xs leading-5 text-dark-muted">
                 이슈 해결을 시작하기 전에 수정 방향과 주의 사항을 확인합니다.
               </p>
@@ -242,7 +243,7 @@ export default function IssueDetailPage() {
           </div>
           {!guide ? (
             <button
-              className="focus-ring shrink-0 rounded-xl bg-brand-500/20 px-4 py-2 text-sm font-semibold text-brand-400 hover:bg-brand-500/30 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+              className="btn-secondary focus-ring shrink-0 px-4 py-2 text-xs disabled:cursor-not-allowed disabled:opacity-50"
               disabled={guideLoading}
               onClick={handleGetGuide}
               type="button"
@@ -253,18 +254,18 @@ export default function IssueDetailPage() {
         </div>
 
         {guideError ? (
-          <p className="text-sm font-semibold text-red-400">{guideError}</p>
+          <p className="text-sm font-medium text-[#c5221f]">{guideError}</p>
         ) : null}
 
         {guideLoading && !guide ? (
-          <div className="mt-4 space-y-3 rounded-xl border border-brand-500/30 bg-brand-500/5 p-4">
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-brand-500/20 pb-3">
+          <div className="mt-4 space-y-3 rounded-lg border border-dark-border bg-dark-elevated p-4">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-dark-border pb-3">
               <div className="flex items-center gap-2">
                 <span className="relative flex h-2.5 w-2.5">
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-400 opacity-75" />
                   <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-brand-500" />
                 </span>
-                <span className="text-xs font-semibold text-brand-400">
+                <span className="text-xs font-medium text-brand-600">
                   {streamStep === "ANALYZING" && "저장소 코드 맥락 분석 중..."}
                   {streamStep === "FILES" && "수정 대상 파일 분석 완료"}
                   {streamStep === "GUIDELINE" && "가이드라인 실시간 스트리밍 중..."}
@@ -274,16 +275,16 @@ export default function IssueDetailPage() {
                 </span>
               </div>
               <div className="flex items-center gap-1.5 text-[11px] font-medium text-dark-muted">
-                <span className={`rounded-md px-2 py-0.5 ${streamStep === "ANALYZING" ? "bg-brand-500/20 text-brand-300 font-semibold" : "bg-dark-elevated text-dark-muted"}`}>
+                <span className={`rounded px-2 py-0.5 ${streamStep === "ANALYZING" ? "bg-brand-50 text-brand-600 font-semibold" : "bg-white text-dark-muted"}`}>
                   1. 분석
                 </span>
-                <span className={`rounded-md px-2 py-0.5 ${streamStep === "FILES" ? "bg-brand-500/20 text-brand-300 font-semibold" : streamFilePaths.length > 0 ? "text-emerald-400 font-semibold" : "bg-dark-elevated text-dark-muted"}`}>
+                <span className={`rounded px-2 py-0.5 ${streamStep === "FILES" ? "bg-brand-50 text-brand-600 font-semibold" : streamFilePaths.length > 0 ? "text-[#137333] font-semibold" : "bg-white text-dark-muted"}`}>
                   2. 파일
                 </span>
-                <span className={`rounded-md px-2 py-0.5 ${streamStep === "GUIDELINE" ? "bg-brand-500/20 text-brand-300 font-semibold" : streamGuideline ? "text-emerald-400 font-semibold" : "bg-dark-elevated text-dark-muted"}`}>
+                <span className={`rounded px-2 py-0.5 ${streamStep === "GUIDELINE" ? "bg-brand-50 text-brand-600 font-semibold" : streamGuideline ? "text-[#137333] font-semibold" : "bg-white text-dark-muted"}`}>
                   3. 가이드
                 </span>
-                <span className={`rounded-md px-2 py-0.5 ${streamStep === "SIDE_EFFECTS" ? "bg-brand-500/20 text-brand-300 font-semibold" : streamSideEffects.length > 0 ? "text-emerald-400 font-semibold" : "bg-dark-elevated text-dark-muted"}`}>
+                <span className={`rounded px-2 py-0.5 ${streamStep === "SIDE_EFFECTS" ? "bg-brand-50 text-brand-600 font-semibold" : streamSideEffects.length > 0 ? "text-[#137333] font-semibold" : "bg-white text-dark-muted"}`}>
                   4. 주의점
                 </span>
               </div>
@@ -291,10 +292,10 @@ export default function IssueDetailPage() {
 
             {streamFilePaths.length > 0 ? (
               <div className="space-y-1">
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-dark-muted">수정 대상 파일</p>
+                <p className="text-[11px] font-medium uppercase tracking-wide text-dark-muted">수정 대상 파일</p>
                 <div className="flex flex-wrap gap-1.5">
                   {streamFilePaths.map((fp) => (
-                    <code className="rounded border border-dark-border bg-dark-scaffold px-2 py-0.5 font-mono text-xs font-semibold text-brand-400" key={fp}>
+                    <code className="rounded border border-dark-border bg-white px-2 py-0.5 font-mono text-xs text-dark-text" key={fp}>
                       {fp}
                     </code>
                   ))}
@@ -303,18 +304,18 @@ export default function IssueDetailPage() {
             ) : null}
 
             {streamGuideline ? (
-              <div className="rounded-lg border border-dark-border bg-dark-scaffold/80 p-3">
-                <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-dark-muted">가이드라인</p>
+              <div className="rounded-md border border-dark-border bg-white p-3">
+                <p className="mb-1 text-[11px] font-medium uppercase tracking-wide text-dark-muted">가이드라인</p>
                 <p className="whitespace-pre-wrap text-xs leading-5 text-dark-text">
                   {streamGuideline}
-                  <span className="inline-block h-3.5 w-1 bg-brand-400 animate-pulse ml-0.5 align-middle" />
+                  <span className="ml-0.5 inline-block h-3.5 w-1 animate-pulse bg-brand-500 align-middle" />
                 </p>
               </div>
             ) : null}
 
             {streamSideEffects.length > 0 ? (
-              <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-3">
-                <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-amber-300">주의 사항</p>
+              <div className="rounded-md border border-[#b06000]/20 bg-[#fef7e0] p-3">
+                <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-[#b06000]">주의 사항</p>
                 <ul className="list-disc space-y-1 pl-4 text-xs text-dark-text">
                   {streamSideEffects.map((se) => (
                     <li key={se}>{se}</li>
@@ -328,15 +329,15 @@ export default function IssueDetailPage() {
         {guide ? (
           <div className="mt-4 space-y-4">
             <FilePathList filePaths={guide.filePaths} />
-            <div className="rounded-xl border border-dark-border bg-dark-scaffold/60 p-4">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-dark-muted">가이드라인</p>
+            <div className="rounded-lg border border-dark-border bg-dark-elevated p-4">
+              <p className="mb-2 text-xs font-medium uppercase tracking-wide text-dark-muted">가이드라인</p>
               <p className="whitespace-pre-wrap text-sm leading-6 text-dark-text">
                 {guide.guideline}
               </p>
             </div>
             {guide.sideEffects.length > 0 ? (
-              <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-amber-300">주의 사항</p>
+              <div className="rounded-lg border border-[#b06000]/20 bg-[#fef7e0] p-4">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#b06000]">주의 사항</p>
                 <ul className="list-disc space-y-2 pl-4 text-sm leading-6 text-dark-text">
                   {guide.sideEffects.map((sideEffect) => (
                     <li key={sideEffect}>{sideEffect}</li>
@@ -348,14 +349,14 @@ export default function IssueDetailPage() {
         ) : null}
       </section>
 
-      <section className="surface mb-5 rounded-xl p-6">
+      <section className="surface mb-5 p-6">
         <div className="mb-3 flex items-start justify-between gap-4">
           <div className="flex items-start gap-3">
-            <span className="grid h-8 w-8 place-items-center rounded-lg bg-brand-500/10 text-brand-400 shrink-0 mt-0.5">
+            <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-md border border-dark-border bg-dark-elevated text-dark-text">
               <Code2 className="h-4 w-4" />
             </span>
             <div>
-              <h2 className="font-semibold text-dark-text">2차 힌트 — 의사 코드</h2>
+              <h2 className="font-medium text-dark-text">2차 힌트 — 의사 코드</h2>
               <p className="mt-1 text-xs leading-5 text-dark-muted">
                 구현에 들어가기 전에 구체적인 코드 수정 제안을 확인합니다.
               </p>
@@ -363,7 +364,7 @@ export default function IssueDetailPage() {
           </div>
           {!pseudo ? (
             <button
-              className="focus-ring shrink-0 rounded-xl border border-brand-500/40 bg-brand-500/10 px-4 py-2 text-sm font-semibold text-brand-400 hover:bg-brand-500/20 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+              className="btn-secondary focus-ring shrink-0 px-4 py-2 text-xs disabled:cursor-not-allowed disabled:opacity-50"
               disabled={pseudoLoading}
               onClick={handleGetPseudo}
               type="button"
@@ -374,31 +375,31 @@ export default function IssueDetailPage() {
         </div>
 
         {pseudoError ? (
-          <p className="text-sm font-semibold text-red-400">{pseudoError}</p>
+          <p className="text-sm font-medium text-[#c5221f]">{pseudoError}</p>
         ) : null}
 
         {pseudo ? (
           <div className="mt-4 space-y-4">
             <FilePathList filePaths={pseudo.filePaths} />
-            <pre className="max-h-96 overflow-auto whitespace-pre-wrap rounded-xl border border-dark-border bg-dark-scaffold p-4 font-mono text-xs leading-6 text-dark-text">
+            <pre className="max-h-96 overflow-auto whitespace-pre-wrap rounded-lg border border-dark-border bg-dark-elevated p-4 font-mono text-xs leading-6 text-dark-text">
               {pseudo.pseudoCode}
             </pre>
           </div>
         ) : null}
       </section>
 
-      <section className="surface rounded-xl border-brand-500/40 p-6 shadow-md shadow-brand-500/5">
+      <section className="surface p-6">
         <div className="flex items-center gap-3">
-          <span className="grid h-8 w-8 place-items-center rounded-lg bg-brand-500/10 text-brand-400 shrink-0">
+          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md border border-dark-border bg-dark-elevated text-dark-text">
             <GitPullRequest className="h-4 w-4" />
           </span>
-          <h2 className="font-semibold text-dark-text">PR 초안 생성</h2>
+          <h2 className="font-medium text-dark-text">PR 초안 생성</h2>
         </div>
         <p className="mt-2 text-sm leading-6 text-dark-muted">
           코드 작업이 완료되었다면 선택한 이슈의 맥락으로 PR 초안을 작성하세요.
         </p>
         <Link
-          className="focus-ring mt-5 inline-flex items-center gap-1.5 rounded-xl bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-600 active:bg-brand-700 transition-all"
+          className="btn-primary focus-ring mt-5 inline-flex items-center gap-1.5 px-5 py-2.5 text-sm"
           href={prDraftHref}
         >
           <span>PR 초안 만들기 →</span>
@@ -413,12 +414,12 @@ function FilePathList({ filePaths }: { filePaths?: string[] | null }) {
 
   return (
     <div>
-      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-dark-muted">수정 대상 파일</p>
+      <p className="mb-2 text-xs font-medium uppercase tracking-wide text-dark-muted">수정 대상 파일</p>
       {safeFilePaths.length > 0 ? (
         <div className="space-y-1.5">
           {safeFilePaths.map((filePath) => (
             <code
-              className="block rounded-lg border border-dark-border bg-dark-scaffold px-3 py-1.5 font-mono text-xs font-semibold text-brand-400"
+              className="block rounded-md border border-dark-border bg-dark-elevated px-3 py-1.5 font-mono text-xs font-medium text-dark-text"
               key={filePath}
             >
               {filePath}
@@ -426,7 +427,7 @@ function FilePathList({ filePaths }: { filePaths?: string[] | null }) {
           ))}
         </div>
       ) : (
-        <p className="rounded-lg border border-dark-border bg-dark-scaffold px-3 py-2 text-xs font-semibold text-dark-muted">
+        <p className="rounded-md border border-dark-border bg-dark-elevated px-3 py-2 text-xs text-dark-muted">
           수정 대상 파일 없음
         </p>
       )}
@@ -474,25 +475,11 @@ async function fallbackIssueLookup(issueId: string): Promise<IssueDetailIssue | 
   return [...history, ...recommendations].find((item) => item.id === issueId) ?? null;
 }
 
-function StatusBadge({ status }: { status: RecommendedIssue["status"] }) {
-  return (
-    <span
-      className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
-        status === "OPEN"
-          ? "border border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
-          : "border border-dark-border bg-dark-elevated text-dark-muted"
-      }`}
-    >
-      {status === "OPEN" ? "● OPEN" : "○ CLOSED"}
-    </span>
-  );
-}
-
 function getIssueAnalysisLabel(issue: RecommendedIssueHistory) {
   return issue.isAnalyzed ? "분석 완료" : "분석 전";
 }
 
-function buildPullRequestDraftHref(issue: IssueDetailIssue, guide: IssueGuide | null) {
+function buildPullRequestDraftHref(issue: IssueDetailIssue) {
   const params = new URLSearchParams({
     repo: issue.repoFullName,
     issue: String(issue.issueNumber),

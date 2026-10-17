@@ -38,12 +38,21 @@ assertIncludes("GitHub에서 이슈 수집 중...", "Recommendation flow must sh
 assertIncludes("나에게 맞는 이슈 분석 중...", "Recommendation flow must show the analysis step.");
 assertIncludes("프로필 분석을 마쳤다면 바로 추천을 실행해 첫 후보를 받아보세요.", "Empty state must guide profile analysis first.");
 assertIncludes("IssueHistoryCard", "Issues page must render history cards.");
+assertIncludes("@/components/StatusBadge", "Issues page must import shared StatusBadge component.");
 assertIncludes("StatusBadge", "Issues page must render status badges.");
+assertIncludes("tabular-nums", "Issues cards must use tabular-nums on match score.");
 assertIncludes("매칭 {scorePercent}%", "Issues cards must show match score.");
 assertIncludes("분석 완료", "Issues cards must show analyzed status.");
+assertIncludes("추천 근거:", "Issues cards must show a single clean recommendation reason row.");
 assertIncludes("자세히 →", "Issues cards must show the detail affordance.");
 
 for (const text of [
+  "parseRecommendationFacets",
+  "🎯",
+  "🌱",
+  "🔓",
+  "⚡",
+  "💡",
   "IssueCrawlSearchPanel",
   "Collected catalog",
   "Current recommendations",
@@ -52,7 +61,7 @@ for (const text of [
   "Good First Issue 후보 수집",
   "프로필 분석 완료 후"
 ]) {
-  assertNotIncludes(text, `Issues page must not expose old "${text}" structure.`);
+  assertNotIncludes(text, `Issues page must not expose old or emoji-overloaded "${text}" structure.`);
 }
 
 if (existsSync(crawlPanelPath)) {

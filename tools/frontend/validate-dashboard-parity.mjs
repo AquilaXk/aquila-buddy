@@ -26,8 +26,11 @@ assertIncludes("\"use client\";", "Dashboard page must be a client screen.");
 assertIncludes("useEffect", "Dashboard page must load the current user on the client.");
 assertIncludes("useState", "Dashboard page must keep loading/error/profile state.");
 assertIncludes("getUserProfile", "Dashboard page must fetch the current user profile.");
+assertIncludes("formatDate", "Dashboard page must format vectorUpdatedAt using shared formatDate.");
+assertIncludes("@/lib/format", "Dashboard page must import formatDate from @/lib/format.");
 assertIncludes("안녕하세요", "Dashboard page must show the user greeting.");
-assertIncludes("aquila buddy", "Dashboard page must use the aquila buddy service name.");
+assertIncludes("기여 워크스페이스 개요", "Dashboard page must use the clean Korean subtitle.");
+assertIncludes("{error}", "Dashboard page must render the actual error message when present.");
 assertIncludes("프로필 분석이 필요합니다", "Dashboard page must show the profile analysis banner.");
 assertIncludes("const hasVector = Boolean(user?.profileReady || user?.vectorUpdatedAt);", "Dashboard must gate recommendation entry from profile vector readiness.");
 assertIncludes("이슈 추천을 받으려면 먼저 마이페이지에서 벡터 업데이트를 완료해주세요.", "Dashboard page must explain the vector update prerequisite.");
@@ -37,20 +40,16 @@ assertIncludes("GitHub ID", "Dashboard page must show GitHub ID.");
 assertIncludes("프로필 편집", "Dashboard page must link to profile editing.");
 assertIncludes("주요 언어", "Dashboard page must show primary languages.");
 assertIncludes("벡터 업데이트", "Dashboard page must show vector update status.");
-assertIncludes("STEP 1", "Dashboard page must show the first service step.");
-assertIncludes("STEP 2", "Dashboard page must show the second service step.");
-assertIncludes("STEP 3", "Dashboard page must show the third service step.");
-assertIncludes("프로필 분석", "Dashboard page must link profile analysis step.");
-assertIncludes("GitHub 활동을 분석하여 AI 추천을 위한 벡터를 생성합니다.", "Dashboard page must describe profile vector creation.");
-assertIncludes("이슈 추천", "Dashboard page must link issue recommendation step.");
-assertIncludes("나의 기술 스택에 맞는 오픈소스 이슈를 추천받고 분석 힌트를 확인합니다.", "Dashboard page must describe issue recommendation and hints.");
-assertIncludes("PR 초안 생성", "Dashboard page must link PR draft step.");
-assertIncludes("코드 작업 후 브랜치 정보를 입력하면 AI가 PR을 자동 작성합니다.", "Dashboard page must describe PR draft creation.");
-assertIncludes("action: \"프로필로 이동\"", "Dashboard profile step action changed.");
-assertIncludes("action: \"이슈 추천 보기\"", "Dashboard issue recommendation step action changed.");
-assertIncludes("action: \"초안 만들기\"", "Dashboard PR draft step action changed.");
+assertIncludes("프로필 분석", "Dashboard page must link profile analysis action.");
+assertIncludes("이슈 추천", "Dashboard page must link issue recommendation action.");
+assertIncludes("PR 초안 생성", "Dashboard page must link PR draft action.");
 
 for (const text of [
+  "OpenSource contribution assistant 대시보드",
+  "backend API 상태를 확인해 주세요.",
+  "STEP 1",
+  "STEP 2",
+  "STEP 3",
   "DashboardActivityPanel",
   "DashboardWorkflowPanel",
   "loadDashboardOverview",
@@ -61,7 +60,7 @@ for (const text of [
   "Translations",
   "Workspace"
 ]) {
-  assertNotIncludes(text, `Dashboard page must not expose old "${text}" structure.`);
+  assertNotIncludes(text, `Dashboard page must not expose old or slop "${text}" structure.`);
 }
 
 if (failures.length > 0) {

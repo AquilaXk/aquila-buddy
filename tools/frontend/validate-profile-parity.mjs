@@ -30,6 +30,8 @@ assertIncludes(profilePage, "useState", "Profile page must manage loading/profil
 assertIncludes(profilePage, "getUserProfile", "Profile page must load the current user profile.");
 assertIncludes(profilePage, "<ProfileEditorPanel initialProfile={profile} />", "Profile page must render the simplified editor panel.");
 assertIncludes(profilePage, "프로필을 불러오는 중...", "Profile page must show a loading state while fetching from the browser.");
+assertIncludes(profilePage, "프로필을 불러오지 못했습니다", "Profile page must show an error banner when loading fails.");
+assertNotIncludes(profilePage, "backend API 상태를 확인해 주세요.", "Profile page must not print generic backend API status slop.");
 assertNotIncludes(profilePage, "async function ProfilePage", "Profile page must not fetch the authenticated profile during server render.");
 assertNotIncludes(profilePage, "result.profile", "Profile page must not depend on server-loaded profile results.");
 assertNotIncludes(profilePage, "getUserProfileByLogin", "Profile page must not fetch the public profile panel.");
@@ -40,6 +42,7 @@ for (const text of [
   "GitHub ID",
   "이름",
   "이메일",
+  "관심 기술 토픽",
   "프로필 저장",
   "프로필을 저장했습니다.",
   "프로필 저장에 실패했습니다.",
@@ -56,10 +59,12 @@ for (const text of [
 }
 
 assertIncludes(profilePanel, "primaryLanguages: profile.primaryLanguages", "Profile save must preserve detected languages.");
-assertIncludes(profilePanel, "topics: profile.topics", "Profile save must preserve detected topics.");
+assertIncludes(profilePanel, "topics", "Profile save and editor must manage topics.");
 assertIncludes(profilePanel, "refreshUserProfileVector", "Profile panel must keep vector refresh behavior.");
 assertIncludes(profilePanel, "requestState.status === \"saving\"", "Profile panel must expose the saving fixture state.");
 assertIncludes(profilePanel, "requestState.status === \"refreshing\"", "Profile panel must expose the vector refresh fixture state.");
+assertIncludes(profilePanel, "@/lib/format", "Profile panel must use shared formatDate utility.");
+assertNotIncludes(profilePanel, "border-t-transparent", "Profile panel must unify loading spinners on Loader2 instead of ad-hoc border spinners.");
 assertNotIncludes(profilePanel, "required", "Profile form must not block save/error fixtures with browser-only required constraints.");
 
 for (const text of [

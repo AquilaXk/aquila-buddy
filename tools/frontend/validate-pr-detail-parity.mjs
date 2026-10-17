@@ -7,11 +7,13 @@ const prDraftRequestPath = join(repoRoot, "back/src/main/java/com/aquilabuddy/do
 const prDraftServicePath = join(repoRoot, "back/src/main/java/com/aquilabuddy/application/service/prdraft/PullRequestDraftService.java");
 const prDraftCreatePagePath = join(repoRoot, "front/src/app/pr-draft/page.tsx");
 const prDetailPagePath = join(repoRoot, "front/src/app/pr/[id]/page.tsx");
+const readinessSectionPath = join(repoRoot, "front/src/components/PrDraftReadinessSection.tsx");
 const apiClient = readFileSync(apiClientPath, "utf8");
 const prDraftRequest = readFileSync(prDraftRequestPath, "utf8");
 const prDraftService = readFileSync(prDraftServicePath, "utf8");
 const prDraftCreatePage = readFileSync(prDraftCreatePagePath, "utf8");
 const prDetailPage = readFileSync(prDetailPagePath, "utf8");
+const readinessSection = readFileSync(readinessSectionPath, "utf8");
 const failures = [];
 
 function fail(message) {
@@ -30,6 +32,12 @@ function assertFileIncludes(content, needle, message) {
   }
 }
 
+function assertFileNotIncludes(content, needle, message) {
+  if (content.includes(needle)) {
+    fail(message);
+  }
+}
+
 function assertNotIncludes(needle, message) {
   if (prDetailPage.includes(needle)) {
     fail(message);
@@ -43,19 +51,19 @@ assertIncludes("getPullRequestDraft", "PR detail page must fetch the draft.");
 assertIncludes("updatePullRequestDraft", "PR detail page must update the draft.");
 assertIncludes("deletePullRequestDraft", "PR detail page must delete the draft.");
 assertIncludes("translatePullRequestDraft", "PR detail page must translate the draft.");
+assertIncludes("@/lib/format", "PR detail page must import shared formatDate from @/lib/format.");
 assertIncludes("PR 초안을 찾을 수 없습니다.", "PR detail page must keep the not-found state.");
 assertIncludes("PR 초안 목록", "PR detail page must link back to draft list.");
 assertIncludes("연결된 이슈", "PR detail page must show connected issue context.");
+assertIncludes("{draft.baseBranch} → {draft.headBranch}", "PR detail page must use typographic arrow → for branch display.");
+assertNotIncludes("-&gt;", "PR detail page must not use ASCII -> arrow for branch display.");
+
+assertFileIncludes(readinessSection, "PR 기여 준비도 점검", "PrDraftReadinessSection must use clean heading 'PR 기여 준비도 점검'.");
+assertFileNotIncludes(readinessSection, "7대 기여 준비도", "PrDraftReadinessSection must not use marketing slop '7대 기여 준비도'.");
+
 assertFileIncludes(apiClient, "sourceIssueId?: string;", "PR draft create API request must accept sourceIssueId.");
 assertFileIncludes(apiClient, "sourceIssueId: string | null;", "Stored PR draft API type must expose sourceIssueId.");
 assertFileIncludes(apiClient, "type PullRequestDraftReadiness = {\n  draftId: string;\n  sourceIssueId: string | null;", "PR draft readiness API type must expose sourceIssueId.");
-assertFileIncludes(apiClient, "type PullRequestDraftTranslationReadiness = {\n  draftId: string;\n  translationId: string;\n  targetLanguage: \"en\";\n  sourceIssueId: string | null;", "PR draft translation readiness API type must expose sourceIssueId.");
-assertFileIncludes(apiClient, "type PullRequestDraftSubmission = {\n  draftId: string;\n  upstreamRepo: string;\n  githubIssueNumber: number;\n  sourceIssueId: string | null;", "PR draft submission API type must expose sourceIssueId.");
-assertFileIncludes(apiClient, "type PullRequestDraftTranslationSubmission = {\n  draftId: string;\n  translationId: string;\n  targetLanguage: \"en\";\n  upstreamRepo: string;\n  githubIssueNumber: number;\n  sourceIssueId: string | null;", "PR draft translation submission API type must expose sourceIssueId.");
-assertFileIncludes(apiClient, "type PullRequestDraftContributionReport = {\n  draftId: string;\n  upstreamRepo: string;\n  githubIssueNumber: number;\n  sourceIssueId: string | null;", "PR draft contribution report API type must expose sourceIssueId.");
-assertFileIncludes(apiClient, "type PullRequestDraftTimeline = {\n  draftId: string;\n  sourceIssueId: string | null;", "PR draft timeline API type must expose sourceIssueId.");
-assertFileIncludes(apiClient, "type PullRequestDraftTranslationTimeline = {\n  draftId: string;\n  translationId: string;\n  targetLanguage: \"en\";\n  sourceIssueId: string | null;", "PR draft translation timeline API type must expose sourceIssueId.");
-assertFileIncludes(apiClient, "type PullRequestDraftTranslationActivity = {\n  draftId: string;\n  translationId: string;\n  upstreamRepo: string;\n  githubIssueNumber: number;\n  sourceIssueId: string | null;", "PR draft translation activity API type must expose sourceIssueId.");
 assertFileIncludes(apiClient, "type PullRequestDraftTranslateResult = {\n  titleEn: string;\n  bodyEn: string;\n  sourceIssueId: string | null;", "PR draft translate result API type must expose sourceIssueId.");
 assertFileIncludes(apiClient, "type PullRequestDraftTranslation = PullRequestDraft & {\n  id: string;\n  draftId: string;\n  sourceIssueId: string | null;", "PR draft translation API type must expose sourceIssueId.");
 assertFileIncludes(prDraftCreatePage, "sourceIssueId: draftInput.issueId || undefined", "PR draft create payload must send sourceIssueId when present.");

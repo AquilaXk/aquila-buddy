@@ -29,6 +29,7 @@ import {
   type PullRequestDraftTranslateResult,
   type StoredPullRequestDraft
 } from "@/lib/api";
+import { formatDate } from "@/lib/format";
 
 export default function PrDetailPage() {
   const params = useParams<{ id: string }>();
@@ -199,9 +200,9 @@ export default function PrDetailPage() {
     return (
       <ProtectedLayout>
         <div className="space-y-4">
-          <div className="surface rounded-xl h-20 animate-pulse" />
-          <div className="surface rounded-xl h-28 animate-pulse" />
-          <div className="surface rounded-xl h-40 animate-pulse" />
+          <div className="surface h-20 animate-pulse bg-dark-elevated" />
+          <div className="surface h-28 animate-pulse bg-dark-elevated" />
+          <div className="surface h-40 animate-pulse bg-dark-elevated" />
         </div>
       </ProtectedLayout>
     );
@@ -210,13 +211,13 @@ export default function PrDetailPage() {
   if (notFound || !draft) {
     return (
       <ProtectedLayout>
-        <section className="surface rounded-xl py-20 text-center">
-          <h1 className="text-2xl font-bold text-dark-text">PR 초안을 찾을 수 없습니다.</h1>
-          <p className="mt-3 text-sm font-semibold text-dark-muted">
+        <section className="surface py-20 text-center">
+          <h1 className="text-2xl font-medium text-dark-text">PR 초안을 찾을 수 없습니다.</h1>
+          <p className="mt-3 text-sm text-dark-muted">
             저장된 PR 초안 정보를 확인하지 못했습니다.
           </p>
           <Link
-            className="focus-ring mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-400 hover:text-brand-300 transition-colors"
+            className="focus-ring mt-6 inline-flex items-center gap-1.5 text-sm font-medium text-brand-500 hover:text-brand-600"
             href="/pr-draft"
           >
             ← PR 초안 목록으로
@@ -234,7 +235,7 @@ export default function PrDetailPage() {
     <ProtectedLayout>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <Link
-          className="focus-ring inline-flex items-center gap-1.5 text-sm font-semibold text-dark-muted hover:text-dark-text transition-colors"
+          className="focus-ring inline-flex items-center gap-1.5 text-sm font-medium text-dark-muted transition-colors hover:text-dark-text"
           href="/pr-draft"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -243,7 +244,7 @@ export default function PrDetailPage() {
         <div className="flex items-center gap-2">
           {!editing ? (
             <button
-              className="focus-ring inline-flex items-center gap-1.5 rounded-xl border border-dark-border bg-dark-surface px-3.5 py-1.5 text-xs font-semibold text-dark-muted hover:text-dark-text hover:bg-dark-elevated transition-colors"
+              className="btn-secondary focus-ring inline-flex items-center gap-1.5 px-3 py-1.5 text-xs"
               onClick={() => {
                 setActiveLangTab("ko");
                 setEditing(true);
@@ -255,7 +256,7 @@ export default function PrDetailPage() {
             </button>
           ) : null}
           <button
-            className="focus-ring inline-flex items-center gap-1.5 rounded-xl border border-red-500/20 bg-red-500/10 px-3.5 py-1.5 text-xs font-semibold text-red-400 hover:bg-red-500/20 hover:text-red-300 disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
+            className="focus-ring inline-flex items-center gap-1.5 rounded-md border border-[#c5221f]/20 bg-[#fce8e6] px-3 py-1.5 text-xs font-medium text-[#c5221f] transition-colors hover:bg-[#fad2cf] disabled:cursor-not-allowed disabled:opacity-50"
             disabled={deleting}
             onClick={handleDelete}
             type="button"
@@ -267,32 +268,32 @@ export default function PrDetailPage() {
       </div>
 
       {error ? (
-        <div className="surface mb-4 rounded-xl border-red-500/30 bg-red-500/10 p-4 text-sm font-semibold text-red-400">
+        <div className="mb-4 rounded-lg border border-[#c5221f]/20 bg-[#fce8e6] p-4 text-sm font-medium text-[#c5221f]">
           {error}
         </div>
       ) : null}
 
       {translated ? (
-        <div className="surface mb-4 rounded-xl border-brand-500/40 bg-brand-500/10 p-4 text-sm font-semibold text-brand-300">
+        <div className="mb-4 rounded-lg border border-brand-500/20 bg-brand-50 p-4 text-sm font-medium text-brand-700">
           영어 번역이 완료되었습니다. 아래 내용으로 GitHub PR을 작성하세요.
         </div>
       ) : null}
 
-      <section className="surface mb-5 flex flex-col gap-3 rounded-xl px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+      <section className="surface mb-5 flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-brand-400">연결된 이슈</p>
-          <p className="mt-1 font-mono text-sm font-semibold text-dark-text">
+          <p className="text-xs font-semibold uppercase tracking-wider text-ink-muted">연결된 이슈</p>
+          <p className="mt-1 font-mono text-sm font-medium text-dark-text">
             {draft.upstreamRepo} #{draft.githubIssueNumber}
           </p>
           <p className="mt-1 break-all font-mono text-xs text-dark-muted">
-            {draft.baseBranch} -&gt; {draft.headBranch}
+            {draft.baseBranch} → {draft.headBranch}
           </p>
         </div>
         <div className="flex flex-col items-start gap-2 sm:items-end">
-          <p className="text-xs font-semibold text-dark-muted">{formatDate(draft.createdAt)}</p>
+          <p className="tabular-nums text-xs text-dark-muted">{formatDate(draft.createdAt)}</p>
           {draft.sourceIssueId ? (
             <Link
-              className="focus-ring inline-flex items-center gap-1 text-xs font-semibold text-brand-400 hover:text-brand-300 transition-colors"
+              className="focus-ring inline-flex items-center gap-1 text-xs font-medium text-brand-500 hover:text-brand-600"
               href={`/issues/${encodeURIComponent(draft.sourceIssueId)}`}
             >
               <span>원본 이슈 보기</span>
@@ -303,7 +304,7 @@ export default function PrDetailPage() {
       </section>
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-base font-semibold text-dark-text">PR 초안 내용</h2>
+        <h2 className="text-base font-medium text-dark-text">PR 초안 내용</h2>
         <LanguageTabSwitcher
           activeTab={activeLangTab}
           disabled={editing}
@@ -317,17 +318,17 @@ export default function PrDetailPage() {
         />
       </div>
 
-      <section className="surface mb-4 rounded-xl p-5">
+      <section className="surface mb-4 p-5">
         <div className="mb-2 flex items-center justify-between gap-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-dark-muted">PR 제목</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-dark-muted">PR 제목</p>
           <button
-            className="focus-ring inline-flex items-center gap-1 text-xs font-semibold text-dark-muted hover:text-brand-400 transition-colors"
+            className="focus-ring inline-flex items-center gap-1 text-xs font-medium text-dark-muted transition-colors hover:text-brand-500"
             onClick={() => copyToClipboard(displayTitle, "title")}
             type="button"
           >
             {copied === "title" ? (
               <>
-                <Check className="h-3 w-3 text-emerald-400" />
+                <Check className="h-3 w-3 text-[#137333]" />
                 <span>복사됨 ✓</span>
               </>
             ) : (
@@ -340,26 +341,26 @@ export default function PrDetailPage() {
         </div>
         {editing ? (
           <input
-            className="focus-ring w-full rounded-xl border border-dark-border bg-dark-scaffold px-3.5 py-2 text-sm text-dark-text focus:border-brand-500"
+            className="focus-ring w-full rounded-md border border-dark-border bg-white px-3.5 py-2 text-sm text-dark-text focus:border-brand-500"
             onChange={(event) => setEditTitle(event.target.value)}
             value={editTitle}
           />
         ) : (
-          <p className="text-sm font-semibold leading-6 text-dark-text">{displayTitle}</p>
+          <p className="text-sm font-medium leading-6 text-dark-text">{displayTitle}</p>
         )}
       </section>
 
-      <section className="surface mb-4 rounded-xl p-5">
+      <section className="surface mb-4 p-5">
         <div className="mb-2 flex items-center justify-between gap-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-dark-muted">PR 본문</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-dark-muted">PR 본문</p>
           <button
-            className="focus-ring inline-flex items-center gap-1 text-xs font-semibold text-dark-muted hover:text-brand-400 transition-colors"
+            className="focus-ring inline-flex items-center gap-1 text-xs font-medium text-dark-muted transition-colors hover:text-brand-500"
             onClick={() => copyToClipboard(displayBody, "body")}
             type="button"
           >
             {copied === "body" ? (
               <>
-                <Check className="h-3 w-3 text-emerald-400" />
+                <Check className="h-3 w-3 text-[#137333]" />
                 <span>복사됨 ✓</span>
               </>
             ) : (
@@ -372,21 +373,21 @@ export default function PrDetailPage() {
         </div>
         {editing ? (
           <textarea
-            className="focus-ring min-h-72 w-full resize-y rounded-xl border border-dark-border bg-dark-scaffold px-3.5 py-2.5 font-mono text-xs leading-6 text-dark-text focus:border-brand-500"
+            className="focus-ring min-h-72 w-full resize-y rounded-md border border-dark-border bg-white px-3.5 py-2.5 font-mono text-xs leading-6 text-dark-text focus:border-brand-500"
             onChange={(event) => setEditBody(event.target.value)}
             value={editBody}
           />
         ) : (
-          <pre className="max-h-72 overflow-y-auto whitespace-pre-wrap font-mono text-xs leading-6 text-dark-text">
+          <pre className="max-h-72 overflow-y-auto whitespace-pre-wrap rounded-md border border-dark-border bg-dark-elevated p-4 font-mono text-xs leading-6 text-dark-text">
             {displayBody}
           </pre>
         )}
       </section>
 
       {draft.diffContent ? (
-        <section className="surface mb-5 rounded-xl p-5">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-dark-muted">코드 변경 내용 (diff)</p>
-          <pre className="max-h-48 overflow-y-auto whitespace-pre-wrap rounded-xl border border-dark-border bg-dark-scaffold p-4 font-mono text-xs leading-6 text-dark-text">
+        <section className="surface mb-5 p-5">
+          <p className="mb-2 text-xs font-medium uppercase tracking-wide text-dark-muted">코드 변경 내용 (diff)</p>
+          <pre className="max-h-48 overflow-y-auto whitespace-pre-wrap rounded-md border border-dark-border bg-dark-elevated p-4 font-mono text-xs leading-6 text-dark-text">
             {draft.diffContent.length > 3000
               ? `${draft.diffContent.slice(0, 3000)}\n... (생략)`
               : draft.diffContent}
@@ -397,9 +398,9 @@ export default function PrDetailPage() {
       <PrDraftReadinessSection readiness={readiness} />
 
       {editing ? (
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-wrap gap-2.5">
           <button
-            className="focus-ring inline-flex items-center gap-1.5 rounded-xl bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-600 active:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50 transition-all"
+            className="btn-primary focus-ring inline-flex items-center gap-1.5 px-5 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
             disabled={saving}
             onClick={handleSave}
             type="button"
@@ -408,7 +409,7 @@ export default function PrDetailPage() {
             <span>{saving ? "저장 중..." : "저장"}</span>
           </button>
           <button
-            className="focus-ring inline-flex items-center gap-1.5 rounded-xl border border-dark-border bg-dark-surface px-5 py-2.5 text-sm font-semibold text-dark-muted hover:text-dark-text hover:bg-dark-elevated transition-colors"
+            className="btn-secondary focus-ring inline-flex items-center gap-1.5 px-5 py-2 text-sm"
             onClick={cancelEdit}
             type="button"
           >
@@ -417,10 +418,10 @@ export default function PrDetailPage() {
           </button>
         </div>
       ) : (
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-wrap gap-2.5">
           {translated ? (
             <a
-              className="focus-ring inline-flex items-center gap-2 rounded-xl bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-600 active:bg-brand-700 transition-all"
+              className="btn-primary focus-ring inline-flex items-center gap-2 px-5 py-2.5 text-sm"
               href={translated.githubUrl}
               rel="noreferrer"
               target="_blank"
@@ -430,7 +431,7 @@ export default function PrDetailPage() {
             </a>
           ) : (
             <button
-              className="focus-ring inline-flex items-center gap-2 rounded-xl bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-600 active:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50 transition-all"
+              className="btn-primary focus-ring inline-flex items-center gap-2 px-5 py-2.5 text-sm disabled:cursor-not-allowed disabled:opacity-50"
               disabled={translating}
               onClick={handleTranslate}
               type="button"
@@ -452,11 +453,4 @@ export default function PrDetailPage() {
       )}
     </ProtectedLayout>
   );
-}
-
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("ko-KR", {
-    dateStyle: "medium",
-    timeStyle: "short"
-  }).format(new Date(value));
 }

@@ -9,6 +9,7 @@ const repoRoot = resolve(import.meta.dirname, "../..");
 
 const validators = [
   ["contract", "tools/frontend/ui-ux-flow-contracts.test.mjs", ["--test"]],
+  ["brand", "tools/frontend/validate-brand-parity.mjs"],
   ["shell", "tools/frontend/validate-shell-parity.mjs"],
   ["login", "tools/frontend/validate-login-parity.mjs"],
   ["oauth-callback", "tools/frontend/validate-oauth-callback-parity.mjs"],

@@ -1,10 +1,10 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 
 const repoRoot = resolve(import.meta.dirname, "../..");
 const issueDetailPagePath = join(repoRoot, "front/src/app/issues/[id]/page.tsx");
+const issueDetailDataPath = join(repoRoot, "front/src/app/issues/[id]/issueDetailData.ts");
 const issueDetailPage = readFileSync(issueDetailPagePath, "utf8");
-const issueDetailDataSource = readFileSync(join(repoRoot, "front/src/app/issues/[id]/issueDetailData.ts"), "utf8");
 const apiSource = readFileSync(join(repoRoot, "front/src/lib/api.ts"), "utf8");
 const failures = [];
 
@@ -30,10 +30,8 @@ function assertApiIncludes(needle, message) {
   }
 }
 
-function assertHelperIncludes(needle, message) {
-  if (!issueDetailDataSource.includes(needle)) {
-    fail(message);
-  }
+if (existsSync(issueDetailDataPath)) {
+  fail("front/src/app/issues/[id]/issueDetailData.ts must stay deleted.");
 }
 
 assertIncludes("\"use client\";", "Issue detail page must be a client screen.");
@@ -56,6 +54,7 @@ assertIncludes("추천 이유", "Issue detail page must show the recommendation 
 assertIncludes("{issue.reason}", "Issue detail page must render recommendation reason from issue.reason, not the raw issue body summary.");
 assertNotIncludes("{issue.summary}</p>", "Issue detail page must not render raw issue body summary as the recommendation reason.");
 assertIncludes("매칭", "Issue detail page must show the match score.");
+assertIncludes("@/components/StatusBadge", "Issue detail page must import shared StatusBadge.");
 assertIncludes("StatusBadge", "Issue detail page must render status badges.");
 assertIncludes("1차 힌트 — 수정 가이드", "Issue detail page must show the first hint card.");
 assertIncludes("힌트 보기", "Issue detail page must expose the guide CTA.");
@@ -68,15 +67,11 @@ assertIncludes("수정 대상 파일 없음", "Issue detail page must keep the e
 assertIncludes("guide.sideEffects.length > 0", "Issue detail page must keep the side effects result section.");
 assertIncludes("guideLoading ? \"분석 중...\" : \"힌트 보기\"", "Issue detail page must keep the guide loading fixture.");
 assertIncludes("pseudoLoading ? \"분석 중...\" : \"코드 힌트 보기\"", "Issue detail page must keep the pseudo loading fixture.");
+assertIncludes("buildPullRequestDraftHref(issue)", "buildPullRequestDraftHref must not pass unused guide parameter.");
 
 assertApiIncludes("export async function getIssueDetail", "Frontend API client must expose issue detail lookup.");
 assertApiIncludes("/api/v1/issues/${encodeURIComponent(id)}", "Issue detail lookup must call the id detail API.");
 assertApiIncludes("Issue detail response was not successful", "Issue detail lookup must validate the response envelope.");
-
-assertHelperIncludes("getIssueDetail", "Issue detail helper must use the direct detail API first.");
-assertHelperIncludes("return await getIssueDetail(issueId)", "Issue detail helper must return direct lookup before fallback.");
-assertHelperIncludes("fallbackIssueLookup", "Issue detail helper must preserve history/recommend fallback lookup.");
-assertHelperIncludes("loadIssueCollections", "Issue detail helper must keep the collection fallback helper.");
 
 for (const queryContract of [
   "issueNumber: String(issue.issueNumber)",
@@ -85,10 +80,11 @@ for (const queryContract of [
   "sourceIssueId: issue.id"
 ]) {
   assertIncludes(queryContract, `Issue detail page must keep PR draft query contract: ${queryContract}.`);
-  assertHelperIncludes(queryContract, `Issue detail helper must keep PR draft query contract: ${queryContract}.`);
 }
 
 for (const text of [
+  "Radio",
+  "Sparkles",
   "IssueGuideWorkflowPanel",
   "IssuePseudoCodePanel",
   "loadIssueDetailOverview",
@@ -96,7 +92,7 @@ for (const text of [
   "Pseudo Code",
   "PR Draft"
 ]) {
-  assertNotIncludes(text, `Issue detail page must not expose old "${text}" structure.`);
+  assertNotIncludes(text, `Issue detail page must not expose unused or old "${text}" structure.`);
 }
 
 if (failures.length > 0) {

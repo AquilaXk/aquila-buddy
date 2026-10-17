@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import ProtectedLayout from "@/components/ProtectedLayout";
 import { getUserProfile, type UserProfile } from "@/lib/api";
+import { formatDate } from "@/lib/format";
 
 export default function DashboardPage() {
   const [user, setUser] = useState<UserProfile | null>(null);
@@ -54,43 +55,41 @@ export default function DashboardPage() {
 
   return (
     <ProtectedLayout>
-      <section className="mb-8 space-y-3">
-        <p className="text-xs font-semibold uppercase tracking-wider text-brand-400">Dashboard</p>
-        <h1 className="text-2xl sm:text-3xl font-bold leading-tight text-dark-text">
+      <section className="mb-6 space-y-1.5">
+        <p className="text-xs font-medium uppercase tracking-wider text-ink-muted">기여 워크스페이스 개요</p>
+        <h1 className="text-2xl font-medium leading-tight text-dark-text">
           <span>안녕하세요,</span>{" "}
           <span className="inline-block max-w-full break-words align-bottom">{greetingTarget}</span>
         </h1>
-        <p className="max-w-2xl text-base leading-7 text-dark-muted">
-          aquila buddy — OpenSource contribution assistant 대시보드
-        </p>
       </section>
 
       {error ? (
-        <section className="surface mb-5 rounded-xl border-red-500/30 bg-red-500/10 p-4 text-sm font-semibold text-red-400">
-          사용자 정보를 불러오지 못했습니다. backend API 상태를 확인해 주세요.
+        <section className="mb-5 flex items-center gap-2.5 rounded-lg border border-[#c5221f]/20 bg-[#fce8e6] p-4 text-sm font-medium text-[#c5221f]">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          <span>사용자 정보를 불러오지 못했습니다: {error}</span>
         </section>
       ) : null}
 
       {loading ? (
-        <section className="surface rounded-xl p-6 text-sm font-semibold text-dark-muted">
+        <section className="surface p-6 text-sm font-medium text-dark-muted">
           사용자 정보를 불러오는 중...
         </section>
       ) : null}
 
       {!loading && !hasVector ? (
-        <section className="surface mb-6 rounded-xl border-amber-500/40 bg-amber-500/10 p-5">
+        <section className="mb-6 rounded-lg border border-[#b06000]/25 bg-[#fef7e0] p-4">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-start gap-3">
-              <AlertCircle className="h-5 w-5 text-amber-400 shrink-0 mt-0.5" />
+              <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-[#b06000]" />
               <div>
-                <p className="text-base font-bold text-amber-300">프로필 분석이 필요합니다</p>
-                <p className="mt-1 text-sm leading-6 text-dark-muted">
+                <p className="text-sm font-semibold text-[#b06000]">프로필 분석이 필요합니다</p>
+                <p className="mt-0.5 text-xs leading-5 text-dark-muted">
                   이슈 추천을 받으려면 먼저 마이페이지에서 벡터 업데이트를 완료해주세요.
                 </p>
               </div>
             </div>
             <Link
-              className="focus-ring inline-flex items-center justify-center rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-600 active:bg-brand-700 transition-all shrink-0"
+              className="btn-primary focus-ring inline-flex shrink-0 items-center justify-center px-4 py-2 text-xs"
               href="/profile"
             >
               프로필로 이동
@@ -100,51 +99,54 @@ export default function DashboardPage() {
       ) : null}
 
       {user ? (
-        <section className="surface rounded-xl p-6">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <section className="surface mb-6 p-6">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-dark-muted">내 계정 정보</p>
-              <h2 className="mt-1 text-xl font-bold text-dark-text">{displayName || "GitHub 사용자"}</h2>
+              <p className="text-xs font-medium uppercase tracking-wider text-ink-muted">내 계정 정보</p>
+              <h2 className="mt-1 text-lg font-medium text-dark-text">{displayName || "GitHub 사용자"}</h2>
             </div>
-            <Link className="focus-ring inline-flex items-center gap-1 text-sm font-semibold text-brand-400 hover:text-brand-300" href="/profile">
+            <Link
+              className="focus-ring inline-flex items-center gap-1 text-xs font-medium text-brand-500 hover:text-brand-600"
+              href="/profile"
+            >
               <span>프로필 편집</span>
               <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>
 
-          <dl className="mt-6 grid gap-6 md:grid-cols-2">
-            <div className="rounded-lg bg-dark-scaffold/60 p-4 border border-dark-border">
-              <dt className="text-xs font-semibold uppercase tracking-wide text-dark-muted">GitHub ID</dt>
-              <dd className="mt-1 break-all text-sm font-semibold text-dark-text">
+          <dl className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="rounded-md border border-dark-border bg-dark-elevated p-3.5">
+              <dt className="text-[11px] font-medium uppercase tracking-wide text-ink-muted">GitHub ID</dt>
+              <dd className="mt-1 break-all font-mono text-xs font-medium text-dark-text">
                 {user.login || user.githubId}
               </dd>
             </div>
-            <div className="rounded-lg bg-dark-scaffold/60 p-4 border border-dark-border">
-              <dt className="text-xs font-semibold uppercase tracking-wide text-dark-muted">Email</dt>
-              <dd className="mt-1 break-all text-sm font-semibold text-dark-text">
+            <div className="rounded-md border border-dark-border bg-dark-elevated p-3.5">
+              <dt className="text-[11px] font-medium uppercase tracking-wide text-ink-muted">Email</dt>
+              <dd className="mt-1 break-all text-xs font-medium text-dark-text">
                 {user.email || "등록된 이메일 없음"}
               </dd>
             </div>
-            <div className="rounded-lg bg-dark-scaffold/60 p-4 border border-dark-border">
-              <dt className="text-xs font-semibold uppercase tracking-wide text-dark-muted">주요 언어</dt>
-              <dd className="mt-2 flex flex-wrap gap-2">
+            <div className="rounded-md border border-dark-border bg-dark-elevated p-3.5">
+              <dt className="text-[11px] font-medium uppercase tracking-wide text-ink-muted">주요 언어</dt>
+              <dd className="mt-1.5 flex flex-wrap gap-1.5">
                 {user.primaryLanguages.length > 0 ? (
                   user.primaryLanguages.map((language) => (
                     <span
-                      className="rounded-full border border-brand-500/30 bg-brand-500/10 px-2.5 py-0.5 text-xs font-semibold text-brand-400"
+                      className="badge-trim rounded border border-dark-border bg-white px-2 py-0.5 text-[11px] font-medium text-dark-text"
                       key={language}
                     >
                       {language}
                     </span>
                   ))
                 ) : (
-                  <span className="text-sm font-semibold text-dark-muted">분석된 언어 없음</span>
+                  <span className="text-xs text-dark-muted">분석된 언어 없음</span>
                 )}
               </dd>
             </div>
-            <div className="rounded-lg bg-dark-scaffold/60 p-4 border border-dark-border">
-              <dt className="text-xs font-semibold uppercase tracking-wide text-dark-muted">벡터 업데이트</dt>
-              <dd className="mt-1 text-sm font-semibold text-dark-text">
+            <div className="rounded-md border border-dark-border bg-dark-elevated p-3.5">
+              <dt className="text-[11px] font-medium uppercase tracking-wide text-ink-muted">벡터 업데이트</dt>
+              <dd className="tabular-nums mt-1 text-xs font-medium text-dark-text">
                 {vectorUpdatedAt ? formatDate(vectorUpdatedAt) : "업데이트 전"}
               </dd>
             </div>
@@ -152,26 +154,30 @@ export default function DashboardPage() {
         </section>
       ) : null}
 
-      <section className="mt-8 grid gap-5 md:grid-cols-3">
-        {serviceSteps.map((step) => {
-          const Icon = step.icon;
+      <section className="surface divide-y divide-dark-border overflow-hidden">
+        <div className="bg-dark-elevated px-5 py-3">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-ink-muted">빠른 작업</h2>
+        </div>
+        {quickActions.map((item) => {
+          const Icon = item.icon;
           return (
             <Link
-              className={`focus-ring surface block rounded-xl p-6 transition-all duration-200 hover:shadow-lg hover:shadow-brand-500/10 ${step.accentClass}`}
-              href={step.href}
-              key={step.step}
+              className="focus-ring flex items-center justify-between gap-4 px-5 py-4 transition-colors hover:bg-dark-elevated"
+              href={item.href}
+              key={item.href}
             >
-              <div className="flex items-center justify-between">
-                <p className="text-xs font-bold uppercase tracking-wider text-brand-400">{step.step}</p>
-                <span className="grid h-8 w-8 place-items-center rounded-lg bg-brand-500/10 text-brand-400">
+              <div className="flex min-w-0 items-center gap-3.5">
+                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md border border-dark-border bg-dark-elevated text-dark-text">
                   <Icon className="h-4 w-4" />
                 </span>
+                <div className="min-w-0">
+                  <h3 className="text-sm font-medium text-dark-text">{item.title}</h3>
+                  <p className="mt-0.5 text-xs text-dark-muted">{item.description}</p>
+                </div>
               </div>
-              <h3 className="mt-3 text-lg font-bold text-dark-text">{step.title}</h3>
-              <p className="mt-2 text-sm leading-6 text-dark-muted">{step.description}</p>
-              <span className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-400 hover:text-brand-300">
-                <span>{step.action}</span>
-                <ArrowRight className="h-4 w-4" />
+              <span className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-brand-500">
+                <span>{item.action}</span>
+                <ArrowRight className="h-3.5 w-3.5" />
               </span>
             </Link>
           );
@@ -181,39 +187,26 @@ export default function DashboardPage() {
   );
 }
 
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("ko-KR", {
-    dateStyle: "medium",
-    timeStyle: "short"
-  }).format(new Date(value));
-}
-
-const serviceSteps = [
+const quickActions = [
   {
-    step: "STEP 1",
     title: "프로필 분석",
-    description: "GitHub 활동을 분석하여 AI 추천을 위한 벡터를 생성합니다.",
+    description: "GitHub 활동과 관심 기술 토픽을 기반으로 추천 임베딩 벡터를 갱신합니다.",
     action: "프로필로 이동",
     href: "/profile",
-    icon: Compass,
-    accentClass: "hover:border-brand-500 hover:bg-brand-500/5"
+    icon: Compass
   },
   {
-    step: "STEP 2",
     title: "이슈 추천",
-    description: "나의 기술 스택에 맞는 오픈소스 이슈를 추천받고 분석 힌트를 확인합니다.",
+    description: "기술 스택과 매칭되는 오픈소스 이슈를 탐색하고 코드 분석 가이드를 확인합니다.",
     action: "이슈 추천 보기",
     href: "/issues",
-    icon: Sparkles,
-    accentClass: "hover:border-brand-500 hover:bg-brand-500/5"
+    icon: Sparkles
   },
   {
-    step: "STEP 3",
     title: "PR 초안 생성",
-    description: "코드 작업 후 브랜치 정보를 입력하면 AI가 PR을 자동 작성합니다.",
+    description: "작업 브랜치와 이슈 맥락을 연결하여 PR 제목·본문 초안과 준비도를 점검합니다.",
     action: "초안 만들기",
     href: "/pr-draft",
-    icon: GitPullRequest,
-    accentClass: "hover:border-brand-500 hover:bg-brand-500/5"
+    icon: GitPullRequest
   }
 ];

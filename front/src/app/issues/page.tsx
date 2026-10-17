@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { Sparkles, Compass, Loader2, Filter } from "lucide-react";
 import ProtectedLayout from "@/components/ProtectedLayout";
+import { StatusBadge } from "@/components/StatusBadge";
 import {
   crawlSearchIssues,
   getRecommendedIssueHistory,
@@ -167,13 +168,13 @@ export default function IssuesPage() {
     <ProtectedLayout>
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="mb-1 text-2xl font-bold text-dark-text">추천 이슈</h1>
+          <h1 className="mb-1 text-2xl font-medium text-dark-text">추천 이슈</h1>
           <p className="text-sm text-dark-muted">
             나의 기술 스택과 GitHub 활동 기반으로 맞춤 오픈소스 이슈를 추천합니다.
           </p>
         </div>
         <button
-          className="flex w-full shrink-0 items-center justify-center gap-2 rounded-xl bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-brand-600 active:bg-brand-700 disabled:opacity-60 sm:w-auto"
+          className="btn-primary focus-ring flex w-full shrink-0 items-center justify-center gap-2 px-5 py-2.5 text-sm disabled:opacity-60 sm:w-auto"
           disabled={recommending}
           onClick={handleRecommend}
           type="button"
@@ -193,7 +194,7 @@ export default function IssuesPage() {
       </div>
 
       {error ? (
-        <div className="mb-6 rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-400">
+        <div className="mb-6 rounded-lg border border-[#c5221f]/20 bg-[#fce8e6] p-4 text-sm font-medium text-[#c5221f]">
           {error}
         </div>
       ) : null}
@@ -201,7 +202,7 @@ export default function IssuesPage() {
       {loading ? (
         <div className="space-y-3">
           {[0, 1, 2, 3].map((item) => (
-            <div className="h-28 animate-pulse rounded-xl bg-dark-surface border border-dark-border" key={item} />
+            <div className="surface h-28 animate-pulse bg-dark-elevated" key={item} />
           ))}
         </div>
       ) : history.length === 0 ? (
@@ -213,18 +214,17 @@ export default function IssuesPage() {
       ) : (
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_18rem]">
           <div className="space-y-3">
-            {/* 언어 및 라벨 필터 바 */}
-            <div className="rounded-xl border border-dark-border bg-dark-surface p-4">
+            <div className="surface p-4">
               <div className="flex flex-col gap-3">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="flex items-center gap-1 text-xs font-semibold text-dark-muted">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="flex items-center gap-1 text-xs font-medium text-dark-muted">
                     <Filter className="h-3.5 w-3.5" />
                     언어:
                   </span>
                   <button
-                    className={`rounded-lg px-2.5 py-1 text-xs font-medium transition-colors ${
+                    className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
                       selectedLanguage === "ALL"
-                        ? "border border-brand-500/50 bg-brand-500/20 text-brand-300"
+                        ? "border border-[#121317] bg-[#121317] text-white"
                         : "border border-dark-border bg-dark-elevated text-dark-muted hover:text-dark-text"
                     }`}
                     onClick={() => setSelectedLanguage("ALL")}
@@ -234,9 +234,9 @@ export default function IssuesPage() {
                   </button>
                   {availableLanguages.map((lang) => (
                     <button
-                      className={`rounded-lg px-2.5 py-1 text-xs font-medium transition-colors ${
+                      className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
                         selectedLanguage === lang
-                          ? "border border-brand-500/50 bg-brand-500/20 text-brand-300"
+                          ? "border border-[#121317] bg-[#121317] text-white"
                           : "border border-dark-border bg-dark-elevated text-dark-muted hover:text-dark-text"
                       }`}
                       key={lang}
@@ -248,12 +248,12 @@ export default function IssuesPage() {
                   ))}
                 </div>
                 {availableLabels.length > 0 ? (
-                  <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-dark-border/60">
-                    <span className="text-xs font-semibold text-dark-muted">라벨:</span>
+                  <div className="flex flex-wrap items-center gap-1.5 border-t border-dark-border pt-2">
+                    <span className="text-xs font-medium text-dark-muted">라벨:</span>
                     <button
-                      className={`rounded-lg px-2 py-0.5 text-xs font-medium transition-colors ${
+                      className={`rounded-md px-2 py-0.5 text-xs font-medium transition-colors ${
                         selectedLabel === "ALL"
-                          ? "border border-brand-500/50 bg-brand-500/20 text-brand-300"
+                          ? "border border-[#121317] bg-[#121317] text-white"
                           : "border border-dark-border bg-dark-elevated text-dark-muted hover:text-dark-text"
                       }`}
                       onClick={() => setSelectedLabel("ALL")}
@@ -263,9 +263,9 @@ export default function IssuesPage() {
                     </button>
                     {availableLabels.map((lbl) => (
                       <button
-                        className={`rounded-lg px-2 py-0.5 text-xs font-medium transition-colors ${
+                        className={`rounded-md px-2 py-0.5 text-xs font-medium transition-colors ${
                           selectedLabel === lbl
-                            ? "border border-brand-500/50 bg-brand-500/20 text-brand-300"
+                            ? "border border-[#121317] bg-[#121317] text-white"
                             : "border border-dark-border bg-dark-elevated text-dark-muted hover:text-dark-text"
                         }`}
                         key={lbl}
@@ -281,10 +281,10 @@ export default function IssuesPage() {
             </div>
 
             {filteredHistory.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-dark-border bg-dark-surface/50 p-8 text-center">
+              <div className="rounded-lg border border-dashed border-dark-border bg-dark-elevated p-8 text-center">
                 <p className="text-sm font-medium text-dark-muted">선택한 필터 조건에 일치하는 추천 이슈가 없습니다.</p>
                 <button
-                  className="mt-3 text-xs font-semibold text-brand-400 hover:text-brand-300 underline"
+                  className="mt-3 text-xs font-medium text-brand-500 underline hover:text-brand-600"
                   onClick={() => {
                     setSelectedLanguage("ALL");
                     setSelectedLabel("ALL");
@@ -323,16 +323,16 @@ function EmptyIssuesState({
   recommending: boolean;
 }) {
   return (
-    <section className="rounded-xl border border-dashed border-dark-border bg-dark-surface/50 px-5 py-16 text-center">
-      <div className="mx-auto mb-4 grid h-12 w-12 place-items-center rounded-2xl bg-brand-500/10 text-brand-400">
-        <Sparkles className="h-6 w-6" />
+    <section className="rounded-lg border border-dashed border-dark-border bg-dark-elevated px-5 py-16 text-center">
+      <div className="mx-auto mb-4 grid h-11 w-11 place-items-center rounded-xl border border-dark-border bg-white text-dark-text">
+        <Sparkles className="h-5 w-5" />
       </div>
-      <p className="text-base font-bold text-dark-text">아직 추천받은 이슈가 없습니다.</p>
+      <p className="text-base font-medium text-dark-text">아직 추천받은 이슈가 없습니다.</p>
       <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-dark-muted">
         프로필 분석을 마쳤다면 바로 추천을 실행해 첫 후보를 받아보세요.
       </p>
       <button
-        className="mt-6 inline-flex items-center justify-center gap-2 rounded-xl bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-brand-600 active:bg-brand-700 disabled:opacity-60"
+        className="btn-primary focus-ring mt-6 inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm disabled:opacity-60"
         disabled={recommending}
         onClick={onRecommend}
         type="button"
@@ -363,21 +363,21 @@ function LowDensityIssueGuide({
   recommending: boolean;
 }) {
   return (
-    <aside className="rounded-xl border border-dark-border bg-dark-surface p-5 lg:sticky lg:top-24 lg:self-start">
-      <p className="text-sm font-bold text-dark-text">더 넓게 비교하기</p>
-      <p className="mt-2 text-sm leading-6 text-dark-muted">
+    <aside className="surface p-5 lg:sticky lg:top-24 lg:self-start">
+      <p className="text-sm font-medium text-dark-text">더 넓게 비교하기</p>
+      <p className="mt-2 text-xs leading-5 text-dark-muted">
         추천 후보가 적을 때는 프로필 분석을 확인하거나 추천을 다시 실행해 후보군을 넓혀보세요.
       </p>
-      <div className="mt-5 grid gap-2">
+      <div className="mt-4 grid gap-2">
         <Link
-          className="focus-ring inline-flex items-center justify-center gap-1.5 rounded-xl border border-dark-border px-3 py-2 text-center text-sm font-semibold text-brand-400 hover:bg-dark-elevated transition-colors"
+          className="btn-secondary focus-ring inline-flex items-center justify-center gap-1.5 px-3 py-2 text-center text-xs"
           href="/profile"
         >
-          <Compass className="h-4 w-4" />
+          <Compass className="h-3.5 w-3.5" />
           <span>프로필 확인</span>
         </Link>
         <button
-          className="rounded-xl border border-brand-500/50 bg-brand-500/10 px-3 py-2 text-sm font-semibold text-brand-400 transition-colors hover:bg-brand-500/20 disabled:opacity-60"
+          className="btn-primary focus-ring px-3 py-2 text-xs disabled:opacity-60"
           disabled={recommending}
           onClick={onRecommend}
           type="button"
@@ -389,106 +389,53 @@ function LowDensityIssueGuide({
   );
 }
 
-function parseRecommendationFacets(issue: RecommendedIssueHistory) {
-  const facets: { label: string; key: string }[] = [];
-  const reason = issue.reason ?? "";
-
-  const langMatch =
-    reason.match(/(?:주 사용 언어 일치|기술스택(?:\s*일치)?):\s*([^\s\]]+)/) ||
-    reason.match(/\[([A-Za-z+#]+)\s*기술스택/);
-  if (langMatch) {
-    facets.push({
-      label: `🎯 ${langMatch[1]} 일치`,
-      key: "lang-match",
-    });
-  } else if (reason.includes("주 사용 언어 일치") || reason.includes("기술스택 일치")) {
-    facets.push({
-      label: "🎯 기술스택 일치",
-      key: "lang-match",
-    });
-  }
-
-  const labels = Array.isArray(issue.labels) ? issue.labels : [];
-  if (
-    reason.includes("입문 큐레이션") ||
-    labels.some((l) => typeof l === "string" && (l.toLowerCase() === "starter" || l.toLowerCase() === "beginner-friendly"))
-  ) {
-    facets.push({ label: "🌱 입문 큐레이션", key: "starter" });
-  }
-  if (reason.includes("미할당")) {
-    facets.push({ label: "🔓 미할당", key: "unassigned" });
-  }
-  const starMatch = reason.match(/스타수:\s*([\w.]+)/);
-  if (starMatch) {
-    facets.push({ label: `★ ${starMatch[1]}`, key: "stars" });
-  }
-  const commitMatch = reason.match(/최근 커밋:\s*([\d-]+)/);
-  if (commitMatch) {
-    facets.push({ label: `⚡ 최근 활동 (${commitMatch[1]})`, key: "activity" });
-  }
-
-  return facets;
-}
-
 function IssueHistoryCard({ issue }: { issue: RecommendedIssueHistory }) {
   const scorePercent = Math.round(issue.score * 100);
   const hasSimilarityScore = issue.score > 0.01;
-  const facets = parseRecommendationFacets(issue);
+  const uniqueLabels = Array.isArray(issue.labels)
+    ? Array.from(new Set(issue.labels.filter(Boolean)))
+    : [];
 
   return (
     <Link
-      className="block rounded-xl border border-dark-border bg-dark-surface p-5 transition-all duration-200 hover:border-brand-500/60 hover:shadow-md hover:shadow-brand-500/5 group"
+      className="surface group block p-5 transition-colors hover:border-[#cdd4dc] hover:bg-dark-elevated/40"
       href={`/issues/${issue.id}`}
     >
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
           <div className="mb-2 flex flex-wrap items-center gap-2">
             <StatusBadge status={issue.status} />
-            <span className="text-xs font-mono text-dark-muted">
-              {issue.repoFullName} #{issue.issueNumber}
+            <span className="font-mono text-xs text-dark-muted">
+              {issue.repoFullName}#{issue.issueNumber}
             </span>
             {hasSimilarityScore ? (
-              <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-xs font-semibold text-emerald-400">
+              <span className="badge-trim tabular-nums rounded-md border border-[#137333]/20 bg-[#e6f4ea] px-2 py-0.5 text-xs font-medium text-[#137333]">
                 매칭 {scorePercent}%
               </span>
             ) : null}
             {issue.isAnalyzed ? (
-              <span className="rounded-full border border-brand-500/30 bg-brand-500/10 px-2 py-0.5 text-xs font-semibold text-brand-400">
+              <span className="badge-trim rounded-md border border-brand-500/20 bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-600">
                 분석 완료
               </span>
             ) : null}
           </div>
 
-          {/* 다면 추천 사유 뱃지 (Signature Lavender) */}
-          {facets.length > 0 ? (
-            <div className="mb-2.5 flex flex-wrap items-center gap-1.5">
-              {facets.map((facet) => (
-                <span
-                  className="rounded-full border border-brand-500/30 bg-brand-500/10 px-2.5 py-0.5 text-[11px] font-medium text-brand-300 shadow-sm"
-                  key={facet.key}
-                >
-                  {facet.label}
-                </span>
-              ))}
-            </div>
-          ) : null}
-
-          <h3 className="mb-2 line-clamp-1 font-semibold text-dark-text group-hover:text-brand-300 transition-colors">
+          <h3 className="mb-1.5 line-clamp-1 font-medium text-dark-text transition-colors group-hover:text-brand-500">
             {issue.title}
           </h3>
           {issue.summary ? (
             <p className="line-clamp-2 text-xs leading-5 text-dark-muted">{issue.summary}</p>
           ) : null}
           {issue.reason ? (
-            <p className="mt-2 line-clamp-1 text-xs leading-5 text-brand-300/80">
-              💡 {issue.reason}
+            <p className="mt-2 line-clamp-1 text-xs leading-5 text-ink-secondary">
+              추천 근거: {issue.reason}
             </p>
           ) : null}
-          {Array.isArray(issue.labels) && issue.labels.filter(Boolean).length > 0 ? (
-            <div className="mt-3 flex flex-wrap gap-1.5">
-              {Array.from(new Set(issue.labels.filter(Boolean))).map((label, idx) => (
+          {uniqueLabels.length > 0 ? (
+            <div className="mt-2.5 flex flex-wrap gap-1.5">
+              {uniqueLabels.map((label, idx) => (
                 <span
-                  className="rounded-full border border-dark-border bg-dark-elevated px-2.5 py-0.5 text-xs text-dark-muted"
+                  className="badge-trim rounded border border-dark-border bg-dark-elevated px-2 py-0.5 text-[11px] text-dark-muted"
                   key={`${label}-${idx}`}
                 >
                   {label}
@@ -497,24 +444,10 @@ function IssueHistoryCard({ issue }: { issue: RecommendedIssueHistory }) {
             </div>
           ) : null}
         </div>
-        <span className="mt-1 shrink-0 text-xs font-semibold text-brand-400 group-hover:translate-x-0.5 transition-transform">
+        <span className="mt-1 shrink-0 text-xs font-medium text-brand-500 transition-transform group-hover:translate-x-0.5">
           자세히 →
         </span>
       </div>
     </Link>
-  );
-}
-
-function StatusBadge({ status }: { status: RecommendedIssueHistory["status"] }) {
-  return (
-    <span
-      className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
-        status === "OPEN"
-          ? "border border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
-          : "border border-dark-border bg-dark-elevated text-dark-muted"
-      }`}
-    >
-      {status === "OPEN" ? "● OPEN" : "○ CLOSED"}
-    </span>
   );
 }

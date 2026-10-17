@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { getUserProfile } from "@/lib/api";
-import { authStateChangedEvent, clearAuthState, isLoggedIn, markLoggedIn } from "@/lib/auth";
+import { authStateChangedEvent, isLoggedIn, markLoggedIn } from "@/lib/auth";
 import Navbar from "./Navbar";
 
 type ProtectedLayoutProps = {
@@ -76,7 +76,7 @@ export default function ProtectedLayout({ children }: ProtectedLayoutProps) {
   }
 
   return (
-    <div className="min-h-screen bg-transparent text-github-text">
+    <div className="min-h-screen bg-transparent text-dark-text">
       <Navbar />
       <main className="mx-auto max-w-6xl px-4 py-8">
         {children}
