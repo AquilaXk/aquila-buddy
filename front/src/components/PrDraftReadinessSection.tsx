@@ -23,19 +23,19 @@ export function PrDraftReadinessSection({ readiness }: PrDraftReadinessSectionPr
   ).length;
 
   return (
-    <section className="surface mb-5 rounded-xl p-5 space-y-3">
+    <section className="surface mb-5 space-y-3 p-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-brand-400">
-            7대 기여 준비도
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-dark-text">
+            PR 기여 준비도 점검
           </h3>
-          <span className="rounded-md border border-dark-border bg-dark-surface px-2 py-0.5 font-mono text-xs font-semibold text-dark-text">
+          <span className="tabular-nums rounded-md border border-dark-border bg-dark-elevated px-2 py-0.5 font-mono text-xs font-medium text-dark-text">
             {readiness.readyCount} / {readiness.items.length} 준비 완료
           </span>
         </div>
         <div className="flex items-center gap-1 text-xs">
           <button
-            className={`focus-ring rounded-lg px-2.5 py-1 font-semibold transition-colors ${
+            className={`focus-ring tabular-nums rounded-md px-2.5 py-1 font-medium transition-colors ${
               filter === "all"
                 ? "border border-dark-border bg-dark-elevated text-dark-text"
                 : "text-dark-muted hover:text-dark-text"
@@ -46,7 +46,7 @@ export function PrDraftReadinessSection({ readiness }: PrDraftReadinessSectionPr
             전체 ({readiness.items.length})
           </button>
           <button
-            className={`focus-ring rounded-lg px-2.5 py-1 font-semibold transition-colors ${
+            className={`focus-ring tabular-nums rounded-md px-2.5 py-1 font-medium transition-colors ${
               filter === "action-required"
                 ? "border border-dark-border bg-dark-elevated text-dark-text"
                 : "text-dark-muted hover:text-dark-text"
@@ -59,7 +59,7 @@ export function PrDraftReadinessSection({ readiness }: PrDraftReadinessSectionPr
         </div>
       </div>
 
-      <div className="h-1.5 w-full overflow-hidden rounded-full bg-dark-surface">
+      <div className="h-1.5 w-full overflow-hidden rounded-full bg-dark-elevated">
         <div
           className="h-full rounded-full bg-brand-500 transition-all duration-300"
           style={{
@@ -68,34 +68,34 @@ export function PrDraftReadinessSection({ readiness }: PrDraftReadinessSectionPr
         />
       </div>
 
-      <div className="divide-y divide-dark-border/60">
+      <div className="divide-y divide-dark-border">
         {filteredItems.length === 0 ? (
           <p className="py-3 text-center text-xs text-dark-muted">
-            확인 필요한 항목이 없습니다. 모든 준비도 게이트를 통과했습니다.
+            확인 필요한 항목이 없습니다. 모든 준비도 점검 항목을 통과했습니다.
           </p>
         ) : null}
         {filteredItems.map((item) => (
           <div className="flex items-start gap-2.5 py-2.5 first:pt-1 last:pb-1" key={item.key}>
             {item.status === "READY" ? (
-              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
+              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#137333]" />
             ) : (
-              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-[#b06000]" />
             )}
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="text-xs font-semibold text-dark-text">{item.label}</span>
+                <span className="text-xs font-medium text-dark-text">{item.label}</span>
                 <span
-                  className={`rounded border px-1.5 py-0.5 text-[10px] font-semibold ${
+                  className={`badge-trim rounded border px-1.5 py-0.5 text-[10px] font-medium ${
                     item.status === "READY"
-                      ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
-                      : "border-amber-500/30 bg-amber-500/10 text-amber-400"
+                      ? "border-[#137333]/20 bg-[#e6f4ea] text-[#137333]"
+                      : "border-[#b06000]/20 bg-[#fef7e0] text-[#b06000]"
                   }`}
                 >
                   {item.status === "READY" ? "준비됨" : "확인 필요"}
                 </span>
               </div>
               <p className="mt-0.5 text-[11px] leading-relaxed text-dark-muted">{item.description}</p>
-              <p className="mt-1 break-words rounded border border-dark-border/40 bg-dark-surface/60 px-2 py-1 font-mono text-[11px] text-dark-text/80">
+              <p className="mt-1 break-words rounded border border-dark-border bg-dark-elevated px-2 py-1 font-mono text-[11px] text-dark-text">
                 {item.detail}
               </p>
             </div>

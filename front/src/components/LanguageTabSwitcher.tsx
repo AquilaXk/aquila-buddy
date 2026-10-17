@@ -14,11 +14,11 @@ export function LanguageTabSwitcher({
   onSelectTab
 }: LanguageTabSwitcherProps) {
   return (
-    <div className="flex items-center gap-1 rounded-xl border border-dark-border bg-dark-scaffold p-1">
+    <div className="flex items-center gap-1 rounded-lg border border-dark-border bg-dark-elevated p-1">
       <button
-        className={`focus-ring rounded-lg px-3 py-1 text-xs font-semibold transition-all ${
+        className={`focus-ring rounded-md px-3 py-1 text-xs font-medium transition-colors ${
           activeTab === "ko"
-            ? "bg-brand-500 text-white shadow-sm"
+            ? "bg-[#121317] text-white"
             : "text-dark-muted hover:text-dark-text"
         } disabled:cursor-not-allowed disabled:opacity-50`}
         disabled={disabled}
@@ -28,9 +28,9 @@ export function LanguageTabSwitcher({
         한국어 원본
       </button>
       <button
-        className={`focus-ring rounded-lg px-3 py-1 text-xs font-semibold transition-all ${
+        className={`focus-ring rounded-md px-3 py-1 text-xs font-medium transition-colors ${
           activeTab === "en"
-            ? "bg-brand-500 text-white shadow-sm"
+            ? "bg-[#121317] text-white"
             : "text-dark-muted hover:text-dark-text"
         } disabled:cursor-not-allowed disabled:opacity-50`}
         disabled={disabled}

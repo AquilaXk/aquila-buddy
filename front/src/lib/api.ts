@@ -221,22 +221,6 @@ export type IssuePseudoCode = {
   pseudoCode: string;
 };
 
-export type IssueGuideWorkflowStatus = "READY" | "WAITING";
-
-export type IssueGuideWorkflowStep = {
-  key: string;
-  label: string;
-  description: string;
-  detail: string;
-  status: IssueGuideWorkflowStatus;
-};
-
-export type IssueGuideWorkflow = {
-  issueKey: string;
-  steps: IssueGuideWorkflowStep[];
-  readyCount: number;
-};
-
 export type CreatePullRequestDraftRequest = {
   upstreamRepo: string;
   githubIssueNumber: number;
@@ -296,62 +280,6 @@ export type PullRequestDraftReadiness = {
   readyCount: number;
 };
 
-export type PullRequestDraftSubmissionItem = {
-  key: "title" | "body" | "branch" | "test-plan";
-  label: string;
-  description: string;
-  value: string;
-};
-
-export type PullRequestDraftSubmission = {
-  draftId: string;
-  upstreamRepo: string;
-  githubIssueNumber: number;
-  sourceIssueId: string | null;
-  baseBranch: string;
-  headBranch: string;
-  items: PullRequestDraftSubmissionItem[];
-};
-
-export type PullRequestDraftContributionTranslation = {
-  translationId: string;
-  targetLanguage: "en";
-  title: string;
-  createdAt: string;
-};
-
-export type PullRequestDraftContributionReport = {
-  draftId: string;
-  upstreamRepo: string;
-  githubIssueNumber: number;
-  sourceIssueId: string | null;
-  baseBranch: string;
-  headBranch: string;
-  title: string;
-  createdAt: string;
-  readinessReadyCount: number;
-  readinessTotalCount: number;
-  translationCount: number;
-  latestTranslation: PullRequestDraftContributionTranslation | null;
-};
-
-export type PullRequestDraftTimelineStatus = "DONE" | "READY" | "NEEDS_ATTENTION";
-
-export type PullRequestDraftTimelineItem = {
-  key: "context-captured" | "draft-created" | "readiness-reviewed" | "submission-prepared";
-  label: string;
-  description: string;
-  detail: string;
-  status: PullRequestDraftTimelineStatus;
-  occurredAt: string;
-};
-
-export type PullRequestDraftTimeline = {
-  draftId: string;
-  sourceIssueId: string | null;
-  items: PullRequestDraftTimelineItem[];
-};
-
 export type PullRequestDraftTranslation = PullRequestDraft & {
   id: string;
   draftId: string;
@@ -367,55 +295,6 @@ export type PullRequestDraftTranslateResult = {
   githubUrl: string;
 };
 
-export type PullRequestDraftTranslationActivity = {
-  draftId: string;
-  translationId: string;
-  upstreamRepo: string;
-  githubIssueNumber: number;
-  sourceIssueId: string | null;
-  targetLanguage: "en";
-  title: string;
-  createdAt: string;
-};
-
-export type PullRequestDraftTranslationReadiness = {
-  draftId: string;
-  translationId: string;
-  targetLanguage: "en";
-  sourceIssueId: string | null;
-  items: PullRequestDraftReadinessItem[];
-  readyCount: number;
-};
-
-export type PullRequestDraftTranslationTimelineItem = {
-  key: "translation-created" | "translation-ready" | "readiness-reviewed" | "submission-prepared";
-  label: string;
-  description: string;
-  detail: string;
-  status: PullRequestDraftTimelineStatus;
-  occurredAt: string;
-};
-
-export type PullRequestDraftTranslationTimeline = {
-  draftId: string;
-  translationId: string;
-  targetLanguage: "en";
-  sourceIssueId: string | null;
-  items: PullRequestDraftTranslationTimelineItem[];
-};
-
-export type PullRequestDraftTranslationSubmission = {
-  draftId: string;
-  translationId: string;
-  targetLanguage: "en";
-  upstreamRepo: string;
-  githubIssueNumber: number;
-  sourceIssueId: string | null;
-  baseBranch: string;
-  headBranch: string;
-  items: PullRequestDraftSubmissionItem[];
-};
-
 export async function getUserProfile(): Promise<UserProfile> {
   const response = await apiFetch(`${API_URL}/api/v1/users/me`, {
     cache: "no-store"
@@ -429,24 +308,6 @@ export async function getUserProfile(): Promise<UserProfile> {
 
   if (!hasApiData(payload)) {
     throw new Error(payload.message ?? "User profile response was not successful");
-  }
-
-  return payload.data;
-}
-
-export async function getUserProfileByLogin(githubId: string): Promise<UserProfile> {
-  const response = await apiFetch(`${API_URL}/api/v1/users/${encodeURIComponent(githubId)}`, {
-    cache: "no-store"
-  });
-
-  if (!response.ok) {
-    throw new Error("Failed to fetch public user profile");
-  }
-
-  const payload = (await response.json()) as ApiResponse<UserProfile>;
-
-  if (!hasApiData(payload)) {
-    throw new Error(payload.message ?? "Public user profile response was not successful");
   }
 
   return payload.data;
@@ -511,24 +372,6 @@ export async function createPullRequestDraft(
 
   if (!hasApiData(payload)) {
     throw new Error(payload.message ?? "Pull request draft response was not successful");
-  }
-
-  return payload.data;
-}
-
-export async function getPullRequestDrafts(): Promise<StoredPullRequestDraft[]> {
-  const response = await apiFetch(`${API_URL}/api/v1/pr`, {
-    cache: "no-store"
-  });
-
-  if (!response.ok) {
-    throw new Error("Failed to fetch pull request drafts");
-  }
-
-  const payload = (await response.json()) as ApiResponse<StoredPullRequestDraft[]>;
-
-  if (!hasApiData(payload)) {
-    throw new Error(payload.message ?? "Pull request drafts response was not successful");
   }
 
   return payload.data;
@@ -634,87 +477,6 @@ export async function getPullRequestDraftReadiness(id: string): Promise<PullRequ
   return payload.data;
 }
 
-export async function getPullRequestDraftSubmission(id: string): Promise<PullRequestDraftSubmission> {
-  const response = await apiFetch(`${API_URL}/api/v1/pr/${encodeURIComponent(id)}/submission`, {
-    cache: "no-store"
-  });
-
-  if (!response.ok) {
-    throw new Error("Failed to fetch pull request draft submission bundle");
-  }
-
-  const payload = (await response.json()) as ApiResponse<PullRequestDraftSubmission>;
-
-  if (!hasApiData(payload)) {
-    throw new Error(payload.message ?? "Pull request draft submission response was not successful");
-  }
-
-  return payload.data;
-}
-
-export async function getPullRequestDraftTimeline(id: string): Promise<PullRequestDraftTimeline> {
-  const response = await apiFetch(`${API_URL}/api/v1/pr/${encodeURIComponent(id)}/timeline`, {
-    cache: "no-store"
-  });
-
-  if (!response.ok) {
-    throw new Error("Failed to fetch pull request draft timeline");
-  }
-
-  const payload = (await response.json()) as ApiResponse<PullRequestDraftTimeline>;
-
-  if (!hasApiData(payload)) {
-    throw new Error(payload.message ?? "Pull request draft timeline response was not successful");
-  }
-
-  return payload.data;
-}
-
-export async function getPullRequestDraftContributionReport(
-  id: string
-): Promise<PullRequestDraftContributionReport> {
-  const response = await apiFetch(`${API_URL}/api/v1/pr/${encodeURIComponent(id)}/report`, {
-    cache: "no-store"
-  });
-
-  if (!response.ok) {
-    throw new Error("Failed to fetch pull request draft contribution report");
-  }
-
-  const payload = (await response.json()) as ApiResponse<PullRequestDraftContributionReport>;
-
-  if (!hasApiData(payload)) {
-    throw new Error(payload.message ?? "Pull request draft contribution report response was not successful");
-  }
-
-  return payload.data;
-}
-
-export async function createPullRequestDraftTranslation(
-  id: string,
-  targetLanguage: "en"
-): Promise<PullRequestDraftTranslation> {
-  const response = await apiFetch(`${API_URL}/api/v1/pr/${encodeURIComponent(id)}/translations`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({ targetLanguage })
-  });
-
-  if (!response.ok) {
-    throw new Error("Failed to create pull request draft translation");
-  }
-
-  const payload = (await response.json()) as ApiResponse<PullRequestDraftTranslation>;
-
-  if (!hasApiData(payload)) {
-    throw new Error(payload.message ?? "Pull request draft translation response was not successful");
-  }
-
-  return payload.data;
-}
-
 export async function translatePullRequestDraft(id: string): Promise<PullRequestDraftTranslateResult> {
   const response = await apiFetch(`${API_URL}/api/v1/pr/${encodeURIComponent(id)}/translate`, {
     method: "POST"
@@ -751,102 +513,6 @@ export async function getPullRequestDraftTranslations(id: string): Promise<PullR
   return payload.data;
 }
 
-export async function getPullRequestDraftTranslationActivities(
-  limit = 4
-): Promise<PullRequestDraftTranslationActivity[]> {
-  const searchParams = new URLSearchParams({
-    limit: String(limit)
-  });
-
-  const response = await apiFetch(`${API_URL}/api/v1/pr/translations/activity?${searchParams.toString()}`, {
-    cache: "no-store"
-  });
-
-  if (!response.ok) {
-    throw new Error("Failed to fetch pull request draft translation activities");
-  }
-
-  const payload = (await response.json()) as ApiResponse<PullRequestDraftTranslationActivity[]>;
-
-  if (!hasApiData(payload)) {
-    throw new Error(payload.message ?? "Pull request draft translation activities response was not successful");
-  }
-
-  return payload.data;
-}
-
-export async function getPullRequestDraftTranslationReadiness(
-  id: string,
-  translationId: string
-): Promise<PullRequestDraftTranslationReadiness> {
-  const response = await apiFetch(
-    `${API_URL}/api/v1/pr/${encodeURIComponent(id)}/translations/${encodeURIComponent(translationId)}/readiness`,
-    {
-      cache: "no-store"
-    }
-  );
-
-  if (!response.ok) {
-    throw new Error("Failed to fetch pull request draft translation readiness");
-  }
-
-  const payload = (await response.json()) as ApiResponse<PullRequestDraftTranslationReadiness>;
-
-  if (!hasApiData(payload)) {
-    throw new Error(payload.message ?? "Pull request draft translation readiness response was not successful");
-  }
-
-  return payload.data;
-}
-
-export async function getPullRequestDraftTranslationTimeline(
-  id: string,
-  translationId: string
-): Promise<PullRequestDraftTranslationTimeline> {
-  const response = await apiFetch(
-    `${API_URL}/api/v1/pr/${encodeURIComponent(id)}/translations/${encodeURIComponent(translationId)}/timeline`,
-    {
-      cache: "no-store"
-    }
-  );
-
-  if (!response.ok) {
-    throw new Error("Failed to fetch pull request draft translation timeline");
-  }
-
-  const payload = (await response.json()) as ApiResponse<PullRequestDraftTranslationTimeline>;
-
-  if (!hasApiData(payload)) {
-    throw new Error(payload.message ?? "Pull request draft translation timeline response was not successful");
-  }
-
-  return payload.data;
-}
-
-export async function getPullRequestDraftTranslationSubmission(
-  id: string,
-  translationId: string
-): Promise<PullRequestDraftTranslationSubmission> {
-  const response = await apiFetch(
-    `${API_URL}/api/v1/pr/${encodeURIComponent(id)}/translations/${encodeURIComponent(translationId)}/submission`,
-    {
-      cache: "no-store"
-    }
-  );
-
-  if (!response.ok) {
-    throw new Error("Failed to fetch pull request draft translation submission bundle");
-  }
-
-  const payload = (await response.json()) as ApiResponse<PullRequestDraftTranslationSubmission>;
-
-  if (!hasApiData(payload)) {
-    throw new Error(payload.message ?? "Pull request draft translation submission response was not successful");
-  }
-
-  return payload.data;
-}
-
 export async function getRecommendedIssues(): Promise<RecommendedIssue[]> {
   const response = await apiFetch(`${API_URL}/api/v1/issues/recommend`, {
     cache: "no-store"
@@ -860,24 +526,6 @@ export async function getRecommendedIssues(): Promise<RecommendedIssue[]> {
 
   if (!hasApiData(payload)) {
     throw new Error(payload.message ?? "Recommended issues response was not successful");
-  }
-
-  return payload.data;
-}
-
-export async function getCollectedIssues(): Promise<RecommendedIssue[]> {
-  const response = await apiFetch(`${API_URL}/api/v1/issues`, {
-    cache: "no-store"
-  });
-
-  if (!response.ok) {
-    throw new Error("Failed to fetch collected issues");
-  }
-
-  const payload = (await response.json()) as ApiResponse<RecommendedIssue[]>;
-
-  if (!hasApiData(payload)) {
-    throw new Error(payload.message ?? "Collected issues response was not successful");
   }
 
   return payload.data;
@@ -1058,24 +706,6 @@ export async function getIssuePseudoCode(issueId: string): Promise<IssuePseudoCo
 
   if (!hasApiData(payload)) {
     throw new Error(payload.message ?? "Issue pseudo code response was not successful");
-  }
-
-  return payload.data;
-}
-
-export async function getIssueGuideWorkflow(issueId: string): Promise<IssueGuideWorkflow> {
-  const response = await apiFetch(`${API_URL}/api/v1/issues/${encodeURIComponent(issueId)}/guide/workflow`, {
-    cache: "no-store"
-  });
-
-  if (!response.ok) {
-    throw new Error("Failed to fetch issue guide workflow");
-  }
-
-  const payload = (await response.json()) as ApiResponse<IssueGuideWorkflow>;
-
-  if (!hasApiData(payload)) {
-    throw new Error(payload.message ?? "Issue guide workflow response was not successful");
   }
 
   return payload.data;

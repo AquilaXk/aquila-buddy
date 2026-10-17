@@ -30,9 +30,10 @@ assertIncludes("router.replace(callbackParams.redirectTo)", "OAuth callback page
 assertIncludes("callbackParams.error", "OAuth callback page must handle provider error query fixtures.");
 assertIncludes("const [error, setError] = useState<string | null>(null)", "OAuth callback page must keep a compact error state.");
 assertIncludes("로그인 처리 중...", "OAuth callback page must show the processing label.");
-assertIncludes("border-2 border-github-purple-light border-t-transparent rounded-full animate-spin", "OAuth callback page must use the compact spinner.");
+assertIncludes("animate-spin", "OAuth callback page must use the compact spinner.");
 assertIncludes("로그인 실패", "OAuth callback page must show the compact failure title.");
 assertIncludes("다시 로그인", "OAuth callback page must keep the login retry link.");
+assertNotIncludes("github-", "OAuth callback page must not use duplicate github-* color classes.");
 assertNotIncludes("setToken(callbackParams.token)", "OAuth callback page must not store OAuth JWTs in localStorage.");
 assertNotIncludes("!callbackParams.token", "OAuth callback page must accept cookie-backed callbacks without a token query.");
 assertNotIncludes("토큰을 받지 못했습니다.", "OAuth callback page must not require a URL token.");

@@ -51,43 +51,55 @@ export default function Navbar() {
   return (
     <nav
       aria-label="Primary"
-      className="sticky top-0 z-50 border-b border-github-border bg-github-surface/95 backdrop-blur-sm shadow-[0_4px_24px_rgba(0,0,0,0.28)]"
+      className="sticky top-0 z-50 border-b border-dark-border bg-white/95 backdrop-blur-sm"
     >
       <div className="mx-auto max-w-6xl px-4">
         <div className="flex min-h-16 items-center justify-between gap-3">
           <Link
             href="/dashboard"
-            className="focus-ring flex shrink-0 items-center gap-3 text-lg font-bold text-github-text transition-colors hover:text-brand-400 group"
+            className="focus-ring flex shrink-0 items-center gap-2.5 text-base font-medium tracking-[-0.015em] text-dark-text transition-colors hover:text-brand-600"
           >
-            <span className="grid h-9 w-9 place-items-center rounded-xl border border-brand-500/40 bg-dark-scaffold shadow-inner shadow-black/40 group-hover:border-brand-500 transition-colors">
-              <img alt="" className="h-7 w-7 object-contain" height="28" src="/brand-mascot-bank.png" width="28" />
+            <span className="grid h-8 w-8 place-items-center rounded-lg bg-[#121317] text-white">
+              <svg
+                aria-hidden="true"
+                className="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M12 4L5.5 19H8.8L10.2 15.5H13.8L15.2 19H18.5L12 4ZM11.1 12.8L12 10.4L12.9 12.8H11.1Z"
+                  fill="currentColor"
+                />
+                <rect x="15.5" y="16.5" width="3.5" height="2.2" rx="0.6" fill="#1a73e8" />
+              </svg>
             </span>
-            <span className="tracking-wide">aquila buddy</span>
+            <span>Aquila Buddy</span>
           </Link>
 
           <button
             aria-controls={mobileMenuId}
             aria-expanded={isMenuOpen}
             aria-label={isMenuOpen ? "메뉴 닫기" : "메뉴 열기"}
-            className="focus-ring inline-grid h-10 w-10 place-items-center rounded-xl border border-github-border text-github-muted transition-colors hover:border-brand-500 hover:bg-dark-elevated hover:text-github-text sm:hidden"
+            className="focus-ring inline-grid h-9 w-9 place-items-center rounded-md border border-dark-border text-dark-muted transition-colors hover:bg-dark-elevated hover:text-dark-text sm:hidden"
             onClick={() => setIsMenuOpen((open) => !open)}
             type="button"
           >
             {isMenuOpen ? (
-              <X className="h-5 w-5" />
+              <X className="h-4 w-4" />
             ) : (
-              <Menu className="h-5 w-5" />
+              <Menu className="h-4 w-4" />
             )}
           </button>
 
-          <div className="hidden items-center gap-1.5 sm:flex">
+          <div className="hidden items-center gap-1 sm:flex">
             <NavItems isActive={isActive} />
             <LogoutButton onLogout={handleLogout} />
           </div>
         </div>
 
         <div
-          className={`${isMenuOpen ? "grid" : "hidden"} gap-2 border-t border-github-border py-3 sm:hidden`}
+          className={`${isMenuOpen ? "grid" : "hidden"} gap-1.5 border-t border-dark-border py-3 sm:hidden`}
           id={mobileMenuId}
         >
           <NavItems isActive={isActive} mobile />
@@ -113,12 +125,12 @@ function NavItems({
         return (
           <Link
             key={link.href}
-            className={`focus-ring flex items-center gap-1.5 rounded-xl border text-sm font-semibold transition-all ${
-              mobile ? "px-3.5 py-2.5" : "px-3 py-1.5"
+            className={`focus-ring flex items-center gap-1.5 rounded-md border text-sm font-medium transition-colors ${
+              mobile ? "px-3 py-2" : "px-3 py-1.5"
             } ${
               active
-                ? "border-brand-500 bg-brand-500 text-white shadow-sm shadow-brand-500/25"
-                : "border-transparent text-github-muted hover:border-github-border hover:bg-dark-elevated hover:text-github-text"
+                ? "border-[#121317] bg-[#121317] text-white"
+                : "border-transparent text-dark-muted hover:border-dark-border hover:bg-dark-elevated hover:text-dark-text"
             }`}
             href={link.href}
           >
@@ -134,8 +146,8 @@ function NavItems({
 function LogoutButton({ onLogout, mobile = false }: { onLogout: () => void; mobile?: boolean }) {
   return (
     <button
-      className={`flex items-center gap-1.5 rounded-xl border border-transparent text-sm font-semibold text-github-muted transition-colors hover:border-red-400/30 hover:bg-red-500/10 hover:text-red-400 ${
-        mobile ? "px-3.5 py-2.5 text-left" : "px-3 py-1.5 sm:ml-3"
+      className={`focus-ring flex items-center gap-1.5 rounded-md border border-transparent text-sm font-medium text-dark-muted transition-colors hover:border-[#c5221f]/20 hover:bg-[#fce8e6] hover:text-[#c5221f] ${
+        mobile ? "px-3 py-2 text-left" : "px-3 py-1.5 sm:ml-2"
       }`}
       onClick={onLogout}
       type="button"

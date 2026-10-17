@@ -50,6 +50,7 @@ assertIncludes("GitHub에서 PR 올리기 ↗", "PR draft page must expose GitHu
 assertIncludes("상세 보기 (수정·삭제) →", "PR draft page must link to draft detail.");
 assertIncludes("PR 초안 이력", "PR draft page must show draft history.");
 assertIncludes("아직 생성된 PR 초안이 없습니다.", "PR draft page must show the empty history state.");
+assertIncludes("@/lib/format", "PR draft page must import shared formatDate from @/lib/format.");
 
 for (const text of [
   "defaultDraftInput",

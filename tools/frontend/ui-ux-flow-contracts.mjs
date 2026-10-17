@@ -1,3 +1,8 @@
+import { existsSync } from "node:fs";
+import { join, resolve } from "node:path";
+
+const repoRoot = resolve(import.meta.dirname, "../..");
+
 export const UX_FLOW_REQUIRED_ROUTES = [
   "/login",
   "/oauth/callback",
@@ -77,7 +82,7 @@ export const UI_UX_FLOW_CONTRACTS = [
     name: "issue-detail",
     route: "/issues/[id]",
     validator: "tools/frontend/validate-issue-detail-parity.mjs",
-    sourceFiles: ["front/src/app/issues/[id]/page.tsx", "front/src/app/issues/[id]/issueDetailData.ts", "front/src/lib/api.ts"],
+    sourceFiles: ["front/src/app/issues/[id]/page.tsx", "front/src/lib/api.ts"],
     fixtureStates: ["normal", "empty", "loading", "error", "result"],
     responsiveViewports: ["mobile", "desktop"],
     landmarkOrder: ["back-link", "issue-summary", "recommendation-reason", "guide-card", "pseudo-card", "pr-draft-cta"],
@@ -99,7 +104,11 @@ export const UI_UX_FLOW_CONTRACTS = [
     name: "pr-detail",
     route: "/pr/[id]",
     validator: "tools/frontend/validate-pr-detail-parity.mjs",
-    sourceFiles: ["front/src/app/pr/[id]/page.tsx", "front/src/app/pr/[id]/PrDraftEditPanel.tsx", "front/src/app/pr/[id]/TranslationPanel.tsx"],
+    sourceFiles: [
+      "front/src/app/pr/[id]/page.tsx",
+      "front/src/components/PrDraftReadinessSection.tsx",
+      "front/src/components/LanguageTabSwitcher.tsx",
+    ],
     fixtureStates: ["normal", "empty", "loading", "error", "result"],
     responsiveViewports: ["mobile", "desktop"],
     landmarkOrder: ["draft-summary", "edit-panel", "delete-cta", "translation-panel", "github-link"],
@@ -156,6 +165,12 @@ export function validateUiUxFlowContracts(contracts) {
     ]) {
       if (!Array.isArray(value) || value.length === 0) {
         failures.push(`${contract.route} must define non-empty ${field}.`);
+      }
+    }
+
+    for (const sourceFile of contract.sourceFiles ?? []) {
+      if (!existsSync(join(repoRoot, sourceFile))) {
+        failures.push(`${contract.route} references missing sourceFile: ${sourceFile}`);
       }
     }
 
