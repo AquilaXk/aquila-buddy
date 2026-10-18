@@ -1,10 +1,10 @@
 # Aquila Buddy
 
-> GitHub issue 추천, 코드 맥락 분석, PR 초안 작성을 한 흐름으로 묶는 오픈소스 기여 도우미입니다.
+> GitHub 오픈소스 이슈 추천, 코드 맥락 분석, 단계별 기여 가이드, PR 초안 작성을 단일 워크스페이스로 지원하는 기여 플랫폼입니다.
 
 <p align="center">
-  <a href="https://github.com/AquilaXk/aquila-buddy">
-    <img src="front/public/brand-mascot.png" alt="Aquila Buddy" width="150" />
+  <a href="https://buddy.aquilaxk.site">
+    <img src="front/public/icon.svg" alt="Aquila Buddy" width="64" height="64" />
   </a>
 </p>
 
@@ -57,48 +57,48 @@
 
 ### 서비스 화면
 
-Aquila Buddy는 GitHub 프로필 분석에서 추천 이슈 탐색, 이슈별 코드 맥락 분석, PR 초안 작성 및 준비도 점검까지 이어지는 기여 워크스페이스를 제공합니다. 웹(`front/`)과 Chrome 확장 프로그램(`extension/`) 모두 고대비 라이트 표면 계층(`#ffffff` / `#f8f9fc`), `#121317` 차콜 타이포그래피 및 주요 액션, `1px` 구조적 헤어라인 보더, `tabular-nums` 수치 정렬 기반의 **Light-First High-Contrast Workspace**로 설계되었습니다.
+Aquila Buddy는 GitHub 프로필 분석에서 추천 이슈 탐색, 이슈별 코드 맥락 분석, PR 초안 작성 및 기여 준비도 점검까지 이어지는 엔지니어링 워크스페이스를 제공합니다. 웹(`front/`)과 Chrome 확장 프로그램(`extension/`) 모두 고대비 라이트 표면 계층(`#ffffff` / `#f8f9fc`), `#121317` 차콜 타이포그래피 및 주요 액션, `1px` 구조적 헤어라인 보더, `tabular-nums` 수치 정렬 기반의 **Light-First High-Contrast Workspace**로 구현되어 있습니다.
 
 <table>
   <tr>
     <td width="50%">
-      <img src="front/public/images/readme-dashboard.png" alt="프로필 분석 상태와 서비스 단계가 보이는 대시보드" />
+      <img src="front/public/images/readme-dashboard.png" alt="2단 실시간 작업 큐와 계정 정의 리스트로 구성된 대시보드" />
       <br />
-      <strong>대시보드</strong>
+      <strong>대시보드 (`/dashboard`)</strong>
       <br />
-      프로필 벡터 상태, 주요 기여 지표, 단계별 기여 동선을 고대비 라이트 워크스페이스(`#ffffff` / `#f8f9fc` 표면, `#121317` 텍스트, `tabular-nums` 지표)에서 확인합니다.
+      프로필·추천 이슈 이력·PR 초안 이력을 병렬 조회(`Promise.allSettled`)하여 좌측 7컬럼 `이슈 추천 작업 큐`와 우측 5컬럼 `PR 초안 생성 이력` 및 평면 `divide-y` `내 계정 정보` 정의 리스트를 표시합니다.
     </td>
     <td width="50%">
-      <img src="front/public/images/readme-issues.png" alt="기술 스택 기반 추천 이슈 목록" />
+      <img src="front/public/images/readme-issues.png" alt="필터 헤더 결합형 단일 divide-y 추천 이슈 시트" />
       <br />
-      <strong>추천 이슈</strong>
+      <strong>추천 이슈 (`/issues`)</strong>
       <br />
-      GitHub GraphQL 이슈 수집과 pgvector 코사인 유사도 및 사용 언어 일치도를 결합한 추천 이슈 목록을 탐색합니다.
+      GitHub GraphQL 이슈 수집과 pgvector 코사인 유사도·언어 일치도를 결합한 추천 결과를 필터 헤더(`.sheet-header`)가 통합된 단일 `divide-y` 고밀도 리스트로 탐색합니다.
     </td>
   </tr>
   <tr>
     <td width="50%">
-      <img src="front/public/images/readme-issue-detail.png" alt="이슈 수정 가이드와 의사 코드 힌트 화면" />
+      <img src="front/public/images/readme-issue-detail.png" alt="비대칭 5:7 2단 분할 코드 분석 인스펙터" />
       <br />
-      <strong>이슈 분석</strong>
+      <strong>이슈 분석 (`/issues/[id]`)</strong>
       <br />
-      TTL 2시간 Git 트리 캐시, 소스 심볼 추출, Spring Boot SSE 스트리밍으로 수정 후보 파일과 가이드라인, 의사 코드를 확인합니다.
+      상단 헤더 우측에 `PR 초안 만들기` 주 액션을 고정하고, 좌측 5컬럼(추천 이유·라벨·수정 대상 파일 경로)과 우측 7컬럼(`수정 가이드` / `의사 코드` 탭 인스펙터)의 `5:7` 2단 분할 뷰를 제공합니다.
     </td>
     <td width="50%">
-      <img src="front/public/images/readme-pr-draft.png" alt="브랜치 입력 후 생성된 PR 초안과 제출 보조 화면" />
+      <img src="front/public/images/readme-pr-draft.png" alt="4:8 분할 PR 초안 생성 및 단일 divide-y 문서 시트" />
       <br />
-      <strong>PR 초안</strong>
+      <strong>PR 초안 (`/pr-draft`, `/pr/[id]`)</strong>
       <br />
-      저장소 마크다운 PR 템플릿 파싱, PR 기여 준비도 점검(7개 항목 자동 검증) 및 한/영 번역 탭을 활용합니다.
+      좌측 4컬럼 브랜치 설정 폼과 우측 8컬럼 단일 `divide-y` PR 문서 시트(제목·본문·Diff), 평면 헤어라인 테이블 기반의 PR 기여 준비도 점검(7개 항목 자동 검증) 및 한/영 번역을 지원합니다.
     </td>
   </tr>
   <tr>
     <td colspan="2">
       <img src="front/public/images/readme-chrome-extension.png" alt="GitHub 웹에 Closed Shadow DOM으로 주입되는 Chrome Extension 사이드바" />
       <br />
-      <strong>Chrome 확장 프로그램</strong>
+      <strong>Chrome 확장 프로그램 (`extension/`)</strong>
       <br />
-      Closed Shadow DOM 스타일 격리, GitHub 이슈 목록 내 추천 표시, 실시간 사이드바 분석 및 PR 생성 폼 초안 입력 보조를 지원합니다.
+      `<aquila-buddy-root>` Closed Shadow DOM으로 스타일을 격리하고, `1px` 헤어라인 분할 추천 리스트와 실시간 코드 분석 결과 시트, GitHub PR 생성 폼 초안 자동 기입을 지원합니다.
     </td>
   </tr>
 </table>
@@ -121,8 +121,8 @@ GitHub OAuth로 로그인한 사용자의 profile vector와 GitHub issue vector�
 | 구분 | AS-IS | TO-BE |
 |------|-------|-------|
 | 이슈 선택 | label과 제목을 수동으로 비교 | profile/issue embedding 기반 추천 |
-| 분석 방식 | issue 본문 중심 확인 | repository code context와 관련 파일 기반 가이드 |
-| PR 준비 | 빈 editor에서 직접 작성 | issue, diff, template, guide를 반영한 초안 및 7개 항목 준비도 점검 |
+| 분석 방식 | issue 본문 중심 확인 | repository code context와 관련 파일 기반 `5:7` 분할 인스펙터 |
+| PR 준비 | 빈 editor에서 직접 작성 | issue, diff, template, guide를 반영한 단일 문서 시트 및 7개 항목 준비도 점검 |
 | 운영 확인 | 로컬 fixture 중심 확인 | provider, pgvector, Langfuse, extension smoke로 분리 검증 |
 
 ### 핵심 가치
@@ -145,10 +145,10 @@ GitHub OAuth로 로그인한 사용자의 profile vector와 GitHub issue vector�
 | Git Tree 캐시 & 코드 심볼 추출 | TTL 2시간 Git 재귀 트리 인메모리 캐시와 언어별 심볼 추출로 프롬프트에 필요한 코드 시그니처를 선별합니다. |
 | Spring Boot SSE 가이드 스트리밍 | Spring `SseEmitter`를 통해 단계별(맥락 분석, 대상 파일 선별, 가이드라인 작성, 완료) 가이드 청크를 실시간 스트리밍으로 전달합니다. |
 | 마크다운 PR 템플릿 파싱 | 대상 저장소의 PR 템플릿 구조(`Description`, `Test Plan`, `Checklist`, `Breaking Changes`)를 파싱하여 양식에 맞춘 초안을 생성합니다. |
-| PR 기여 준비도 점검 (7개 항목 자동 검증) | Branch Flow, Issue Link, Template Compliance, Test Plan, Clean Diff, Breaking Changes, Title Convention 7개 항목을 제출 전 자동으로 검증합니다. |
+| PR 기여 준비도 점검 (7개 항목 자동 검증) | 브랜치 흐름, 이슈 링크, 템플릿 준수, 테스트 계획, 변경 Diff, 주요 변경 공지, 제목 규칙 7개 항목을 제출 전 자동으로 검증합니다. |
 | 한/영 탭 전환 & 번역 | 생성된 PR 초안을 영문으로 번역하고 탭 전환으로 원문과 번역문을 대조·복사할 수 있는 UI를 제공합니다. |
-| Chrome Extension (Closed Shadow DOM) | GitHub DOM 환경에 `<aquila-buddy-root>` Closed Shadow DOM으로 스타일을 격리 주입하며, PR 폼 초안 입력 보조 및 Turbo Navigation 세션 복원을 지원합니다. |
-| Light-First High-Contrast 워크스페이스 | 웹(`front/`)과 확장 프로그램(`extension/`) 전반에 `#ffffff` / `#f8f9fc` 라이트 표면 계층, `#121317` 차콜 잉크 및 주요 액션, `1px` 구조적 헤어라인 보더, `tabular-nums` 수치 정렬을 일관되게 적용합니다. |
+| Chrome Extension (Closed Shadow DOM) | GitHub DOM 환경에 `<aquila-buddy-root>` Closed Shadow DOM으로 스타일을 격리 주입하며, `1px` 헤어라인 리스트와 PR 폼 초안 입력 보조를 지원합니다. |
+| 고밀도 분할 워크스페이스 UI | 대시보드 2단 작업 큐, 전체 폭 이슈 시트, 이슈 상세 `5:7` 분할 인스펙터, PR 초안 `4:8` 단일 문서 시트, 하단 `2px` 언더라인 GNB로 정보 밀도를 높였습니다. |
 | GitHub 거버넌스 & 릴리즈 표준화 | `Epic → Sub-Issue → Vertical-Slice PR` 3계층 작업 구조, 변경 등급(`Class A / B / C`) 템플릿, `1.0.0` 버전 정합성 및 `.github/release.yml` 자동 릴리즈 노트 분류를 운영합니다. |
 | AI 관측성 및 릴리즈 검증 | Prompt version, 모델명, Latency, 토큰 사용량, 실패 사유를 관측하고 Langfuse 연동 smoke 및 결정론적 릴리즈 준비도 레코드를 제공합니다. |
 
@@ -159,22 +159,24 @@ GitHub OAuth로 로그인한 사용자의 profile vector와 GitHub issue vector�
 ![Aquila Buddy system architecture](front/public/images/aquila-buddy-system-architecture.png)
 
 ```text
-[Client Layer — Light-First High-Contrast Workspace]
-  ├─ Next.js 16 App Router (React 19, TypeScript, Tailwind CSS, Lucide React)
-  │    └─ #ffffff / #f8f9fc surfaces, #121317 charcoal ink & primary actions, 1px hairlines, tabular-nums
+[1. Client Layer — Light-First High-Contrast Workspace]
+  ├─ Next.js 16 App Router (React 19, TypeScript, Tailwind CSS)
+  │    ├─ #ffffff / #f8f9fc surfaces, #121317 charcoal ink & CTA, 1px hairlines, tabular-nums
+  │    ├─ /dashboard (2-Column Live Command Queue), /issues (Unified divide-y Sheet)
+  │    └─ /issues/[id] (5:7 Split-Pane Code Inspector), /pr-draft & /pr/[id] (PR Document Sheet)
   └─ Chrome Extension (Manifest V3)
-       ├─ Closed Shadow DOM (<aquila-buddy-root>) style isolation & Light-First sidebar/popup
+       ├─ Closed Shadow DOM (<aquila-buddy-root>) style isolation & 1px hairline sidebar/popup
        ├─ GitHub Issue / Compare / PR form draft fill helper
        └─ GitHub Turbo Navigation session lifecycle handler
               │
               ▼
-[Edge & Routing Layer (Nginx)]
+[2. Edge & Routing Layer (Nginx)]
   ├─ Reverse Proxy, TLS 1.3, Rate Limiting, CORS & Security Headers
   ├─ /       → Next.js Web Frontend (:3000)
   └─ /api/*  → Spring Boot API (:8080)
               │
               ▼
-[Core Application Layer (Spring Boot 3.5.9 — Java 21 Hexagonal Architecture)]
+[3. Core Application Layer (Spring Boot 3.5.9 — Java 21 Hexagonal Architecture)]
   ├─ Auth & Security: GitHub OAuth 2.0, JWT, HttpOnly refresh token session
   ├─ Hybrid Recommendation: GraphQL crawl + pgvector cosine similarity + language match scoring
   ├─ Code Context Extractor: TTL 2-hour Git recursive tree cache, source symbol extractor
@@ -186,7 +188,7 @@ GitHub OAuth로 로그인한 사용자의 profile vector와 GitHub issue vector�
               ├──────────────► Vertex AI (Gemini) or OpenAI-compatible provider
               ├──────────────► Langfuse Tracing
               ▼
-[Data & External Layer (PostgreSQL 16 + pgvector)]
+[4. Data & External Layer (PostgreSQL 16 + pgvector)]
   ├─ user_profiles & refresh_token_sessions (RLS isolated)
   ├─ recommended_issues (1536-dim embedding vector, HNSW cosine index)
   ├─ issue_guides, pseudo_code, side_effects, file_paths
