@@ -168,11 +168,10 @@ const SHADOW_CSS = `
 }
 
 .aquila-buddy-section-title {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
-  color: #6a6a71;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  color: #121317;
+  letter-spacing: -0.01em;
   margin: 0 0 10px;
 }
 
@@ -207,21 +206,27 @@ const SHADOW_CSS = `
 }
 
 .aquila-buddy-issue-list {
-  margin-top: 12px;
+  margin-top: 10px;
+  border: 1px solid rgba(33, 34, 38, 0.10);
+  border-radius: 6px;
+  background: #ffffff;
+  overflow: hidden;
 }
 
 .aquila-buddy-issue-card {
-  background: #f8f9fc;
-  border: 1px solid rgba(33, 34, 38, 0.10);
-  border-radius: 8px;
+  background: #ffffff;
+  border-bottom: 1px solid rgba(33, 34, 38, 0.08);
   padding: 10px 12px;
-  margin-bottom: 8px;
-  transition: background 0.15s, border-color 0.15s;
+  margin: 0;
+  transition: background 0.12s;
+}
+
+.aquila-buddy-issue-card:last-child {
+  border-bottom: none;
 }
 
 .aquila-buddy-issue-card:hover {
-  background: #eff2f7;
-  border-color: rgba(33, 34, 38, 0.18);
+  background: #f8f9fc;
 }
 
 .aquila-buddy-issue-card a {
@@ -305,27 +310,31 @@ const SHADOW_CSS = `
 
 .aquila-buddy-result {
   margin-top: 12px;
-  background: #f8f9fc;
+  background: #ffffff;
   border: 1px solid rgba(33, 34, 38, 0.10);
-  border-radius: 8px;
-  padding: 12px;
+  border-radius: 6px;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
-  gap: 14px;
 }
 
 .aquila-buddy-result-section {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(33, 34, 38, 0.08);
+}
+
+.aquila-buddy-result-section:last-child {
+  border-bottom: none;
 }
 
 .aquila-buddy-result-label {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
-  color: #6a6a71;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  color: #45474d;
+  letter-spacing: -0.01em;
   margin: 0;
 }
 
@@ -374,10 +383,10 @@ const SHADOW_CSS = `
   font-size: 12px;
   line-height: 1.6;
   font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
-  background: #ffffff;
-  border: 1px solid rgba(33, 34, 38, 0.10);
+  background: #f8f9fc;
+  border: 1px solid rgba(33, 34, 38, 0.08);
   border-radius: 4px;
-  padding: 10px 12px;
+  padding: 8px 10px;
 }
 
 .aquila-buddy-field-group {
@@ -386,11 +395,10 @@ const SHADOW_CSS = `
 
 .aquila-buddy-field-label {
   display: block;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
-  color: #6a6a71;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  color: #45474d;
+  letter-spacing: -0.01em;
   margin-bottom: 4px;
 }
 
@@ -430,11 +438,10 @@ const SHADOW_CSS = `
 }
 
 .aquila-buddy-label-text {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
-  color: #6a6a71;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  color: #45474d;
+  letter-spacing: -0.01em;
   margin: 0 0 4px;
 }
 

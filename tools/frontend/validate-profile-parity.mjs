@@ -64,6 +64,9 @@ assertIncludes(profilePanel, "refreshUserProfileVector", "Profile panel must kee
 assertIncludes(profilePanel, "requestState.status === \"saving\"", "Profile panel must expose the saving fixture state.");
 assertIncludes(profilePanel, "requestState.status === \"refreshing\"", "Profile panel must expose the vector refresh fixture state.");
 assertIncludes(profilePanel, "@/lib/format", "Profile panel must use shared formatDate utility.");
+assertIncludes(profilePanel, "lg:col-span-7", "Profile panel must use 2-column settings layout.");
+assertIncludes(profilePanel, "lg:col-span-5", "Profile panel must use 2-column settings layout.");
+assertNotIncludes(profilePanel, "Sparkles", "Profile panel must not use Sparkles cliché icon.");
 assertNotIncludes(profilePanel, "border-t-transparent", "Profile panel must unify loading spinners on Loader2 instead of ad-hoc border spinners.");
 assertNotIncludes(profilePanel, "required", "Profile form must not block save/error fixtures with browser-only required constraints.");
 

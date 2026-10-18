@@ -25,7 +25,10 @@ function assertNotIncludes(needle, message) {
 assertIncludes("\"use client\";", "Dashboard page must be a client screen.");
 assertIncludes("useEffect", "Dashboard page must load the current user on the client.");
 assertIncludes("useState", "Dashboard page must keep loading/error/profile state.");
+assertIncludes("Promise.allSettled", "Dashboard page must load profile, recommended issues, and PR drafts in parallel.");
 assertIncludes("getUserProfile", "Dashboard page must fetch the current user profile.");
+assertIncludes("getRecommendedIssueHistory", "Dashboard page must fetch recommended issue history.");
+assertIncludes("getPullRequestDraftHistory", "Dashboard page must fetch recent PR draft history.");
 assertIncludes("formatDate", "Dashboard page must format vectorUpdatedAt using shared formatDate.");
 assertIncludes("@/lib/format", "Dashboard page must import formatDate from @/lib/format.");
 assertIncludes("안녕하세요", "Dashboard page must show the user greeting.");
@@ -35,12 +38,14 @@ assertIncludes("프로필 분석이 필요합니다", "Dashboard page must show 
 assertIncludes("const hasVector = Boolean(user?.profileReady || user?.vectorUpdatedAt);", "Dashboard must gate recommendation entry from profile vector readiness.");
 assertIncludes("이슈 추천을 받으려면 먼저 마이페이지에서 벡터 업데이트를 완료해주세요.", "Dashboard page must explain the vector update prerequisite.");
 assertIncludes("프로필로 이동", "Dashboard page must use the profile navigation CTA.");
-assertIncludes("내 계정 정보", "Dashboard page must show the account card.");
+assertIncludes("이슈 추천 작업 큐", "Dashboard page must render the live recommended issue queue.");
+assertIncludes("PR 초안 생성 이력", "Dashboard page must render the live recent PR draft queue.");
+assertIncludes("내 계정 정보", "Dashboard page must show the compact account definition list.");
 assertIncludes("GitHub ID", "Dashboard page must show GitHub ID.");
 assertIncludes("프로필 편집", "Dashboard page must link to profile editing.");
 assertIncludes("주요 언어", "Dashboard page must show primary languages.");
 assertIncludes("벡터 업데이트", "Dashboard page must show vector update status.");
-assertIncludes("프로필 분석", "Dashboard page must link profile analysis action.");
+assertIncludes("프로필 분석", "Dashboard page must reference profile analysis state.");
 assertIncludes("이슈 추천", "Dashboard page must link issue recommendation action.");
 assertIncludes("PR 초안 생성", "Dashboard page must link PR draft action.");
 
@@ -50,6 +55,10 @@ for (const text of [
   "STEP 1",
   "STEP 2",
   "STEP 3",
+  "Sparkles",
+  "Compass",
+  "빠른 작업",
+  "WorkflowActionRow",
   "DashboardActivityPanel",
   "DashboardWorkflowPanel",
   "loadDashboardOverview",

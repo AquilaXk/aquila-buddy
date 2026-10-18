@@ -1,8 +1,8 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import { Sparkles, Compass, Loader2, Filter } from "lucide-react";
+import { Loader2, AlertCircle, RefreshCw } from "lucide-react";
 import ProtectedLayout from "@/components/ProtectedLayout";
 import { StatusBadge } from "@/components/StatusBadge";
 import {
@@ -10,444 +10,425 @@ import {
   getRecommendedIssueHistory,
   getRecommendedIssues,
   getUserProfile,
+  type RecommendedIssue,
   type RecommendedIssueHistory
 } from "@/lib/api";
 
-const LANGUAGE_REGEX_MAP: Record<string, RegExp> = {
-  "c++": /(?:^|[^a-zA-Z0-9])(?:c\+\+|cpp)(?:$|[^a-zA-Z0-9])/i,
-  cpp: /(?:^|[^a-zA-Z0-9])(?:c\+\+|cpp)(?:$|[^a-zA-Z0-9])/i,
-  "c#": /(?:^|[^a-zA-Z0-9])(?:c#|csharp)(?:$|[^a-zA-Z0-9])/i,
-  csharp: /(?:^|[^a-zA-Z0-9])(?:c#|csharp)(?:$|[^a-zA-Z0-9])/i,
-  go: /\b(?:go|golang)\b/i,
-  golang: /\b(?:go|golang)\b/i,
-  java: /\bjava\b(?!script)/i,
-  javascript: /\b(?:javascript|js)\b/i,
-  js: /\b(?:javascript|js)\b/i,
-  typescript: /\b(?:typescript|ts)\b/i,
-  ts: /\b(?:typescript|ts)\b/i,
-  python: /\b(?:python|py)\b/i,
-  py: /\b(?:python|py)\b/i,
-  rust: /\brust\b/i,
-  kotlin: /\bkotlin\b/i
-};
+type RecommendStep = "" | "사용자 정보 확인 중..." | "GitHub에서 이슈 수집 중..." | "나에게 맞는 이슈 분석 중...";
+type AnalysisFilter = "ALL" | "ANALYZED" | "PENDING";
 
-function matchesLanguageText(text: string, key: string): boolean {
-  if (!text || !key) return false;
-  const normalizedKey = key.toLowerCase();
-  const pattern = LANGUAGE_REGEX_MAP[normalizedKey];
-  if (pattern) {
-    return pattern.test(text);
-  }
-  return text.toLowerCase().includes(normalizedKey);
-}
+const analysisFilters: Array<{ value: AnalysisFilter; label: string }> = [
+  { value: "ALL", label: "전체" },
+  { value: "ANALYZED", label: "분석 완료" },
+  { value: "PENDING", label: "분석 전" }
+];
 
 export default function IssuesPage() {
   const [history, setHistory] = useState<RecommendedIssueHistory[]>([]);
+  const [selectedRepo, setSelectedRepo] = useState("ALL");
+  const [analysisFilter, setAnalysisFilter] = useState<AnalysisFilter>("ALL");
   const [loading, setLoading] = useState(true);
   const [recommending, setRecommending] = useState(false);
-  const [recommendStep, setRecommendStep] = useState<string | null>(null);
+  const [recommendStep, setRecommendStep] = useState<RecommendStep>("");
   const [error, setError] = useState<string | null>(null);
-  const [selectedLanguage, setSelectedLanguage] = useState<string>("ALL");
-  const [selectedLabel, setSelectedLabel] = useState<string>("ALL");
 
   useEffect(() => {
-    loadHistory();
+    let isMounted = true;
+
+    getRecommendedIssueHistory()
+      .then((loadedHistory) => {
+        if (!isMounted) {
+          return;
+        }
+
+        setHistory(loadedHistory);
+        setError(null);
+      })
+      .catch((caught) => {
+        if (!isMounted) {
+          return;
+        }
+
+        setError(caught instanceof Error ? caught.message : "추천 이력을 불러오지 못했습니다.");
+      })
+      .finally(() => {
+        if (isMounted) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  async function loadHistory() {
-    setLoading(true);
-
-    try {
-      const issues = await getRecommendedIssueHistory();
-      setHistory(issues);
-      setError(null);
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "추천 이력을 불러오지 못했습니다.");
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    if (selectedRepo !== "ALL" && !history.some((issue) => issue.repoFullName === selectedRepo)) {
+      setSelectedRepo("ALL");
     }
-  }
+  }, [history, selectedRepo]);
 
   async function handleRecommend() {
     setRecommending(true);
     setError(null);
-    setRecommendStep("사용자 정보 확인 중...");
 
     try {
-      const user = await getUserProfile();
-      const languages = user.primaryLanguages;
-      const profileTerms = user.topics
-        .map((topic) => topic.trim().toLowerCase())
-        .filter((topic) => /^[a-z0-9][a-z0-9.+#-]{1,39}$/.test(topic))
-        .slice(0, 2);
-      const topicQuery = profileTerms.length > 0 ? ` ${profileTerms.join(" ")}` : "";
-
-      if (!languages || languages.length === 0) {
-        throw new Error("프로필 분석이 필요합니다. 마이페이지에서 벡터 업데이트를 먼저 실행해주세요.");
-      }
+      setRecommendStep("사용자 정보 확인 중...");
+      const profile = await getUserProfile();
+      const languages = profile.primaryLanguages ?? [];
 
       setRecommendStep("GitHub에서 이슈 수집 중...");
-      await Promise.all(
-        languages.slice(0, 3).map((language) =>
-          crawlSearchIssues(`language:${language.toLowerCase()}${topicQuery} label:"good first issue" state:open`)
-        )
-      );
+      if (languages.length > 0) {
+        await Promise.all(
+          languages.slice(0, 3).map((language) => crawlSearchIssues(language).catch(() => []))
+        );
+      }
 
       setRecommendStep("나에게 맞는 이슈 분석 중...");
-      await getRecommendedIssues();
-      setRecommendStep(null);
-      await loadHistory();
+      const newIssues = await getRecommendedIssues();
+
+      try {
+        const updatedHistory = await getRecommendedIssueHistory();
+        setHistory(updatedHistory.length > 0 ? updatedHistory : toHistoryEntries(newIssues));
+      } catch {
+        setHistory(toHistoryEntries(newIssues));
+      }
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "이슈 추천에 실패했습니다.");
-      setRecommendStep(null);
+      setError(caught instanceof Error ? caught.message : "추천 실행 중 오류가 발생했습니다.");
     } finally {
       setRecommending(false);
+      setRecommendStep("");
     }
   }
 
-  const availableLanguages = useMemo(() => {
-    const langs = new Set<string>();
-    const knownLangs = [
-      { key: "java", label: "Java" },
-      { key: "typescript", label: "TypeScript" },
-      { key: "javascript", label: "JavaScript" },
-      { key: "python", label: "Python" },
-      { key: "go", label: "Go" },
-      { key: "rust", label: "Rust" },
-      { key: "c++", label: "C++" },
-      { key: "kotlin", label: "Kotlin" }
-    ];
-    history.forEach((issue) => {
-      const labels = Array.isArray(issue.labels) ? issue.labels.filter(Boolean) : [];
-      const text = `${issue.repoFullName ?? ""} ${issue.title ?? ""} ${labels.join(" ")} ${issue.reason ?? ""}`;
-      knownLangs.forEach(({ key, label }) => {
-        if (matchesLanguageText(text, key)) {
-          langs.add(label);
-        }
-      });
-    });
-    return Array.from(langs).sort((a, b) => a.localeCompare(b));
-  }, [history]);
+  const repositoryOptions = getRepositoryOptions(history);
+  const repoFilteredHistory = selectedRepo === "ALL"
+    ? history
+    : history.filter((issue) => issue.repoFullName === selectedRepo);
+  const filteredHistory = repoFilteredHistory.filter((issue) => {
+    if (analysisFilter === "ANALYZED") {
+      return Boolean(issue.isAnalyzed);
+    }
 
-  const availableLabels = useMemo(() => {
-    const counts = new Map<string, number>();
-    history.forEach((issue) => {
-      if (Array.isArray(issue.labels)) {
-        issue.labels.filter(Boolean).forEach((label) => {
-          counts.set(label, (counts.get(label) ?? 0) + 1);
-        });
-      }
-    });
-    return Array.from(counts.entries())
-      .sort((a, b) => b[1] - a[1])
-      .map(([name]) => name)
-      .slice(0, 6);
-  }, [history]);
+    if (analysisFilter === "PENDING") {
+      return !issue.isAnalyzed;
+    }
 
-  const filteredHistory = useMemo(() => {
-    return history.filter((issue) => {
-      const labels = Array.isArray(issue.labels) ? issue.labels.filter(Boolean) : [];
-      if (selectedLanguage !== "ALL") {
-        const text = `${issue.repoFullName ?? ""} ${issue.title ?? ""} ${labels.join(" ")} ${issue.reason ?? ""}`;
-        if (!matchesLanguageText(text, selectedLanguage)) {
-          return false;
-        }
-      }
-      if (selectedLabel !== "ALL") {
-        if (!labels.includes(selectedLabel)) {
-          return false;
-        }
-      }
-      return true;
-    });
-  }, [history, selectedLanguage, selectedLabel]);
-
-  const hasLowDensityHistory = history.length > 0 && history.length < 3;
+    return true;
+  });
+  const analyzedCount = repoFilteredHistory.filter((issue) => issue.isAnalyzed).length;
+  const pendingCount = repoFilteredHistory.length - analyzedCount;
+  const hasActiveFilter = selectedRepo !== "ALL" || analysisFilter !== "ALL";
 
   return (
     <ProtectedLayout>
-      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <header className="mb-6 flex flex-col justify-between gap-4 border-b border-neutral-border pb-5 sm:flex-row sm:items-end">
         <div>
-          <h1 className="mb-1 text-2xl font-medium text-dark-text">추천 이슈</h1>
-          <p className="text-sm text-dark-muted">
+          <h1 className="text-xl font-semibold tracking-[-0.02em] text-ink-primary">추천 이슈</h1>
+          <p className="mt-1 text-xs text-ink-secondary">
             나의 기술 스택과 GitHub 활동 기반으로 맞춤 오픈소스 이슈를 추천합니다.
           </p>
         </div>
+
         <button
-          className="btn-primary focus-ring flex w-full shrink-0 items-center justify-center gap-2 px-5 py-2.5 text-sm disabled:opacity-60 sm:w-auto"
+          className="btn-primary focus-ring inline-flex shrink-0 items-center justify-center gap-2 px-4 py-2 text-xs disabled:cursor-not-allowed disabled:opacity-50"
           disabled={recommending}
           onClick={handleRecommend}
           type="button"
         >
           {recommending ? (
             <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <span>{recommendStep ?? "분석 중..."}</span>
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              <span className="button-text">{recommendStep || "추천 중..."}</span>
             </>
           ) : (
             <>
-              <Sparkles className="h-4 w-4" />
-              <span>이슈 추천받기</span>
+              <RefreshCw className="h-3.5 w-3.5" />
+              <span className="button-text">이슈 추천받기</span>
             </>
           )}
         </button>
-      </div>
+      </header>
+
+      {recommending ? (
+        <div className="mb-5 flex flex-wrap items-center gap-3 rounded-md border border-brand-500/20 bg-brand-50 px-4 py-2.5 text-xs">
+          <RecommendStepItem
+            active={recommendStep === "사용자 정보 확인 중..."}
+            done={recommendStep === "GitHub에서 이슈 수집 중..." || recommendStep === "나에게 맞는 이슈 분석 중..."}
+            label="1. 프로필 확인"
+          />
+          <span className="text-ink-muted">·</span>
+          <RecommendStepItem
+            active={recommendStep === "GitHub에서 이슈 수집 중..."}
+            done={recommendStep === "나에게 맞는 이슈 분석 중..."}
+            label="2. 이슈 수집"
+          />
+          <span className="text-ink-muted">·</span>
+          <RecommendStepItem
+            active={recommendStep === "나에게 맞는 이슈 분석 중..."}
+            done={false}
+            label="3. 맞춤 분석"
+          />
+        </div>
+      ) : null}
 
       {error ? (
-        <div className="mb-6 rounded-lg border border-[#c5221f]/20 bg-[#fce8e6] p-4 text-sm font-medium text-[#c5221f]">
-          {error}
+        <div className="mb-5 flex items-center gap-2 rounded-md border border-[#c5221f]/20 bg-[#fce8e6] px-4 py-3 text-sm font-medium text-[#c5221f]">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          <span>{error}</span>
         </div>
       ) : null}
 
       {loading ? (
-        <div className="space-y-3">
-          {[0, 1, 2, 3].map((item) => (
-            <div className="surface h-28 animate-pulse bg-dark-elevated" key={item} />
-          ))}
+        <div className="surface divide-y divide-neutral-border overflow-hidden">
+          <div className="h-11 animate-pulse bg-neutral-subtle" />
+          <div className="h-20 animate-pulse bg-white" />
+          <div className="h-20 animate-pulse bg-white" />
+          <div className="h-20 animate-pulse bg-white" />
         </div>
       ) : history.length === 0 ? (
-        <EmptyIssuesState
-          onRecommend={handleRecommend}
-          recommendStep={recommendStep}
-          recommending={recommending}
-        />
+        <EmptyIssuesState onRecommend={handleRecommend} recommending={recommending} />
       ) : (
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_18rem]">
-          <div className="space-y-3">
-            <div className="surface p-4">
-              <div className="flex flex-col gap-3">
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <span className="flex items-center gap-1 text-xs font-medium text-dark-muted">
-                    <Filter className="h-3.5 w-3.5" />
-                    언어:
-                  </span>
-                  <button
-                    className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
-                      selectedLanguage === "ALL"
-                        ? "border border-[#121317] bg-[#121317] text-white"
-                        : "border border-dark-border bg-dark-elevated text-dark-muted hover:text-dark-text"
-                    }`}
-                    onClick={() => setSelectedLanguage("ALL")}
-                    type="button"
-                  >
-                    전체
-                  </button>
-                  {availableLanguages.map((lang) => (
-                    <button
-                      className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
-                        selectedLanguage === lang
-                          ? "border border-[#121317] bg-[#121317] text-white"
-                          : "border border-dark-border bg-dark-elevated text-dark-muted hover:text-dark-text"
-                      }`}
-                      key={lang}
-                      onClick={() => setSelectedLanguage(selectedLanguage === lang ? "ALL" : lang)}
-                      type="button"
-                    >
-                      {lang}
-                    </button>
-                  ))}
-                </div>
-                {availableLabels.length > 0 ? (
-                  <div className="flex flex-wrap items-center gap-1.5 border-t border-dark-border pt-2">
-                    <span className="text-xs font-medium text-dark-muted">라벨:</span>
-                    <button
-                      className={`rounded-md px-2 py-0.5 text-xs font-medium transition-colors ${
-                        selectedLabel === "ALL"
-                          ? "border border-[#121317] bg-[#121317] text-white"
-                          : "border border-dark-border bg-dark-elevated text-dark-muted hover:text-dark-text"
-                      }`}
-                      onClick={() => setSelectedLabel("ALL")}
-                      type="button"
-                    >
-                      전체
-                    </button>
-                    {availableLabels.map((lbl) => (
-                      <button
-                        className={`rounded-md px-2 py-0.5 text-xs font-medium transition-colors ${
-                          selectedLabel === lbl
-                            ? "border border-[#121317] bg-[#121317] text-white"
-                            : "border border-dark-border bg-dark-elevated text-dark-muted hover:text-dark-text"
-                        }`}
-                        key={lbl}
-                        onClick={() => setSelectedLabel(selectedLabel === lbl ? "ALL" : lbl)}
-                        type="button"
-                      >
-                        {lbl}
-                      </button>
-                    ))}
-                  </div>
-                ) : null}
-              </div>
+        <section className="surface overflow-hidden">
+          <div className="sheet-header flex flex-col gap-3 px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="저장소 필터">
+              <button
+                className={getFilterChipClassName(selectedRepo === "ALL")}
+                onClick={() => setSelectedRepo("ALL")}
+                type="button"
+              >
+                <span className="button-text">전체</span>
+                <span className="tabular-nums ml-1 font-mono text-[11px] opacity-75">{history.length}</span>
+              </button>
+              {repositoryOptions.map((option) => (
+                <button
+                  className={getFilterChipClassName(selectedRepo === option.repoFullName)}
+                  key={option.repoFullName}
+                  onClick={() => setSelectedRepo(option.repoFullName)}
+                  type="button"
+                >
+                  <span className="max-w-48 truncate font-mono text-[11px]">{option.repoFullName}</span>
+                  <span className="tabular-nums ml-1 font-mono text-[11px] opacity-75">{option.count}</span>
+                </button>
+              ))}
             </div>
 
-            {filteredHistory.length === 0 ? (
-              <div className="rounded-lg border border-dashed border-dark-border bg-dark-elevated p-8 text-center">
-                <p className="text-sm font-medium text-dark-muted">선택한 필터 조건에 일치하는 추천 이슈가 없습니다.</p>
+            <div className="flex flex-wrap items-center justify-between gap-2 lg:justify-end">
+              <div className="flex items-center gap-1" role="group" aria-label="분석 상태 필터">
+                {analysisFilters.map((filter) => {
+                  const count = filter.value === "ALL"
+                    ? repoFilteredHistory.length
+                    : filter.value === "ANALYZED"
+                      ? analyzedCount
+                      : pendingCount;
+
+                  return (
+                    <button
+                      className={getFilterChipClassName(analysisFilter === filter.value)}
+                      key={filter.value}
+                      onClick={() => setAnalysisFilter(filter.value)}
+                      type="button"
+                    >
+                      <span className="button-text">{filter.label}</span>
+                      <span className="tabular-nums ml-1 font-mono text-[11px] opacity-75">{count}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {hasActiveFilter ? (
                 <button
-                  className="mt-3 text-xs font-medium text-brand-500 underline hover:text-brand-600"
+                  className="focus-ring rounded px-2 py-1 text-xs font-medium text-brand-500 transition-colors hover:text-brand-600"
                   onClick={() => {
-                    setSelectedLanguage("ALL");
-                    setSelectedLabel("ALL");
+                    setSelectedRepo("ALL");
+                    setAnalysisFilter("ALL");
                   }}
                   type="button"
                 >
                   필터 초기화
                 </button>
-              </div>
-            ) : (
-              filteredHistory.map((issue) => (
-                <IssueHistoryCard issue={issue} key={issue.id} />
-              ))
-            )}
+              ) : null}
+            </div>
           </div>
-          {hasLowDensityHistory ? (
-            <LowDensityIssueGuide
-              onRecommend={handleRecommend}
-              recommendStep={recommendStep}
-              recommending={recommending}
-            />
-          ) : null}
-        </div>
+
+          {filteredHistory.length === 0 ? (
+            <div className="px-6 py-12 text-center">
+              <p className="text-sm font-medium text-ink-primary">선택한 조건에 맞는 추천 이슈가 없습니다.</p>
+              <p className="mt-1 text-xs text-ink-secondary">
+                저장소 또는 분석 상태 필터를 초기화해 전체 추천 이력을 확인하세요.
+              </p>
+            </div>
+          ) : (
+            <div className="divide-y divide-neutral-border">
+              {filteredHistory.map((issue) => (
+                <IssueHistoryCard issue={issue} key={issue.id} />
+              ))}
+            </div>
+          )}
+        </section>
       )}
     </ProtectedLayout>
   );
 }
 
-function EmptyIssuesState({
-  onRecommend,
-  recommendStep,
-  recommending
+function RecommendStepItem({
+  label,
+  active,
+  done
 }: {
-  onRecommend: () => void;
-  recommendStep: string | null;
-  recommending: boolean;
+  label: string;
+  active: boolean;
+  done: boolean;
 }) {
   return (
-    <section className="rounded-lg border border-dashed border-dark-border bg-dark-elevated px-5 py-16 text-center">
-      <div className="mx-auto mb-4 grid h-11 w-11 place-items-center rounded-xl border border-dark-border bg-white text-dark-text">
-        <Sparkles className="h-5 w-5" />
-      </div>
-      <p className="text-base font-medium text-dark-text">아직 추천받은 이슈가 없습니다.</p>
-      <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-dark-muted">
-        프로필 분석을 마쳤다면 바로 추천을 실행해 첫 후보를 받아보세요.
-      </p>
-      <button
-        className="btn-primary focus-ring mt-6 inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm disabled:opacity-60"
-        disabled={recommending}
-        onClick={onRecommend}
-        type="button"
-      >
-        {recommending ? (
-          <>
-            <Loader2 className="h-4 w-4 animate-spin" />
-            <span>{recommendStep ?? "분석 중..."}</span>
-          </>
-        ) : (
-          <>
-            <Sparkles className="h-4 w-4" />
-            <span>이슈 추천받기</span>
-          </>
-        )}
-      </button>
-    </section>
+    <span
+      className={
+        active
+          ? "font-semibold text-brand-600"
+          : done
+            ? "font-medium text-[#137333]"
+            : "text-ink-muted"
+      }
+    >
+      {done ? "✓ " : ""}
+      {label}
+    </span>
   );
 }
 
-function LowDensityIssueGuide({
-  onRecommend,
-  recommendStep,
-  recommending
+function EmptyIssuesState({
+  recommending,
+  onRecommend
 }: {
-  onRecommend: () => void;
-  recommendStep: string | null;
   recommending: boolean;
+  onRecommend: () => void;
 }) {
   return (
-    <aside className="surface p-5 lg:sticky lg:top-24 lg:self-start">
-      <p className="text-sm font-medium text-dark-text">더 넓게 비교하기</p>
-      <p className="mt-2 text-xs leading-5 text-dark-muted">
-        추천 후보가 적을 때는 프로필 분석을 확인하거나 추천을 다시 실행해 후보군을 넓혀보세요.
+    <section className="surface px-6 py-14 text-center">
+      <h2 className="text-base font-semibold text-ink-primary">아직 추천된 이슈가 없습니다</h2>
+      <p className="mx-auto mt-1.5 max-w-md text-xs leading-relaxed text-ink-secondary">
+        프로필 분석을 마쳤다면 바로 추천을 실행해 첫 후보를 받아보세요.
       </p>
-      <div className="mt-4 grid gap-2">
-        <Link
-          className="btn-secondary focus-ring inline-flex items-center justify-center gap-1.5 px-3 py-2 text-center text-xs"
-          href="/profile"
-        >
-          <Compass className="h-3.5 w-3.5" />
-          <span>프로필 확인</span>
-        </Link>
+      <div className="mt-5 flex flex-wrap items-center justify-center gap-2.5">
         <button
-          className="btn-primary focus-ring px-3 py-2 text-xs disabled:opacity-60"
+          className="btn-primary focus-ring inline-flex items-center gap-2 px-4 py-2 text-xs disabled:opacity-50"
           disabled={recommending}
           onClick={onRecommend}
           type="button"
         >
-          {recommending ? recommendStep ?? "분석 중..." : "추천 다시 받기"}
+          <RefreshCw className="h-3.5 w-3.5" />
+          <span className="button-text">이슈 추천받기</span>
         </button>
+        <Link
+          className="btn-secondary focus-ring inline-flex items-center px-4 py-2 text-xs"
+          href="/profile"
+        >
+          <span className="button-text">프로필 확인</span>
+        </Link>
       </div>
-    </aside>
+    </section>
   );
 }
 
 function IssueHistoryCard({ issue }: { issue: RecommendedIssueHistory }) {
   const scorePercent = Math.round(issue.score * 100);
-  const hasSimilarityScore = issue.score > 0.01;
-  const uniqueLabels = Array.isArray(issue.labels)
-    ? Array.from(new Set(issue.labels.filter(Boolean)))
-    : [];
+  const visibleLabels = issue.labels.slice(0, 4);
+  const hiddenLabelCount = Math.max(issue.labels.length - visibleLabels.length, 0);
 
   return (
     <Link
-      className="surface group block p-5 transition-colors hover:border-[#cdd4dc] hover:bg-dark-elevated/40"
-      href={`/issues/${issue.id}`}
+      className="focus-ring group flex flex-col justify-between gap-3 px-5 py-4 transition-colors hover:bg-neutral-subtle sm:flex-row sm:items-start"
+      href={`/issues/${encodeURIComponent(issue.id)}`}
     >
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0 flex-1">
-          <div className="mb-2 flex flex-wrap items-center gap-2">
-            <StatusBadge status={issue.status} />
-            <span className="font-mono text-xs text-dark-muted">
-              {issue.repoFullName}#{issue.issueNumber}
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <StatusBadge status={issue.status} />
+          <span className="font-mono text-xs text-ink-muted">
+            {issue.repoFullName} #{issue.issueNumber}
+          </span>
+          {visibleLabels.map((label) => (
+            <span
+              className="badge-trim rounded border border-neutral-border bg-neutral-subtle px-1.5 py-0.5 font-mono text-[11px] text-ink-secondary"
+              key={label}
+            >
+              {label}
             </span>
-            {hasSimilarityScore ? (
-              <span className="badge-trim tabular-nums rounded-md border border-[#137333]/20 bg-[#e6f4ea] px-2 py-0.5 text-xs font-medium text-[#137333]">
-                매칭 {scorePercent}%
-              </span>
-            ) : null}
-            {issue.isAnalyzed ? (
-              <span className="badge-trim rounded-md border border-brand-500/20 bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-600">
-                분석 완료
-              </span>
-            ) : null}
-          </div>
-
-          <h3 className="mb-1.5 line-clamp-1 font-medium text-dark-text transition-colors group-hover:text-brand-500">
-            {issue.title}
-          </h3>
-          {issue.summary ? (
-            <p className="line-clamp-2 text-xs leading-5 text-dark-muted">{issue.summary}</p>
-          ) : null}
-          {issue.reason ? (
-            <p className="mt-2 line-clamp-1 text-xs leading-5 text-ink-secondary">
-              추천 근거: {issue.reason}
-            </p>
-          ) : null}
-          {uniqueLabels.length > 0 ? (
-            <div className="mt-2.5 flex flex-wrap gap-1.5">
-              {uniqueLabels.map((label, idx) => (
-                <span
-                  className="badge-trim rounded border border-dark-border bg-dark-elevated px-2 py-0.5 text-[11px] text-dark-muted"
-                  key={`${label}-${idx}`}
-                >
-                  {label}
-                </span>
-              ))}
-            </div>
+          ))}
+          {hiddenLabelCount > 0 ? (
+            <span className="tabular-nums font-mono text-[11px] text-ink-muted">
+              +{hiddenLabelCount}
+            </span>
           ) : null}
         </div>
-        <span className="mt-1 shrink-0 text-xs font-medium text-brand-500 transition-transform group-hover:translate-x-0.5">
-          자세히 →
+
+        <h2 className="mt-1.5 text-[15px] font-medium leading-snug text-ink-primary transition-colors group-hover:text-brand-500">
+          {issue.title}
+        </h2>
+
+        {issue.summary ? (
+          <p className="mt-1 line-clamp-1 text-xs leading-relaxed text-ink-secondary">
+            {issue.summary}
+          </p>
+        ) : null}
+
+        {issue.reason ? (
+          <p className="mt-1.5 line-clamp-1 text-xs text-ink-muted">
+            <span className="font-medium text-ink-secondary">추천 근거:</span> {issue.reason}
+          </p>
+        ) : null}
+      </div>
+
+      <div className="flex shrink-0 items-center gap-2 sm:flex-col sm:items-end sm:gap-1.5">
+        <div className="flex items-center gap-1.5">
+          {issue.score > 0 ? (
+            <span className="badge-trim tabular-nums rounded border border-[#137333]/20 bg-[#e6f4ea] px-2 py-0.5 font-mono text-xs font-medium text-[#137333]">
+              매칭 {scorePercent}%
+            </span>
+          ) : null}
+          <span
+            className={`badge-trim rounded border px-2 py-0.5 text-[11px] font-medium ${
+              issue.isAnalyzed
+                ? "border-brand-500/20 bg-brand-50 text-brand-600"
+                : "border-neutral-border bg-white text-ink-muted"
+            }`}
+          >
+            {issue.isAnalyzed ? "분석 완료" : "분석 전"}
+          </span>
+        </div>
+        <span className="text-xs font-medium text-brand-500 transition-colors group-hover:text-brand-600">
+          상세 분석
         </span>
       </div>
     </Link>
   );
+}
+
+function getRepositoryOptions(history: RecommendedIssueHistory[]) {
+  const counts = new Map<string, number>();
+
+  for (const issue of history) {
+    counts.set(issue.repoFullName, (counts.get(issue.repoFullName) ?? 0) + 1);
+  }
+
+  return Array.from(counts.entries()).map(([repoFullName, count]) => ({
+    repoFullName,
+    count
+  }));
+}
+
+function getFilterChipClassName(active: boolean) {
+  return [
+    "focus-ring inline-flex items-center rounded px-2.5 py-1 text-xs font-medium transition-colors",
+    active
+      ? "bg-[#121317] text-white"
+      : "border border-neutral-border bg-white text-ink-secondary hover:bg-neutral-hover hover:text-ink-primary"
+  ].join(" ");
+}
+
+function toHistoryEntries(issues: RecommendedIssue[]): RecommendedIssueHistory[] {
+  return issues.map((issue) => ({
+    ...issue,
+    isAnalyzed: false,
+    analysisResultId: null
+  }));
 }
