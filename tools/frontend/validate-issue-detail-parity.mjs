@@ -56,12 +56,14 @@ assertNotIncludes("{issue.summary}</p>", "Issue detail page must not render raw 
 assertIncludes("매칭", "Issue detail page must show the match score.");
 assertIncludes("@/components/StatusBadge", "Issue detail page must import shared StatusBadge.");
 assertIncludes("StatusBadge", "Issue detail page must render status badges.");
-assertIncludes("1차 힌트 — 수정 가이드", "Issue detail page must show the first hint card.");
+assertIncludes("lg:col-span-5", "Issue detail page must use asymmetric 5:7 split workspace layout (left context pane).");
+assertIncludes("lg:col-span-7", "Issue detail page must use asymmetric 5:7 split workspace layout (right analysis pane).");
+assertIncludes("수정 가이드", "Issue detail page must show the guide tab.");
 assertIncludes("힌트 보기", "Issue detail page must expose the guide CTA.");
-assertIncludes("2차 힌트 — 의사 코드", "Issue detail page must show the second hint card.");
+assertIncludes("의사 코드", "Issue detail page must show the pseudo-code tab.");
 assertIncludes("코드 힌트 보기", "Issue detail page must expose the pseudo-code CTA.");
-assertIncludes("PR 초안 생성", "Issue detail page must show the PR draft CTA section.");
-assertIncludes("PR 초안 만들기 →", "Issue detail page must expose the PR draft link.");
+assertIncludes("PR 초안 생성", "Issue detail page must show the PR draft section.");
+assertIncludes("PR 초안 만들기", "Issue detail page must expose the primary PR draft CTA in the header.");
 assertIncludes("수정 대상 파일", "Issue detail page must show the file path section label.");
 assertIncludes("수정 대상 파일 없음", "Issue detail page must keep the empty file path result structure.");
 assertIncludes("guide.sideEffects.length > 0", "Issue detail page must keep the side effects result section.");
@@ -83,6 +85,10 @@ for (const queryContract of [
 }
 
 for (const text of [
+  "1차 힌트",
+  "2차 힌트",
+  "Lightbulb",
+  "Code2",
   "Radio",
   "Sparkles",
   "IssueGuideWorkflowPanel",
@@ -92,7 +98,7 @@ for (const text of [
   "Pseudo Code",
   "PR Draft"
 ]) {
-  assertNotIncludes(text, `Issue detail page must not expose unused or old "${text}" structure.`);
+  assertNotIncludes(text, `Issue detail page must not expose unused or slop "${text}" structure.`);
 }
 
 if (failures.length > 0) {

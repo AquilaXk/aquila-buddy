@@ -70,6 +70,10 @@ assert.doesNotMatch(contentScript, /#0d1117|#161b22|#238636/, "content.js must n
 assert.match(contentScript, /#ffffff/, "content.js must include light-first primary surface");
 assert.match(contentScript, /#121317/, "content.js must include charcoal primary ink/CTA");
 assert.match(contentScript, /tabular-nums/, "content.js must include tabular-nums");
+assert.doesNotMatch(contentScript, /text-transform:\s*uppercase/, "content.js must not use uppercase micro-label cliché");
+assert.doesNotMatch(contentScript, /letter-spacing:\s*0\.06em/, "content.js must not use wide uppercase tracking");
+assert.match(contentScript, /\.aquila-buddy-issue-card:last-child/, "content.js must style issue cards as flush hairline rows");
+assert.match(contentScript, /\.aquila-buddy-result-section:last-child/, "content.js must style result sections as flush hairline rows");
 
 assert.equal(typeof context.renderRecommendationReason, "function");
 

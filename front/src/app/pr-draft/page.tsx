@@ -209,289 +209,342 @@ function PrDraftContent() {
 
   return (
     <ProtectedLayout>
-      <div className="mb-6 flex items-center gap-3">
-        {draftInput.issueId ? (
-          <Link
-            className="focus-ring inline-flex items-center gap-1.5 text-sm font-medium text-dark-muted transition-colors hover:text-dark-text"
-            href={`/issues/${encodeURIComponent(draftInput.issueId)}`}
-          >
-            <ArrowLeft className="h-4 w-4" />
-            <span>이슈로 돌아가기</span>
-          </Link>
-        ) : (
-          <Link
-            className="focus-ring inline-flex items-center gap-1.5 text-sm font-medium text-dark-muted transition-colors hover:text-dark-text"
-            href="/issues"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            <span>추천 이슈</span>
-          </Link>
-        )}
-        <h1 className="text-2xl font-medium text-dark-text">PR 초안 생성</h1>
-      </div>
+      <header className="mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-neutral-border pb-5">
+        <div>
+          <div className="mb-1.5 flex items-center gap-2 text-xs text-ink-secondary">
+            {draftInput.issueId ? (
+              <Link
+                className="focus-ring inline-flex items-center gap-1 font-medium text-ink-secondary transition-colors hover:text-ink-primary"
+                href={`/issues/${encodeURIComponent(draftInput.issueId)}`}
+              >
+                <ArrowLeft className="h-3.5 w-3.5" />
+                <span>이슈로 돌아가기</span>
+              </Link>
+            ) : (
+              <Link
+                className="focus-ring inline-flex items-center gap-1 font-medium text-ink-secondary transition-colors hover:text-ink-primary"
+                href="/issues"
+              >
+                <ArrowLeft className="h-3.5 w-3.5" />
+                <span>추천 이슈</span>
+              </Link>
+            )}
+          </div>
+          <h1 className="text-xl font-semibold tracking-[-0.02em] text-ink-primary">PR 초안 생성</h1>
+        </div>
+      </header>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="space-y-4">
+      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
+        <aside className="surface divide-y divide-neutral-border overflow-hidden lg:col-span-4">
           {hasIssueParam || draftInput.issueId ? (
-            <section className="surface p-5">
-              <p className="text-xs font-semibold uppercase tracking-wider text-ink-muted">선택된 이슈</p>
-              <p className="mt-2 break-all font-mono text-xs text-dark-muted">
-                {hasIssueParam ? `${draftInput.upstreamRepo} #${draftInput.githubIssueNumber}` : "이슈 정보를 불러오는 중..."}
-              </p>
-              <h2 className="mt-1.5 text-base font-medium leading-6 text-dark-text">
+            <div className="p-4">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-semibold text-ink-primary">선택된 이슈</span>
+                <span className="truncate font-mono text-xs text-ink-muted">
+                  {hasIssueParam ? `${draftInput.upstreamRepo} #${draftInput.githubIssueNumber}` : "불러오는 중..."}
+                </span>
+              </div>
+              <h2 className="mt-1.5 text-sm font-medium leading-snug text-ink-primary">
                 {draftInput.issueTitle || (hasIssueParam ? `Issue #${draftInput.githubIssueNumber}` : draftInput.issueId)}
               </h2>
               {sourceIssueLoading ? (
-                <p className="mt-3 text-xs text-dark-muted">이슈 정보를 불러오는 중...</p>
+                <p className="mt-2 text-xs text-ink-muted">이슈 정보를 불러오는 중...</p>
               ) : null}
               {sourceIssueError ? (
-                <p className="mt-3 text-xs font-medium text-[#b06000]">{sourceIssueError}</p>
+                <p className="mt-2 text-xs font-medium text-[#b06000]">{sourceIssueError}</p>
               ) : null}
-            </section>
+            </div>
           ) : (
-            <section className="rounded-lg border border-[#b06000]/25 bg-[#fef7e0] p-5">
-              <p className="text-sm font-medium text-[#b06000]">
+            <div className="bg-[#fef7e0] p-4">
+              <p className="text-xs font-medium leading-relaxed text-[#b06000]">
                 이슈 상세 페이지에서 &quot;PR 초안 만들기&quot;를 통해 접근해주세요.{" "}
-                <Link className="underline hover:text-dark-text" href="/issues">
+                <Link className="underline hover:text-ink-primary" href="/issues">
                   이슈 목록으로
                 </Link>
               </p>
-            </section>
+            </div>
           )}
 
           {hasIssueParam ? (
-            <form className="space-y-4" onSubmit={handleSubmit}>
+            <form className="space-y-3.5 p-4" onSubmit={handleSubmit}>
               <label className="block">
-                <span className="text-xs font-medium uppercase tracking-wide text-dark-muted">
+                <span className="text-xs font-medium text-ink-secondary">
                   Base 브랜치 <span className="text-[#c5221f]">*</span>
                 </span>
                 <input
-                  className="focus-ring mt-1.5 w-full rounded-md border border-dark-border bg-white px-3.5 py-2 font-mono text-sm text-dark-text placeholder:text-ink-muted focus:border-brand-500"
+                  className="focus-ring mt-1 w-full rounded border border-neutral-border bg-white px-3 py-1.5 font-mono text-xs text-ink-primary placeholder:text-ink-muted focus:border-brand-500"
                   onChange={(event) => setBaseBranch(event.target.value)}
                   placeholder="main"
                   value={baseBranch}
                 />
-                <span className="mt-1 block text-xs text-dark-muted">
-                  PR의 대상 브랜치입니다.
+                <span className="mt-1 block text-[11px] text-ink-muted">
+                  병합 대상 기본 브랜치
                 </span>
               </label>
 
               <label className="block">
-                <span className="text-xs font-medium uppercase tracking-wide text-dark-muted">
+                <span className="text-xs font-medium text-ink-secondary">
                   Head 브랜치 <span className="text-[#c5221f]">*</span>
                 </span>
                 <input
-                  className="focus-ring mt-1.5 w-full rounded-md border border-dark-border bg-white px-3.5 py-2 font-mono text-sm text-dark-text placeholder:text-ink-muted focus:border-brand-500"
+                  className="focus-ring mt-1 w-full rounded border border-neutral-border bg-white px-3 py-1.5 font-mono text-xs text-ink-primary placeholder:text-ink-muted focus:border-brand-500"
                   onChange={(event) => setHeadBranch(event.target.value)}
                   placeholder="feat/my-feature"
                   value={headBranch}
                 />
-                <span className="mt-1 block text-xs text-dark-muted">
-                  내 작업 브랜치입니다.
+                <span className="mt-1 block text-[11px] text-ink-muted">
+                  변경 사항이 푸시된 작업 브랜치
                 </span>
               </label>
 
               {!draft && error ? (
-                <div className="rounded-lg border border-[#c5221f]/20 bg-[#fce8e6] px-4 py-3 text-sm font-medium text-[#c5221f]">
+                <div className="rounded border border-[#c5221f]/20 bg-[#fce8e6] px-3 py-2 text-xs font-medium text-[#c5221f]">
                   {error}
                 </div>
               ) : null}
 
               <button
-                className="btn-primary focus-ring flex w-full items-center justify-center gap-2 px-4 py-2.5 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+                className="btn-primary focus-ring inline-flex w-full items-center justify-center gap-2 px-4 py-2 text-xs disabled:cursor-not-allowed disabled:opacity-50"
                 disabled={submitting || !canSubmit}
                 type="submit"
               >
                 {submitting ? (
                   <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>AI가 PR 초안 생성 중...</span>
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    <span className="button-text">AI가 PR 초안 생성 중...</span>
                   </>
                 ) : (
                   <>
-                    <GitPullRequest className="h-4 w-4" />
-                    <span>PR 초안 생성</span>
+                    <GitPullRequest className="h-3.5 w-3.5" />
+                    <span className="button-text">PR 초안 생성</span>
                   </>
                 )}
               </button>
             </form>
           ) : null}
-        </div>
+        </aside>
 
-        <section className="surface min-h-80 p-5">
-          {draft && error ? (
-            <div className="mb-4 rounded-lg border border-[#c5221f]/20 bg-[#fce8e6] px-4 py-3 text-sm font-medium text-[#c5221f]">
-              <p className="text-xs uppercase tracking-wide">PR 초안 작업 오류</p>
-              <p className="mt-1">{error}</p>
-            </div>
-          ) : null}
-
-          {draft ? (
-            <div className="space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-dark-border pb-3">
-                <h2 className="text-base font-medium text-dark-text">생성된 PR 초안</h2>
-                <LanguageTabSwitcher
-                  activeTab={activeLangTab}
-                  hasTranslation={Boolean(translated)}
-                  onSelectTab={setActiveLangTab}
-                />
+        <div className="space-y-5 lg:col-span-8">
+          <section className="surface divide-y divide-neutral-border overflow-hidden">
+            <div className="sheet-header flex flex-wrap items-center justify-between gap-3 px-5 py-3">
+              <div className="flex items-center gap-2">
+                <h2 className="text-xs font-semibold text-ink-primary">생성된 PR 초안</h2>
+                {baseBranch && headBranch ? (
+                  <span className="rounded border border-neutral-border bg-white px-2 py-0.5 font-mono text-[11px] text-ink-secondary">
+                    {baseBranch} ← {headBranch}
+                  </span>
+                ) : null}
               </div>
 
-              <div className="rounded-lg border border-dark-border bg-dark-elevated p-4">
-                <div className="mb-2 flex items-center justify-between gap-3">
-                  <p className="text-xs font-medium uppercase tracking-wide text-dark-muted">PR 제목</p>
-                  <button
-                    className="focus-ring inline-flex items-center gap-1 text-xs font-medium text-dark-muted transition-colors hover:text-brand-500"
-                    onClick={() => copyDraft(displayTitle, "title")}
-                    type="button"
-                  >
-                    {copied === "title" ? (
-                      <>
-                        <Check className="h-3 w-3 text-[#137333]" />
-                        <span>복사됨 ✓</span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="h-3 w-3" />
-                        <span>복사</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-                <p className="text-sm font-medium leading-6 text-dark-text">{displayTitle}</p>
-              </div>
-
-              <div className="rounded-lg border border-dark-border bg-dark-elevated p-4">
-                <div className="mb-2 flex items-center justify-between gap-3">
-                  <p className="text-xs font-medium uppercase tracking-wide text-dark-muted">PR 본문</p>
-                  <button
-                    className="focus-ring inline-flex items-center gap-1 text-xs font-medium text-dark-muted transition-colors hover:text-brand-500"
-                    onClick={() => copyDraft(displayBody, "body")}
-                    type="button"
-                  >
-                    {copied === "body" ? (
-                      <>
-                        <Check className="h-3 w-3 text-[#137333]" />
-                        <span>복사됨 ✓</span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="h-3 w-3" />
-                        <span>복사</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-                <pre className="max-h-64 overflow-auto whitespace-pre-wrap font-mono text-xs leading-6 text-dark-text">
-                  {displayBody}
-                </pre>
-              </div>
-
-              <PrDraftReadinessSection readiness={readiness} />
-
-              {!translated ? (
-                <button
-                  className="btn-secondary focus-ring flex w-full items-center justify-center gap-2 px-4 py-2.5 text-sm disabled:cursor-not-allowed disabled:opacity-50"
-                  disabled={translating}
-                  onClick={handleTranslate}
-                  type="button"
-                >
-                  {translating ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      <span>영어로 번역 중...</span>
-                    </>
+              {draft ? (
+                <div className="flex flex-wrap items-center gap-2">
+                  <LanguageTabSwitcher
+                    activeTab={activeLangTab}
+                    hasTranslation={Boolean(translated)}
+                    onSelectTab={setActiveLangTab}
+                  />
+                  {!translated ? (
+                    <button
+                      className="btn-secondary focus-ring inline-flex items-center gap-1.5 px-3 py-1 text-xs disabled:cursor-not-allowed disabled:opacity-50"
+                      disabled={translating}
+                      onClick={handleTranslate}
+                      type="button"
+                    >
+                      {translating ? (
+                        <>
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          <span className="button-text">영어로 번역 중...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Globe className="h-3.5 w-3.5" />
+                          <span className="button-text">영어로 번역하기</span>
+                        </>
+                      )}
+                    </button>
                   ) : (
-                    <>
-                      <Globe className="h-4 w-4" />
-                      <span>영어로 번역하기</span>
-                    </>
+                    <a
+                      className="btn-primary focus-ring inline-flex items-center gap-1.5 px-3 py-1 text-xs"
+                      href={translated.githubUrl}
+                      rel="noopener noreferrer"
+                      target="_blank"
+                    >
+                      <ExternalLink className="h-3.5 w-3.5" />
+                      <span className="button-text">GitHub에서 PR 올리기 ↗</span>
+                    </a>
                   )}
-                </button>
-              ) : (
-                <a
-                  className="btn-primary focus-ring flex w-full items-center justify-center gap-2 px-4 py-2.5 text-sm"
-                  href={translated.githubUrl}
-                  rel="noopener noreferrer"
-                  target="_blank"
-                >
-                  <ExternalLink className="h-4 w-4" />
-                  <span>GitHub에서 PR 올리기 ↗</span>
-                </a>
-              )}
+                  <Link
+                    className="focus-ring text-xs font-medium text-brand-500 transition-colors hover:text-brand-600"
+                    href={`/pr/${draft.id}`}
+                  >
+                    상세 보기 (수정·삭제) →
+                  </Link>
+                </div>
+              ) : null}
+            </div>
 
-              <Link
-                className="focus-ring block text-center text-xs font-medium text-dark-muted transition-colors hover:text-brand-500"
-                href={`/pr/${draft.id}`}
-              >
-                상세 보기 (수정·삭제) →
-              </Link>
-            </div>
-          ) : (
-            <div className="flex h-full min-h-72 items-center justify-center text-center text-sm leading-6 text-dark-muted">
-              선택한 이슈의 브랜치 정보를 입력하면 PR 초안 결과가 여기에 표시됩니다.
-            </div>
-          )}
-        </section>
+            {draft && error ? (
+              <div className="bg-[#fce8e6] px-5 py-3 text-xs font-medium text-[#c5221f]">
+                <p className="font-semibold">PR 초안 작업 오류</p>
+                <p className="mt-0.5">{error}</p>
+              </div>
+            ) : null}
+
+            {draft ? (
+              <>
+                <div className="px-5 py-4">
+                  <div className="mb-1.5 flex items-center justify-between gap-3">
+                    <span className="text-xs font-semibold text-ink-secondary">PR 제목</span>
+                    <button
+                      className="focus-ring inline-flex items-center gap-1 text-xs font-medium text-ink-secondary transition-colors hover:text-brand-500"
+                      onClick={() => copyDraft(displayTitle, "title")}
+                      type="button"
+                    >
+                      {copied === "title" ? (
+                        <>
+                          <Check className="h-3 w-3 text-[#137333]" />
+                          <span>복사됨 ✓</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="h-3 w-3" />
+                          <span>복사</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                  <p className="text-sm font-medium leading-6 text-ink-primary">{displayTitle}</p>
+                </div>
+
+                <div className="px-5 py-4">
+                  <div className="mb-2 flex items-center justify-between gap-3">
+                    <span className="text-xs font-semibold text-ink-secondary">PR 본문</span>
+                    <button
+                      className="focus-ring inline-flex items-center gap-1 text-xs font-medium text-ink-secondary transition-colors hover:text-brand-500"
+                      onClick={() => copyDraft(displayBody, "body")}
+                      type="button"
+                    >
+                      {copied === "body" ? (
+                        <>
+                          <Check className="h-3 w-3 text-[#137333]" />
+                          <span>복사됨 ✓</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="h-3 w-3" />
+                          <span>복사</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                  <pre className="max-h-72 overflow-auto whitespace-pre-wrap rounded border border-neutral-border bg-neutral-subtle p-4 font-mono text-xs leading-6 text-ink-primary">
+                    {displayBody}
+                  </pre>
+                </div>
+              </>
+            ) : (
+              <div className="divide-y divide-neutral-border">
+                <dl className="grid grid-cols-1 divide-y divide-neutral-border text-xs sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+                  <div className="px-4 py-3">
+                    <dt className="text-ink-muted">대상 저장소</dt>
+                    <dd className="mt-0.5 truncate font-mono font-medium text-ink-primary">
+                      {draftInput.upstreamRepo || "미지정"}
+                    </dd>
+                  </div>
+                  <div className="px-4 py-3">
+                    <dt className="text-ink-muted">이슈 번호</dt>
+                    <dd className="tabular-nums mt-0.5 font-mono font-medium text-ink-primary">
+                      {draftInput.githubIssueNumber ? `#${draftInput.githubIssueNumber}` : "미지정"}
+                    </dd>
+                  </div>
+                  <div className="px-4 py-3">
+                    <dt className="text-ink-muted">비교 브랜치</dt>
+                    <dd className="mt-0.5 truncate font-mono font-medium text-ink-primary">
+                      {baseBranch || "main"} ← {headBranch || "미입력"}
+                    </dd>
+                  </div>
+                </dl>
+                <div className="px-5 py-10 text-center text-xs leading-relaxed text-ink-secondary">
+                  선택한 이슈의 브랜치 정보를 입력하면 PR 초안 결과가 여기에 표시됩니다.
+                </div>
+              </div>
+            )}
+          </section>
+
+          <PrDraftReadinessSection readiness={readiness} />
+        </div>
       </div>
 
-      <section className="mt-10">
-        <h2 className="mb-4 font-medium text-dark-text">PR 초안 이력</h2>
+      <section className="surface mt-8 overflow-hidden">
+        <div className="sheet-header flex items-center justify-between gap-3 px-5 py-3">
+          <h2 className="text-xs font-semibold text-ink-primary">PR 초안 이력</h2>
+          {historyPage ? (
+            <span className="tabular-nums font-mono text-xs text-ink-muted">
+              총 {historyPage.totalElements}건
+            </span>
+          ) : null}
+        </div>
+
         {historyError ? (
-          <div className="mb-4 rounded-lg border border-[#c5221f]/20 bg-[#fce8e6] p-4 text-sm font-medium text-[#c5221f]">
+          <div className="bg-[#fce8e6] px-5 py-3 text-xs font-medium text-[#c5221f]">
             {historyError}
           </div>
         ) : null}
+
         {historyLoading ? (
-          <div className="space-y-2.5">
-            <div className="surface h-16 animate-pulse bg-dark-elevated" />
-            <div className="surface h-16 animate-pulse bg-dark-elevated" />
-            <div className="surface h-16 animate-pulse bg-dark-elevated" />
+          <div className="divide-y divide-neutral-border">
+            <div className="h-14 animate-pulse bg-white" />
+            <div className="h-14 animate-pulse bg-white" />
+            <div className="h-14 animate-pulse bg-white" />
           </div>
         ) : drafts.length === 0 ? (
-          <div className="surface py-12 text-center text-sm text-dark-muted">
+          <div className="py-10 text-center text-xs text-ink-secondary">
             아직 생성된 PR 초안이 없습니다.
           </div>
         ) : (
           <>
-            <div className="space-y-2">
+            <div className="divide-y divide-neutral-border">
               {drafts.map((item) => (
                 <Link
-                  className="surface focus-ring group flex items-center justify-between px-5 py-3.5 transition-colors hover:border-[#cdd4dc] hover:bg-dark-elevated/40"
+                  className="focus-ring group flex items-center justify-between gap-4 px-5 py-3 transition-colors hover:bg-neutral-subtle"
                   href={`/pr/${item.id}`}
                   key={item.id}
                 >
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-dark-text transition-colors group-hover:text-brand-500">{item.title}</p>
-                    <p className="tabular-nums mt-0.5 font-mono text-xs text-dark-muted">
-                      {item.upstreamRepo} · {formatDate(item.createdAt)}
+                    <p className="truncate text-sm font-medium text-ink-primary transition-colors group-hover:text-brand-500">
+                      {item.title}
+                    </p>
+                    <p className="tabular-nums mt-0.5 font-mono text-xs text-ink-muted">
+                      {item.upstreamRepo} #{item.githubIssueNumber} · {item.baseBranch} → {item.headBranch} · {formatDate(item.createdAt)}
                     </p>
                   </div>
-                  <span className="ml-4 shrink-0 text-xs font-medium text-brand-500 transition-transform group-hover:translate-x-0.5">보기 →</span>
+                  <span className="shrink-0 text-xs font-medium text-brand-500 transition-colors group-hover:text-brand-600">
+                    상세 보기
+                  </span>
                 </Link>
               ))}
             </div>
 
             {totalHistoryPages > 1 ? (
-              <div className="mt-4 flex items-center justify-center gap-3">
+              <div className="flex items-center justify-between border-t border-neutral-border bg-neutral-subtle px-5 py-2.5">
                 <button
-                  className="btn-secondary focus-ring px-3 py-1 text-xs disabled:opacity-30"
+                  className="btn-secondary focus-ring px-2.5 py-1 text-xs disabled:opacity-30"
                   disabled={historyLoading || historyPage?.first}
                   onClick={() => setHistoryPageIndex((page) => Math.max(0, page - 1))}
                   type="button"
                 >
-                  ← 이전
+                  이전
                 </button>
-                <span className="tabular-nums text-xs font-medium text-dark-muted">
+                <span className="tabular-nums font-mono text-xs text-ink-secondary">
                   {(historyPage?.page ?? 0) + 1} / {totalHistoryPages}
                 </span>
                 <button
-                  className="btn-secondary focus-ring px-3 py-1 text-xs disabled:opacity-30"
+                  className="btn-secondary focus-ring px-2.5 py-1 text-xs disabled:opacity-30"
                   disabled={historyLoading || historyPage?.last}
                   onClick={() => setHistoryPageIndex((page) => page + 1)}
                   type="button"
                 >
-                  다음 →
+                  다음
                 </button>
               </div>
             ) : null}
@@ -505,7 +558,7 @@ function PrDraftContent() {
 function PrDraftFallback() {
   return (
     <ProtectedLayout>
-      <div className="surface p-5 text-sm text-dark-muted">불러오는 중...</div>
+      <div className="surface p-5 text-xs text-ink-secondary">불러오는 중...</div>
     </ProtectedLayout>
   );
 }

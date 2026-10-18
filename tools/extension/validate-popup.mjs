@@ -19,6 +19,9 @@ assertIncludes(html, "#ffffff", "popup must include pure light-first canvas toke
 assertIncludes(html, "#f8f9fc", "popup must include subtle container surface token");
 assertIncludes(html, "#121317", "popup must include primary charcoal ink token");
 assertIncludes(html, "tabular-nums", "popup must enforce tabular-nums on numeric elements");
+assertNotIncludes(html, "text-transform: uppercase", "popup must not use uppercase micro-label cliché");
+assertNotIncludes(html, "letter-spacing: 0.06em", "popup must not use wide uppercase tracking");
+assertIncludes(html, ".rec-card:last-child", "popup recommendation list must use flush hairline-divided rows");
 assertMatches(html, /<div id="rec-list"><\/div>/, "empty recommendation list container");
 assertIncludes(html, '<script src="popup.js"></script>', "popup script include");
 assertNotIncludes(html, "로그인 후 추천 이슈를 확인할 수 있습니다.", "static empty recommendation copy");

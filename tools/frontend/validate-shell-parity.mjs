@@ -55,6 +55,7 @@ assertIncludes(navbar, "aria-label=\"Primary\"", "Navbar must keep an accessible
 assertIncludes(navbar, "sticky top-0 z-50 border-b border-dark-border", "Navbar root shell must use hairline border-dark-border.");
 assertIncludes(navbar, "bg-white/95", "Navbar must use crisp light surface.");
 assertIncludes(navbar, "min-h-16", "Navbar must allow the mobile header height to grow instead of squeezing labels.");
+assertIncludes(navbar, "border-b-2 border-[#121317]", "Navbar must use a 2px bottom hairline indicator for active tabs instead of boxed button fills.");
 assertIncludes(navbar, "aria-controls={mobileMenuId}", "Navbar mobile toggle must bind to the drawer via aria-controls.");
 assertIncludes(navbar, "id={mobileMenuId}", "Navbar mobile drawer must have id matching aria-controls.");
 assertIncludes(navbar, "aria-expanded={isMenuOpen}", "Navbar mobile toggle must reflect drawer expansion state via aria-expanded.");
@@ -67,6 +68,8 @@ assertIncludes(navbar, "clearAuthState();", "Navbar logout must clear the local 
 assertIncludes(navbar, "logout()", "Navbar logout must call the backend logout endpoint.");
 assertIncludes(navbar, "router.replace(\"/login\")", "Navbar logout must replace history with the login screen.");
 assertIncludes(navbar, "matchPrefixes: [\"/pr-draft\", \"/pr/\"]", "Navbar must keep PR draft/detail active-state grouping.");
+assertNotIncludes(navbar, "Sparkles", "Navbar must not import or render Sparkles icon.");
+assertNotIncludes(navbar, "LayoutDashboard", "Navbar must not render decorative tab icons.");
 assertNotIncludes(navbar, "/brand-mascot-bank.png", "Navbar must not reference cross-project bank mascot.");
 assertNotIncludes(navbar, "github-", "Navbar must not use duplicate github-* color classes.");
 assertNotIncludes(navbar, "flex-wrap", "Navbar must not rely on obsolete flex-wrap layout.");
@@ -98,6 +101,9 @@ for (const path of collectTsxFiles(appRoot)) {
   const text = readText(path);
   if (text.includes("<ProtectedLayout title=")) {
     fail(`${relative(repoRoot, path)} still passes a title prop to ProtectedLayout.`);
+  }
+  if (text.includes("Sparkles")) {
+    fail(`${relative(repoRoot, path)} still uses the banned Sparkles AI cliché icon.`);
   }
 }
 

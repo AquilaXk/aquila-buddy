@@ -72,6 +72,9 @@ const config: Config = {
       },
       fontFamily: {
         sans: [
+          '"Inter"',
+          '"Pretendard Variable"',
+          "Pretendard",
           "-apple-system",
           "BlinkMacSystemFont",
           '"Segoe UI"',
@@ -79,6 +82,15 @@ const config: Config = {
           '"Helvetica Neue"',
           "Arial",
           "sans-serif",
+        ],
+        mono: [
+          '"JetBrains Mono"',
+          '"SFMono-Regular"',
+          "ui-monospace",
+          "Menlo",
+          "Monaco",
+          "Consolas",
+          "monospace",
         ],
       },
     },
