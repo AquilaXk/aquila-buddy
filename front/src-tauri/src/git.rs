@@ -6,6 +6,7 @@ use std::process::{Command, Stdio};
 const MAX_STATUS_ENTRIES: usize = 2_000;
 const MAX_STATUS_BYTES: usize = 262_144;
 const MAX_DIFF_BYTES: usize = 65_536;
+const MAX_BRANCH_BYTES: usize = 256;
 const MAX_REL_PATH_BYTES: usize = 1_024;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -113,6 +114,33 @@ fn run_git_bounded(
     Ok(buffer)
 }
 
+fn has_git_head(repo: &Path) -> bool {
+    Command::new("git")
+        .arg("-c")
+        .arg("core.fsmonitor=false")
+        .arg("-C")
+        .arg(repo)
+        .args(["rev-parse", "--verify", "HEAD"])
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status()
+        .is_ok_and(|status| status.success())
+}
+
+#[tauri::command]
+pub fn git_branch(repo_dir: String) -> Result<String, String> {
+    let repo = validate_repo_dir(&repo_dir)?;
+    let stdout = run_git_bounded(
+        &repo,
+        &["rev-parse", "--abbrev-ref", "HEAD"],
+        MAX_BRANCH_BYTES,
+        "브랜치 이름이 허용 길이(256B)를 초과했습니다.",
+        "현재 Git 브랜치를 확인하지 못했습니다.",
+    )?;
+    Ok(String::from_utf8_lossy(&stdout).trim().to_string())
+}
+
 #[tauri::command]
 pub fn git_status(repo_dir: String) -> Result<Vec<LocalGitStatusEntry>, String> {
     let repo = validate_repo_dir(&repo_dir)?;
@@ -147,7 +175,11 @@ pub fn git_status(repo_dir: String) -> Result<Vec<LocalGitStatusEntry>, String> 
 #[tauri::command]
 pub fn git_diff(repo_dir: String, file_path: Option<String>) -> Result<String, String> {
     let repo = validate_repo_dir(&repo_dir)?;
-    let mut args = vec!["diff", "--no-ext-diff", "--no-textconv", "--no-color", "--"];
+    let mut args = vec!["diff"];
+    if has_git_head(&repo) {
+        args.push("HEAD");
+    }
+    args.extend(["--no-ext-diff", "--no-textconv", "--no-color", "--"]);
 
     let validated_owned;
     if let Some(ref rel_path) = file_path {
@@ -219,6 +251,7 @@ mod tests {
         fs::write(repo.join("README.md"), "hello\nworld\n").unwrap();
 
         let repo_str = repo.to_string_lossy().into_owned();
+        assert!(!git_branch(repo_str.clone()).unwrap().is_empty());
         let status = git_status(repo_str.clone()).unwrap();
         assert_eq!(
             status,
@@ -230,6 +263,15 @@ mod tests {
 
         let diff = git_diff(repo_str.clone(), Some("README.md".to_string())).unwrap();
         assert!(diff.contains("+world"));
+
+        assert!(Command::new("git")
+            .args(["add", "README.md"])
+            .current_dir(&repo)
+            .status()
+            .unwrap()
+            .success());
+        let staged_diff = git_diff(repo_str.clone(), None).unwrap();
+        assert!(staged_diff.contains("+world"));
 
         assert!(git_diff(repo_str.clone(), Some("--output=/tmp/pwn".to_string())).is_err());
         assert!(git_diff(repo_str.clone(), Some("../etc/passwd".to_string())).is_err());

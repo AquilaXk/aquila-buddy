@@ -4,11 +4,13 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { FormEvent, Suspense, useCallback, useEffect, useId, useMemo, useState } from "react";
 import { ArrowLeft, Check, Copy, ExternalLink, GitPullRequest, Globe, Loader2 } from "@/components/icons";
+import { ExternalBrowserLink } from "@/components/ExternalBrowserLink";
 import ProtectedLayout from "@/components/ProtectedLayout";
 import { LanguageTabSwitcher } from "@/components/LanguageTabSwitcher";
 import { PrDraftReadinessSection } from "@/components/PrDraftReadinessSection";
 import { StudioSplitPane } from "@/components/StudioSplitPane";
 import { Badge } from "@/components/ui/badge";
+import { LocalGitBridgePanel } from "./LocalGitBridgePanel";
 import {
   createPullRequestDraft,
   getIssueDetail,
@@ -61,6 +63,7 @@ function PrDraftContent() {
   const [translated, setTranslated] = useState<PullRequestDraftTranslateResult | null>(null);
   const [readiness, setReadiness] = useState<PullRequestDraftReadiness | null>(null);
   const [activeLangTab, setActiveLangTab] = useState<"ko" | "en">("ko");
+  const [localDiffContent, setLocalDiffContent] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [historyError, setHistoryError] = useState<string | null>(null);
   const [sourceIssueLoading, setSourceIssueLoading] = useState(false);
@@ -173,12 +176,14 @@ function PrDraftContent() {
     setTranslated(null);
 
     try {
+      const normalizedLocalDiff = localDiffContent.trim();
       const createdDraft = await createPullRequestDraft({
         upstreamRepo: draftInput.upstreamRepo,
         githubIssueNumber: Number(draftInput.githubIssueNumber),
         sourceIssueId: draftInput.issueId || undefined,
         baseBranch: baseBranch.trim(),
-        headBranch: headBranch.trim()
+        headBranch: headBranch.trim(),
+        diffContent: normalizedLocalDiff || undefined
       });
 
       setDraft(createdDraft);
@@ -357,7 +362,16 @@ function PrDraftContent() {
       ) : null}
 
       {hasIssueParam ? (
-        <form className="space-y-4 p-4" onSubmit={handleSubmit}>
+        <>
+          <LocalGitBridgePanel
+            onBranchDetected={(detectedBranch) => {
+              if (!headBranch.trim() && detectedBranch && detectedBranch !== baseBranch.trim()) {
+                setHeadBranch(detectedBranch);
+              }
+            }}
+            onLocalDiffChange={setLocalDiffContent}
+          />
+          <form className="space-y-4 p-4" onSubmit={handleSubmit}>
           <label className="block">
             <span className="text-[13px] font-semibold text-[#1f2328]">
               Base 브랜치 <span className="text-[#d1242f]">*</span>
@@ -412,6 +426,7 @@ function PrDraftContent() {
             )}
           </button>
         </form>
+        </>
       ) : null}
     </aside>
   );
@@ -460,15 +475,13 @@ function PrDraftContent() {
                   )}
                 </button>
               ) : (
-                <a
+                <ExternalBrowserLink
                   className="btn-primer-green focus-ring inline-flex items-center gap-1.5 px-3 py-1.5 text-xs"
                   href={safeCompare?.url ?? translated.githubUrl}
-                  rel="noopener noreferrer"
-                  target="_blank"
                 >
                   <ExternalLink className="h-3.5 w-3.5" />
                   <span className="button-text">GitHub에서 PR 올리기 ↗</span>
-                </a>
+                </ExternalBrowserLink>
               )}
               <Link
                 className="btn-secondary focus-ring px-2.5 py-1.5 text-xs font-medium text-[#0969da]"

@@ -4,6 +4,7 @@ import { Suspense, useEffect, useId, useRef, useState, type KeyboardEvent } from
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import { ArrowLeft, Check, Copy, ExternalLink, FileCode, GitPullRequest, Square } from "@/components/icons";
+import { ExternalBrowserLink } from "@/components/ExternalBrowserLink";
 import ProtectedLayout from "@/components/ProtectedLayout";
 import { StatusBadge } from "@/components/StatusBadge";
 import { StudioSplitPane } from "@/components/StudioSplitPane";
@@ -614,15 +615,13 @@ function IssueDetailContent() {
             </Link>
             <span className="text-[#d1d9e0]">/</span>
             <StatusBadge status={issue.status} />
-            <a
+            <ExternalBrowserLink
               className="inline-flex items-center gap-1 font-mono text-[12px] font-medium tabular-nums text-[#59636e] transition-colors hover:text-[#0969da]"
               href={githubUrl}
-              rel="noopener noreferrer"
-              target="_blank"
             >
               <span>{issue.repoFullName} #{issue.issueNumber}</span>
               <ExternalLink className="h-3 w-3" />
-            </a>
+            </ExternalBrowserLink>
             {issue.score > 0 ? (
               <span className="badge-trim tabular-nums rounded-full border border-[#1a7f37]/30 bg-[#dafbe1] px-2.5 py-0.5 font-mono text-xs font-semibold text-[#1a7f37]">
                 매칭 {scorePercent}%

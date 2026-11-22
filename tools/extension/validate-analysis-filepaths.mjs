@@ -98,6 +98,17 @@ assert.doesNotMatch(reasonOnlyHtml, /이슈 요약/);
 assert.match(reasonOnlyHtml, /추천 이유/);
 assert.match(reasonOnlyHtml, /Java 21 백엔드 경험과 일치합니다\./);
 
+const parsedFork = context.parseCompareBranches("/AquilaXk/aquila-buddy/compare/main...contributor:fix-bug");
+assert.equal(parsedFork.baseBranch, "main");
+assert.equal(parsedFork.forkOwner, "contributor");
+assert.equal(parsedFork.headBranch, "fix-bug");
+assert.match(contentScript, /headBranch:\s*resolvedHeadBranch/);
+
+assert.equal(context.applyDraftToPrForm("PR Title", "PR Body"), false);
+assert.equal(context.isEditableEventTarget({ target: { tagName: "TEXTAREA" } }), true);
+assert.equal(context.isEditableEventTarget({ target: { tagName: "DIV", isContentEditable: true } }), true);
+assert.equal(context.isEditableEventTarget({ target: { tagName: "DIV" } }), false);
+
 const fallbackSummaryHtml = context.renderRecommendationReason({
   summary: "문서 기여로 시작하기 좋습니다.",
 });

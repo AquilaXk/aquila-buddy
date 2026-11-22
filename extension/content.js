@@ -7,62 +7,36 @@ const domFrameQueue = (() => {
   let generation = 0;
 
   function drain(queue, runGeneration) {
-    const batch = queue.splice(0, queue.length);
-    for (let i = 0; i < batch.length; i++) {
+    for (const fn of queue.splice(0, queue.length)) {
       if (generation !== runGeneration) break;
-      try {
-        batch[i]();
-      } catch {
-        // Isolate callback failure so remaining tasks and scheduler state remain valid.
-      }
+      try { fn(); } catch { /* isolate callback failure */ }
     }
   }
-
   function flush() {
     frameId = 0;
     scheduled = false;
     flushing = true;
-    const runGeneration = generation;
+    const gen = generation;
     try {
-      drain(readQueue, runGeneration);
-      if (generation === runGeneration) {
-        drain(writeQueue, runGeneration);
-      }
+      drain(readQueue, gen);
+      if (generation === gen) drain(writeQueue, gen);
     } finally {
       flushing = false;
-      if ((readQueue.length > 0 || writeQueue.length > 0) && !scheduled) {
-        scheduleFlush();
-      }
+      if ((readQueue.length > 0 || writeQueue.length > 0) && !scheduled) scheduleFlush();
     }
   }
-
   function scheduleFlush() {
     if (scheduled || flushing) return;
-    if (typeof requestAnimationFrame !== 'function') {
-      scheduled = true;
-      flush();
-      return;
-    }
+    if (typeof requestAnimationFrame !== 'function') { scheduled = true; flush(); return; }
     scheduled = true;
     frameId = requestAnimationFrame(flush);
   }
-
   return {
-    read(fn) {
-      if (typeof fn !== 'function') return;
-      readQueue.push(fn);
-      scheduleFlush();
-    },
-    write(fn) {
-      if (typeof fn !== 'function') return;
-      writeQueue.push(fn);
-      scheduleFlush();
-    },
+    read(fn) { if (typeof fn === 'function') { readQueue.push(fn); scheduleFlush(); } },
+    write(fn) { if (typeof fn === 'function') { writeQueue.push(fn); scheduleFlush(); } },
     cancelAll() {
       generation += 1;
-      if (frameId && typeof cancelAnimationFrame === 'function') {
-        cancelAnimationFrame(frameId);
-      }
+      if (frameId && typeof cancelAnimationFrame === 'function') cancelAnimationFrame(frameId);
       frameId = 0;
       scheduled = false;
       readQueue.length = 0;
@@ -122,13 +96,7 @@ function detectPageType() {
 }
 
 const BaseElement = typeof HTMLElement !== 'undefined' ? HTMLElement : class {};
-
-class AquilaBuddyRoot extends BaseElement {
-  constructor() {
-    super();
-  }
-}
-
+class AquilaBuddyRoot extends BaseElement {}
 if (typeof customElements !== 'undefined' && !customElements.get('aquila-buddy-root')) {
   customElements.define('aquila-buddy-root', AquilaBuddyRoot);
 }
@@ -217,28 +185,18 @@ function updateContextBar(shadow, pageType) {
   if (!bar) return;
   const parts = location.pathname.split('/').filter(Boolean);
   const repoFullName = parts.length >= 2 ? `${parts[0]}/${parts[1]}` : '';
-  const modeLabel =
-    pageType === 'ISSUE_LIST'
-      ? '이슈 목록'
-      : pageType === 'ISSUE_DETAIL'
-      ? `이슈 #${parts[3] ?? ''}`
-      : pageType === 'PR_CREATE'
-      ? 'PR 초안'
-      : 'GitHub';
+  const modeLabel = pageType === 'ISSUE_LIST' ? '이슈 목록' : pageType === 'ISSUE_DETAIL' ? `이슈 #${parts[3] ?? ''}` : pageType === 'PR_CREATE' ? 'PR 초안' : 'GitHub';
   bar.textContent = repoFullName ? `${repoFullName} / ${modeLabel}` : modeLabel;
 }
 
 function copyTextWithFeedback(button, text) {
   if (!text) return;
   const original = button.textContent;
-  const markCopied = () => {
-    button.textContent = '복사됨';
-    setTimeout(() => {
-      button.textContent = original;
-    }, 1500);
-  };
   if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
-    navigator.clipboard.writeText(text).then(markCopied).catch(() => {});
+    navigator.clipboard.writeText(text).then(() => {
+      button.textContent = '복사됨';
+      setTimeout(() => { button.textContent = original; }, 1500);
+    }).catch(() => {});
   }
 }
 
@@ -500,7 +458,7 @@ function highlightRecommendedIssues(issues) {
 
     document.querySelectorAll('.aquila-buddy-badge').forEach((badge) => {
       const link = badge.closest('a');
-      const match = link?.getAttribute('href')?.match(/\/issues\/(\d+)\/?$/);
+      const match = link?.getAttribute('href')?.match(/\/issues\/(\d+)\/?(?:[?#].*)?$/);
       if (!match || !issueByNumber.has(match[1])) {
         staleNodes.push(badge);
         const nextSibling = badge.nextElementSibling;
@@ -511,7 +469,7 @@ function highlightRecommendedIssues(issues) {
     });
 
     document.querySelectorAll(`a[href^="${repoPrefix}"]`).forEach((link) => {
-      const match = link.getAttribute('href')?.match(/\/issues\/(\d+)\/?$/);
+      const match = link.getAttribute('href')?.match(/\/issues\/(\d+)\/?(?:[?#].*)?$/);
       if (!match) return;
       const issue = issueByNumber.get(match[1]);
       if (!issue || link.querySelector('.aquila-buddy-badge')) return;
@@ -685,25 +643,9 @@ function formatSideEffects(sideEffects) {
   return sideEffects ?? '';
 }
 
-const HTML_ESCAPE_MAP = {
-  '&': '&amp;',
-  '<': '&lt;',
-  '>': '&gt;',
-  '"': '&quot;',
-  "'": '&#39;',
-};
-
-function escapeHtml(value) {
-  return String(value ?? '').replace(/[&<>"']/g, (char) => HTML_ESCAPE_MAP[char]);
-}
-
-function safeDecodeSegment(segment) {
-  try {
-    return decodeURIComponent(segment);
-  } catch {
-    return segment;
-  }
-}
+const HTML_ESCAPE_MAP = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+function escapeHtml(value) { return String(value ?? '').replace(/[&<>"']/g, (ch) => HTML_ESCAPE_MAP[ch]); }
+function safeDecodeSegment(segment) { try { return decodeURIComponent(segment); } catch { return segment; } }
 
 function parseCompareBranches(pathname) {
   const cleanCompare = (pathname.split('/compare/')[1] ?? '').split(/[?#]/)[0].replace(/\/+$/, '');
@@ -724,7 +666,12 @@ function parseCompareBranches(pathname) {
 function renderPrCreate(el, shadow) {
   const pathParts = location.pathname.split('/');
   const upstreamRepo = `${pathParts[1]}/${pathParts[2]}`;
+  const upstreamOwner = pathParts[1] ?? '';
   const { baseBranch, forkOwner, headBranch } = parseCompareBranches(location.pathname);
+  const resolvedHeadBranch =
+    forkOwner && forkOwner.toLowerCase() !== upstreamOwner.toLowerCase()
+      ? `${forkOwner}:${headBranch}`
+      : headBranch;
   const headDisplay = forkOwner ? `${forkOwner}:${headBranch}` : headBranch;
 
   el.innerHTML = `
@@ -765,7 +712,7 @@ function renderPrCreate(el, shadow) {
     sendMessage(
       {
         type: 'CREATE_PR_DRAFT',
-        payload: { upstreamRepo, githubIssueNumber, baseBranch, headBranch },
+        payload: { upstreamRepo, githubIssueNumber, baseBranch, headBranch: resolvedHeadBranch },
       },
       (res) => {
         if (!res?.ok) {
@@ -802,30 +749,42 @@ function renderPrCreate(el, shadow) {
 
 function setNativeControlValue(control, proto, value) {
   const descriptor = proto ? Object.getOwnPropertyDescriptor(proto, 'value') : null;
-  if (descriptor && typeof descriptor.set === 'function') {
-    descriptor.set.call(control, value);
-  } else {
-    control.value = value;
-  }
+  if (descriptor && typeof descriptor.set === 'function') descriptor.set.call(control, value);
+  else control.value = value;
   control.dispatchEvent(new Event('input', { bubbles: true }));
   control.dispatchEvent(new Event('change', { bubbles: true }));
 }
 
+function queryPrFormInputs() {
+  return {
+    titleInput: document.querySelector?.(
+      '#pull_request_title, input[name="pull_request[title]"], input[aria-label="Title"], input[aria-label="Pull request title"]'
+    ) ?? null,
+    bodyInput: document.querySelector?.(
+      '#pull_request_body, textarea[name="pull_request[body]"], textarea[aria-label="Comment body"], textarea[aria-label="Pull request body"]'
+    ) ?? null,
+  };
+}
+
 function applyDraftToPrForm(title, body) {
-  const titleInput = document.querySelector(
-    '#pull_request_title, input[name="pull_request[title]"], input[aria-label="Title"], input[aria-label="Pull request title"]'
-  );
-  const bodyInput = document.querySelector(
-    '#pull_request_body, textarea[name="pull_request[body]"], textarea[aria-label="Comment body"], textarea[aria-label="Pull request body"]'
-  );
+  let { titleInput, bodyInput } = queryPrFormInputs();
+  if (!titleInput && !bodyInput) {
+    const trigger = document.querySelector?.(
+      '.js-details-target[aria-expanded="false"], button[data-hydro-click*="create_pull_request"]'
+    );
+    trigger?.click?.();
+    ({ titleInput, bodyInput } = queryPrFormInputs());
+  }
+  let applied = false;
   if (titleInput && title != null && title !== '') {
-    const inputProto = typeof HTMLInputElement !== 'undefined' ? HTMLInputElement.prototype : null;
-    setNativeControlValue(titleInput, inputProto, title);
+    setNativeControlValue(titleInput, typeof HTMLInputElement !== 'undefined' ? HTMLInputElement.prototype : null, title);
+    applied = true;
   }
   if (bodyInput && body != null && body !== '') {
-    const textareaProto = typeof HTMLTextAreaElement !== 'undefined' ? HTMLTextAreaElement.prototype : null;
-    setNativeControlValue(bodyInput, textareaProto, body);
+    setNativeControlValue(bodyInput, typeof HTMLTextAreaElement !== 'undefined' ? HTMLTextAreaElement.prototype : null, body);
+    applied = true;
   }
+  return applied;
 }
 
 function translateAndApplyDraft(draftId, statusEl, shadow) {
@@ -833,7 +792,6 @@ function translateAndApplyDraft(draftId, statusEl, shadow) {
     if (statusEl) statusEl.innerHTML = renderError('초안 ID가 없습니다.');
     return;
   }
-
   const applyBtn = shadow.getElementById('aquila-buddy-apply-btn');
   if (applyBtn) applyBtn.disabled = true;
   if (statusEl) statusEl.innerHTML = '<p class="aquila-buddy-loading">번역 중...</p>';
@@ -845,8 +803,12 @@ function translateAndApplyDraft(draftId, statusEl, shadow) {
       return;
     }
     const translated = res.data?.data;
-    applyDraftToPrForm(translated?.titleEn ?? translated?.title, translated?.bodyEn ?? translated?.body);
-    if (statusEl) statusEl.innerHTML = '<p class="aquila-buddy-desc aquila-buddy-success">번역 후 PR 폼에 적용됐습니다.</p>';
+    const applied = applyDraftToPrForm(translated?.titleEn ?? translated?.title, translated?.bodyEn ?? translated?.body);
+    if (statusEl) {
+      statusEl.innerHTML = applied
+        ? '<p class="aquila-buddy-desc aquila-buddy-success">번역 후 PR 폼에 적용됐습니다.</p>'
+        : '<p class="aquila-buddy-result-text aquila-buddy-result-warning">번역이 완료됐습니다. GitHub의 &apos;Create pull request&apos; 버튼을 눌러 입력 폼을 연 뒤 다시 적용해주세요.</p>';
+    }
   });
 }
 
@@ -867,10 +829,13 @@ function renderError(error) {
 }
 
 let lastRenderedKey = null;
+let lastRepoSlug = null;
 
 function init(event) {
   const pageType = detectPageType();
   const renderKey = `${location.pathname}::${pageType ?? 'NONE'}`;
+  const pathParts = location.pathname.split('/').filter(Boolean);
+  const currentRepoSlug = pageType && pathParts.length >= 2 ? `${pathParts[0]}/${pathParts[1]}` : null;
   const existingRoot = getActiveRoot();
 
   if (
@@ -878,32 +843,21 @@ function init(event) {
     lastRenderedKey === renderKey &&
     (pageType ? Boolean(existingRoot) : !existingRoot)
   ) {
-    if (pageType === 'ISSUE_LIST') {
-      refreshRecommendedBadgesForCurrentRepo();
-    }
+    if (pageType === 'ISSUE_LIST') refreshRecommendedBadgesForCurrentRepo();
     return;
   }
 
   domFrameQueue.cancelAll();
-  if (lastRenderedKey !== renderKey) {
-    isSidebarOpen = false;
-  }
+  if (!pageType || !currentRepoSlug || (lastRepoSlug && lastRepoSlug !== currentRepoSlug)) isSidebarOpen = false;
+  lastRepoSlug = currentRepoSlug;
   lastRenderedKey = renderKey;
 
-  if (typeof document.querySelectorAll === 'function') {
-    document.querySelectorAll('aquila-buddy-root').forEach((el) => el.remove());
-  } else {
-    existingRoot?.remove?.();
-  }
+  if (typeof document.querySelectorAll === 'function') document.querySelectorAll('aquila-buddy-root').forEach((el) => el.remove());
+  else existingRoot?.remove?.();
   document.getElementById?.('aquila-buddy-sidebar')?.remove();
   document.getElementById?.('aquila-buddy-toggle')?.remove();
-
-  if (pageType !== 'ISSUE_LIST') {
-    clearInjectedBadges();
-  }
-  if (pageType) {
-    createExtensionUI();
-  }
+  if (pageType !== 'ISSUE_LIST') clearInjectedBadges();
+  if (pageType) createExtensionUI();
 }
 
 init();
@@ -912,33 +866,35 @@ document.addEventListener('turbo:render', init);
 document.addEventListener('soft-nav:payload', init);
 document.addEventListener('pjax:end', init);
 window.addEventListener('popstate', init);
+window.addEventListener('resize', () => {
+  const sidebar = getActiveRoot()?._shadowRoot?.getElementById?.('aquila-buddy-sidebar');
+  if (sidebar) applySidebarWidth(sidebar, currentSidebarWidth);
+});
 document.addEventListener('turbo:before-cache', () => {
   domFrameQueue.cancelAll();
   lastRenderedKey = null;
+  lastRepoSlug = null;
   isSidebarOpen = false;
-  if (typeof document.querySelectorAll === 'function') {
-    document.querySelectorAll('aquila-buddy-root').forEach((el) => el.remove());
-  }
+  document.querySelectorAll?.('aquila-buddy-root').forEach((el) => el.remove());
 });
 
 document.addEventListener('animationstart', (event) => {
-  if (event.animationName !== 'aquila-buddy-row-appear' || badgeRefreshPending) {
-    return;
-  }
-  if (detectPageType() !== 'ISSUE_LIST') {
-    return;
-  }
+  if (event.animationName !== 'aquila-buddy-row-appear' || badgeRefreshPending || detectPageType() !== 'ISSUE_LIST') return;
   badgeRefreshPending = true;
-  const run = () => {
-    badgeRefreshPending = false;
-    refreshRecommendedBadgesForCurrentRepo();
-  };
-  if (typeof requestAnimationFrame === 'function') {
-    requestAnimationFrame(run);
-  } else {
-    setTimeout(run, 0);
-  }
+  const run = () => { badgeRefreshPending = false; refreshRecommendedBadgesForCurrentRepo(); };
+  if (typeof requestAnimationFrame === 'function') requestAnimationFrame(run);
+  else setTimeout(run, 0);
 });
+
+function isEditableEventTarget(event) {
+  const candidates = [event?.target, typeof document !== 'undefined' ? document.activeElement : null];
+  for (const el of candidates) {
+    if (!el) continue;
+    const tag = el.tagName?.toUpperCase?.();
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el.isContentEditable) return true;
+  }
+  return false;
+}
 
 document.addEventListener('keydown', (event) => {
   const shadow = getActiveRoot()?._shadowRoot;
@@ -947,7 +903,7 @@ document.addEventListener('keydown', (event) => {
   const toggleBtn = shadow.getElementById('aquila-buddy-toggle');
   if (!sidebar || !toggleBtn) return;
 
-  if (event.key === 'Escape' && isSidebarOpen) {
+  if (event.key === 'Escape' && isSidebarOpen && !isEditableEventTarget(event)) {
     setSidebarOpen(sidebar, toggleBtn, false);
     return;
   }

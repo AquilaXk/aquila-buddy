@@ -17,6 +17,7 @@ import {
   X,
 } from "@/components/icons";
 import { DiffViewer } from "@/components/DiffViewer";
+import { ExternalBrowserLink } from "@/components/ExternalBrowserLink";
 import { LanguageTabSwitcher } from "@/components/LanguageTabSwitcher";
 import { PrDraftReadinessSection } from "@/components/PrDraftReadinessSection";
 import ProtectedLayout from "@/components/ProtectedLayout";
@@ -395,15 +396,14 @@ function PrDetailContent() {
         ) : (
           <div className="flex items-center gap-2">
             {translated ? (
-              <a
+              <ExternalBrowserLink
                 className="btn-primer-green focus-ring inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs"
                 href={safeTranslatedCompare?.url ?? translated.githubUrl}
                 rel="noreferrer"
-                target="_blank"
               >
                 <ExternalLink className="h-3.5 w-3.5" />
                 <span className="button-text">GitHub에서 PR 올리기 ↗</span>
-              </a>
+              </ExternalBrowserLink>
             ) : (
               <button
                 className="btn-primary focus-ring inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs disabled:cursor-not-allowed disabled:opacity-50"
@@ -593,14 +593,13 @@ function PrDetailContent() {
             영어 번역이 완료되었습니다. 아래 내용으로 GitHub PR을 작성하세요.
             {safeTranslatedCompare?.bodyTruncated ? " (URL 길이 제한으로 본문 일부 생략)" : ""}
           </span>
-          <a
+          <ExternalBrowserLink
             className="font-semibold text-[#0969da] underline hover:text-[#0550ae]"
             href={safeTranslatedCompare?.url ?? translated.githubUrl}
             rel="noreferrer"
-            target="_blank"
           >
             GitHub에서 PR 올리기 ↗
-          </a>
+          </ExternalBrowserLink>
         </div>
       ) : null}
 

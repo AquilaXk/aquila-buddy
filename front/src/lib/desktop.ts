@@ -63,6 +63,10 @@ export async function vaultDeleteToken(): Promise<void> {
   await invokeDesktop<void>("vault_delete", { key: AUTH_TOKEN_VAULT_KEY });
 }
 
+export async function getLocalGitBranch(repoDir: string): Promise<string> {
+  return invokeDesktop<string>("git_branch", { repoDir });
+}
+
 export async function getLocalGitStatus(repoDir: string): Promise<LocalGitStatusEntry[]> {
   return invokeDesktop<LocalGitStatusEntry[]>("git_status", { repoDir });
 }

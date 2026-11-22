@@ -18,7 +18,7 @@
         "title": "Aquila Buddy",
         "width": 1360,
         "height": 880,
-        "minWidth": 960,
+        "minWidth": 1024,
         "minHeight": 640,
         "resizable": true,
         "fullscreen": false

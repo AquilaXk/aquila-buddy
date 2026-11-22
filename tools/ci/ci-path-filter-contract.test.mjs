@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
+import { existsSync } from "node:fs";
 import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
@@ -167,7 +168,9 @@ async function classifyChangedFiles(files) {
   const outputPath = resolve(directory, "github-output.txt");
 
   await writeFile(changedFilesPath, `${files.join("\n")}\n`);
-  await execFileAsync("bash", [resolve(repoRoot, "tools/ci/detect-changed-paths.sh"), changedFilesPath], {
+  const gitBashWin = "C:\\Program Files\\Git\\bin\\bash.exe";
+  const bashBin = process.platform === "win32" && existsSync(gitBashWin) ? gitBashWin : "bash";
+  await execFileAsync(bashBin, [resolve(repoRoot, "tools/ci/detect-changed-paths.sh"), changedFilesPath], {
     env: {
       ...process.env,
       GITHUB_OUTPUT: outputPath,

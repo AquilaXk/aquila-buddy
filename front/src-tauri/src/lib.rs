@@ -1,13 +1,171 @@
 mod git;
 mod oauth;
 mod vault;
+mod window_state;
 
+use std::path::PathBuf;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Mutex;
 use tauri::menu::{MenuBuilder, MenuItemBuilder};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
-use tauri::{Manager, Url};
+use tauri::{Manager, Url, WindowEvent};
 use tauri_plugin_opener::OpenerExt;
 
 const MAX_EXTERNAL_URL_BYTES: usize = 2_048;
+
+struct AppDesktopState {
+    quitting: AtomicBool,
+    geometry: Mutex<Option<window_state::WindowGeometry>>,
+    data_dir: Option<PathBuf>,
+}
+
+impl AppDesktopState {
+    fn new(data_dir: Option<PathBuf>) -> Self {
+        let saved = data_dir
+            .as_deref()
+            .and_then(window_state::WindowGeometry::load);
+        Self {
+            quitting: AtomicBool::new(false),
+            geometry: Mutex::new(saved),
+            data_dir,
+        }
+    }
+
+    fn current_geometry(&self) -> Option<window_state::WindowGeometry> {
+        *self.geometry.lock().unwrap_or_else(|e| e.into_inner())
+    }
+
+    fn set_geometry(&self, next: window_state::WindowGeometry) {
+        *self.geometry.lock().unwrap_or_else(|e| e.into_inner()) = Some(next);
+    }
+
+    fn set_maximized(&self, maximized: bool) {
+        let mut guard = self.geometry.lock().unwrap_or_else(|e| e.into_inner());
+        if let Some(prev) = guard.as_mut() {
+            prev.maximized = maximized;
+        }
+    }
+
+    fn persist_geometry(&self) {
+        if let (Some(dir), Some(geom)) = (&self.data_dir, self.current_geometry()) {
+            let _ = geom.save(dir);
+        }
+    }
+
+    fn mark_quitting(&self) {
+        self.quitting.store(true, Ordering::SeqCst);
+    }
+
+    fn is_quitting(&self) -> bool {
+        self.quitting.load(Ordering::SeqCst)
+    }
+}
+
+fn request_app_quit(app: &tauri::AppHandle) {
+    if let Some(state) = app.try_state::<AppDesktopState>() {
+        state.mark_quitting();
+        state.persist_geometry();
+    }
+    app.exit(0);
+}
+
+#[cfg(target_os = "macos")]
+fn build_macos_menu(app: &tauri::AppHandle) -> tauri::Result<tauri::menu::Menu<tauri::Wry>> {
+    use tauri::menu::{Menu, PredefinedMenuItem, SubmenuBuilder};
+
+    let app_quit = MenuItemBuilder::with_id("app_quit", "Aquila Buddy 종료")
+        .accelerator("CmdOrCtrl+Q")
+        .build(app)?;
+    let app_menu = SubmenuBuilder::new(app, "Aquila Buddy")
+        .item(&PredefinedMenuItem::about(
+            app,
+            Some("Aquila Buddy 정보"),
+            None,
+        )?)
+        .separator()
+        .item(&PredefinedMenuItem::services(app, Some("서비스"))?)
+        .separator()
+        .item(&PredefinedMenuItem::hide(app, Some("Aquila Buddy 가리기"))?)
+        .item(&PredefinedMenuItem::hide_others(app, Some("기타 가리기"))?)
+        .item(&PredefinedMenuItem::show_all(app, Some("모두 보기"))?)
+        .separator()
+        .item(&app_quit)
+        .build()?;
+    let edit_menu = SubmenuBuilder::new(app, "편집")
+        .item(&PredefinedMenuItem::undo(app, Some("실행 취소"))?)
+        .item(&PredefinedMenuItem::redo(app, Some("다시 실행"))?)
+        .separator()
+        .item(&PredefinedMenuItem::cut(app, Some("오려두기"))?)
+        .item(&PredefinedMenuItem::copy(app, Some("복사"))?)
+        .item(&PredefinedMenuItem::paste(app, Some("붙여넣기"))?)
+        .item(&PredefinedMenuItem::select_all(app, Some("모두 선택"))?)
+        .build()?;
+    let window_menu = SubmenuBuilder::new(app, "창")
+        .item(&PredefinedMenuItem::minimize(app, Some("최소화"))?)
+        .item(&PredefinedMenuItem::close_window(app, Some("창 닫기"))?)
+        .build()?;
+    let menu = Menu::new(app)?;
+    menu.append(&app_menu)?;
+    menu.append(&edit_menu)?;
+    menu.append(&window_menu)?;
+    Ok(menu)
+}
+
+fn restore_saved_window_geometry(app: &tauri::AppHandle, desktop_state: &AppDesktopState) {
+    let (Some(window), Some(saved)) = (
+        app.get_webview_window("main"),
+        desktop_state.current_geometry(),
+    ) else {
+        return;
+    };
+    let monitors: Vec<window_state::MonitorRect> = window
+        .available_monitors()
+        .unwrap_or_default()
+        .into_iter()
+        .map(|m| {
+            let scale = m.scale_factor();
+            let pos = m.position().to_logical::<f64>(scale);
+            let size = m.size().to_logical::<f64>(scale);
+            window_state::MonitorRect {
+                x: pos.x.round() as i32,
+                y: pos.y.round() as i32,
+                width: size.width.round() as i32,
+                height: size.height.round() as i32,
+            }
+        })
+        .collect();
+    let _ = window.set_size(tauri::LogicalSize::new(
+        f64::from(saved.width),
+        f64::from(saved.height),
+    ));
+    if let Some((x, y)) = saved.visible_origin(&monitors) {
+        let _ = window.set_position(tauri::LogicalPosition::new(x, y));
+    }
+    if saved.maximized {
+        let _ = window.maximize();
+    }
+}
+
+fn capture_window_geometry(window: &tauri::Window) {
+    let state = window.app_handle().state::<AppDesktopState>();
+    let maximized = window.is_maximized().unwrap_or(false);
+    if maximized {
+        state.set_maximized(true);
+        return;
+    }
+    let scale = window.scale_factor().unwrap_or(1.0);
+    if let (Ok(size), Ok(pos)) = (window.inner_size(), window.outer_position()) {
+        let logical_size = size.to_logical::<f64>(scale);
+        let logical_pos = pos.to_logical::<f64>(scale);
+        if let Some(geom) = window_state::WindowGeometry::from_logical(
+            (logical_size.width, logical_size.height),
+            (logical_pos.x, logical_pos.y),
+            false,
+        ) {
+            state.set_geometry(geom);
+        }
+    }
+}
 
 pub fn validate_external_url(raw_url: &str) -> Result<(), String> {
     if raw_url.is_empty()
@@ -53,10 +211,26 @@ fn focus_main_window(app: &tauri::AppHandle) {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    let app = tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .manage(oauth::OAuthLoopbackState::default())
         .setup(|app| {
+            let data_dir = app.path().app_local_data_dir().ok();
+            let desktop_state = AppDesktopState::new(data_dir);
+            restore_saved_window_geometry(app.handle(), &desktop_state);
+            app.manage(desktop_state);
+
+            #[cfg(target_os = "macos")]
+            {
+                let macos_menu = build_macos_menu(app.handle())?;
+                app.set_menu(macos_menu)?;
+                app.on_menu_event(|app_handle, event| {
+                    if event.id().as_ref() == "app_quit" {
+                        request_app_quit(app_handle);
+                    }
+                });
+            }
+
             let show_item = MenuItemBuilder::with_id("open", "Aquila Buddy 열기").build(app)?;
             let quit_item = MenuItemBuilder::with_id("quit", "종료").build(app)?;
             let menu = MenuBuilder::new(app)
@@ -74,7 +248,7 @@ pub fn run() {
                 .tooltip("Aquila Buddy")
                 .on_menu_event(|app, event| match event.id().as_ref() {
                     "open" => focus_main_window(app),
-                    "quit" => app.exit(0),
+                    "quit" => request_app_quit(app),
                     _ => {}
                 })
                 .on_tray_icon_event(|tray, event| {
@@ -91,18 +265,50 @@ pub fn run() {
 
             Ok(())
         })
+        .on_window_event(|window, event| match event {
+            WindowEvent::Moved(_) | WindowEvent::Resized(_) => capture_window_geometry(window),
+            WindowEvent::CloseRequested { api, .. } => {
+                let state = window.app_handle().state::<AppDesktopState>();
+                state.persist_geometry();
+                if cfg!(target_os = "macos") && !state.is_quitting() {
+                    api.prevent_close();
+                    let _ = window.hide();
+                }
+            }
+            WindowEvent::Destroyed => {
+                if let Some(state) = window.app_handle().try_state::<AppDesktopState>() {
+                    state.persist_geometry();
+                }
+            }
+            _ => {}
+        })
         .invoke_handler(tauri::generate_handler![
             open_external_url,
             vault::vault_get,
             vault::vault_set,
             vault::vault_delete,
+            git::git_branch,
             git::git_status,
             git::git_diff,
             oauth::oauth_start_loopback,
             oauth::oauth_await_loopback,
         ])
-        .run(tauri::generate_context!())
-        .expect("Aquila Buddy desktop application failed to run");
+        .build(tauri::generate_context!())
+        .expect("Aquila Buddy desktop application failed to build");
+
+    app.run(|app_handle, event| match event {
+        #[cfg(target_os = "macos")]
+        tauri::RunEvent::Reopen {
+            has_visible_windows: false,
+            ..
+        } => focus_main_window(app_handle),
+        tauri::RunEvent::Exit => {
+            if let Some(state) = app_handle.try_state::<AppDesktopState>() {
+                state.persist_geometry();
+            }
+        }
+        _ => {}
+    });
 }
 
 #[cfg(test)]
