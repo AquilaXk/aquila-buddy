@@ -20,10 +20,15 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: langfuse-observability-smoke
+  cancel-in-progress: false
+
 jobs:
   langfuse-observability-smoke:
     name: Langfuse Observability Smoke
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     env:
       LANGFUSE_SMOKE_ENABLED: ${{ inputs.enabled }}
       LANGFUSE_SMOKE_MODE: ${{ inputs.mode }}
@@ -35,7 +40,7 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
       - name: Validate Langfuse observability smoke env
         run: bash tools/smoke/validate-langfuse-observability-env.sh

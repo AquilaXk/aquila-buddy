@@ -1,10 +1,6 @@
 name: OCI Buddy CD
 
 on:
-  workflow_run:
-    workflows: ["CI"]
-    types: [completed]
-    branches: ["main"]
   workflow_dispatch:
     inputs:
       dry_run:
@@ -38,16 +34,16 @@ jobs:
   deploy:
     name: Build and Deploy on OCI A1
     runs-on: [self-hosted, oci-a1-staging, aquila-buddy]
-    if: github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')
+    timeout-minutes: 30
     env:
       OCI_A1_BUDDY_ENV_B64: ${{ secrets.OCI_A1_BUDDY_ENV_B64 }}
       OCI_A1_VERTEX_KEY_JSON_B64: ${{ secrets.OCI_A1_VERTEX_KEY_JSON_B64 }}
 
     steps:
       - name: Checkout deploy ref
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
-          ref: ${{ github.event.workflow_run.head_sha || inputs.ref || github.sha }}
+          ref: ${{ inputs.ref || github.sha }}
           fetch-depth: 0
 
       - name: Resolve deployment context
@@ -101,7 +97,7 @@ jobs:
           [[ -n "${OCI_A1_VERTEX_KEY_JSON_B64:-}" ]] || { echo "OCI_A1_VERTEX_KEY_JSON_B64 is required" >&2; exit 2; }
 
       - name: Login to GHCR
-        uses: docker/login-action@v3
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}

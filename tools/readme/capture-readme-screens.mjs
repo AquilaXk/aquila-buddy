@@ -14,6 +14,7 @@ import { createServer, request as httpRequest } from "node:http";
 import { createServer as createNetServer } from "node:net";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { resolveChromeCandidates } from "../extension/live-e2e/browser-session.mjs";
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "../..");
 const FRONT_DIR = path.join(REPO_ROOT, "front");
@@ -423,7 +424,8 @@ async function getFreePort() {
 }
 
 async function startNextServer(frontDir, port, apiPort) {
-  const child = spawn("npm", ["run", "start", "--", "-p", String(port), "-H", "127.0.0.1"], {
+  const nextBin = path.join(frontDir, "node_modules", "next", "dist", "bin", "next");
+  const child = spawn(process.execPath, [nextBin, "start", "-p", String(port), "-H", "127.0.0.1"], {
     cwd: frontDir,
     env: { ...process.env, NEXT_PUBLIC_API_URL: `http://127.0.0.1:${apiPort}`, PORT: String(port) },
     stdio: ["ignore", "pipe", "pipe"],
@@ -663,13 +665,7 @@ async function startDesktopHeroHostServer(targetPort, issuesPort) {
 }
 
 function findChrome() {
-  const candidates = [
-    process.env.CHROME_BIN,
-    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-    "/usr/bin/google-chrome",
-    "/usr/bin/chromium",
-  ].filter(Boolean);
-  const found = candidates.find((p) => existsSync(p));
+  const found = resolveChromeCandidates().find((p) => existsSync(p));
   if (!found) throw new Error("Chrome binary not found");
   return found;
 }

@@ -28,10 +28,15 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ai-provider-smoke
+  cancel-in-progress: false
+
 jobs:
   ai-provider-smoke:
     name: AI Provider Smoke
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     env:
       AI_PROVIDER_SMOKE_ENABLED: ${{ inputs.enabled }}
       AI_PROVIDER_SMOKE_MODE: ${{ inputs.mode }}
@@ -57,7 +62,7 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
       - name: Validate AI provider smoke env
         run: bash tools/smoke/validate-ai-provider-smoke-env.sh
@@ -70,7 +75,7 @@ jobs:
 
       - name: Upload AI prompt evaluation evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: ai-prompt-evaluation-evidence
           path: tools/smoke/release-readiness/ai-prompt-evaluation-${{ github.run_id }}.md

@@ -20,6 +20,11 @@ on:
         type: boolean
         required: false
         default: false
+      allow_overwrite:
+        description: "Allow overwriting assets on an already-published release"
+        type: boolean
+        required: false
+        default: false
 
 concurrency:
   group: desktop-release-${{ github.event_name == 'workflow_dispatch' && format('dispatch-{0}-{1}-{2}', inputs.version, inputs.publish, inputs.release_draft) || github.ref_name }}
@@ -39,10 +44,10 @@ jobs:
       draft: ${{ steps.meta.outputs.draft }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
       - name: Set up Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: "24"
 
@@ -106,7 +111,7 @@ jobs:
           node --test tools/release/*.test.mjs
 
       - name: Upload Chrome extension artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: release-chrome-extension
           path: dist-release/
@@ -119,22 +124,22 @@ jobs:
     timeout-minutes: 90
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: "24"
           cache: npm
           cache-dependency-path: front/package-lock.json
 
       - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@39008827e6b4319a349e9a42dfc90579dd25f1ca # stable
         with:
           targets: aarch64-apple-darwin,x86_64-apple-darwin
 
       - name: Cache Rust build artifacts
-        uses: Swatinem/rust-cache@v2
+        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
         with:
           workspaces: front/src-tauri
           key: macos-universal
@@ -153,7 +158,7 @@ jobs:
         run: |
           set -euo pipefail
           BUNDLES="$(node ../tools/release/release-assets.mjs bundles macos-universal)"
-          npx --yes @tauri-apps/cli@^2 build --ci --target universal-apple-darwin --bundles "$BUNDLES"
+          npx --yes @tauri-apps/cli@2.12.6 build --ci --target universal-apple-darwin --bundles "$BUNDLES"
 
       - name: Verify bundled license notices
         run: |
@@ -165,7 +170,7 @@ jobs:
         run: node tools/release/release-assets.mjs stage macos-universal dist-release
 
       - name: Upload macOS release artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: release-macos-universal
           path: dist-release/
@@ -178,20 +183,20 @@ jobs:
     timeout-minutes: 90
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: "24"
           cache: npm
           cache-dependency-path: front/package-lock.json
 
       - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@39008827e6b4319a349e9a42dfc90579dd25f1ca # stable
 
       - name: Cache Rust build artifacts
-        uses: Swatinem/rust-cache@v2
+        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
         with:
           workspaces: front/src-tauri
           key: windows-x64
@@ -210,7 +215,7 @@ jobs:
         run: |
           set -euo pipefail
           BUNDLES="$(node ../tools/release/release-assets.mjs bundles windows-x64)"
-          npx --yes @tauri-apps/cli@^2 build --ci --bundles "$BUNDLES"
+          npx --yes @tauri-apps/cli@2.12.6 build --ci --bundles "$BUNDLES"
 
       - name: Verify bundled license notices inside NSIS installer
         shell: bash
@@ -226,7 +231,7 @@ jobs:
         run: node tools/release/release-assets.mjs stage windows-x64 dist-release
 
       - name: Upload Windows release artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: release-windows-x64
           path: dist-release/
@@ -247,23 +252,23 @@ jobs:
             runner: ubuntu-22.04-arm
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
       - name: Install Linux build dependencies
         uses: ./.github/actions/install-linux-deps
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: "24"
           cache: npm
           cache-dependency-path: front/package-lock.json
 
       - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@39008827e6b4319a349e9a42dfc90579dd25f1ca # stable
 
       - name: Cache Rust build artifacts
-        uses: Swatinem/rust-cache@v2
+        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
         with:
           workspaces: front/src-tauri
           key: ${{ matrix.platform }}
@@ -283,13 +288,13 @@ jobs:
         run: |
           set -euo pipefail
           BUNDLES="$(node ../tools/release/release-assets.mjs bundles "${{ matrix.platform }}")"
-          npx --yes @tauri-apps/cli@^2 build --ci --bundles "$BUNDLES"
+          npx --yes @tauri-apps/cli@2.12.6 build --ci --bundles "$BUNDLES"
 
       - name: Stage Linux release assets
         run: node tools/release/release-assets.mjs stage "${{ matrix.platform }}" dist-release
 
       - name: Upload Linux release artifacts
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: release-${{ matrix.platform }}
           path: dist-release/
@@ -306,15 +311,15 @@ jobs:
       pull-requests: read
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
       - name: Set up Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: "24"
 
       - name: Download built platform artifacts
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
         with:
           path: release-assets
           pattern: release-*
@@ -329,6 +334,7 @@ jobs:
           TAG: ${{ needs.prepare.outputs.tag }}
           DRAFT: ${{ needs.prepare.outputs.draft }}
           TARGET_SHA: ${{ github.sha }}
+          ALLOW_OVERWRITE: ${{ inputs.allow_overwrite || 'false' }}
         run: |
           set -euo pipefail
           FILES=(release-assets/*)
@@ -339,6 +345,11 @@ jobs:
           fi
 
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            IS_DRAFT="$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json isDraft -q .isDraft)"
+            if [ "$IS_DRAFT" = "false" ] && [ "$ALLOW_OVERWRITE" != "true" ]; then
+              echo "::error::Refusing to overwrite already-published release ${TAG} without allow_overwrite=true"
+              exit 1
+            fi
             gh release upload "$TAG" "${FILES[@]}" --clobber --repo "$GITHUB_REPOSITORY"
             gh release edit "$TAG" --title "Aquila Buddy ${TAG}" --draft="$DRAFT" "${NOTES_ARGS[@]}" --repo "$GITHUB_REPOSITORY"
           else

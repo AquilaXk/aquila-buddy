@@ -3,6 +3,7 @@ import { test } from "node:test";
 import {
   buildChromeArgs,
   formatChromeStartupError,
+  resolveChromeCandidates,
   resolveChromeUserDataDir,
   resolveChromeExtraFlags,
   resolveChromeStartupTimeoutMs,
@@ -56,4 +57,22 @@ test("formats Chrome startup failures with process and stderr diagnostics", () =
   assert.match(message, /fetch failed/);
   assert.match(message, /exitCode=1/);
   assert.match(message, /zygote failed/);
+});
+
+test("resolves Chrome binary candidates for macOS, Linux, and Windows", () => {
+  const win = resolveChromeCandidates(
+    {
+      PROGRAMFILES: "C:\\Program Files",
+      LOCALAPPDATA: "C:\\Users\\dev\\AppData\\Local",
+    },
+    "win32"
+  );
+  assert.ok(win.includes("C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"));
+  assert.ok(win.includes("C:\\Users\\dev\\AppData\\Local\\Google\\Chrome\\Application\\chrome.exe"));
+
+  const linux = resolveChromeCandidates({}, "linux");
+  assert.ok(linux.includes("/usr/bin/google-chrome"));
+
+  const mac = resolveChromeCandidates({}, "darwin");
+  assert.ok(mac.includes("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"));
 });

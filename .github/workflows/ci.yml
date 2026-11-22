@@ -24,10 +24,12 @@ jobs:
   changes:
     name: Changes
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     outputs:
       backend: ${{ steps.filter.outputs.backend }}
       frontend: ${{ steps.filter.outputs.frontend }}
+      desktop: ${{ steps.filter.outputs.desktop }}
       extension: ${{ steps.filter.outputs.extension }}
       pgvector: ${{ steps.filter.outputs.pgvector }}
       operations: ${{ steps.filter.outputs.operations }}
@@ -36,9 +38,14 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: "24"
 
       - name: Check repository hygiene
         run: |
@@ -105,14 +112,20 @@ jobs:
   docs-validation:
     name: Docs Validation
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     needs: changes
     if: ${{ needs.changes.outputs.docs_only == 'true' || needs.changes.outputs.ci == 'true' }}
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: "24"
 
       - name: Validate changed documentation
         run: |
@@ -132,6 +145,7 @@ jobs:
   backend:
     name: Backend
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     needs: changes
     if: ${{ needs.changes.outputs.backend == 'true' }}
 
@@ -141,10 +155,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
       - name: Set up Java
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           distribution: temurin
           java-version: "21"
@@ -156,6 +170,7 @@ jobs:
   pgvector-integration:
     name: Pgvector Integration
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     needs: changes
     if: ${{ needs.changes.outputs.pgvector == 'true' }}
 
@@ -176,14 +191,24 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: "24"
 
       - name: Set up Java
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           distribution: temurin
           java-version: "21"
           cache: gradle
+
+      - name: Validate database schema and RLS policy contracts
+        run: |
+          node tools/db/validate-pgvector-init.mjs
+          node --test tools/db/postgres-*.test.mjs tools/test/pgvector-integration-runner.test.mjs
 
       - name: Run pgvector integration test
         env:
@@ -195,15 +220,24 @@ jobs:
   operations-smoke:
     name: Operations Smoke
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     needs: changes
     if: ${{ needs.changes.outputs.operations == 'true' }}
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
-      - name: Validate OCI deploy assets
-        run: bash deploy/oci/validate-buddy-deploy-assets.sh
+      - name: Set up Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: "24"
+
+      - name: Validate OCI deploy assets and secret surface
+        run: |
+          bash deploy/oci/validate-buddy-deploy-assets.sh
+          bash tools/test/check-oci-always-free-a1-flex-baseline.sh
+          node --test tools/deploy/oci-env-secret-surface.test.mjs
 
       - name: Validate openai-compatible pgvector smoke env
         env:
@@ -223,9 +257,6 @@ jobs:
           DB_PASSWORD: aquila
         run: bash tools/smoke/validate-ai-runtime-env.sh
 
-      - name: Validate release readiness records
-        run: bash tools/smoke/validate-release-readiness-record.sh
-
       - name: Validate README and release asset contracts
         run: |
           node tools/readme/validate-readme.mjs
@@ -234,6 +265,7 @@ jobs:
   frontend:
     name: Frontend
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     needs: changes
     if: ${{ needs.changes.outputs.frontend == 'true' }}
 
@@ -243,10 +275,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
       - name: Set up Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: "24"
           cache: npm
@@ -288,18 +320,73 @@ jobs:
           NEXT_PUBLIC_API_URL: https://buddy.aquilaxk.site
         run: npm run build:desktop
 
+  desktop-rust:
+    name: Desktop Rust (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    needs: changes
+    if: ${{ needs.changes.outputs.desktop == 'true' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-22.04
+          - macos-15
+          - windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: "24"
+
+      - name: Run cross-OS Node guards and release tests
+        shell: bash
+        run: |
+          node tools/guards/check-repo-hygiene.mjs
+          node --test tools/guards/*.test.mjs
+          node --test tools/release/*.test.mjs
+          node --test tools/ci/*.test.mjs
+          node --test tools/extension/live-e2e/browser-session.test.mjs
+
+      - name: Install Linux desktop dependencies
+        if: matrix.os == 'ubuntu-22.04'
+        uses: ./.github/actions/install-linux-deps
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@39008827e6b4319a349e9a42dfc90579dd25f1ca # stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
+        with:
+          workspaces: front/src-tauri
+          key: ci-${{ matrix.os }}
+
+      - name: Check formatting, Clippy, and Rust tests
+        shell: bash
+        run: |
+          cargo fmt --manifest-path front/src-tauri/Cargo.toml --all -- --check
+          cargo clippy --manifest-path front/src-tauri/Cargo.toml --all-targets -- -D warnings
+          cargo test --manifest-path front/src-tauri/Cargo.toml
+
   extension:
     name: Extension
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     needs: changes
     if: ${{ needs.changes.outputs.extension == 'true' }}
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
       - name: Set up Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: "24"
 

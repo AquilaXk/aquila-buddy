@@ -12,7 +12,9 @@ const MAX_EXTERNAL_URL_BYTES: usize = 2_048;
 pub fn validate_external_url(raw_url: &str) -> Result<(), String> {
     if raw_url.is_empty()
         || raw_url.len() > MAX_EXTERNAL_URL_BYTES
-        || raw_url.bytes().any(|b| b.is_ascii_control() || b.is_ascii_whitespace())
+        || raw_url
+            .bytes()
+            .any(|b| b.is_ascii_control() || b.is_ascii_whitespace())
     {
         return Err("허용되지 않은 URL 형식입니다.".to_string());
     }
@@ -109,7 +111,10 @@ mod tests {
 
     #[test]
     fn allows_https_and_local_loopback_only() {
-        assert!(validate_external_url("https://buddy.aquilaxk.site/oauth2/authorization/github").is_ok());
+        assert!(
+            validate_external_url("https://buddy.aquilaxk.site/oauth2/authorization/github")
+                .is_ok()
+        );
         assert!(validate_external_url("http://localhost:8080/oauth2/authorization/github").is_ok());
         assert!(validate_external_url("http://127.0.0.1:8080/api").is_ok());
 

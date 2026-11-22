@@ -680,7 +680,7 @@ class AiEnvironmentExamplesTest {
             .contains("EMBEDDING_BACKFILL_OPERATION_TOKEN: ${{ secrets.EMBEDDING_BACKFILL_OPERATION_TOKEN }}")
             .contains("bash tools/smoke/validate-provider-e2e-env.sh")
             .contains("bash tools/smoke/run-provider-e2e-smoke.sh")
-            .contains("uses: actions/upload-artifact@v4")
+            .contains("uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f")
             .contains("provider-e2e-smoke-evidence");
     }
 
@@ -702,7 +702,7 @@ class AiEnvironmentExamplesTest {
             .contains("bash tools/smoke/validate-ai-provider-smoke-env.sh")
             .contains("bash tools/smoke/run-ai-provider-smoke.sh")
             .contains("node tools/smoke/run-ai-prompt-evaluation-smoke.mjs")
-            .contains("uses: actions/upload-artifact@v4")
+            .contains("uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f")
             .contains("ai-prompt-evaluation-evidence");
     }
 

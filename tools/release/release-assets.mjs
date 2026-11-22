@@ -11,11 +11,11 @@
  *   node tools/release/release-assets.mjs checksums <dir>
  */
 
-import { execFileSync } from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+import zlib from "node:zlib";
 
 export const SUMS_FILE = "SHA256SUMS.txt";
 export const DOWNLOAD_BASE_URL = "https://github.com/AquilaXk/aquila-buddy/releases/latest/download";
@@ -127,25 +127,105 @@ export function stageAssets(id, root, outDir) {
   return staged;
 }
 
+const CRC32_TABLE = (() => {
+  const table = new Uint32Array(256);
+  for (let i = 0; i < 256; i += 1) {
+    let c = i;
+    for (let k = 0; k < 8; k += 1) {
+      c = (c & 1) !== 0 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+    }
+    table[i] = c >>> 0;
+  }
+  return table;
+})();
+
+function crc32(buffer) {
+  let crc = 0xffffffff;
+  for (let i = 0; i < buffer.length; i += 1) {
+    crc = CRC32_TABLE[(crc ^ buffer[i]) & 0xff] ^ (crc >>> 8);
+  }
+  return (crc ^ 0xffffffff) >>> 0;
+}
+
+function buildDeterministicZip(entries) {
+  const localParts = [];
+  const centralParts = [];
+  let offset = 0;
+
+  for (const { name, data } of entries) {
+    const nameBytes = Buffer.from(name, "utf8");
+    const checksum = crc32(data);
+    const deflated = zlib.deflateRawSync(data, { level: 9 });
+    const useDeflate = deflated.length < data.length;
+    const payload = useDeflate ? deflated : data;
+    const method = useDeflate ? 8 : 0;
+
+    const localHeader = Buffer.alloc(30 + nameBytes.length);
+    localHeader.writeUInt32LE(0x04034b50, 0);
+    localHeader.writeUInt16LE(20, 4);
+    localHeader.writeUInt16LE(0x0800, 6);
+    localHeader.writeUInt16LE(method, 8);
+    localHeader.writeUInt16LE(0, 10);
+    localHeader.writeUInt16LE(0x0021, 12);
+    localHeader.writeUInt32LE(checksum, 14);
+    localHeader.writeUInt32LE(payload.length, 18);
+    localHeader.writeUInt32LE(data.length, 22);
+    localHeader.writeUInt16LE(nameBytes.length, 26);
+    localHeader.writeUInt16LE(0, 28);
+    nameBytes.copy(localHeader, 30);
+
+    const centralHeader = Buffer.alloc(46 + nameBytes.length);
+    centralHeader.writeUInt32LE(0x02014b50, 0);
+    centralHeader.writeUInt16LE((3 << 8) | 20, 4);
+    centralHeader.writeUInt16LE(20, 6);
+    centralHeader.writeUInt16LE(0x0800, 8);
+    centralHeader.writeUInt16LE(method, 10);
+    centralHeader.writeUInt16LE(0, 12);
+    centralHeader.writeUInt16LE(0x0021, 14);
+    centralHeader.writeUInt32LE(checksum, 16);
+    centralHeader.writeUInt32LE(payload.length, 20);
+    centralHeader.writeUInt32LE(data.length, 24);
+    centralHeader.writeUInt16LE(nameBytes.length, 28);
+    centralHeader.writeUInt16LE(0, 30);
+    centralHeader.writeUInt16LE(0, 32);
+    centralHeader.writeUInt16LE(0, 34);
+    centralHeader.writeUInt16LE(0, 36);
+    centralHeader.writeUInt32LE((0o100644 << 16) >>> 0, 38);
+    centralHeader.writeUInt32LE(offset, 42);
+    nameBytes.copy(centralHeader, 46);
+
+    localParts.push(localHeader, payload);
+    centralParts.push(centralHeader);
+    offset += localHeader.length + payload.length;
+  }
+
+  const centralDir = Buffer.concat(centralParts);
+  const eocd = Buffer.alloc(22);
+  eocd.writeUInt32LE(0x06054b50, 0);
+  eocd.writeUInt16LE(0, 4);
+  eocd.writeUInt16LE(0, 6);
+  eocd.writeUInt16LE(entries.length, 8);
+  eocd.writeUInt16LE(entries.length, 10);
+  eocd.writeUInt32LE(centralDir.length, 12);
+  eocd.writeUInt32LE(offset, 16);
+  eocd.writeUInt16LE(0, 20);
+
+  return Buffer.concat([...localParts, centralDir, eocd]);
+}
+
 export function packageExtension(root, outDir) {
   const extensionDir = path.join(root, "extension");
-  for (const file of CHROME_EXTENSION_FILES) {
+  const entries = [...CHROME_EXTENSION_FILES].sort(compareNames).map((file) => {
     const full = path.join(extensionDir, file);
     if (!fs.existsSync(full)) {
       throw new Error(`missing Chrome extension runtime file: ${full}`);
     }
-  }
+    return { name: file, data: fs.readFileSync(full) };
+  });
 
   fs.mkdirSync(outDir, { recursive: true });
   const outZip = path.resolve(outDir, CHROME_EXTENSION_ASSET);
-  if (fs.existsSync(outZip)) {
-    fs.rmSync(outZip);
-  }
-
-  execFileSync("zip", ["-X", "-q", outZip, ...CHROME_EXTENSION_FILES], {
-    cwd: extensionDir,
-    stdio: "inherit",
-  });
+  fs.writeFileSync(outZip, buildDeterministicZip(entries));
   return outZip;
 }
 

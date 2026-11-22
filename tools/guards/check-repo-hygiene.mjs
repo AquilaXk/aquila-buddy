@@ -14,6 +14,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
+import { pathToFileURL } from "node:url";
 import { prohibitedPatternsIn } from "./prohibited-terms.mjs";
 
 const ROOT = process.cwd();
@@ -28,6 +29,9 @@ const REQUIRED_TRACKED_CONTRACTS = [
   "TODO.md",
   "compose.yaml",
   "back/build.gradle",
+  "back/gradlew",
+  "back/gradlew.bat",
+  ".gitattributes",
   "front/package.json",
   "extension/manifest.json",
   ".github/ISSUE_TEMPLATE/bug_report.yml",
@@ -351,6 +355,11 @@ function main() {
   );
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+export function isDirectCliExecution(metaUrl, argv1) {
+  if (!argv1) return false;
+  return metaUrl === pathToFileURL(path.resolve(argv1)).href;
+}
+
+if (isDirectCliExecution(import.meta.url, process.argv[1])) {
   main();
 }

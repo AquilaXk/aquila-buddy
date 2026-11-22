@@ -5,6 +5,7 @@ changed_files_path="${1:?changed files path is required}"
 
 backend=false
 frontend=false
+desktop=false
 extension=false
 pgvector=false
 operations=false
@@ -50,6 +51,12 @@ while IFS= read -r file; do
   esac
 
   case "${file}" in
+    front/src-tauri/**|front/scripts/**|.github/actions/install-linux-deps/**|.gitattributes)
+      desktop=true
+      ;;
+  esac
+
+  case "${file}" in
     extension/**|tools/extension/**)
       extension=true
       ;;
@@ -71,6 +78,7 @@ done < "${changed_files_path}"
 if [[ "${saw_file}" == "false" ]]; then
   backend=true
   frontend=true
+  desktop=true
   extension=true
   pgvector=true
   operations=true
@@ -80,6 +88,7 @@ fi
 if [[ "${ci}" == "true" ]]; then
   backend=true
   frontend=true
+  desktop=true
   extension=true
   pgvector=true
   operations=true
@@ -90,6 +99,7 @@ write_outputs() {
   {
     echo "backend=${backend}"
     echo "frontend=${frontend}"
+    echo "desktop=${desktop}"
     echo "extension=${extension}"
     echo "pgvector=${pgvector}"
     echo "operations=${operations}"
@@ -106,6 +116,7 @@ write_summary() {
     echo "### CI gates"
     echo "- backend: ${backend}"
     echo "- frontend: ${frontend}"
+    echo "- desktop: ${desktop}"
     echo "- extension: ${extension}"
     echo "- pgvector: ${pgvector}"
     echo "- operations: ${operations}"

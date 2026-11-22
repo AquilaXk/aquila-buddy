@@ -172,7 +172,9 @@ fn start_loopback_inner(state: &OAuthLoopbackState, timeout: Duration) -> Result
                             "413 Payload Too Large",
                             "<!doctype html><html><body><p>요청 크기가 허용 한도를 초과했습니다.</p></body></html>",
                         );
-                        let _ = tx.send(Err("OAuth callback 요청 크기가 상한(4KB)을 초과했습니다.".to_string()));
+                        let _ = tx.send(Err(
+                            "OAuth callback 요청 크기가 상한(4KB)을 초과했습니다.".to_string(),
+                        ));
                         break;
                     }
 
@@ -211,7 +213,8 @@ fn start_loopback_inner(state: &OAuthLoopbackState, timeout: Duration) -> Result
                 }
                 Err(err) if err.kind() == std::io::ErrorKind::WouldBlock => {
                     if Instant::now() >= deadline {
-                        let _ = tx.send(Err("GitHub 로그인 대기 시간이 만료되었습니다.".to_string()));
+                        let _ =
+                            tx.send(Err("GitHub 로그인 대기 시간이 만료되었습니다.".to_string()));
                         break;
                     }
                     thread::sleep(Duration::from_millis(25));
@@ -267,7 +270,9 @@ mod tests {
         stream.read_to_string(&mut resp).unwrap();
         assert!(resp.starts_with("HTTP/1.1 200 OK"));
 
-        let payload = tauri::async_runtime::block_on(await_loopback_inner(&state, Duration::from_secs(5))).unwrap();
+        let payload =
+            tauri::async_runtime::block_on(await_loopback_inner(&state, Duration::from_secs(5)))
+                .unwrap();
         assert_eq!(
             payload,
             DesktopOAuthCallbackPayload {
@@ -287,13 +292,17 @@ mod tests {
         let _ = stream2.read_to_string(&mut resp2);
         assert!(resp2.starts_with("HTTP/1.1 413"));
 
-        let err = tauri::async_runtime::block_on(await_loopback_inner(&state, Duration::from_secs(5))).unwrap_err();
+        let err =
+            tauri::async_runtime::block_on(await_loopback_inner(&state, Duration::from_secs(5)))
+                .unwrap_err();
         assert!(err.contains("4KB"));
     }
 
     #[test]
     fn parse_loopback_handles_error_parameter_and_invalid_percent_bytes() {
-        let parsed = parse_loopback_request("GET /oauth/callback?error=access_denied HTTP/1.1\r\n\r\n").unwrap();
+        let parsed =
+            parse_loopback_request("GET /oauth/callback?error=access_denied HTTP/1.1\r\n\r\n")
+                .unwrap();
         assert_eq!(
             parsed,
             DesktopOAuthCallbackPayload {
@@ -301,11 +310,17 @@ mod tests {
                 error: Some("access_denied".to_string()),
             }
         );
-        let non_ascii = parse_loopback_request("GET /oauth/callback?%가=1&ext_code=safe HTTP/1.1\r\n\r\n").unwrap();
+        let non_ascii =
+            parse_loopback_request("GET /oauth/callback?%가=1&ext_code=safe HTTP/1.1\r\n\r\n")
+                .unwrap();
         assert_eq!(non_ascii.code.as_deref(), Some("safe"));
         let bad_utf8 = percent_decode("%\u{FFFD}x");
         assert!(bad_utf8.starts_with('%'));
-        assert!(parse_loopback_request("POST /oauth/callback?ext_code=x HTTP/1.1\r\n\r\n").is_err());
-        assert!(parse_loopback_request("GET /oauth/callbackfoo?ext_code=x HTTP/1.1\r\n\r\n").is_err());
+        assert!(
+            parse_loopback_request("POST /oauth/callback?ext_code=x HTTP/1.1\r\n\r\n").is_err()
+        );
+        assert!(
+            parse_loopback_request("GET /oauth/callbackfoo?ext_code=x HTTP/1.1\r\n\r\n").is_err()
+        );
     }
 }

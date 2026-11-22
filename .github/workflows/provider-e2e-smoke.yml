@@ -46,10 +46,15 @@ permissions:
   issues: read
   pull-requests: read
 
+concurrency:
+  group: provider-e2e-smoke
+  cancel-in-progress: false
+
 jobs:
   provider-e2e-smoke:
     name: Provider E2E Smoke
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     env:
       PROVIDER_E2E_SMOKE_ENABLED: ${{ inputs.enabled }}
       PROVIDER_E2E_DRY_RUN: ${{ inputs.dry_run }}
@@ -83,7 +88,7 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
       - name: Validate provider E2E env
         run: bash tools/smoke/validate-provider-e2e-env.sh
@@ -93,7 +98,7 @@ jobs:
 
       - name: Upload provider E2E smoke evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: provider-e2e-smoke-evidence
           path: tools/smoke/release-readiness/provider-e2e-smoke-${{ github.run_id }}.md

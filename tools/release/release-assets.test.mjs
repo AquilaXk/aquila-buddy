@@ -3,10 +3,12 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
+import zlib from "node:zlib";
 import {
   allAssetNames,
   bundleArguments,
   CHROME_EXTENSION_ASSET,
+  CHROME_EXTENSION_FILES,
   PLATFORMS,
   packageExtension,
   stageAssets,
@@ -68,7 +70,31 @@ test("packageExtension packages current extension runtime files into AquilaBuddy
   try {
     const zipPath = packageExtension(repoRoot, outDir);
     assert.equal(path.basename(zipPath), CHROME_EXTENSION_ASSET);
-    assert.ok(fs.statSync(zipPath).size > 4096);
+    const zipBytes = fs.readFileSync(zipPath);
+    assert.ok(zipBytes.length > 4096);
+
+    const extracted = new Map();
+    let offset = 0;
+    while (offset + 30 <= zipBytes.length && zipBytes.readUInt32LE(offset) === 0x04034b50) {
+      const method = zipBytes.readUInt16LE(offset + 8);
+      const compSize = zipBytes.readUInt32LE(offset + 18);
+      const nameLen = zipBytes.readUInt16LE(offset + 26);
+      const extraLen = zipBytes.readUInt16LE(offset + 28);
+      const nameStart = offset + 30;
+      const dataStart = nameStart + nameLen + extraLen;
+      const name = zipBytes.subarray(nameStart, nameStart + nameLen).toString("utf8");
+      const rawPayload = zipBytes.subarray(dataStart, dataStart + compSize);
+      const contents = method === 8 ? zlib.inflateRawSync(rawPayload) : rawPayload;
+      extracted.set(name, contents);
+      offset = dataStart + compSize;
+    }
+
+    assert.equal(zipBytes.readUInt32LE(offset), 0x02014b50);
+    assert.deepEqual([...extracted.keys()].sort(), [...CHROME_EXTENSION_FILES].sort());
+    for (const file of CHROME_EXTENSION_FILES) {
+      const expected = fs.readFileSync(path.join(repoRoot, "extension", file));
+      assert.deepEqual(extracted.get(file), expected, `round-trip mismatch for ${file}`);
+    }
   } finally {
     fs.rmSync(outDir, { recursive: true, force: true });
   }

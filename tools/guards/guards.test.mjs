@@ -4,7 +4,11 @@ import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
 import test from "node:test";
 import { checkPullRequest, findProhibited, parseNulLogOutput } from "./check-commit-messages.mjs";
-import { findIntakeViolations, isForbiddenTrackedPath } from "./check-repo-hygiene.mjs";
+import {
+  findIntakeViolations,
+  isDirectCliExecution,
+  isForbiddenTrackedPath,
+} from "./check-repo-hygiene.mjs";
 import { prohibitedPatternsIn } from "./prohibited-terms.mjs";
 
 const repoRoot = resolve(import.meta.dirname, "../..");
@@ -85,6 +89,16 @@ test("findIntakeViolations allows bug-report form and config while blocking othe
   const bugReport = readFileSync(resolve(repoRoot, ".github/ISSUE_TEMPLATE/bug_report.yml"), "utf8");
   assert.match(config, /^blank_issues_enabled:\s*false$/m);
   assert.match(bugReport, /^labels:\s*\["bug"\]$/m);
+});
+
+test("isDirectCliExecution resolves relative and platform paths via pathToFileURL", () => {
+  assert.equal(isDirectCliExecution(import.meta.url, import.meta.filename), true);
+  assert.equal(
+    isDirectCliExecution(import.meta.url, "./tools/guards/guards.test.mjs"),
+    true
+  );
+  assert.equal(isDirectCliExecution(import.meta.url, ""), false);
+  assert.equal(isDirectCliExecution(import.meta.url, "./tools/guards/other.mjs"), false);
 });
 
 test("repository hygiene guard passes on current workspace including adapter/out sources", () => {

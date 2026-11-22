@@ -3,7 +3,9 @@ import { readFile } from "node:fs/promises";
 import { test } from "node:test";
 
 test("extension live E2E job pins Chrome startup diagnostics", async () => {
-  const workflow = await readFile(new URL("../../../.github/workflows/ci.yml", import.meta.url), "utf8");
+  const workflow = (
+    await readFile(new URL("../../../.github/workflows/ci.yml", import.meta.url), "utf8")
+  ).replaceAll("\r\n", "\n");
 
   assert.match(workflow, /Run extension live E2E contracts/);
   assert.match(workflow, /npm --prefix extension run test:e2e:contracts/);
@@ -13,10 +15,12 @@ test("extension live E2E job pins Chrome startup diagnostics", async () => {
 });
 
 test("extension GitHub live smoke workflow is manual opt-in and uploads evidence", async () => {
-  const workflow = await readFile(
-    new URL("../../../.github/workflows/extension-github-live-smoke.yml", import.meta.url),
-    "utf8"
-  );
+  const workflow = (
+    await readFile(
+      new URL("../../../.github/workflows/extension-github-live-smoke.yml", import.meta.url),
+      "utf8"
+    )
+  ).replaceAll("\r\n", "\n");
 
   assert.match(workflow, /workflow_dispatch:/);
   assert.doesNotMatch(workflow, /\n  pull_request:/);
@@ -25,6 +29,6 @@ test("extension GitHub live smoke workflow is manual opt-in and uploads evidence
   assert.match(workflow, /EXTENSION_GITHUB_LIVE_SKIP_ON_MISSING_SECRETS: "true"/);
   assert.match(workflow, /EXTENSION_GITHUB_LIVE_EVIDENCE_FILE: tools\/smoke\/release-readiness\/extension-github-live-\$\{\{ github.run_id \}\}\.md/);
   assert.match(workflow, /npm --prefix extension run test:e2e:github-live/);
-  assert.match(workflow, /uses: actions\/upload-artifact@v4/);
+  assert.match(workflow, /uses: actions\/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f/);
   assert.match(workflow, /extension-github-live-smoke-evidence/);
 });

@@ -1,4 +1,4 @@
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { createServer } from "node:net";
 import { resolve } from "node:path";
 import { createFrontendFixtureBackend } from "./fixture-backend.mjs";
@@ -92,12 +92,13 @@ async function visitAndAssert(page, url, expectedText) {
 
 function startNextServer(port, apiUrl, serverMode) {
   const script = serverMode === "start" ? "start" : "dev";
+  const nextBin = resolve(repoRoot, "front", "node_modules", "next", "dist", "bin", "next");
   const child = spawn(
-    "npm",
-    ["--prefix", "front", "run", script, "--", "--hostname", "127.0.0.1", "--port", String(port)],
+    process.execPath,
+    [nextBin, script, "--hostname", "127.0.0.1", "--port", String(port)],
     {
-      cwd: repoRoot,
-      detached: true,
+      cwd: resolve(repoRoot, "front"),
+      detached: process.platform !== "win32",
       env: {
         ...process.env,
         NEXT_PUBLIC_API_URL: apiUrl,
@@ -158,6 +159,10 @@ async function stopProcess(child) {
 }
 
 function killProcessGroup(child, signal) {
+  if (process.platform === "win32") {
+    spawnSync("taskkill", ["/PID", String(child.pid), "/T", "/F"], { stdio: "ignore" });
+    return;
+  }
   try {
     process.kill(-child.pid, signal);
   } catch {

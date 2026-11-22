@@ -128,17 +128,29 @@ async function closeChromeProcess(chrome, exitState) {
   await new Promise((resolve) => chrome.once("exit", resolve));
 }
 
-function findChromeExecutable() {
-  const candidates = [
-    process.env.CHROME_BIN,
-    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-    "/usr/bin/google-chrome",
-    "/usr/bin/google-chrome-stable",
-    "/usr/bin/chromium",
-    "/usr/bin/chromium-browser",
-  ].filter(Boolean);
+export function resolveChromeCandidates(env = process.env, platform = process.platform) {
+  const candidates = [env.CHROME_BIN];
+  if (platform === "win32") {
+    for (const base of [env.PROGRAMFILES, env["PROGRAMFILES(X86)"], env.LOCALAPPDATA]) {
+      if (base) {
+        candidates.push(`${base.replace(/[\\/]+$/, "")}\\Google\\Chrome\\Application\\chrome.exe`);
+      }
+    }
+  } else if (platform === "darwin") {
+    candidates.push("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome");
+  } else {
+    candidates.push(
+      "/usr/bin/google-chrome",
+      "/usr/bin/google-chrome-stable",
+      "/usr/bin/chromium",
+      "/usr/bin/chromium-browser"
+    );
+  }
+  return candidates.filter(Boolean);
+}
 
-  const executable = candidates.find((candidate) => existsSync(candidate));
+function findChromeExecutable() {
+  const executable = resolveChromeCandidates().find((candidate) => existsSync(candidate));
   if (!executable) {
     throw new Error(`Chrome executable not found. Set CHROME_BIN to run extension E2E tests.`);
   }

@@ -38,7 +38,10 @@ fn validate_rel_file_path(file_path: &str) -> Result<&str, String> {
         return Err("상대 경로만 조회할 수 있습니다.".to_string());
     }
     for component in path.components() {
-        if matches!(component, Component::ParentDir | Component::RootDir | Component::Prefix(_)) {
+        if matches!(
+            component,
+            Component::ParentDir | Component::RootDir | Component::Prefix(_)
+        ) {
             return Err("상위 디렉터리 참조가 포함된 경로는 허용되지 않습니다.".to_string());
         }
     }
@@ -176,7 +179,12 @@ mod tests {
             .as_nanos();
         let dir = std::env::temp_dir().join(format!("aquila-buddy-git-{label}-{nonce}"));
         fs::create_dir_all(&dir).unwrap();
-        assert!(Command::new("git").args(["init"]).current_dir(&dir).status().unwrap().success());
+        assert!(Command::new("git")
+            .args(["init"])
+            .current_dir(&dir)
+            .status()
+            .unwrap()
+            .success());
         assert!(Command::new("git")
             .args(["config", "user.email", "ci@example.com"])
             .current_dir(&dir)
@@ -190,8 +198,18 @@ mod tests {
             .unwrap()
             .success());
         fs::write(dir.join("README.md"), "hello\n").unwrap();
-        assert!(Command::new("git").args(["add", "README.md"]).current_dir(&dir).status().unwrap().success());
-        assert!(Command::new("git").args(["commit", "-m", "init"]).current_dir(&dir).status().unwrap().success());
+        assert!(Command::new("git")
+            .args(["add", "README.md"])
+            .current_dir(&dir)
+            .status()
+            .unwrap()
+            .success());
+        assert!(Command::new("git")
+            .args(["commit", "-m", "init"])
+            .current_dir(&dir)
+            .status()
+            .unwrap()
+            .success());
         dir
     }
 

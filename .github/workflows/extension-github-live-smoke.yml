@@ -33,10 +33,15 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: extension-github-live-smoke
+  cancel-in-progress: false
+
 jobs:
   extension-github-live-smoke:
     name: Extension GitHub Live Smoke
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     env:
       EXTENSION_GITHUB_LIVE_SMOKE_ENABLED: ${{ inputs.enabled }}
       EXTENSION_GITHUB_LIVE_SKIP_ON_MISSING_SECRETS: "true"
@@ -52,10 +57,10 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
       - name: Set up Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: "24"
 
@@ -64,7 +69,7 @@ jobs:
 
       - name: Upload extension GitHub live smoke evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: extension-github-live-smoke-evidence
           path: tools/smoke/release-readiness/extension-github-live-${{ github.run_id }}.md

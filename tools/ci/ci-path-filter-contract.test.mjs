@@ -22,6 +22,7 @@ test("ci workflow detects changed paths before heavy jobs", async () => {
   for (const output of [
     "backend",
     "frontend",
+    "desktop",
     "extension",
     "pgvector",
     "operations",
@@ -37,6 +38,7 @@ test("heavy ci jobs are gated by changed path outputs", async () => {
 
   assertJobGate(workflow, "backend", "backend");
   assertJobGate(workflow, "frontend", "frontend");
+  assertJobGate(workflow, "desktop-rust", "desktop");
   assertJobGate(workflow, "extension", "extension");
   assertJobGate(workflow, "pgvector-integration", "pgvector");
   assertJobGate(workflow, "operations-smoke", "operations");
@@ -79,6 +81,7 @@ test("path classifier treats README and LICENSE changes as docs-only", async () 
   assert.equal(outputs.docs_only, "true");
   assert.equal(outputs.backend, "false");
   assert.equal(outputs.frontend, "false");
+  assert.equal(outputs.desktop, "false");
   assert.equal(outputs.extension, "false");
   assert.equal(outputs.pgvector, "false");
   assert.equal(outputs.operations, "false");
@@ -102,9 +105,18 @@ test("path classifier enables all heavy checks for ci workflow changes", async (
   assert.equal(outputs.ci, "true");
   assert.equal(outputs.backend, "true");
   assert.equal(outputs.frontend, "true");
+  assert.equal(outputs.desktop, "true");
   assert.equal(outputs.extension, "true");
   assert.equal(outputs.pgvector, "true");
   assert.equal(outputs.operations, "true");
+});
+
+test("path classifier enables desktop checks for tauri changes", async () => {
+  const outputs = await classifyChangedFiles(["front/src-tauri/src/lib.rs"]);
+
+  assert.equal(outputs.docs_only, "false");
+  assert.equal(outputs.frontend, "true");
+  assert.equal(outputs.desktop, "true");
 });
 
 test("path classifier treats guard updates as ci gate changes", async () => {
@@ -125,7 +137,8 @@ test("path classifier routes release and desktop packaging tools to operations c
 });
 
 async function readWorkflow() {
-  return readFile(resolve(repoRoot, ".github/workflows/ci.yml"), "utf8");
+  const raw = await readFile(resolve(repoRoot, ".github/workflows/ci.yml"), "utf8");
+  return raw.replaceAll("\r\n", "\n");
 }
 
 function assertJobGate(workflow, jobId, outputName) {
@@ -166,6 +179,7 @@ async function classifyChangedFiles(files) {
 
   return Object.fromEntries(
     rawOutput
+      .replaceAll("\r\n", "\n")
       .trim()
       .split("\n")
       .filter(Boolean)

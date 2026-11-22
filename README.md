@@ -92,7 +92,7 @@ npm --prefix front run smoke:integration                             # 프론트
 npm --prefix extension run validate                                  # Chrome 확장 프로그램 검증
 ```
 
-Java 21, Node.js 22 이상, 데스크톱 셸 빌드 시 Rust 툴체인이 필요합니다. AI provider·`pgvector`·Langfuse 운영 스모크는 [AI 운영 smoke runbook](tools/smoke/AI_RUNTIME_SMOKE.md)에, 배포 전 점검 기준은 [릴리스 점검 문서](tools/smoke/release-readiness/README.md)에, OCI 환경 배포 절차는 [OCI 배포 문서](deploy/oci/README.md)에 있습니다.
+Java 21, Node.js 22 이상, 데스크톱 셸 빌드 시 Rust 툴체인이 필요합니다. AI provider·`pgvector`·Langfuse 운영 스모크는 [AI 운영 smoke runbook](tools/smoke/AI_RUNTIME_SMOKE.md)에, OCI 환경 배포 절차는 [OCI 배포 문서](deploy/oci/README.md)에 있습니다.
 
 ## 문제 신고
 
