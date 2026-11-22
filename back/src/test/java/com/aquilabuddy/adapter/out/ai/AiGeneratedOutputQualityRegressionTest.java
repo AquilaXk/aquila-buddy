@@ -1,0 +1,307 @@
+package com.aquilabuddy.adapter.out.ai;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import com.aquilabuddy.adapter.out.ai.analysis.AiIssueGuideGenerationAdapter;
+import com.aquilabuddy.adapter.out.ai.issue.AiRecommendedIssueSummaryAdapter;
+import com.aquilabuddy.adapter.out.ai.prdraft.AiPullRequestDraftAdapter;
+import com.aquilabuddy.application.port.out.ai.AiClient;
+import com.aquilabuddy.domain.analysis.IssueGuide;
+import com.aquilabuddy.domain.analysis.RepositoryCodeContext;
+import com.aquilabuddy.domain.analysis.RepositoryCodeContextFile;
+import com.aquilabuddy.domain.issue.RecommendedIssue;
+import com.aquilabuddy.domain.prdraft.PullRequestDraft;
+import com.aquilabuddy.domain.prdraft.PullRequestDraftAnalysisContext;
+import com.aquilabuddy.domain.prdraft.PullRequestDraftIssueContext;
+import com.aquilabuddy.domain.prdraft.PullRequestDraftRequest;
+import com.aquilabuddy.domain.prdraft.PullRequestDraftRepositoryGuideContext;
+import com.aquilabuddy.domain.prdraft.StoredPullRequestDraft;
+import java.time.Instant;
+import java.util.List;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
+/**
+ * AI 생성물이 실제 제출 흐름에 필요한 최소 품질을 유지하는지 고정하는 회귀 평가입니다.
+ */
+class AiGeneratedOutputQualityRegressionTest {
+
+    private static final String PROMPT_VERSION = "ai-output-quality-v2026-05-21";
+    private static final String MODEL_UNDER_TEST = "openai-compatible-contract";
+
+    @Test
+    @DisplayName("[prompt=ai-output-quality-v2026-05-21 model=openai-compatible-contract fixture=issue-guide-code-context] issue guide keeps non-empty file paths and implementation sections")
+    void evaluatesIssueGuideFixtureQuality() {
+        CapturingAiClient aiClient = new CapturingAiClient("""
+            GUIDELINE: ValidationController에서 validation error example 실패 조건을 regression test로 재현한 뒤 API error envelope 메시지를 update하고 controller test로 verify합니다.
+            PSEUDO_CODE:
+            GIVEN controller = ValidationController
+            WHEN invalid input reaches validation branch
+            CALL add_regression_test(controller)
+            RETURN existing_response_envelope_with_clearer_detail()
+            ASSERT validation regression test passes
+            SIDE_EFFECTS:
+            - Existing API clients may assert the previous message text.
+            - Documentation examples should use the same wording.
+            """);
+        AiIssueGuideGenerationAdapter adapter = new AiIssueGuideGenerationAdapter(aiClient);
+
+        IssueGuide guide = adapter.generateIssueGuide(issue(), codeContext());
+
+        assertQualityMetadata("issue-guide-code-context");
+        assertThat(guide.filePaths()).containsExactly("src/main/java/demo/ValidationController.java");
+        assertThat(guide.guideline()).contains("ValidationController").contains("regression test").isNotBlank();
+        assertThat(guide.pseudoCode())
+            .contains("GIVEN")
+            .contains("CALL")
+            .contains("ASSERT")
+            .contains("regression test")
+            .isNotBlank();
+        assertThat(guide.sideEffects()).hasSize(2).allSatisfy(sideEffect -> assertThat(sideEffect).isNotBlank());
+        assertThat(aiClient.userPrompt)
+            .contains("Repository code context")
+            .contains("ValidationController.java");
+    }
+
+    @Test
+    @DisplayName("[prompt=ai-output-quality-v2026-05-21 model=openai-compatible-contract fixture=pr-draft-markdown-close] PR draft keeps markdown sections, close line, diff, issue, and analysis context")
+    void evaluatesPullRequestDraftFixtureQuality() {
+        CapturingAiClient aiClient = new CapturingAiClient("""
+            TITLE: docs: improve validation guide
+            BODY: ## Summary
+            - Clarify the validation message for the linked issue.
+
+            ## Checklist
+            - [ ] Tests added or updated
+
+            ## Changes
+            - Add validation example from the diff.
+            - Apply the issue guide implementation note.
+
+            ## Tests
+            - Run the focused validation regression test.
+            """);
+        AiPullRequestDraftAdapter adapter = new AiPullRequestDraftAdapter(aiClient);
+
+        PullRequestDraft draft = adapter.generate(request());
+
+        assertQualityMetadata("pr-draft-markdown-close");
+        assertSubmittablePullRequestDraft(draft, 2);
+        assertThat(draft.body())
+            .contains("## Summary")
+            .contains("## Checklist")
+            .contains("- [ ] Tests added or updated")
+            .contains("## Changes")
+            .contains("## Tests")
+            .contains("validation message")
+            .contains("validation example")
+            .contains("implementation note");
+        assertThat(aiClient.userPrompt)
+            .contains("Diff:")
+            .contains("+Add validation example")
+            .contains("Repository draft format")
+            .contains("Required PR checkboxes:")
+            .contains("Issue context:")
+            .contains("Analysis context:");
+    }
+
+    @Test
+    @DisplayName("[prompt=ai-output-quality-v2026-05-21 model=openai-compatible-contract fixture=pr-translation-english] translation returns English title/body for submission")
+    void evaluatesPullRequestTranslationFixtureQuality() {
+        CapturingAiClient aiClient = new CapturingAiClient("""
+            TITLE: docs: prepare validation guide update
+            BODY: ## Summary
+            - Translate the source draft into an English submission.
+
+            ## Changes
+            - Keep the validation guide context.
+
+            ## Tests
+            - Run the same verification before opening the PR.
+            """);
+        AiPullRequestDraftAdapter adapter = new AiPullRequestDraftAdapter(aiClient);
+
+        PullRequestDraft draft = adapter.translate(storedDraft(), "en");
+
+        assertQualityMetadata("pr-translation-english");
+        assertSubmittablePullRequestDraft(draft, 123);
+        assertThat(draft.title()).contains("validation guide").doesNotContain("검증");
+        assertThat(draft.body())
+            .contains("## Summary")
+            .contains("English submission")
+            .doesNotContain("README 안내를 보완합니다");
+        assertThat(aiClient.userPrompt)
+            .contains("Target language: en")
+            .contains("Source title:")
+            .contains("Source body:");
+    }
+
+    @Test
+    @DisplayName("[prompt=ai-output-quality-v2026-05-21 model=openai-compatible-contract fixture=pr-draft-parser-fallback] malformed PR draft response fails closed")
+    void failsClosedOnMalformedPullRequestDraftResponse() {
+        AiPullRequestDraftAdapter adapter = new AiPullRequestDraftAdapter(new CapturingAiClient("plain text"));
+
+        assertQualityMetadata("pr-draft-parser-fallback");
+        assertThatThrownBy(() -> adapter.generate(request()))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("TITLE and BODY markers");
+    }
+
+    @Test
+    @DisplayName("[prompt=ai-output-quality-v2026-05-21 model=openai-compatible-contract fixture=issue-guide-parser-fallback] malformed issue guide response fails closed")
+    void failsClosedOnMalformedIssueGuideResponse() {
+        AiIssueGuideGenerationAdapter adapter = new AiIssueGuideGenerationAdapter(new CapturingAiClient("plain text"));
+
+        assertQualityMetadata("issue-guide-parser-fallback");
+        assertThatThrownBy(() -> adapter.generateIssueGuide(issue(), codeContext()))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("markers");
+    }
+
+    @Test
+    @DisplayName("[prompt=ai-output-quality-v2026-05-21 model=openai-compatible-contract fixture=issue-guide-provider-fallback] provider failure fails closed")
+    void failsClosedOnIssueGuideProviderFailure() {
+        AiIssueGuideGenerationAdapter adapter = new AiIssueGuideGenerationAdapter(new ThrowingAiClient());
+
+        assertQualityMetadata("issue-guide-provider-fallback");
+        assertThatThrownBy(() -> adapter.generateIssueGuide(issue(), codeContext()))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("provider timeout");
+    }
+
+    @Test
+    @DisplayName("[prompt=ai-output-quality-v2026-05-21 model=openai-compatible-contract fixture=recommendation-summary-korean] recommendation cards keep Korean meaning summaries")
+    void evaluatesRecommendationSummaryFixtureQuality() {
+        AiRecommendedIssueSummaryAdapter adapter = new AiRecommendedIssueSummaryAdapter(new CapturingAiClient(
+            """
+            SUMMARY: 템플릿 값이 공백만 있어도 검증을 통과해 나중에 Thymeleaf 렌더링 단계에서 실패하는 문제입니다.
+            REASON: bug와 good first issue 라벨이 있어 실패 조건을 테스트로 확인하며 작게 시작하기 좋은 후보입니다.
+            """
+        ));
+
+        RecommendedIssue result = adapter.summarizeRecommendedIssues(List.of(issue())).getFirst();
+
+        assertQualityMetadata("recommendation-summary-korean");
+        assertThat(result.summary())
+            .contains("공백")
+            .contains("Thymeleaf")
+            .containsPattern("[가-힣]")
+            .doesNotContain("Problem Snapshot")
+            .doesNotContain("**Description**");
+        assertThat(result.reason())
+            .contains("good first issue")
+            .contains("테스트")
+            .doesNotContain("GitHub Search");
+    }
+
+    private static void assertSubmittableIssueGuide(IssueGuide guide) {
+        assertThat(guide.issueKey()).isEqualTo("demo-2");
+        assertThat(guide.guideline()).isNotBlank();
+        assertThat(guide.pseudoCode()).isNotBlank();
+        assertThat(guide.sideEffects()).isNotEmpty().allSatisfy(sideEffect -> assertThat(sideEffect).isNotBlank());
+    }
+
+    private static void assertSubmittablePullRequestDraft(PullRequestDraft draft, long issueNumber) {
+        assertThat(draft.title()).isNotBlank();
+        assertThat(draft.body())
+            .isNotBlank()
+            .contains("close #" + issueNumber)
+            .containsPattern("(?m)^##\\s+\\S+");
+    }
+
+    private static void assertQualityMetadata(String fixtureName) {
+        assertThat(PROMPT_VERSION).isEqualTo("ai-output-quality-v2026-05-21");
+        assertThat(MODEL_UNDER_TEST).isEqualTo("openai-compatible-contract");
+        assertThat(fixtureName).isNotBlank();
+    }
+
+    private static PullRequestDraftRequest request() {
+        return new PullRequestDraftRequest(
+            "spring-projects/spring-boot",
+            2,
+            "main",
+            "feat/validation-docs",
+            "diff --git a/docs.adoc b/docs.adoc\n+Add validation example",
+            new PullRequestDraftRepositoryGuideContext(
+                "Run tests before PR.",
+                "## Summary\n- Describe changes\n\n## Checklist\n- [ ] Tests added or updated",
+                List.of("## Summary\n- Improve docs")
+            ),
+            new PullRequestDraftIssueContext(
+                "Fix validation message",
+                "Error message should explain invalid input.",
+                "Matches Java validation topic"
+            ),
+            new PullRequestDraftAnalysisContext(
+                "Follow validation guide.",
+                "if invalid then return helpful message",
+                List.of("Apply the issue guide implementation note.")
+            )
+        );
+    }
+
+    private static StoredPullRequestDraft storedDraft() {
+        return new StoredPullRequestDraft(
+            "draft-1",
+            "spring-projects/spring-boot",
+            123,
+            "main",
+            "feat/readme-fix",
+            "[Docs] README 기여 안내 보완",
+            "close #123\n\n## 변경 사항\n- README 안내를 보완합니다.",
+            Instant.parse("2026-05-15T01:00:00Z")
+        );
+    }
+
+    private static RecommendedIssue issue() {
+        return new RecommendedIssue(
+            "demo-2",
+            "spring-projects/spring-boot",
+            2L,
+            "Refine validation error example",
+            "Java/Spring validation 예시 개선 이슈입니다.",
+            0.87,
+            List.of("good first issue", "validation"),
+            "OPEN",
+            "현재 Java 21 + Spring 작업 스택과 직접 맞닿아 있습니다."
+        );
+    }
+
+    private static RepositoryCodeContext codeContext() {
+        return RepositoryCodeContext.fromFiles(
+            "spring-projects/spring-boot",
+            "main",
+            List.of(new RepositoryCodeContextFile(
+                "src/main/java/demo/ValidationController.java",
+                "class ValidationController { void validate() {} }"
+            )),
+            5,
+            240
+        );
+    }
+
+    private static class CapturingAiClient implements AiClient {
+
+        private final String response;
+        private String userPrompt;
+
+        private CapturingAiClient(String response) {
+            this.response = response;
+        }
+
+        @Override
+        public String complete(String systemPrompt, String userPrompt) {
+            this.userPrompt = userPrompt;
+            return response;
+        }
+    }
+
+    private static class ThrowingAiClient implements AiClient {
+
+        @Override
+        public String complete(String systemPrompt, String userPrompt) {
+            throw new IllegalStateException("provider timeout");
+        }
+    }
+}

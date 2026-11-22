@@ -1,0 +1,249 @@
+import { createGitHubFixtureServer } from "./fixture-server.mjs";
+import { launchChromeSession } from "./browser-session.mjs";
+
+const server = await createGitHubFixtureServer();
+const chrome = await launchChromeSession();
+
+try {
+  const issueList = await fetch(`${server.origin}/AquilaXk/aquila-buddy/issues`);
+  const html = await issueList.text();
+  assertIncludes(html, "/AquilaXk/aquila-buddy/issues/42", "issue list fixture link");
+
+  const page = await chrome.newPage(`${server.origin}/AquilaXk/aquila-buddy/issues`);
+  await installContentScript(page, {
+    cachedRecommendations: {
+      data: [
+        {
+          repoFullName: "AquilaXk/aquila-buddy",
+          issueNumber: 42,
+          title: "Improve onboarding copy",
+          labels: ["good first issue"],
+          summary: '문서 기여로 시작하기 좋습니다. <img src=x onerror="window.__aquilaBuddyXss=true">',
+        },
+      ],
+    },
+    issueGuide: {
+      data: {
+        filePaths: ["front/app/dashboard/page.tsx"],
+        guideline: "온보딩 문구를 사용자의 첫 기여 흐름에 맞게 정리합니다.",
+        sideEffects: "기존 CTA 문구와 중복되지 않도록 확인합니다.",
+      },
+    },
+  });
+  const autoBadgeText = await page.textContent(
+    'a[href="/AquilaXk/aquila-buddy/issues/42"] .aquila-buddy-badge'
+  );
+  assertEqual(autoBadgeText, "Aquila Buddy", "recommended issue badge auto-highlighted while sidebar closed");
+  const initialExpanded = await page.evaluate(
+    `document.querySelector("aquila-buddy-root")?._shadowRoot?.querySelector("#aquila-buddy-toggle")?.getAttribute("aria-expanded")`
+  );
+  assertEqual(initialExpanded, "false", "toggle aria-expanded before opening");
+  await page.click("#aquila-buddy-toggle");
+  const openExpanded = await page.evaluate(
+    `document.querySelector("aquila-buddy-root")?._shadowRoot?.querySelector("#aquila-buddy-toggle")?.getAttribute("aria-expanded")`
+  );
+  assertEqual(openExpanded, "true", "toggle aria-expanded after opening");
+  const hasResizer = await page.evaluate(
+    `Boolean(document.querySelector("aquila-buddy-root")?._shadowRoot?.querySelector('#aquila-buddy-resizer[role="separator"]'))`
+  );
+  assertEqual(hasResizer, true, "sidebar must mount accessible left-edge resizer");
+  const badgeText = await page.textContent(
+    'a[href="/AquilaXk/aquila-buddy/issues/42"] .aquila-buddy-badge'
+  );
+  assertEqual(badgeText, "Aquila Buddy", "recommended issue badge text");
+  await page.click("#aquila-buddy-close");
+  await page.click("#aquila-buddy-toggle");
+  const badgeCount = await page.evaluate(
+    `document.querySelectorAll('a[href="/AquilaXk/aquila-buddy/issues/42"] .aquila-buddy-badge').length`
+  );
+  assertEqual(badgeCount, 1, "recommended issue badge must not be duplicated");
+  const unrelatedBadgeCount = await page.evaluate(
+    `document.querySelectorAll('a[href="/AquilaXk/aquila-buddy/issues/77"] .aquila-buddy-badge').length`
+  );
+  assertEqual(unrelatedBadgeCount, 0, "unrelated issue badge count");
+  await page.evaluate(`
+    document.body.innerHTML = '<main id="repo-content-pjax-container"><bdi class="js-issue-title markdown-title">Improve onboarding copy</bdi><div class="edit-comment-hide"><task-lists><p>Make first contribution flow easier to understand.</p></task-lists></div></main>';
+    history.pushState({}, "", "/AquilaXk/aquila-buddy/issues/42");
+    document.dispatchEvent(new Event("turbo:load"));
+  `);
+  const rootCountAfterTurbo = await page.evaluate(`document.querySelectorAll("aquila-buddy-root").length`);
+  const toggleCountAfterTurbo = await page.evaluate(
+    `document.querySelector("aquila-buddy-root")?._shadowRoot?.querySelectorAll("#aquila-buddy-toggle").length ?? 0`
+  );
+  const sidebarCountAfterTurbo = await page.evaluate(
+    `document.querySelector("aquila-buddy-root")?._shadowRoot?.querySelectorAll("#aquila-buddy-sidebar").length ?? 0`
+  );
+  assertEqual(rootCountAfterTurbo, 1, "turbo navigation root count");
+  assertEqual(toggleCountAfterTurbo, 1, "turbo navigation toggle count");
+  assertEqual(sidebarCountAfterTurbo, 1, "turbo navigation sidebar count");
+
+  await page.evaluate(`document.dispatchEvent(new Event("turbo:render"))`);
+  const rootCountAfterTurboRender = await page.evaluate(`document.querySelectorAll("aquila-buddy-root").length`);
+  assertEqual(rootCountAfterTurboRender, 1, "turbo render root count idempotency");
+  await page.click("#aquila-buddy-toggle");
+  await page.click("#aquila-buddy-guide-btn");
+  const turboGuideline = await page.textContent("#aquila-buddy-analysis-result .aquila-buddy-result-text");
+  assertIncludes(turboGuideline, "첫 기여 흐름", "turbo issue guide result");
+
+  const detailPage = await chrome.newPage(`${server.origin}/AquilaXk/aquila-buddy/issues/42`);
+  await installContentScript(detailPage, {
+    cachedRecommendations: {
+      data: [
+        {
+          repoFullName: "AquilaXk/aquila-buddy",
+          issueNumber: 42,
+          title: "Improve onboarding copy",
+          labels: ["good first issue"],
+          summary: "온보딩 안내 문구를 개선하는 이슈입니다.",
+          reason: '문서 기여로 시작하기 좋습니다. <img src=x onerror="window.__aquilaBuddyXss=true">',
+        },
+      ],
+    },
+    issueGuide: {
+      data: {
+        filePaths: ["front/app/dashboard/page.tsx"],
+        guideline: "온보딩 문구를 사용자의 첫 기여 흐름에 맞게 정리합니다.",
+        sideEffects: "기존 CTA 문구와 중복되지 않도록 확인합니다.",
+      },
+    },
+    issuePseudo: {
+      data: {
+        filePaths: ["front/app/dashboard/page.tsx"],
+        pseudoCode: "load dashboard copy\nrender first contribution CTA",
+      },
+    },
+  });
+  await detailPage.click("#aquila-buddy-toggle");
+  const summaryText = await detailPage.textContent("#aquila-buddy-rec-reason .aquila-buddy-summary-text");
+  assertIncludes(summaryText, "온보딩 안내 문구를 개선하는 이슈입니다.", "recommendation summary text");
+  const reasonText = await detailPage.textContent("#aquila-buddy-rec-reason .aquila-buddy-reason-text");
+  assertIncludes(reasonText, "문서 기여로 시작하기 좋습니다.", "escaped recommendation reason text");
+  const reasonInjectedNodeCount = await detailPage.evaluate(
+    `document.querySelector("aquila-buddy-root")?._shadowRoot?.querySelectorAll("#aquila-buddy-rec-reason img, #aquila-buddy-rec-reason script").length ?? 0`
+  );
+  assertEqual(reasonInjectedNodeCount, 0, "recommendation reason injected node count");
+  await detailPage.click("#aquila-buddy-guide-btn");
+  const guideline = await detailPage.textContent("#aquila-buddy-analysis-result .aquila-buddy-result-text");
+  assertIncludes(guideline, "첫 기여 흐름", "issue guide result");
+
+  await detailPage.click("#aquila-buddy-pseudo-btn");
+  const pseudoCode = await detailPage.textContent("#aquila-buddy-analysis-result .aquila-buddy-code-block");
+  assertIncludes(pseudoCode, "render first contribution CTA", "issue pseudo result");
+
+  const errorPage = await chrome.newPage(`${server.origin}/AquilaXk/aquila-buddy/issues/42`);
+  await installContentScript(errorPage, {
+    cachedRecommendations: {
+      data: [],
+    },
+    issueGuide: {
+      ok: false,
+      error: "TOKEN_EXPIRED",
+    },
+  });
+  await errorPage.click("#aquila-buddy-toggle");
+  await errorPage.click("#aquila-buddy-guide-btn");
+  const errorText = await errorPage.textContent("#aquila-buddy-analysis-result .aquila-buddy-error");
+  assertIncludes(errorText, "세션이 만료", "issue guide error state");
+
+  const prPage = await chrome.newPage(
+    `${server.origin}/AquilaXk/aquila-buddy/compare/main...AquilaXk:feature-branch`
+  );
+  await installContentScript(prPage, {
+    prDraft: {
+      data: {
+        id: 901,
+        title: '[Test] Chrome extension live 검증 추가 <img src=x onerror="window.__aquilaBuddyXss=true">',
+        body: "## 관련 이슈\nclose #219\n\n## 요약\nExtension live 검증을 추가합니다.\n<script>window.__aquilaBuddyXss=true</script>",
+      },
+    },
+    prTranslation: {
+      data: {
+        titleEn: "Add Chrome extension live validation",
+        bodyEn: "## Related issue\nclose #219\n\n## Summary\nAdd extension live validation.",
+      },
+    },
+  });
+  await prPage.click("#aquila-buddy-toggle");
+  await prPage.fill("#aquila-buddy-issue-number", "219");
+  await prPage.click("#aquila-buddy-draft-btn");
+  const draftTitle = await prPage.textContent(".aquila-buddy-draft-title");
+  assertIncludes(draftTitle, "live 검증", "draft title preview");
+  const draftInjectedNodeCount = await prPage.evaluate(
+    `document.querySelector("aquila-buddy-root")?._shadowRoot?.querySelectorAll(".aquila-buddy-draft-title img, #aquila-buddy-draft-result script").length ?? 0`
+  );
+  assertEqual(draftInjectedNodeCount, 0, "draft preview injected node count");
+
+  await prPage.evaluate(`
+    window.__formEvents = [];
+    ['input', 'change'].forEach((type) => {
+      document.querySelector('#pull_request_title').addEventListener(type, (e) => {
+        window.__formEvents.push({ field: 'title', type: e.type, bubbles: e.bubbles });
+      });
+      document.querySelector('#pull_request_body').addEventListener(type, (e) => {
+        window.__formEvents.push({ field: 'body', type: e.type, bubbles: e.bubbles });
+      });
+    });
+  `);
+
+  await prPage.click("#aquila-buddy-apply-btn");
+  const appliedTitle = await prPage.inputValue("#pull_request_title");
+  const appliedBody = await prPage.inputValue("#pull_request_body");
+  assertEqual(appliedTitle, "Add Chrome extension live validation", "applied PR title");
+  assertIncludes(appliedBody, "close #219", "applied PR body issue link");
+  const formEvents = await prPage.evaluate("window.__formEvents");
+  assertDeepEqual(formEvents, [
+    { field: "title", type: "input", bubbles: true },
+    { field: "title", type: "change", bubbles: true },
+    { field: "body", type: "input", bubbles: true },
+    { field: "body", type: "change", bubbles: true },
+  ], "PR form input and change bubbling events");
+  const prMessages = await prPage.evaluate(
+    `window.__aquilaBuddyMessages.map((message) => ({ type: message.type, payload: message.payload ?? null, draftId: message.draftId ?? null }))`
+  );
+  assertDeepEqual(prMessages, [
+    {
+      type: "CREATE_PR_DRAFT",
+      payload: {
+        upstreamRepo: "AquilaXk/aquila-buddy",
+        githubIssueNumber: 219,
+        baseBranch: "main",
+        headBranch: "feature-branch",
+      },
+      draftId: null,
+    },
+    {
+      type: "TRANSLATE_PR_DRAFT",
+      payload: null,
+      draftId: 901,
+    },
+  ], "PR create message payloads");
+
+  console.log("extension live e2e passed");
+} finally {
+  await chrome.close();
+  await server.close();
+}
+
+async function installContentScript(page, fixtures) {
+  await page.installContentScript(fixtures);
+}
+
+function assertIncludes(value, expected, label) {
+  if (!value.includes(expected)) {
+    throw new Error(`${label} must include ${expected}`);
+  }
+}
+
+function assertEqual(actual, expected, label) {
+  if (actual !== expected) {
+    throw new Error(`${label}: expected ${expected}, received ${actual}`);
+  }
+}
+
+function assertDeepEqual(actual, expected, label) {
+  const actualJson = JSON.stringify(actual);
+  const expectedJson = JSON.stringify(expected);
+  if (actualJson !== expectedJson) {
+    throw new Error(`${label}: expected ${expectedJson}, received ${actualJson}`);
+  }
+}

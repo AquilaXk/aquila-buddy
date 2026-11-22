@@ -1,0 +1,100 @@
+spring:
+  application:
+    name: aquila-buddy
+  profiles:
+    default: local
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: none
+  security:
+    oauth2:
+      client:
+        registration:
+          github:
+            client-id: ${GITHUB_CLIENT_ID:local-client-id}
+            client-secret: ${GITHUB_CLIENT_SECRET:local-client-secret}
+            scope:
+              - read:user
+              - user:email
+
+server:
+  port: 8080
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+app:
+  auth:
+    default-github-id: ${DEFAULT_GITHUB_ID:10001}
+  jwt:
+    secret: ${JWT_SECRET:local-development-jwt-secret-32bytes-minimum-value}
+    expiration: ${JWT_EXPIRATION:1h}
+  refresh-token:
+    expiration: ${REFRESH_TOKEN_EXPIRATION:14d}
+  oauth2:
+    redirect-uri: ${OAUTH2_REDIRECT_URI:http://localhost:3000/oauth/callback}
+  cors:
+    frontend-allowed-origins: ${CORS_FRONTEND_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001}
+    extension-allowed-origins: ${CORS_EXTENSION_ALLOWED_ORIGINS:chrome-extension://*}
+  csrf:
+    allowed-origins: ${CSRF_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001}
+  github:
+    api-base-url: https://api.github.com
+    token: ${GITHUB_TOKEN:}
+    user-context:
+      enabled: ${GITHUB_USER_CONTEXT_ENABLED:false}
+    issue-search:
+      enabled: ${GITHUB_ISSUE_SEARCH_ENABLED:false}
+      query: 'label:"good first issue"'
+      limit: 3
+      graphql-enabled: ${GITHUB_ISSUE_SEARCH_GRAPHQL_ENABLED:true}
+  ai:
+    provider: ${AI_PROVIDER:vertex-ai}
+    openai-compatible:
+      api-base-url: ${AI_API_BASE_URL:https://api.openai.com/v1}
+      api-key: ${AI_API_KEY:${OPENAI_API_KEY:}}
+      chat-model: ${AI_CHAT_MODEL:gpt-4o-mini}
+      temperature: ${AI_TEMPERATURE:0.2}
+      embedding-model: ${AI_EMBEDDING_MODEL:text-embedding-3-small}
+      embedding-dimensions: ${AI_EMBEDDING_DIMENSIONS:1536}
+      request-timeout-millis: ${AI_REQUEST_TIMEOUT_MILLIS:30000}
+    vertex:
+      project-id: ${GOOGLE_CLOUD_PROJECT_ID:}
+      location: ${VERTEX_AI_LOCATION:us-central1}
+      model: ${VERTEX_AI_MODEL:gemini-2.5-pro}
+      issue-summary-model: ${VERTEX_AI_ISSUE_SUMMARY_MODEL:gemini-2.5-flash}
+      issue-guide-model: ${VERTEX_AI_ISSUE_GUIDE_MODEL:gemini-2.5-pro}
+      pr-draft-model: ${VERTEX_AI_PR_DRAFT_MODEL:gemini-2.5-flash}
+      pr-translation-model: ${VERTEX_AI_PR_TRANSLATION_MODEL:gemini-2.5-flash}
+      embedding-model: ${VERTEX_AI_EMBEDDING_MODEL:gemini-embedding-001}
+      embedding-dimensions: ${VERTEX_AI_EMBEDDING_DIMENSIONS:1536}
+      credentials-path: ${VERTEX_AI_CREDENTIALS_PATH:${GOOGLE_APPLICATION_CREDENTIALS:./vertex-key.json}}
+    langfuse:
+      enabled: ${LANGFUSE_ENABLED:false}
+      base-url: ${LANGFUSE_BASE_URL:https://cloud.langfuse.com}
+      public-key: ${LANGFUSE_PUBLIC_KEY:}
+      secret-key: ${LANGFUSE_SECRET_KEY:}
+      environment: ${LANGFUSE_ENVIRONMENT:local}
+  analysis:
+    issue-guide:
+      daily-limit: ${ANALYSIS_ISSUE_GUIDE_DAILY_LIMIT:5}
+  recommendation:
+    copy-refresh:
+      operation-token: ${APP_RECOMMENDATION_COPY_REFRESH_OPERATION_TOKEN:}
+      max-limit: ${RECOMMENDATION_COPY_REFRESH_MAX_LIMIT:200}
+    similarity:
+      provider: ${RECOMMENDATION_SIMILARITY_PROVIDER:score}
+      limit: ${RECOMMENDATION_SIMILARITY_LIMIT:20}
+  embedding:
+    backfill:
+      operation-token: ${APP_EMBEDDING_BACKFILL_OPERATION_TOKEN:}
+      max-limit: ${EMBEDDING_BACKFILL_MAX_LIMIT:200}
+      min-interval-seconds: ${EMBEDDING_BACKFILL_MIN_INTERVAL_SECONDS:0}

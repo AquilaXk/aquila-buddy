@@ -1,0 +1,10 @@
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/aquila_buddy}
+    username: ${DB_USER:aquila}
+    password: ${DB_PASSWORD:aquila}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      # 배포 스크립트가 schema/operational/pgvector SQL을 순서대로 적용하므로 Hibernate 검증은 끈다.
+      ddl-auto: none

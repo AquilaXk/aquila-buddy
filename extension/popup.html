@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      width: 348px;
+      background: #f6f8fa;
+      color: #1f2328;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", Helvetica, Arial, sans-serif;
+      font-size: 13px;
+      line-height: 1.5;
+      font-variant-numeric: tabular-nums;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .header,
+    #status-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      background: #ffffff;
+      border-bottom: 1px solid #d1d9e0;
+    }
+
+    .status-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13.5px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      color: #1f2328;
+    }
+
+    .brand-mark {
+      display: inline-block;
+      width: 15px;
+      height: 15px;
+      color: #0969da;
+      flex-shrink: 0;
+    }
+
+    .status-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 9999px;
+      flex-shrink: 0;
+    }
+
+    .dot.on {
+      background: #1f883d;
+      box-shadow: 0 0 0 3px #dafbe1;
+    }
+
+    .dot.off {
+      background: #818b98;
+    }
+
+    #status-label {
+      font-size: 12px;
+      font-weight: 500;
+      color: #59636e;
+    }
+
+    .btn-primary,
+    #login-btn {
+      padding: 5px 12px;
+      background: #1f2328;
+      color: #ffffff;
+      border: 1px solid #1f2328;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+
+    .btn-primary:hover,
+    #login-btn:hover {
+      background: #32383f;
+      border-color: #32383f;
+    }
+
+    .btn-secondary,
+    #logout-btn {
+      padding: 5px 12px;
+      background: #f6f8fa;
+      color: #1f2328;
+      border: 1px solid #d1d9e0;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+
+    .btn-secondary:hover,
+    #logout-btn:hover {
+      background: #eff2f5;
+      border-color: #b9c3ce;
+    }
+
+    button:focus-visible,
+    a:focus-visible {
+      outline: 2px solid #0969da;
+      outline-offset: 2px;
+    }
+
+    #rec-section {
+      padding: 12px;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 12px;
+      background: #f6f8fa;
+      color: #1f2328;
+      border: 1px solid #d1d9e0;
+      border-bottom: none;
+      border-radius: 6px 6px 0 0;
+    }
+
+    .section-title {
+      font-size: 12.5px;
+      font-weight: 600;
+      color: #1f2328;
+      letter-spacing: -0.015em;
+    }
+
+    .section-hint {
+      font-size: 11px;
+      font-weight: 600;
+      color: #0969da;
+      background: #ddf4ff;
+      border: 1px solid rgba(9, 105, 218, 0.2);
+      border-radius: 9999px;
+      padding: 0 7px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .section-hint:empty {
+      display: none;
+    }
+
+    #rec-list {
+      display: flex;
+      flex-direction: column;
+      border: 1px solid #d1d9e0;
+      border-radius: 0 0 6px 6px;
+      background: #ffffff;
+      overflow-y: auto;
+      max-height: 460px;
+    }
+
+    .rec-card {
+      display: block;
+      padding: 10px 12px;
+      background: #ffffff;
+      border-left: 3px solid transparent;
+      border-bottom: 1px solid #d1d9e0;
+      text-decoration: none;
+      transition: background 0.12s, border-left-color 0.12s;
+    }
+
+    .rec-card:last-child {
+      border-bottom: none;
+    }
+
+    .rec-card:hover {
+      background: #f6f8fa;
+      border-left: 3px solid #0969da;
+    }
+
+    .rec-card-meta {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 4px;
+    }
+
+    .rec-badges {
+      margin-left: auto;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+
+    .env-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 7px 14px;
+      background: #f6f8fa;
+      border-bottom: 1px solid #d1d9e0;
+    }
+
+    .env-label {
+      font-size: 11.5px;
+      font-weight: 600;
+      color: #59636e;
+    }
+
+    .env-select {
+      flex: 1;
+      max-width: 210px;
+      padding: 4px 8px;
+      background: #ffffff;
+      color: #1f2328;
+      border: 1px solid #d1d9e0;
+      border-radius: 6px;
+      font-size: 11.5px;
+      font-weight: 500;
+      font-variant-numeric: tabular-nums;
+      cursor: pointer;
+    }
+
+    .env-select:focus-visible {
+      outline: 2px solid #0969da;
+      outline-offset: 1px;
+    }
+
+    .rec-repo {
+      font-size: 11.5px;
+      font-weight: 500;
+      color: #59636e;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .rec-title {
+      margin-bottom: 4px;
+      color: #1f2328;
+      font-size: 13.5px;
+      font-weight: 600;
+      letter-spacing: -0.015em;
+      line-height: 1.4;
+    }
+
+    .rec-card:hover .rec-title {
+      color: #0969da;
+    }
+
+    .rec-summary {
+      display: -webkit-box;
+      margin: 2px 0 6px;
+      overflow: hidden;
+      color: #59636e;
+      font-size: 12px;
+      font-weight: 400;
+      line-height: 1.5;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+    }
+
+    .rec-labels {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+
+    .rec-label {
+      display: inline-block;
+      padding: 1px 7px;
+      background: #f6f8fa;
+      border: 1px solid #d1d9e0;
+      border-radius: 9999px;
+      color: #59636e;
+      font-size: 11px;
+      font-weight: 500;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .rec-score,
+    .rec-analyzed {
+      padding: 1px 7px;
+      background: #ddf4ff;
+      border: 1px solid rgba(9, 105, 218, 0.25);
+      border-radius: 9999px;
+      color: #0969da;
+      font-size: 11px;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .rec-score {
+      background: #dafbe1;
+      border-color: rgba(26, 127, 55, 0.3);
+      color: #1a7f37;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 20px 12px;
+      background: #ffffff;
+      color: #59636e;
+      font-size: 12.5px;
+      line-height: 1.6;
+    }
+
+    #refresh-btn {
+      display: block;
+      width: calc(100% - 20px);
+      margin: 10px;
+      padding: 7px 12px;
+      background: #1f883d;
+      color: #ffffff;
+      border: 1px solid rgba(31, 35, 40, 0.15);
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    #refresh-btn:hover {
+      background: #1a7f37;
+    }
+
+    #rec-loading {
+      color: #59636e;
+      font-size: 12px;
+      padding: 10px 12px;
+      background: #ffffff;
+      border-left: 1px solid #d1d9e0;
+      border-right: 1px solid #d1d9e0;
+    }
+  </style>
+</head>
+<body>
+  <div id="status-bar" class="header">
+    <div class="status-left">
+      <svg class="brand-mark" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <path d="M8 1.5L14 13.5H11.2L8 6.8L4.8 13.5H2L8 1.5Z" fill="currentColor" />
+      </svg>
+      <span>Aquila Buddy</span>
+    </div>
+    <div class="status-right">
+      <span class="dot off" id="status-dot"></span>
+      <span id="status-label">로그인되지 않음</span>
+      <button id="login-btn" class="btn-primary">로그인</button>
+      <button id="logout-btn" class="btn-secondary hidden">로그아웃</button>
+    </div>
+  </div>
+
+  <div class="env-bar">
+    <label class="env-label" for="env-select">서버 환경</label>
+    <select id="env-select" class="env-select">
+      <option value="local">로컬 (localhost)</option>
+      <option value="prod">운영 (buddy.aquilaxk.site)</option>
+    </select>
+  </div>
+
+  <div id="rec-section">
+    <div class="section-header">
+      <span class="section-title">추천 이슈</span>
+      <span class="section-hint" id="rec-hint"></span>
+    </div>
+    <p id="rec-loading" class="hidden">불러오는 중...</p>
+    <div id="rec-list"></div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

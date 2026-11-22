@@ -1,0 +1,27 @@
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/aquila_buddy}
+    username: ${DB_USER:aquila}
+    password: ${DB_PASSWORD:aquila}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: true
+
+app:
+  github:
+    api-base-url: ${GITHUB_API_BASE_URL:https://api.github.com}
+    token: ${GITHUB_TOKEN:}
+    issue-search:
+      enabled: ${GITHUB_ISSUE_SEARCH_ENABLED:false}
+      query: ${GITHUB_ISSUE_SEARCH_QUERY:label:"good first issue"}
+      limit: ${GITHUB_ISSUE_SEARCH_LIMIT:3}
+  ai:
+    provider: ${AI_PROVIDER:vertex-ai}
+  recommendation:
+    similarity:
+      provider: ${RECOMMENDATION_SIMILARITY_PROVIDER:score}
+      limit: ${RECOMMENDATION_SIMILARITY_LIMIT:20}

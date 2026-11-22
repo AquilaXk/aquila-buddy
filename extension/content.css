@@ -1,0 +1,57 @@
+aquila-buddy-root {
+  all: initial;
+  display: block;
+}
+
+/* GitHub 이슈 목록 인라인 뱃지 (Primer v11 light tokens) */
+.aquila-buddy-badge,
+.aquila-buddy-match-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 6px;
+  padding: 1px 8px;
+  background: #dafbe1;
+  border: 1px solid rgba(26, 127, 55, 0.3);
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+  color: #1a7f37;
+  vertical-align: middle;
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+
+@keyframes aquila-buddy-row-appear {
+  from {
+    opacity: 0.999;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.js-issue-row a[href*="/issues/"],
+[data-testid="issue-pr-title-link"][href*="/issues/"] {
+  animation: aquila-buddy-row-appear 0.001s;
+}
+
+.aquila-buddy-score-pill {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 4px;
+  padding: 1px 7px;
+  background: #ddf4ff;
+  border: 1px solid rgba(9, 105, 218, 0.25);
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+  color: #0969da;
+  vertical-align: middle;
+  white-space: nowrap;
+  box-sizing: border-box;
+}

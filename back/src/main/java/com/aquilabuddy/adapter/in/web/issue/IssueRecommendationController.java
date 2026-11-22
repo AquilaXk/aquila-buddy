@@ -1,0 +1,177 @@
+package com.aquilabuddy.adapter.in.web.issue;
+
+import com.aquilabuddy.application.port.in.issue.BookmarkRecommendedIssueUseCase;
+import com.aquilabuddy.application.port.in.issue.CrawlSearchIssuesUseCase;
+import com.aquilabuddy.application.port.in.issue.GetRecommendedIssueHistoryUseCase;
+import com.aquilabuddy.application.port.in.issue.GetRecommendedIssueUseCase;
+import com.aquilabuddy.application.port.in.issue.ListBookmarkedIssuesUseCase;
+import com.aquilabuddy.application.port.in.issue.ListCollectedIssuesUseCase;
+import com.aquilabuddy.application.port.in.issue.LookupRecommendedIssueUseCase;
+import com.aquilabuddy.application.port.in.issue.RecommendIssuesUseCase;
+import com.aquilabuddy.domain.issue.RecommendedIssue;
+import com.aquilabuddy.domain.issue.RecommendedIssueHistory;
+import com.aquilabuddy.global.response.ApiResponse;
+import jakarta.validation.constraints.NotBlank;
+import java.util.List;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
+
+/**
+ * [Incoming Web Adapter] 추천 이슈 조회 및 사용자 북마크 API 요청을 처리하는 REST controller입니다.
+ */
+@RestController
+@RequestMapping("/api/v1/issues")
+@Validated
+public class IssueRecommendationController {
+
+    private final RecommendIssuesUseCase recommendIssuesUseCase;
+    private final CrawlSearchIssuesUseCase crawlSearchIssuesUseCase;
+    private final ListCollectedIssuesUseCase listCollectedIssuesUseCase;
+    private final GetRecommendedIssueHistoryUseCase getRecommendedIssueHistoryUseCase;
+    private final GetRecommendedIssueUseCase getRecommendedIssueUseCase;
+    private final LookupRecommendedIssueUseCase lookupRecommendedIssueUseCase;
+    private final BookmarkRecommendedIssueUseCase bookmarkRecommendedIssueUseCase;
+    private final ListBookmarkedIssuesUseCase listBookmarkedIssuesUseCase;
+
+    public IssueRecommendationController(
+        RecommendIssuesUseCase recommendIssuesUseCase,
+        CrawlSearchIssuesUseCase crawlSearchIssuesUseCase,
+        ListCollectedIssuesUseCase listCollectedIssuesUseCase,
+        GetRecommendedIssueHistoryUseCase getRecommendedIssueHistoryUseCase,
+        GetRecommendedIssueUseCase getRecommendedIssueUseCase,
+        LookupRecommendedIssueUseCase lookupRecommendedIssueUseCase
+    ) {
+        this(
+            recommendIssuesUseCase,
+            crawlSearchIssuesUseCase,
+            listCollectedIssuesUseCase,
+            getRecommendedIssueHistoryUseCase,
+            getRecommendedIssueUseCase,
+            lookupRecommendedIssueUseCase,
+            null,
+            null
+        );
+    }
+
+    @Autowired
+    public IssueRecommendationController(
+        RecommendIssuesUseCase recommendIssuesUseCase,
+        CrawlSearchIssuesUseCase crawlSearchIssuesUseCase,
+        ListCollectedIssuesUseCase listCollectedIssuesUseCase,
+        GetRecommendedIssueHistoryUseCase getRecommendedIssueHistoryUseCase,
+        GetRecommendedIssueUseCase getRecommendedIssueUseCase,
+        LookupRecommendedIssueUseCase lookupRecommendedIssueUseCase,
+        @Autowired(required = false) BookmarkRecommendedIssueUseCase bookmarkRecommendedIssueUseCase,
+        @Autowired(required = false) ListBookmarkedIssuesUseCase listBookmarkedIssuesUseCase
+    ) {
+        this.recommendIssuesUseCase = recommendIssuesUseCase;
+        this.crawlSearchIssuesUseCase = crawlSearchIssuesUseCase;
+        this.listCollectedIssuesUseCase = listCollectedIssuesUseCase;
+        this.getRecommendedIssueHistoryUseCase = getRecommendedIssueHistoryUseCase;
+        this.getRecommendedIssueUseCase = getRecommendedIssueUseCase;
+        this.lookupRecommendedIssueUseCase = lookupRecommendedIssueUseCase;
+        this.bookmarkRecommendedIssueUseCase = bookmarkRecommendedIssueUseCase;
+        this.listBookmarkedIssuesUseCase = listBookmarkedIssuesUseCase;
+    }
+
+    /**
+     * 저장된 수집 이슈 catalog를 반환합니다.
+     */
+    @GetMapping
+    ApiResponse<List<RecommendedIssue>> listCollectedIssues() {
+        return ApiResponse.success(listCollectedIssuesUseCase.listCollectedIssues());
+    }
+
+    /**
+     * 현재 사용자가 북마크한 이슈 목록을 반환합니다.
+     */
+    @GetMapping("/bookmarks")
+    ApiResponse<List<RecommendedIssue>> bookmarks() {
+        if (listBookmarkedIssuesUseCase == null) {
+            return ApiResponse.success(List.of());
+        }
+        return ApiResponse.success(listBookmarkedIssuesUseCase.listBookmarks());
+    }
+
+    /**
+     * 현재 사용자의 추천 이슈 북마크를 등록합니다.
+     */
+    @PostMapping("/{issueId}/bookmark")
+    ApiResponse<RecommendedIssue> bookmark(@PathVariable String issueId) {
+        if (bookmarkRecommendedIssueUseCase == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_IMPLEMENTED, "북마크 기능을 사용할 수 없습니다.");
+        }
+        return ApiResponse.success(bookmarkRecommendedIssueUseCase.bookmark(issueId));
+    }
+
+    /**
+     * 현재 사용자의 추천 이슈 북마크를 해제합니다.
+     */
+    @DeleteMapping("/{issueId}/bookmark")
+    ApiResponse<RecommendedIssue> unbookmark(@PathVariable String issueId) {
+        if (bookmarkRecommendedIssueUseCase == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_IMPLEMENTED, "북마크 기능을 사용할 수 없습니다.");
+        }
+        return ApiResponse.success(bookmarkRecommendedIssueUseCase.unbookmark(issueId));
+    }
+
+    /**
+     * 내부 이슈 ID로 저장된 추천 이슈 상세를 반환합니다.
+     */
+    @GetMapping("/{id}")
+    ApiResponse<RecommendedIssue> detail(@PathVariable String id) {
+        RecommendedIssue issue = getRecommendedIssueUseCase.getRecommendedIssue(id)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "추천 이슈를 찾을 수 없습니다."));
+
+        return ApiResponse.success(issue);
+    }
+
+    /**
+     * 현재 사용자에게 우선 추천할 이슈 목록을 공통 응답 포맷으로 반환합니다.
+     */
+    @GetMapping("/recommend")
+    ApiResponse<List<RecommendedIssue>> recommend() {
+        return ApiResponse.success(recommendIssuesUseCase.recommend());
+    }
+
+    /**
+     * 검색어 기반으로 외부 이슈 후보를 수집하고 저장된 후보 목록을 반환합니다.
+     */
+    @PostMapping("/crawl/search")
+    ApiResponse<List<RecommendedIssue>> crawlSearch(
+        @NotBlank(message = "q는 비어 있을 수 없습니다.") @RequestParam("q") String query
+    ) {
+        return ApiResponse.success(crawlSearchIssuesUseCase.crawlSearchIssues(query));
+    }
+
+    /**
+     * 저장된 추천 이슈를 이력 응답으로 반환합니다.
+     */
+    @GetMapping("/recommend/history")
+    ApiResponse<List<RecommendedIssueHistory>> history() {
+        return ApiResponse.success(getRecommendedIssueHistoryUseCase.history());
+    }
+
+    /**
+     * GitHub repo full name과 issue number로 저장된 추천 이슈를 조회합니다.
+     */
+    @GetMapping("/lookup")
+    ApiResponse<RecommendedIssue> lookup(
+        @RequestParam("repo") String repoFullName,
+        @RequestParam("number") long issueNumber
+    ) {
+        RecommendedIssue issue = lookupRecommendedIssueUseCase.lookup(repoFullName, issueNumber)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "추천 이슈를 찾을 수 없습니다."));
+
+        return ApiResponse.success(issue);
+    }
+}

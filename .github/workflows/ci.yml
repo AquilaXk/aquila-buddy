@@ -1,0 +1,316 @@
+name: CI
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+    paths-ignore:
+      - "TODO.md"
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - "TODO.md"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  changes:
+    name: Changes
+    runs-on: ubuntu-latest
+
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+      extension: ${{ steps.filter.outputs.extension }}
+      pgvector: ${{ steps.filter.outputs.pgvector }}
+      operations: ${{ steps.filter.outputs.operations }}
+      docs_only: ${{ steps.filter.outputs.docs_only }}
+      ci: ${{ steps.filter.outputs.ci }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Check repository hygiene
+        run: |
+          node tools/guards/check-repo-hygiene.mjs
+          node --test tools/guards/*.test.mjs
+
+      - name: Check commit messages
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BEFORE_SHA: ${{ github.event.before }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.sha }}
+          PR_TITLE: ${{ github.event.pull_request.title || '' }}
+        run: |
+          set -euo pipefail
+          zero_sha="0000000000000000000000000000000000000000"
+          if [[ "${EVENT_NAME}" == "pull_request" ]]; then
+            [[ -n "${BASE_SHA}" ]] || { echo "Missing pull_request base SHA" >&2; exit 1; }
+            node tools/guards/check-commit-messages.mjs "${BASE_SHA}" "${HEAD_SHA}"
+          elif [[ "${EVENT_NAME}" == "push" || "${EVENT_NAME}" == "workflow_dispatch" ]]; then
+            if [[ -n "${BEFORE_SHA}" && "${BEFORE_SHA}" != "${zero_sha}" ]] && \
+               git cat-file -e "${BEFORE_SHA}^{commit}" 2>/dev/null && \
+               git merge-base --is-ancestor "${BEFORE_SHA}" "${HEAD_SHA}" 2>/dev/null; then
+              node tools/guards/check-commit-messages.mjs "${BEFORE_SHA}" "${HEAD_SHA}"
+            else
+              root_sha="$(git rev-list --max-parents=0 "${HEAD_SHA}" | tail -n 1)"
+              node tools/guards/check-commit-messages.mjs --single "${root_sha}"
+              if [[ "${root_sha}" != "${HEAD_SHA}" ]]; then
+                node tools/guards/check-commit-messages.mjs "${root_sha}" "${HEAD_SHA}"
+              fi
+            fi
+          fi
+
+      - name: Detect changed paths
+        id: filter
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BEFORE_SHA: ${{ github.event.before }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+
+          zero_sha="0000000000000000000000000000000000000000"
+          head_sha="${HEAD_SHA}"
+
+          if [[ "${EVENT_NAME}" == "pull_request" ]]; then
+            git diff --name-only "${BASE_SHA}" "${head_sha}" > changed-files.txt
+          elif [[ -n "${BEFORE_SHA}" && "${BEFORE_SHA}" != "${zero_sha}" ]] && \
+               git cat-file -e "${BEFORE_SHA}^{commit}" 2>/dev/null && \
+               git merge-base --is-ancestor "${BEFORE_SHA}" "${head_sha}" 2>/dev/null; then
+            git diff --name-only "${BEFORE_SHA}" "${head_sha}" > changed-files.txt
+          else
+            root_sha="$(git rev-list --max-parents=0 "${head_sha}" | tail -n 1)"
+            if [[ "${root_sha}" == "${head_sha}" ]]; then
+              git diff-tree --no-commit-id --name-only -r --root "${head_sha}" > changed-files.txt
+            else
+              git diff --name-only "${root_sha}" "${head_sha}" > changed-files.txt
+            fi
+          fi
+          bash tools/ci/detect-changed-paths.sh changed-files.txt
+
+  docs-validation:
+    name: Docs Validation
+    runs-on: ubuntu-latest
+    needs: changes
+    if: ${{ needs.changes.outputs.docs_only == 'true' || needs.changes.outputs.ci == 'true' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Validate changed documentation
+        run: |
+          if git rev-parse --verify HEAD^1 >/dev/null 2>&1; then
+            git diff --check HEAD^1 HEAD
+          else
+            git diff --check "$(git hash-object -t tree /dev/null)" HEAD
+          fi
+
+      - name: Validate CI and README contracts
+        run: |
+          node --test tools/ci/*.test.mjs
+          node --test tools/frontend/integration-smoke/runner-contract.test.mjs
+          node tools/readme/validate-readme.mjs
+          node --test tools/release/*.test.mjs
+
+  backend:
+    name: Backend
+    runs-on: ubuntu-latest
+    needs: changes
+    if: ${{ needs.changes.outputs.backend == 'true' }}
+
+    defaults:
+      run:
+        working-directory: back
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: gradle
+
+      - name: Run backend checks
+        run: ./gradlew check --no-daemon
+
+  pgvector-integration:
+    name: Pgvector Integration
+    runs-on: ubuntu-latest
+    needs: changes
+    if: ${{ needs.changes.outputs.pgvector == 'true' }}
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_DB: aquila_buddy
+          POSTGRES_USER: aquila
+          POSTGRES_PASSWORD: aquila
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U aquila -d aquila_buddy"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: gradle
+
+      - name: Run pgvector integration test
+        env:
+          PGVECTOR_TEST_DB_URL: jdbc:postgresql://localhost:5432/aquila_buddy
+          PGVECTOR_TEST_DB_USER: aquila
+          PGVECTOR_TEST_DB_PASSWORD: aquila
+        run: bash tools/test/run-pgvector-integration.sh
+
+  operations-smoke:
+    name: Operations Smoke
+    runs-on: ubuntu-latest
+    needs: changes
+    if: ${{ needs.changes.outputs.operations == 'true' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Validate OCI deploy assets
+        run: bash deploy/oci/validate-buddy-deploy-assets.sh
+
+      - name: Validate openai-compatible pgvector smoke env
+        env:
+          AI_PROVIDER: openai-compatible
+          AI_API_BASE_URL: https://api.openai.com/v1
+          AI_API_KEY: test-key
+          AI_CHAT_MODEL: gpt-4o-mini
+          AI_TEMPERATURE: "0.2"
+          AI_EMBEDDING_MODEL: text-embedding-3-small
+          AI_EMBEDDING_DIMENSIONS: "1536"
+          GITHUB_TOKEN: github-token
+          GITHUB_TOKEN_PERMISSIONS: metadata:read,contents:read,pull-requests:read,issues:read
+          RECOMMENDATION_SIMILARITY_PROVIDER: pgvector
+          RECOMMENDATION_SIMILARITY_LIMIT: "20"
+          DB_URL: jdbc:postgresql://localhost:5432/aquila_buddy
+          DB_USER: aquila
+          DB_PASSWORD: aquila
+        run: bash tools/smoke/validate-ai-runtime-env.sh
+
+      - name: Validate release readiness records
+        run: bash tools/smoke/validate-release-readiness-record.sh
+
+      - name: Validate README and release asset contracts
+        run: |
+          node tools/readme/validate-readme.mjs
+          node --test tools/release/*.test.mjs
+
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-latest
+    needs: changes
+    if: ${{ needs.changes.outputs.frontend == 'true' }}
+
+    defaults:
+      run:
+        working-directory: front
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: front/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Run frontend typecheck
+        run: npm run typecheck
+
+      - name: Build frontend
+        env:
+          NEXT_PUBLIC_API_URL: http://127.0.0.1:18080
+        run: npm run build
+
+      - name: Run frontend parity and envelope checks
+        run: npm run test:e2e && npm run validate:api-envelope
+
+      - name: Run frontend unit tests
+        run: node --test ../tools/frontend/*.test.mjs
+
+      - name: Run frontend integration smoke contracts
+        run: node --test ../tools/frontend/integration-smoke/*.test.mjs
+
+      - name: Run frontend integration smoke
+        env:
+          FRONTEND_INTEGRATION_SERVER_MODE: start
+          FRONTEND_INTEGRATION_FIXTURE_BACKEND_PORT: "18080"
+          FRONTEND_INTEGRATION_SMOKE_TIMEOUT_MS: "90000"
+          FRONTEND_INTEGRATION_ROUTE_TIMEOUT_MS: "20000"
+          NEXT_PUBLIC_API_URL: http://127.0.0.1:18080
+          EXTENSION_E2E_CHROME_STARTUP_TIMEOUT_MS: "30000"
+          EXTENSION_E2E_CHROME_EXTRA_FLAGS: "--enable-logging=stderr --v=1"
+        run: npm run smoke:integration
+
+      - name: Build desktop static export
+        env:
+          NEXT_PUBLIC_API_URL: https://buddy.aquilaxk.site
+        run: npm run build:desktop
+
+  extension:
+    name: Extension
+    runs-on: ubuntu-latest
+    needs: changes
+    if: ${{ needs.changes.outputs.extension == 'true' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+
+      - name: Run extension validation
+        run: npm --prefix extension run validate
+
+      - name: Run extension live E2E contracts
+        run: npm --prefix extension run test:e2e:contracts
+
+      - name: Run extension live E2E
+        env:
+          EXTENSION_E2E_CHROME_STARTUP_TIMEOUT_MS: "30000"
+          EXTENSION_E2E_CHROME_EXTRA_FLAGS: "--enable-logging=stderr --v=1"
+        run: npm --prefix extension run test:e2e

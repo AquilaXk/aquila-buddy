@@ -1,0 +1,350 @@
+name: Desktop Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version (e.g. 0.1.0)"
+        required: true
+        default: "0.1.0"
+      publish:
+        description: "Publish the GitHub Release (false builds and uploads workflow artifacts only)"
+        type: boolean
+        required: false
+        default: true
+      release_draft:
+        description: "Create the release as a draft"
+        type: boolean
+        required: false
+        default: false
+
+concurrency:
+  group: desktop-release-${{ github.event_name == 'workflow_dispatch' && format('dispatch-{0}-{1}-{2}', inputs.version, inputs.publish, inputs.release_draft) || github.ref_name }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  prepare:
+    name: Validate Metadata & Package Chrome Extension
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+      tag: ${{ steps.meta.outputs.tag }}
+      draft: ${{ steps.meta.outputs.draft }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+
+      - name: Resolve version, tag, and verify aligned manifests
+        id: meta
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+          INPUT_DRAFT: ${{ inputs.release_draft }}
+        run: |
+          set -euo pipefail
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+          else
+            VERSION="${INPUT_VERSION#v}"
+          fi
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::Release version must follow SemVer (e.g. 0.1.0)"
+            exit 1
+          fi
+
+          DRAFT=false
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ] && [ "$INPUT_DRAFT" = "true" ]; then
+            DRAFT=true
+          fi
+
+          node -e '
+          const fs = require("node:fs");
+          const expected = process.argv[1];
+          const pkg = JSON.parse(fs.readFileSync("front/package.json", "utf8")).version;
+          const tauri = JSON.parse(fs.readFileSync("front/src-tauri/tauri.conf.json", "utf8")).version;
+          const ext = JSON.parse(fs.readFileSync("extension/manifest.json", "utf8")).version;
+          const cargoText = fs.readFileSync("front/src-tauri/Cargo.toml", "utf8");
+          const cargoMatch = cargoText.match(/\[package\][\s\S]*?^version\s*=\s*"([^"]+)"/m);
+          const gradleText = fs.readFileSync("back/build.gradle", "utf8");
+          const gradleMatch = gradleText.match(/^version\s*=\s*'\''([^'\'']+)'\''/m);
+          const manifests = {
+            "front/package.json": pkg,
+            "front/src-tauri/tauri.conf.json": tauri,
+            "extension/manifest.json": ext,
+            "front/src-tauri/Cargo.toml": cargoMatch ? cargoMatch[1] : "",
+            "back/build.gradle": gradleMatch ? gradleMatch[1] : "",
+          };
+          for (const [name, actual] of Object.entries(manifests)) {
+            if (actual !== expected) {
+              console.error(`Version mismatch in ${name}: expected ${expected}, found ${actual}`);
+              process.exit(1);
+            }
+          }
+          ' "$VERSION"
+
+          {
+            echo "version=$VERSION"
+            echo "tag=v$VERSION"
+            echo "draft=$DRAFT"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Validate and package Chrome extension
+        run: |
+          npm --prefix extension run validate
+          node tools/release/release-assets.mjs package-extension dist-release
+          node --test tools/release/*.test.mjs
+
+      - name: Upload Chrome extension artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: release-chrome-extension
+          path: dist-release/
+          if-no-files-found: error
+
+  release-macos:
+    name: Build macOS Universal (.dmg)
+    needs: prepare
+    runs-on: macos-15
+    timeout-minutes: 90
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: front/package-lock.json
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
+
+      - name: Cache Rust build artifacts
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: front/src-tauri
+          key: macos-universal
+
+      - name: Install frontend dependencies
+        run: npm --prefix front ci
+
+      - name: Build macOS universal desktop bundle
+        working-directory: front
+        env:
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY || '-' }}
+          BUILD_TARGET: desktop
+          NEXT_PUBLIC_DESKTOP_EXPORT: "1"
+          NEXT_PUBLIC_API_URL: https://buddy.aquilaxk.site
+          NEXT_PUBLIC_BACKEND_OAUTH_URL: https://buddy.aquilaxk.site/oauth2/authorization/github
+        run: |
+          set -euo pipefail
+          BUNDLES="$(node ../tools/release/release-assets.mjs bundles macos-universal)"
+          npx --yes @tauri-apps/cli@^2 build --ci --target universal-apple-darwin --bundles "$BUNDLES"
+
+      - name: Verify bundled license notices
+        run: |
+          RES="front/src-tauri/target/universal-apple-darwin/release/bundle/macos/Aquila Buddy.app/Contents/Resources"
+          test -f "$RES/LICENSE"
+          test -f "$RES/THIRD_PARTY_NOTICES.md"
+
+      - name: Stage macOS release asset
+        run: node tools/release/release-assets.mjs stage macos-universal dist-release
+
+      - name: Upload macOS release artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: release-macos-universal
+          path: dist-release/
+          if-no-files-found: error
+
+  release-windows:
+    name: Build Windows x64 Installer (.exe)
+    needs: prepare
+    runs-on: windows-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: front/package-lock.json
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust build artifacts
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: front/src-tauri
+          key: windows-x64
+
+      - name: Install frontend dependencies
+        run: npm --prefix front ci
+
+      - name: Build Windows x64 NSIS installer
+        working-directory: front
+        shell: bash
+        env:
+          BUILD_TARGET: desktop
+          NEXT_PUBLIC_DESKTOP_EXPORT: "1"
+          NEXT_PUBLIC_API_URL: https://buddy.aquilaxk.site
+          NEXT_PUBLIC_BACKEND_OAUTH_URL: https://buddy.aquilaxk.site/oauth2/authorization/github
+        run: |
+          set -euo pipefail
+          BUNDLES="$(node ../tools/release/release-assets.mjs bundles windows-x64)"
+          npx --yes @tauri-apps/cli@^2 build --ci --bundles "$BUNDLES"
+
+      - name: Verify bundled license notices inside NSIS installer
+        shell: bash
+        run: |
+          set -euo pipefail
+          LISTING="$(7z l front/src-tauri/target/release/bundle/nsis/*-setup.exe)"
+          for file in LICENSE THIRD_PARTY_NOTICES.md; do
+            grep -qF "$file" <<<"$LISTING" || { echo "::error::$file missing from NSIS installer"; exit 1; }
+          done
+
+      - name: Stage Windows release asset
+        shell: bash
+        run: node tools/release/release-assets.mjs stage windows-x64 dist-release
+
+      - name: Upload Windows release artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: release-windows-x64
+          path: dist-release/
+          if-no-files-found: error
+
+  release-linux:
+    name: Build Linux (${{ matrix.platform }}) Packages
+    needs: prepare
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux-x64
+            runner: ubuntu-22.04
+          - platform: linux-arm64
+            runner: ubuntu-22.04-arm
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Install Linux build dependencies
+        uses: ./.github/actions/install-linux-deps
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: front/package-lock.json
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust build artifacts
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: front/src-tauri
+          key: ${{ matrix.platform }}
+
+      - name: Install frontend dependencies
+        run: npm --prefix front ci
+
+      - name: Build Linux desktop packages
+        working-directory: front
+        env:
+          BUILD_TARGET: desktop
+          NEXT_PUBLIC_DESKTOP_EXPORT: "1"
+          NEXT_PUBLIC_API_URL: https://buddy.aquilaxk.site
+          NEXT_PUBLIC_BACKEND_OAUTH_URL: https://buddy.aquilaxk.site/oauth2/authorization/github
+          APPIMAGE_EXTRACT_AND_RUN: "1"
+          NO_STRIP: "true"
+        run: |
+          set -euo pipefail
+          BUNDLES="$(node ../tools/release/release-assets.mjs bundles "${{ matrix.platform }}")"
+          npx --yes @tauri-apps/cli@^2 build --ci --bundles "$BUNDLES"
+
+      - name: Stage Linux release assets
+        run: node tools/release/release-assets.mjs stage "${{ matrix.platform }}" dist-release
+
+      - name: Upload Linux release artifacts
+        uses: actions/upload-artifact@v6
+        with:
+          name: release-${{ matrix.platform }}
+          path: dist-release/
+          if-no-files-found: error
+
+  publish-release:
+    name: Publish GitHub Release
+    needs: [prepare, release-macos, release-windows, release-linux]
+    if: github.event_name != 'workflow_dispatch' || inputs.publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      pull-requests: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+
+      - name: Download built platform artifacts
+        uses: actions/download-artifact@v6
+        with:
+          path: release-assets
+          pattern: release-*
+          merge-multiple: true
+
+      - name: Generate combined SHA256SUMS.txt
+        run: node tools/release/release-assets.mjs checksums release-assets
+
+      - name: Create or update GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ needs.prepare.outputs.tag }}
+          DRAFT: ${{ needs.prepare.outputs.draft }}
+          TARGET_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          FILES=(release-assets/*)
+          NOTES_FILE="tools/release/release-notes-${TAG}.md"
+          NOTES_ARGS=(--generate-notes)
+          if [ -f "$NOTES_FILE" ]; then
+            NOTES_ARGS=(--notes-file "$NOTES_FILE")
+          fi
+
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$TAG" "${FILES[@]}" --clobber --repo "$GITHUB_REPOSITORY"
+            gh release edit "$TAG" --title "Aquila Buddy ${TAG}" --draft="$DRAFT" "${NOTES_ARGS[@]}" --repo "$GITHUB_REPOSITORY"
+          else
+            FLAGS=(--target "$TARGET_SHA" --title "Aquila Buddy ${TAG}" "${NOTES_ARGS[@]}" --repo "$GITHUB_REPOSITORY")
+            if [ "$DRAFT" = "true" ]; then
+              FLAGS+=(--draft)
+            fi
+            gh release create "$TAG" "${FILES[@]}" "${FLAGS[@]}"
+          fi

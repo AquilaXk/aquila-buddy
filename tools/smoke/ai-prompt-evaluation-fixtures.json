@@ -1,0 +1,90 @@
+{
+  "promptVersion": "ai-output-quality-v2026-05-21",
+  "samples": [
+    {
+      "fixture": "issue-guide-code-context",
+      "operation": "issue-guide",
+      "systemPrompt": "Generate an issue guide with GUIDELINE, PSEUDO_CODE, and SIDE_EFFECTS markers. PSEUDO_CODE must be code-like and include concrete input values, failing branch, changed condition, and ASSERT lines. Do not use placeholder helpers.",
+      "userPrompt": "Issue: Template/inlineTemplate validation uses isEmpty() instead of isBlank(). Repository code context: src/main/java/demo/TemplateSpec.java has TemplateSpec.of(template, inlineTemplate). Failure condition: template = \"   \" currently passes isEmpty() and fails later. Expected output must show the whitespace input, isBlank() branch, and concrete assertion.",
+      "requires": ["GUIDELINE", "PSEUDO_CODE", "SIDE_EFFECTS", "GIVEN", "IF", "ASSERT", "isBlank()"],
+      "requiresRegex": ["template\\s*=\\s*\"\\s+\""],
+      "forbids": ["1. ", "apply_smallest_change", "preserve_existing_flow", "normal_input", "failing_input", "issue_failure", "target_symbol"]
+    },
+    {
+      "fixture": "recommendation-summary-korean",
+      "operation": "recommendation-summary",
+      "systemPrompt": "Summarize a GitHub issue for a Korean recommendation card. Return SUMMARY and REASON markers. SUMMARY must explain the issue in Korean. REASON must explain why this is recommended, not how it was collected. Preserve technical identifiers such as isEmpty(), isBlank(), and Thymeleaf.",
+      "userPrompt": "Repository: suzumiyaaoba/thymeleaf-snapshot\nIssue number: #6\nTitle: Template/inlineTemplate validation uses isEmpty() instead of isBlank()\nLabels: bug, good first issue\nSource summary: Problem Snapshot validates that at least one of template or inlineTemplate is provided by checking isEmpty(). A value of \" \" passes this check, then fails deep inside the Thymeleaf engine with a cryptic error.\nSource recommendation reason: GitHub Search에서 Good First Issue 조건으로 수집된 후보입니다.",
+      "requires": ["SUMMARY:", "REASON:", "isEmpty()", "isBlank()", "Thymeleaf"],
+      "requiresRegex": ["[가-힣]"],
+      "forbids": ["Problem Snapshot", "**Description**", "GitHub Search", "수집된 후보", "1. "]
+    },
+    {
+      "fixture": "recommendation-summary-bad-raw-copy",
+      "operation": "recommendation-summary",
+      "systemPrompt": "Negative control for recommendation card quality.",
+      "userPrompt": "The evaluator must reject raw copied English text and generic collection reasons.",
+      "requires": ["SUMMARY:", "REASON:", "isEmpty()", "isBlank()", "Thymeleaf"],
+      "requiresRegex": ["[가-힣]"],
+      "forbids": ["Problem Snapshot", "**Description**", "GitHub Search", "수집된 후보", "1. "],
+      "expectedResult": "failed",
+      "mockOutput": "SUMMARY: Problem Snapshot validates that at least one of template or inlineTemplate is provided by checking isEmpty() instead of isBlank() in Thymeleaf.\nREASON: GitHub Search에서 Good First Issue 조건으로 수집된 후보입니다."
+    },
+    {
+      "fixture": "issue-guide-guideline-bad-symbol-list",
+      "operation": "issue-guide",
+      "systemPrompt": "Negative control for first hint guideline quality.",
+      "userPrompt": "The evaluator must reject generic method-name lists without an actionable change path.",
+      "requires": ["GUIDELINE", "PSEUDO_CODE", "SIDE_EFFECTS"],
+      "forbids": [
+        "ProductListTest와 shouldRenderProductList(), of(), setVariable()",
+        "관련 controller/service 테스트 기대값",
+        "추가 조사 지점을 분리합니다"
+      ],
+      "expectedResult": "failed",
+      "mockOutput": "GUIDELINE: ProductListTest.java의 ProductListTest와 shouldRenderProductList(), of(), setVariable(), assertMatchesSnapshot(), shouldRenderEmptyProductList() 흐름에서 실패 조건을 먼저 재현 테스트로 고정합니다. 관련 controller/service 테스트 기대값도 함께 확인합니다.\nPSEUDO_CODE:\nGIVEN target file list\nWHEN issue is reproduced\nASSERT tests pass\nSIDE_EFFECTS:\n- 추가 조사 지점을 분리합니다."
+    },
+    {
+      "fixture": "issue-guide-pseudocode-bad-placeholder",
+      "operation": "issue-guide",
+      "systemPrompt": "Negative control for second hint pseudocode quality.",
+      "userPrompt": "The evaluator must reject abstract helper calls and placeholder inputs.",
+      "requires": ["GUIDELINE", "PSEUDO_CODE", "SIDE_EFFECTS", "GIVEN", "CALL", "ASSERT"],
+      "forbids": ["apply_smallest_change", "preserve_existing_flow", "normal_input", "failing_input", "issue_failure", "target_symbol"],
+      "expectedResult": "failed",
+      "mockOutput": "GUIDELINE: 실패 조건을 테스트로 고정합니다.\nPSEUDO_CODE:\nGIVEN target_file = \"ProductListTest.java\"\nWHEN issue_failure is reproduced\nCALL preserve_existing_flow(target_symbol)\nCALL apply_smallest_change(target_file, issue_failure)\nASSERT normal_input and failing_input\nSIDE_EFFECTS:\n- 기존 흐름을 유지합니다."
+    },
+    {
+      "fixture": "pr-draft-markdown-close",
+      "operation": "pr-draft",
+      "systemPrompt": "Generate a pull request draft with TITLE and BODY markers.",
+      "userPrompt": "Issue #2: Fix validation message. Diff: +Add validation example. Body must include close #2 and markdown sections.",
+      "requires": ["TITLE", "BODY", "close #2", "## Summary"],
+      "forbids": []
+    },
+    {
+      "fixture": "pr-translation-english",
+      "operation": "translation",
+      "systemPrompt": "Translate the PR title and body to English while preserving markdown structure.",
+      "userPrompt": "TITLE: [Docs] README 기여 안내 보완\nBODY: close #123\n\n## 변경 사항\n- README 안내를 보완합니다.",
+      "requires": ["TITLE", "BODY", "## Summary"],
+      "forbids": ["README 안내를 보완합니다"]
+    },
+    {
+      "fixture": "pr-draft-parser-fallback",
+      "operation": "parser-fallback",
+      "systemPrompt": "Return malformed content so parser fallback can be distinguished in mock tests.",
+      "userPrompt": "plain text fallback fixture",
+      "requires": ["fallback"],
+      "forbids": []
+    },
+    {
+      "fixture": "provider-failure-observation",
+      "operation": "provider-failure",
+      "systemPrompt": "The live runner records provider failures separately from fixture fallback.",
+      "userPrompt": "provider failure observation fixture",
+      "requires": ["failure_reason"],
+      "forbids": []
+    }
+  ]
+}

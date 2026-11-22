@@ -1,0 +1,19 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:aquila_buddy_test;MODE=PostgreSQL;DATABASE_TO_UPPER=false
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: none
+
+app:
+  ai:
+    provider: fixture
+  recommendation:
+    similarity:
+      provider: score
+  github:
+    issue-search:
+      enabled: false

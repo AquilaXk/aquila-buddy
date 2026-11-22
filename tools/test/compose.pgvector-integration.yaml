@@ -1,0 +1,14 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: aquila_buddy
+      POSTGRES_USER: aquila
+      POSTGRES_PASSWORD: aquila
+    ports:
+      - "${PGVECTOR_TEST_DB_PORT:-54329}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aquila -d aquila_buddy"]
+      interval: 5s
+      timeout: 5s
+      retries: 12

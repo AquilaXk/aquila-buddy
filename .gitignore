@@ -1,0 +1,82 @@
+HELP.md
+
+# Workspace metadata
+.DS_Store
+.idea/
+.vscode/
+.fleet/
+.worktrees/
+.superpowers/
+*.iws
+*.iml
+*.ipr
+
+# Runtime logs and temp files
+logs/
+*.log
+tmp/
+temp/
+.cache/
+build/
+
+# Workspace local env
+.env
+.env.*
+!.env.example
+compose.override.yml
+
+# Local cloud credentials
+vertex-key.json
+*vertex-key*.json
+**/vertex-key.json
+**/*credential*.json
+**/*service-account*.json
+
+# Backend local files
+/back/.gradle/
+/back/.gradle-user/
+/back/build/
+/back/out/
+/back/bin/
+/back/.env
+/back/.env.*
+!/back/.env.example
+/back/src/main/resources/application-local.yml
+/back/src/main/resources/application-local.yaml
+/back/src/main/resources/application-*.local.yml
+/back/src/main/resources/application-*.local.yaml
+
+# Frontend local files
+/front/node_modules/
+/front/.next/
+/front/out/
+/front/src-tauri/gen/
+/front/src-tauri/target/
+/front/build/
+/front/coverage/
+/front/test-results/
+/front/playwright-report/
+/front/.env
+/front/.env.local
+/front/.env.development.local
+/front/.env.test.local
+/front/.env.production.local
+!/front/.env.local.example
+/front/tsconfig.tsbuildinfo
+
+# Local documentation and scratch notes
+docs/
+*.local.md
+.scratch/
+
+# Terraform and local infrastructure state
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+*.tfplan
+**/terraform.env
+!**/terraform.env.example
+crash.log
+crash.*.log

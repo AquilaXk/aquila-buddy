@@ -1,0 +1,297 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root,
+[data-color-mode="light"][data-light-theme="light"] {
+  color-scheme: light;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", "Segoe UI", Roboto, "Noto Sans KR", sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  --radius: 0.5rem;
+
+  /* 자체 라이트 디자인·Diff 토큰 */
+  --bgColor-default: #ffffff;
+  --bgColor-muted: #f6f8fa;
+  --bgColor-accent-muted: #ddf4ff;
+  --bgColor-success-emphasis: #1f883d;
+  --bgColor-success-muted: #dafbe1;
+  --bgColor-danger-muted: #ffebe9;
+  --fgColor-default: #1f2328;
+  --fgColor-muted: #59636e;
+  --fgColor-accent: #0969da;
+  --fgColor-success: #1a7f37;
+  --fgColor-danger: #d1242f;
+  --borderColor-default: #d1d9e0;
+  --borderRadius-medium: 6px;
+  --shadow-resting-xsmall: 0 1px 1px 0 rgba(31, 35, 40, 0.04);
+  --button-default-shadow-resting: 0 1px 0 rgba(31, 35, 40, 0.04);
+  --button-primary-bgColor-hover: #1c8139;
+  --diffBlob-additionLine-bgColor: #dafbe1;
+  --diffBlob-additionWord-bgColor: #aceebb;
+  --diffBlob-deletionLine-bgColor: #ffebe9;
+  --diffBlob-deletionWord-bgColor: #ffcecb;
+
+  --background: #ffffff;
+  --foreground: #1f2328;
+  --card: #ffffff;
+  --card-foreground: #1f2328;
+  --popover: #ffffff;
+  --popover-foreground: #1f2328;
+  --primary: #1f2328;
+  --primary-foreground: #ffffff;
+  --secondary: #f6f8fa;
+  --secondary-foreground: #1f2328;
+  --muted: #f6f8fa;
+  --muted-foreground: #59636e;
+  --accent: #ddf4ff;
+  --accent-foreground: #0969da;
+  --destructive: #d1242f;
+  --destructive-foreground: #ffffff;
+  --border: #d1d9e0;
+  --input: #d1d9e0;
+  --ring: #0969da;
+
+  --primer-surface: var(--bgColor-default);
+  --primer-muted: var(--bgColor-muted);
+  --primer-border: var(--borderColor-default);
+  --primer-ink: var(--fgColor-default);
+  --primer-ink-muted: var(--fgColor-muted);
+  --primer-accent: var(--fgColor-accent);
+  --primer-accent-muted: var(--bgColor-accent-muted);
+  --primer-success: var(--fgColor-success);
+  --primer-success-emphasis: var(--bgColor-success-emphasis);
+  --primer-success-muted: var(--bgColor-success-muted);
+  --primer-danger: var(--fgColor-danger);
+  --primer-danger-muted: var(--bgColor-danger-muted);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  color-scheme: light;
+  background-color: var(--bgColor-default, #ffffff);
+}
+
+body {
+  margin: 0;
+  background-color: var(--bgColor-default, #ffffff);
+  color: var(--fgColor-default, #1f2328);
+  font-family: var(--font-sans);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+code,
+pre,
+kbd,
+.font-mono {
+  font-family: var(--font-mono);
+}
+
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+  word-break: keep-all;
+  letter-spacing: -0.025em;
+}
+
+p,
+li {
+  text-wrap: pretty;
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+.badge-trim,
+.button-text {
+  text-box: trim-both cap alphabetic;
+}
+
+.table-wrapper {
+  overflow: auto;
+  max-inline-size: 100%;
+  container-type: inline-size;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button:not(:disabled),
+a[href] {
+  cursor: pointer;
+}
+
+::selection {
+  background: rgba(9, 105, 218, 0.16);
+  color: #1f2328;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d1d9e0;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #818b98;
+}
+
+/* 공통 표면·내비게이션·브랜치 배지 패턴 */
+.primer-box {
+  background-color: var(--bgColor-default, #ffffff);
+  border: 1px solid var(--borderColor-default, #d1d9e0);
+  border-radius: var(--borderRadius-medium, 6px);
+  box-shadow: var(--shadow-resting-xsmall, 0 1px 1px 0 rgba(31, 35, 40, 0.04));
+}
+
+.primer-box-header {
+  background-color: var(--bgColor-muted, #f6f8fa);
+  border-bottom: 1px solid var(--borderColor-default, #d1d9e0);
+}
+
+.primer-subnav {
+  background-color: var(--bgColor-muted, #f6f8fa);
+  border-bottom: 1px solid var(--borderColor-default, #d1d9e0);
+}
+
+.primer-underline-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border-bottom: 1px solid var(--borderColor-default, #d1d9e0);
+}
+
+.primer-branch-pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--borderRadius-medium, 6px);
+  border: 1px solid rgba(9, 105, 218, 0.2);
+  background-color: var(--bgColor-accent-muted, #ddf4ff);
+  color: var(--fgColor-accent, #0969da);
+  padding: 2px 8px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.btn-primary {
+  background-color: #1f2328;
+  color: #ffffff;
+  font-weight: 500;
+  border-radius: var(--borderRadius-medium, 6px);
+  border: 1px solid #1f2328;
+  box-shadow: var(--button-default-shadow-resting, 0 1px 0 rgba(31, 35, 40, 0.04));
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: #32383f;
+  border-color: #32383f;
+}
+
+.btn-primer-green {
+  background-color: var(--bgColor-success-emphasis, #1f883d);
+  color: #ffffff;
+  font-weight: 500;
+  border-radius: var(--borderRadius-medium, 6px);
+  border: 1px solid rgba(31, 35, 40, 0.15);
+  box-shadow: var(--button-default-shadow-resting, 0 1px 0 rgba(31, 35, 40, 0.04));
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.btn-primer-green:hover:not(:disabled) {
+  background-color: var(--button-primary-bgColor-hover, #1c8139);
+}
+
+.btn-secondary {
+  background-color: var(--bgColor-muted, #f6f8fa);
+  color: var(--fgColor-default, #1f2328);
+  font-weight: 500;
+  border-radius: var(--borderRadius-medium, 6px);
+  border: 1px solid var(--borderColor-default, #d1d9e0);
+  box-shadow: var(--button-default-shadow-resting, 0 1px 0 rgba(31, 35, 40, 0.04));
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background-color: #eff2f5;
+  border-color: #b9c3ce;
+}
+
+.focus-ring:focus-visible {
+  outline: 2px solid var(--fgColor-accent, #0969da);
+  outline-offset: 2px;
+}
+
+input,
+textarea,
+select {
+  background-color: var(--bgColor-default, #ffffff);
+  color: var(--fgColor-default, #1f2328);
+  border-color: var(--borderColor-default, #d1d9e0);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--fgColor-muted, #59636e);
+}
+
+/* 초기 뷰포트 아래 무거운 리스트/diff 섹션의 레이아웃·페인트 비용을 지연한다. */
+.studio-deferred-block {
+  content-visibility: auto;
+  contain-intrinsic-size: auto none auto 96px;
+}
+
+.studio-deferred-diff {
+  content-visibility: auto;
+  contain-intrinsic-size: auto none auto 220px;
+}
+
+/* 네이티브 <dialog> 모달은 닫힌 상태의 display를 덮어쓰지 않도록 [open]으로 한정한다. */
+dialog.studio-command-dialog {
+  margin: auto;
+  width: min(580px, calc(100vw - 2rem));
+  max-width: none;
+  border: 0;
+  padding: 0;
+  background: transparent;
+}
+
+dialog[open].studio-command-dialog {
+  display: block;
+}
+
+dialog.studio-command-dialog:modal {
+  overscroll-behavior: contain;
+}
+
+dialog.studio-command-dialog::backdrop {
+  background: rgba(31, 35, 40, 0.42);
+  overflow: hidden;
+  overscroll-behavior: contain;
+}

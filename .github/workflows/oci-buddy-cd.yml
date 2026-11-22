@@ -1,0 +1,200 @@
+name: OCI Buddy CD
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: ["main"]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Build and validate without changing running containers
+        required: true
+        type: boolean
+        default: true
+      ref:
+        description: Optional branch, tag, or SHA to deploy
+        required: false
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+  deployments: write
+  packages: write
+
+concurrency:
+  group: oci-buddy-cd
+  cancel-in-progress: false
+
+env:
+  AQUILA_BUDDY_DOMAIN: buddy.aquilaxk.site
+  BACKEND_IMAGE_NAME: aquila-buddy-back
+  DEPLOY_ENVIRONMENT: production
+  DEPLOY_ROOT: /opt/aquila-buddy
+  FRONTEND_IMAGE_NAME: aquila-buddy-front
+
+jobs:
+  deploy:
+    name: Build and Deploy on OCI A1
+    runs-on: [self-hosted, oci-a1-staging, aquila-buddy]
+    if: github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')
+    env:
+      OCI_A1_BUDDY_ENV_B64: ${{ secrets.OCI_A1_BUDDY_ENV_B64 }}
+      OCI_A1_VERTEX_KEY_JSON_B64: ${{ secrets.OCI_A1_VERTEX_KEY_JSON_B64 }}
+
+    steps:
+      - name: Checkout deploy ref
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || inputs.ref || github.sha }}
+          fetch-depth: 0
+
+      - name: Resolve deployment context
+        id: context
+        shell: bash
+        env:
+          DISPATCH_DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          set -euo pipefail
+
+          deploy_sha="$(git rev-parse HEAD)"
+          short_sha="${deploy_sha:0:12}"
+          image_owner="${GITHUB_REPOSITORY_OWNER:-${GITHUB_REPOSITORY%%/*}}"
+          image_owner="${image_owner,,}"
+          backend_image_ref="ghcr.io/${image_owner}/${BACKEND_IMAGE_NAME}:${short_sha}"
+          frontend_image_ref="ghcr.io/${image_owner}/${FRONTEND_IMAGE_NAME}:${short_sha}"
+
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+            dry_run="${DISPATCH_DRY_RUN:-true}"
+          else
+            dry_run="false"
+          fi
+
+          {
+            echo "backend_image_ref=$backend_image_ref"
+            echo "deploy_sha=$deploy_sha"
+            echo "dry_run=$dry_run"
+            echo "frontend_image_ref=$frontend_image_ref"
+            echo "short_sha=$short_sha"
+          } >> "$GITHUB_OUTPUT"
+
+          {
+            echo "### OCI Buddy CD context"
+            echo ""
+            echo "| key | value |"
+            echo "| --- | --- |"
+            echo "| event | $GITHUB_EVENT_NAME |"
+            echo "| deploy_sha | $deploy_sha |"
+            echo "| short_sha | $short_sha |"
+            echo "| domain | $AQUILA_BUDDY_DOMAIN |"
+            echo "| dry_run | $dry_run |"
+            echo "| backend_image | $backend_image_ref |"
+            echo "| frontend_image | $frontend_image_ref |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Validate deploy secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ -n "${OCI_A1_BUDDY_ENV_B64:-}" ]] || { echo "OCI_A1_BUDDY_ENV_B64 is required" >&2; exit 2; }
+          [[ -n "${OCI_A1_VERTEX_KEY_JSON_B64:-}" ]] || { echo "OCI_A1_VERTEX_KEY_JSON_B64 is required" >&2; exit 2; }
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Materialize private runtime env
+        shell: bash
+        env:
+          BACKEND_IMAGE_REF: ${{ steps.context.outputs.backend_image_ref }}
+          FRONTEND_IMAGE_REF: ${{ steps.context.outputs.frontend_image_ref }}
+          SHORT_SHA: ${{ steps.context.outputs.short_sha }}
+        run: |
+          set -euo pipefail
+          umask 077
+
+          private_env_file="$DEPLOY_ROOT/aquila-buddy.private.env"
+          runtime_env_file="$DEPLOY_ROOT/aquila-buddy.env"
+          managed_runtime_keys_regex='^(AQUILA_BUDDY_DOMAIN|AQUILA_BUDDY_IMAGE_TAG|AQUILA_BUDDY_BACKEND_IMAGE|AQUILA_BUDDY_FRONTEND_IMAGE|AQUILA_BUDDY_VERTEX_KEY_HOST_PATH|DB_URL|DB_USER|CSRF_ALLOWED_ORIGINS|NEXT_PUBLIC_API_URL|NEXT_PUBLIC_BACKEND_OAUTH_URL|OAUTH2_REDIRECT_URI|SPRING_PROFILES_ACTIVE|SERVER_FORWARD_HEADERS_STRATEGY|VERTEX_AI_CREDENTIALS_PATH|GOOGLE_APPLICATION_CREDENTIALS)='
+
+          install -d "$DEPLOY_ROOT" "$DEPLOY_ROOT/secrets"
+          printf '%s' "$OCI_A1_BUDDY_ENV_B64" | base64 -d > "$private_env_file"
+          printf '%s' "$OCI_A1_VERTEX_KEY_JSON_B64" | base64 -d > "$DEPLOY_ROOT/secrets/vertex-key.json"
+          grep -Ev "$managed_runtime_keys_regex" "$private_env_file" > "$runtime_env_file" || true
+
+          {
+            echo
+            echo "AQUILA_BUDDY_DOMAIN=$AQUILA_BUDDY_DOMAIN"
+            echo "AQUILA_BUDDY_IMAGE_TAG=$SHORT_SHA"
+            echo "AQUILA_BUDDY_BACKEND_IMAGE=$BACKEND_IMAGE_REF"
+            echo "AQUILA_BUDDY_FRONTEND_IMAGE=$FRONTEND_IMAGE_REF"
+            echo "AQUILA_BUDDY_VERTEX_KEY_HOST_PATH=$DEPLOY_ROOT/secrets/vertex-key.json"
+            echo "DB_URL=jdbc:postgresql://aquila-buddy-postgres:5432/aquila_buddy"
+            echo "DB_USER=aquila_app"
+            echo "CSRF_ALLOWED_ORIGINS=https://$AQUILA_BUDDY_DOMAIN"
+            echo "NEXT_PUBLIC_API_URL=https://$AQUILA_BUDDY_DOMAIN"
+            echo "NEXT_PUBLIC_BACKEND_OAUTH_URL=https://$AQUILA_BUDDY_DOMAIN/oauth2/authorization/github"
+            echo "OAUTH2_REDIRECT_URI=https://$AQUILA_BUDDY_DOMAIN/oauth/callback"
+            echo "SPRING_PROFILES_ACTIVE=prod"
+            echo "SERVER_FORWARD_HEADERS_STRATEGY=framework"
+            echo "VERTEX_AI_CREDENTIALS_PATH=/run/secrets/vertex-key.json"
+            echo "GOOGLE_APPLICATION_CREDENTIALS=/run/secrets/vertex-key.json"
+          } >> "$runtime_env_file"
+
+          chmod 600 "$private_env_file" "$runtime_env_file" "$DEPLOY_ROOT/secrets/vertex-key.json"
+
+          {
+            echo "### Runtime env"
+            echo ""
+            echo "Private env and Vertex key were materialized under $DEPLOY_ROOT. Values are not printed."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Validate deploy assets
+        run: bash deploy/oci/validate-buddy-deploy-assets.sh
+
+      - name: Prepare runner storage
+        shell: bash
+        env:
+          AQUILA_BUDDY_MIN_DATA_FREE_GIB: "20"
+          AQUILA_BUDDY_MIN_ROOT_FREE_GIB: "8"
+        run: bash deploy/oci/prepare-buddy-runner-storage.sh
+
+      - name: Build and push ARM64 images
+        shell: bash
+        env:
+          AQUILA_BUDDY_PUSH_IMAGES: "true"
+        run: bash deploy/oci/build-aquila-buddy-images.sh "$DEPLOY_ROOT/aquila-buddy.env"
+
+      - name: Render nginx config
+        run: bash deploy/oci/render-nginx-config.sh "$DEPLOY_ROOT/aquila-buddy.env" >/tmp/aquila-buddy.nginx.conf
+
+      - name: Install nginx config
+        if: steps.context.outputs.dry_run != 'true'
+        run: bash deploy/oci/install-nginx-config.sh "$DEPLOY_ROOT/aquila-buddy.env"
+
+      - name: Run containers
+        if: steps.context.outputs.dry_run != 'true'
+        run: bash deploy/oci/run-aquila-buddy.sh "$DEPLOY_ROOT/aquila-buddy.env"
+
+      - name: Verify public health endpoint
+        if: steps.context.outputs.dry_run != 'true'
+        run: curl -fsS "https://${AQUILA_BUDDY_DOMAIN}/healthz"
+
+      - name: Write completion summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "### OCI Buddy CD result"
+            echo ""
+            echo "| key | value |"
+            echo "| --- | --- |"
+            echo "| dry_run | ${{ steps.context.outputs.dry_run }} |"
+            echo "| backend_image | ${{ steps.context.outputs.backend_image_ref }} |"
+            echo "| frontend_image | ${{ steps.context.outputs.frontend_image_ref }} |"
+            echo "| public_url | https://${AQUILA_BUDDY_DOMAIN} |"
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,100 @@
+name: Provider E2E Smoke
+
+on:
+  workflow_dispatch:
+    inputs:
+      enabled:
+        description: "Run live provider E2E smoke"
+        required: true
+        type: boolean
+        default: false
+      dry_run:
+        description: "Validate env and print the request path without calling backend APIs"
+        required: true
+        type: boolean
+        default: true
+      backend_base_url:
+        description: "Backend base URL"
+        required: true
+        type: string
+        default: "http://localhost:8080"
+      repo_full_name:
+        description: "GitHub repository full name used by issue crawl and PR draft"
+        required: true
+        type: string
+      issue_number:
+        description: "GitHub issue number used by issue guide and PR draft"
+        required: true
+        type: string
+      base_branch:
+        description: "PR draft base branch"
+        required: true
+        type: string
+        default: "main"
+      head_branch:
+        description: "PR draft head branch"
+        required: true
+        type: string
+        default: "provider-e2e-smoke"
+      search_query:
+        description: "Optional GitHub issue search query override"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
+
+jobs:
+  provider-e2e-smoke:
+    name: Provider E2E Smoke
+    runs-on: ubuntu-latest
+    env:
+      PROVIDER_E2E_SMOKE_ENABLED: ${{ inputs.enabled }}
+      PROVIDER_E2E_DRY_RUN: ${{ inputs.dry_run }}
+      BACKEND_BASE_URL: ${{ inputs.backend_base_url }}
+      PROVIDER_E2E_AUTH_MODE: oauth-header
+      PROVIDER_E2E_AUTH_HEADER: ${{ secrets.PROVIDER_E2E_AUTH_HEADER }}
+      PROVIDER_E2E_SKIP_ON_MISSING_SECRETS: "true"
+      PROVIDER_E2E_EVIDENCE_FILE: tools/smoke/release-readiness/provider-e2e-smoke-${{ github.run_id }}.md
+      PROVIDER_E2E_REPO_FULL_NAME: ${{ inputs.repo_full_name }}
+      PROVIDER_E2E_ISSUE_NUMBER: ${{ inputs.issue_number }}
+      PROVIDER_E2E_BASE_BRANCH: ${{ inputs.base_branch }}
+      PROVIDER_E2E_HEAD_BRANCH: ${{ inputs.head_branch }}
+      PROVIDER_E2E_SEARCH_QUERY: ${{ inputs.search_query }}
+      AI_PROVIDER: ${{ vars.AI_PROVIDER || 'openai-compatible' }}
+      AI_API_BASE_URL: ${{ vars.AI_API_BASE_URL || 'https://api.openai.com/v1' }}
+      AI_API_KEY: ${{ secrets.AI_API_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      AI_CHAT_MODEL: ${{ vars.AI_CHAT_MODEL || 'gpt-4o-mini' }}
+      AI_TEMPERATURE: ${{ vars.AI_TEMPERATURE || '0.2' }}
+      AI_EMBEDDING_MODEL: ${{ vars.AI_EMBEDDING_MODEL || 'text-embedding-3-small' }}
+      AI_EMBEDDING_DIMENSIONS: ${{ vars.AI_EMBEDDING_DIMENSIONS || '1536' }}
+      GITHUB_TOKEN: ${{ secrets.PROVIDER_E2E_GITHUB_TOKEN || github.token }}
+      GITHUB_TOKEN_PERMISSIONS: metadata:read,contents:read,pull-requests:read,issues:read
+      RECOMMENDATION_SIMILARITY_PROVIDER: pgvector
+      RECOMMENDATION_SIMILARITY_LIMIT: ${{ vars.RECOMMENDATION_SIMILARITY_LIMIT || '20' }}
+      DB_URL: ${{ secrets.DB_URL }}
+      DB_USER: ${{ secrets.DB_USER }}
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+      EMBEDDING_BACKFILL_OPERATION_TOKEN: ${{ secrets.EMBEDDING_BACKFILL_OPERATION_TOKEN }}
+      DEFAULT_GITHUB_ID: ${{ vars.DEFAULT_GITHUB_ID || '10001' }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Validate provider E2E env
+        run: bash tools/smoke/validate-provider-e2e-env.sh
+
+      - name: Run provider E2E smoke
+        run: bash tools/smoke/run-provider-e2e-smoke.sh
+
+      - name: Upload provider E2E smoke evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: provider-e2e-smoke-evidence
+          path: tools/smoke/release-readiness/provider-e2e-smoke-${{ github.run_id }}.md
+          if-no-files-found: warn

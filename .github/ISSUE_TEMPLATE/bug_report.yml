@@ -1,0 +1,89 @@
+name: 버그 신고 / Bug report
+description: 웹 서비스나 Chrome 확장 프로그램에서 생긴 문제를 알려 주세요. / Report a problem in the web app or Chrome extension.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        기능 요청과 PR은 받지 않습니다. 버그 신고만 받습니다. 보안 문제는 이슈로 올리지 말고 [SECURITY.md](https://github.com/AquilaXk/aquila-buddy/blob/main/SECURITY.md)의 비공개 신고를 이용해 주세요.
+
+        Feature requests and pull requests are not accepted. Only bug reports are. Do not file security problems here; use the private report described in [SECURITY.md](https://github.com/AquilaXk/aquila-buddy/blob/main/SECURITY.md).
+
+  - type: dropdown
+    id: module
+    attributes:
+      label: 모듈 / Module
+      options:
+        - 대시보드 / Dashboard
+        - 추천 이슈 / Issues
+        - 이슈 분석 / Issue Analysis
+        - PR 초안·번역·Diff / PR Draft & Diff
+        - 내 프로필·GitHub 연동 / Profile & OAuth
+        - Chrome 확장 프로그램 / Chrome Extension
+        - 백엔드 API·pgvector / Backend & Database
+        - 기타 / Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: environment
+    attributes:
+      label: 실행 환경 / Environment
+      options:
+        - 웹 서비스 (buddy.aquilaxk.site) / Production Web
+        - Chrome 확장 프로그램 / Chrome Extension
+        - 로컬 실행 / Self-hosted Local
+    validations:
+      required: true
+
+  - type: input
+    id: browser
+    attributes:
+      label: 브라우저 및 OS / Browser & OS
+      placeholder: "예: Chrome 136 / macOS 15.4"
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: 앱 버전 / App version
+      placeholder: "예: 0.1.0"
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: 재현 절차 / Steps to reproduce
+      value: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 기대한 결과 / Expected result
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: 실제 결과 / Actual result
+      description: 화면 캡처나 오류 문구(HTTP 상태 코드 포함)를 붙여 주세요. / Add screenshots or error messages (including HTTP status codes).
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: 확인 / Checklist
+      options:
+        - label: 첨부 내용에 토큰·비밀키·개인정보가 없습니다. / No tokens, secrets, or personal data are included.
+          required: true
+        - label: 최신 버전에서 다시 확인했습니다. / I confirmed the problem on the latest version.
+          required: true
