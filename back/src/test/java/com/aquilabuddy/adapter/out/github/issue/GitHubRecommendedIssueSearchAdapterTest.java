@@ -775,7 +775,6 @@ class GitHubRecommendedIssueSearchAdapterTest {
                 .containsExactly(12L, 13L);
             assertThat(issues.get(0).reason()).contains("라이선스: MIT");
             assertThat(issues.get(1).reason()).doesNotContain("NOASSERTION").doesNotContain("라이선스:");
-            assertThat(issues.get(0).reason()).contains("라이선스: MIT");
         }
     }
 

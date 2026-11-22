@@ -652,12 +652,13 @@ function parseCompareBranches(pathname) {
   const parts = cleanCompare.includes('...') ? cleanCompare.split('...') : cleanCompare.split('..');
   const baseBranch = safeDecodeSegment(parts[0] ?? '');
   const decodedHead = safeDecodeSegment(parts[1] ?? '');
-  const colonIdx = decodedHead.indexOf(':');
-  if (colonIdx !== -1) {
+  const firstColon = decodedHead.indexOf(':');
+  if (firstColon !== -1) {
+    const lastColon = decodedHead.lastIndexOf(':');
     return {
       baseBranch,
-      forkOwner: decodedHead.slice(0, colonIdx),
-      headBranch: decodedHead.slice(colonIdx + 1),
+      forkOwner: decodedHead.slice(0, firstColon),
+      headBranch: decodedHead.slice(lastColon + 1),
     };
   }
   return { baseBranch, forkOwner: '', headBranch: decodedHead };
@@ -770,7 +771,7 @@ function applyDraftToPrForm(title, body) {
   let { titleInput, bodyInput } = queryPrFormInputs();
   if (!titleInput && !bodyInput) {
     const trigger = document.querySelector?.(
-      '.js-details-target[aria-expanded="false"], button[data-hydro-click*="create_pull_request"]'
+      '.js-compare-pr .js-details-target[aria-expanded="false"], button[data-hydro-click*="create_pull_request"]'
     );
     trigger?.click?.();
     ({ titleInput, bodyInput } = queryPrFormInputs());

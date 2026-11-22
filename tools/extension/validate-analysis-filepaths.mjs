@@ -102,6 +102,9 @@ const parsedFork = context.parseCompareBranches("/AquilaXk/aquila-buddy/compare/
 assert.equal(parsedFork.baseBranch, "main");
 assert.equal(parsedFork.forkOwner, "contributor");
 assert.equal(parsedFork.headBranch, "fix-bug");
+const parsedThreePartFork = context.parseCompareBranches("/AquilaXk/aquila-buddy/compare/main...contributor:renamed-repo:fix-bug");
+assert.equal(parsedThreePartFork.forkOwner, "contributor");
+assert.equal(parsedThreePartFork.headBranch, "fix-bug");
 assert.match(contentScript, /headBranch:\s*resolvedHeadBranch/);
 
 assert.equal(context.applyDraftToPrForm("PR Title", "PR Body"), false);

@@ -131,9 +131,14 @@ fn has_git_head(repo: &Path) -> bool {
 #[tauri::command]
 pub fn git_branch(repo_dir: String) -> Result<String, String> {
     let repo = validate_repo_dir(&repo_dir)?;
+    let args = if has_git_head(&repo) {
+        ["rev-parse", "--abbrev-ref", "HEAD"]
+    } else {
+        ["symbolic-ref", "--short", "HEAD"]
+    };
     let stdout = run_git_bounded(
         &repo,
-        &["rev-parse", "--abbrev-ref", "HEAD"],
+        &args,
         MAX_BRANCH_BYTES,
         "브랜치 이름이 허용 길이(256B)를 초과했습니다.",
         "현재 Git 브랜치를 확인하지 못했습니다.",
@@ -283,5 +288,26 @@ mod tests {
         assert!(err.contains("64KB"));
 
         let _ = fs::remove_dir_all(&repo);
+
+        // Unborn repo without HEAD commit still resolves current symbolic branch cleanly
+        let unborn = std::env::temp_dir().join(format!(
+            "aquila-buddy-git-unborn-{}",
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        fs::create_dir_all(&unborn).unwrap();
+        assert!(Command::new("git")
+            .args(["init", "-b", "main"])
+            .current_dir(&unborn)
+            .status()
+            .unwrap()
+            .success());
+        assert_eq!(
+            git_branch(unborn.to_string_lossy().into_owned()).unwrap(),
+            "main"
+        );
+        let _ = fs::remove_dir_all(&unborn);
     }
 }

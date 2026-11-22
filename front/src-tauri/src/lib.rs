@@ -111,11 +111,8 @@ fn build_macos_menu(app: &tauri::AppHandle) -> tauri::Result<tauri::menu::Menu<t
     Ok(menu)
 }
 
-fn restore_saved_window_geometry(app: &tauri::AppHandle, desktop_state: &AppDesktopState) {
-    let (Some(window), Some(saved)) = (
-        app.get_webview_window("main"),
-        desktop_state.current_geometry(),
-    ) else {
+fn restore_saved_window_geometry(app: &tauri::AppHandle, saved: window_state::WindowGeometry) {
+    let Some(window) = app.get_webview_window("main") else {
         return;
     };
     let monitors: Vec<window_state::MonitorRect> = window
@@ -147,7 +144,9 @@ fn restore_saved_window_geometry(app: &tauri::AppHandle, desktop_state: &AppDesk
 }
 
 fn capture_window_geometry(window: &tauri::Window) {
-    let state = window.app_handle().state::<AppDesktopState>();
+    let Some(state) = window.app_handle().try_state::<AppDesktopState>() else {
+        return;
+    };
     let maximized = window.is_maximized().unwrap_or(false);
     if maximized {
         state.set_maximized(true);
@@ -217,8 +216,11 @@ pub fn run() {
         .setup(|app| {
             let data_dir = app.path().app_local_data_dir().ok();
             let desktop_state = AppDesktopState::new(data_dir);
-            restore_saved_window_geometry(app.handle(), &desktop_state);
+            let saved_geom = desktop_state.current_geometry();
             app.manage(desktop_state);
+            if let Some(saved) = saved_geom {
+                restore_saved_window_geometry(app.handle(), saved);
+            }
 
             #[cfg(target_os = "macos")]
             {
@@ -268,11 +270,12 @@ pub fn run() {
         .on_window_event(|window, event| match event {
             WindowEvent::Moved(_) | WindowEvent::Resized(_) => capture_window_geometry(window),
             WindowEvent::CloseRequested { api, .. } => {
-                let state = window.app_handle().state::<AppDesktopState>();
-                state.persist_geometry();
-                if cfg!(target_os = "macos") && !state.is_quitting() {
-                    api.prevent_close();
-                    let _ = window.hide();
+                if let Some(state) = window.app_handle().try_state::<AppDesktopState>() {
+                    state.persist_geometry();
+                    if cfg!(target_os = "macos") && !state.is_quitting() {
+                        api.prevent_close();
+                        let _ = window.hide();
+                    }
                 }
             }
             WindowEvent::Destroyed => {
@@ -296,18 +299,20 @@ pub fn run() {
         .build(tauri::generate_context!())
         .expect("Aquila Buddy desktop application failed to build");
 
-    app.run(|app_handle, event| match event {
-        #[cfg(target_os = "macos")]
-        tauri::RunEvent::Reopen {
-            has_visible_windows: false,
-            ..
-        } => focus_main_window(app_handle),
-        tauri::RunEvent::Exit => {
+    app.run(|app_handle, event| {
+        if let tauri::RunEvent::Exit = event {
             if let Some(state) = app_handle.try_state::<AppDesktopState>() {
                 state.persist_geometry();
             }
         }
-        _ => {}
+        #[cfg(target_os = "macos")]
+        if let tauri::RunEvent::Reopen {
+            has_visible_windows: false,
+            ..
+        } = event
+        {
+            focus_main_window(app_handle);
+        }
     });
 }
 
