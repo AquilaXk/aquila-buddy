@@ -135,6 +135,34 @@ export default function ProtectedLayout({ children }: ProtectedLayoutProps) {
     );
   }
 
+  if (sessionStatus === "checking") {
+    return (
+      <div className="min-h-screen bg-[#f6f8fa] text-[#1f2328] lg:flex">
+        <div className="hidden w-64 shrink-0 p-4 lg:block">
+          <div className="h-6 w-32 animate-pulse rounded bg-[#eaeef2]" />
+          <div className="mt-6 space-y-2">
+            <div className="h-8 animate-pulse rounded-md bg-[#eaeef2]" />
+            <div className="h-8 animate-pulse rounded-md bg-[#eaeef2]" />
+            <div className="h-8 animate-pulse rounded-md bg-[#eaeef2]" />
+          </div>
+        </div>
+        <div className="flex min-w-0 flex-1 flex-col">
+          <div className="flex min-h-screen flex-1 flex-col bg-[#ffffff] lg:m-2 lg:ml-0 lg:min-h-[calc(100vh-1rem)] lg:rounded-xl lg:border lg:border-[#d1d9e0] lg:shadow-xs">
+            <div className="h-12 border-b border-[#d1d9e0] px-6 py-3">
+              <div className="h-4 w-40 animate-pulse rounded bg-[#eaeef2]" />
+            </div>
+            <main className="mx-auto w-full max-w-[1280px] flex-1 px-5 py-6 sm:px-7">
+              <div className="space-y-4">
+                <div className="h-7 w-48 animate-pulse rounded bg-[#eaeef2]" />
+                <div className="h-32 animate-pulse rounded-lg border border-[#d1d9e0] bg-[#f6f8fa]" />
+              </div>
+            </main>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (sessionStatus !== "authenticated") {
     return null;
   }

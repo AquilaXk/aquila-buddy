@@ -732,7 +732,7 @@ class GitHubRecommendedIssueSearchAdapterTest {
                                   { "willCloseTarget": false, "source": { "state": "OPEN", "merged": false } }
                                 ]
                               },
-                              "repository": { "nameWithOwner": "example/repo", "stargazerCount": 120 }
+                              "repository": { "nameWithOwner": "example/repo", "stargazerCount": 120, "licenseInfo": { "spdxId": "MIT" } }
                             },
                             {
                               "id": "issue-closed-unmerged-pr",
@@ -748,7 +748,7 @@ class GitHubRecommendedIssueSearchAdapterTest {
                                   { "willCloseTarget": true, "source": { "state": "CLOSED", "merged": false } }
                                 ]
                               },
-                              "repository": { "nameWithOwner": "example/repo", "stargazerCount": 150 }
+                              "repository": { "nameWithOwner": "example/repo", "stargazerCount": 150, "licenseInfo": { "spdxId": "NOASSERTION" } }
                             }
                           ]
                         }
@@ -773,6 +773,39 @@ class GitHubRecommendedIssueSearchAdapterTest {
             assertThat(issues)
                 .extracting(RecommendedIssue::issueNumber)
                 .containsExactly(12L, 13L);
+            assertThat(issues.get(0).reason()).contains("라이선스: MIT");
+            assertThat(issues.get(1).reason()).doesNotContain("NOASSERTION").doesNotContain("라이선스:");
+            assertThat(issues.get(0).reason()).contains("라이선스: MIT");
+        }
+    }
+
+    @Test
+    void restFallbackIncludesNoAssigneeQualifier() throws Exception {
+        java.time.Clock fixedClock = java.time.Clock.fixed(
+            java.time.Instant.parse("2026-06-15T00:00:00Z"),
+            java.time.ZoneOffset.UTC
+        );
+        try (MockWebServer server = new MockWebServer()) {
+            server.enqueue(new MockResponse()
+                .setResponseCode(200)
+                .addHeader("Content-Type", "application/json")
+                .setBody("{\"items\": []}"));
+            server.start();
+
+            GitHubRecommendedIssueSearchAdapter adapter = new GitHubRecommendedIssueSearchAdapter(
+                RestClient.builder(),
+                server.url("/").toString(),
+                "",
+                true,
+                "label:\"good first issue\"",
+                5,
+                false,
+                fixedClock
+            );
+
+            assertThat(adapter.searchRecommendedIssues()).isEmpty();
+            RecordedRequest recorded = server.takeRequest();
+            assertThat(recorded.getRequestUrl().queryParameter("q")).contains("no:assignee");
         }
     }
 

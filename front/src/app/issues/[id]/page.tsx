@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import { ArrowLeft, Check, Copy, ExternalLink, FileCode, GitPullRequest, Square } from "@/components/icons";
 import { ExternalBrowserLink } from "@/components/ExternalBrowserLink";
+import { MarkdownPreview } from "@/components/MarkdownPreview";
 import ProtectedLayout from "@/components/ProtectedLayout";
 import { StatusBadge } from "@/components/StatusBadge";
 import { StudioSplitPane } from "@/components/StudioSplitPane";
@@ -512,12 +513,8 @@ function IssueDetailContent() {
                 <h3 className="mb-2.5 text-[14px] font-semibold tracking-[-0.015em] text-[#1f2328]">
                   가이드라인
                 </h3>
-                <div className="max-w-[70ch] space-y-3 text-[14px] leading-[1.65] text-[#1f2328]">
-                  {guide.guideline.split(/\n{2,}/).map((block, idx) => (
-                    <p className="whitespace-pre-wrap" key={idx}>
-                      {block}
-                    </p>
-                  ))}
+                <div className="max-w-[70ch]">
+                  <MarkdownPreview content={guide.guideline} />
                 </div>
               </div>
             </div>

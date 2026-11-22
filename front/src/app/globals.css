@@ -186,8 +186,12 @@ a[href] {
 }
 
 .primer-branch-pill {
-  display: inline-flex;
-  align-items: center;
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
   border-radius: var(--borderRadius-medium, 6px);
   border: 1px solid rgba(9, 105, 218, 0.2);
   background-color: var(--bgColor-accent-muted, #ddf4ff);

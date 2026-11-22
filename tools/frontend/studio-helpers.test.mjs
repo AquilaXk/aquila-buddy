@@ -29,6 +29,7 @@ function loadTsCommonJsModule(relativePath, stubs = {}) {
     compilerOptions: {
       module: ts.ModuleKind.CommonJS,
       target: ts.ScriptTarget.ES2022,
+      jsx: ts.JsxEmit.ReactJSX,
     },
     fileName: fullPath,
   }).outputText;
@@ -99,15 +100,23 @@ describe("Safe issue reason metadata parser", () => {
     );
 
     const parsed = parseIssueReasonMetadata(
-      "GitHub GraphQL에서 수집된 미할당 이슈 후보입니다. [스타수: 1.4k, 최근 커밋: 2026-11-20]"
+      "GitHub GraphQL에서 수집된 미할당 이슈 후보입니다. [스타수: 1.4k, 최근 커밋: 2026-11-20, 라이선스: MIT]"
     );
     assert.equal(parsed.starsLabel, "1.4k");
+    assert.equal(parsed.starsCount, 1400);
     assert.equal(parsed.recentCommitLabel, "2026-11-20");
+    assert.equal(parsed.licenseLabel, "MIT");
     assert.equal(parsed.cleanReason, "GitHub GraphQL에서 수집된 미할당 이슈 후보입니다.");
+
+    const noAssert = parseIssueReasonMetadata("후보 [스타수: 850, 라이선스: NOASSERTION]");
+    assert.equal(noAssert.starsCount, 850);
+    assert.equal(noAssert.licenseLabel, null);
 
     const plain = parseIssueReasonMetadata("TypeScript 기여 이력과 잘 맞습니다.");
     assert.equal(plain.starsLabel, null);
+    assert.equal(plain.starsCount, null);
     assert.equal(plain.recentCommitLabel, null);
+    assert.equal(plain.licenseLabel, null);
     assert.equal(plain.cleanReason, "TypeScript 기여 이력과 잘 맞습니다.");
   });
 });
@@ -259,5 +268,104 @@ describe("Split diff pairing helper", () => {
     assert.equal(rows[2].left, null);
     assert.equal(rows[2].right?.content, "const c = 4;");
     assert.equal(rows[3].left?.content, "return a;");
+  });
+});
+
+describe("1-pass word-level inline diff helper", () => {
+  it("isolates changed tokens, ignores whitespace-only edits when toggled, and enforces 512-char bound", async () => {
+    const { computeInlineDiffSegments, MAX_INLINE_DIFF_LINE_LENGTH } = await importTypeScriptModule(
+      join(repoRoot, "front/src/lib/inlineDiff.ts")
+    );
+
+    const seg = computeInlineDiffSegments('const title = "안녕 세계";', 'const title = "반가운 세계";');
+    assert.equal(seg?.whitespaceOnly, false);
+    assert.equal(seg?.oldSegments.prefix, 'const title = "');
+    assert.equal(seg?.oldSegments.changed, "안녕");
+    assert.equal(seg?.newSegments.changed, "반가운");
+    assert.equal(seg?.newSegments.suffix, ' 세계";');
+
+    const wsOnly = computeInlineDiffSegments("  const x =  1; ", "const x = 1;", true);
+    assert.equal(wsOnly?.whitespaceOnly, true);
+
+    assert.equal(computeInlineDiffSegments("a".repeat(MAX_INLINE_DIFF_LINE_LENGTH + 1), "b"), null);
+  });
+});
+
+describe("Zero-dependency GFM MarkdownPreview parser", () => {
+  it("parses headings, task lists, tables, code blocks and neutralizes unsafe link schemes", () => {
+    const md = loadTsCommonJsModule("front/src/components/MarkdownPreview.tsx", {
+      "@/components/ExternalBrowserLink": { ExternalBrowserLink: () => null },
+      "@/lib/highlightCodeLine": { highlightCodeLine: (l) => l },
+      "@/lib/utils": { cn: (...xs) => xs.filter(Boolean).join(" ") },
+    });
+
+    const parsed = md.parseMarkdownBlocks([
+      "## 변경 요약",
+      "- [x] 완료 항목",
+      "- [ ] 대기 항목",
+      "| 컬럼 | 값 |",
+      "| --- | --- |",
+      "| A | 1 |",
+      "```ts",
+      "const ok = true;",
+      "```",
+    ].join("\n"));
+
+    assert.equal(parsed.truncated, false);
+    assert.equal(parsed.blocks[0].kind, "heading");
+    assert.equal(parsed.blocks[1].kind, "list");
+    assert.equal(parsed.blocks[1].items[0].checked, true);
+    assert.equal(parsed.blocks[2].kind, "table");
+    assert.equal(parsed.blocks[3].kind, "code");
+
+    const safeInline = md.parseInlineMarkdown("[문서](https://example.com) 및 [차단](javascript:alert(1))");
+    assert.equal(safeInline.some((t) => t.kind === "link" && t.href === "https://example.com"), true);
+    assert.equal(safeInline.some((t) => t.kind === "link" && t.href.startsWith("javascript:")), false);
+
+    const capped = md.parseMarkdownBlocks("a".repeat(md.MAX_MARKDOWN_CHARS + 50));
+    assert.equal(capped.truncated, true);
+  });
+});
+
+describe("Issue star and commit date sorting", () => {
+  it("sorts filtered issues by STARS_DESC and RECENT_COMMIT", async () => {
+    const { filterAndAggregateIssues } = await importTypeScriptModule(
+      join(repoRoot, "front/src/lib/bitapSearch.ts")
+    );
+    const items = [
+      {
+        id: "1",
+        repoFullName: "org/low",
+        issueNumber: 1,
+        title: "Alpha",
+        labels: [],
+        score: 0.9,
+        reason: "추천 [스타수: 120, 최근 커밋: 2026-11-18]",
+      },
+      {
+        id: "2",
+        repoFullName: "org/mid",
+        issueNumber: 2,
+        title: "Beta",
+        labels: [],
+        score: 0.8,
+        reason: "추천 [스타수: 2.5k, 최근 커밋: 2026-11-10]",
+      },
+      {
+        id: "3",
+        repoFullName: "org/new",
+        issueNumber: 3,
+        title: "Gamma",
+        labels: [],
+        score: 0.7,
+        reason: "추천 [스타수: 900, 최근 커밋: 2026-11-22]",
+      },
+    ];
+
+    const byStars = filterAndAggregateIssues(items, "ALL", "ALL", "", "STARS_DESC");
+    assert.deepEqual(byStars.filtered.map((x) => x.id), ["2", "3", "1"]);
+
+    const byCommit = filterAndAggregateIssues(items, "ALL", "ALL", "", "RECENT_COMMIT");
+    assert.deepEqual(byCommit.filtered.map((x) => x.id), ["3", "1", "2"]);
   });
 });

@@ -19,6 +19,7 @@ import {
 import { DiffViewer } from "@/components/DiffViewer";
 import { ExternalBrowserLink } from "@/components/ExternalBrowserLink";
 import { LanguageTabSwitcher } from "@/components/LanguageTabSwitcher";
+import { MarkdownPreview } from "@/components/MarkdownPreview";
 import { PrDraftReadinessSection } from "@/components/PrDraftReadinessSection";
 import ProtectedLayout from "@/components/ProtectedLayout";
 import { StudioSplitPane } from "@/components/StudioSplitPane";
@@ -64,6 +65,7 @@ function PrDetailContent() {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [bodyViewMode, setBodyViewMode] = useState<"preview" | "raw">("preview");
   const [editTitle, setEditTitle] = useState("");
   const [editBody, setEditBody] = useState("");
   const [saving, setSaving] = useState(false);
@@ -468,25 +470,59 @@ function PrDetailContent() {
         </div>
 
         <div className="px-5 py-4">
-          <div className="mb-2 flex items-center justify-between gap-3">
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
             <span className="text-xs font-semibold text-[#59636e]">PR 본문</span>
-            <button
-              className="focus-ring inline-flex items-center gap-1 text-xs font-medium text-[#59636e] transition-colors hover:text-[#0969da]"
-              onClick={() => copyToClipboard(displayBody, "body")}
-              type="button"
-            >
-              {copied === "body" ? (
-                <>
-                  <Check className="h-3.5 w-3.5 text-[#1a7f37]" />
-                  <span>복사됨 ✓</span>
-                </>
-              ) : (
-                <>
-                  <Copy className="h-3.5 w-3.5" />
-                  <span>복사</span>
-                </>
-              )}
-            </button>
+            <div className="flex items-center gap-2">
+              {!editing ? (
+                <div
+                  aria-label="본문 보기 형식"
+                  className="flex items-center gap-0.5 rounded-md border border-[#d1d9e0] bg-[#eaeef2] p-0.5"
+                  role="group"
+                >
+                  <button
+                    aria-pressed={bodyViewMode === "preview"}
+                    className={
+                      bodyViewMode === "preview"
+                        ? "focus-ring rounded-[5px] border border-[#d1d9e0] bg-white px-2 py-0.5 text-[11px] font-semibold text-[#1f2328] shadow-xs"
+                        : "focus-ring rounded-[5px] border border-transparent px-2 py-0.5 text-[11px] font-medium text-[#59636e] hover:text-[#1f2328]"
+                    }
+                    onClick={() => setBodyViewMode("preview")}
+                    type="button"
+                  >
+                    미리보기
+                  </button>
+                  <button
+                    aria-pressed={bodyViewMode === "raw"}
+                    className={
+                      bodyViewMode === "raw"
+                        ? "focus-ring rounded-[5px] border border-[#d1d9e0] bg-white px-2 py-0.5 text-[11px] font-semibold text-[#1f2328] shadow-xs"
+                        : "focus-ring rounded-[5px] border border-transparent px-2 py-0.5 text-[11px] font-medium text-[#59636e] hover:text-[#1f2328]"
+                    }
+                    onClick={() => setBodyViewMode("raw")}
+                    type="button"
+                  >
+                    원문
+                  </button>
+                </div>
+              ) : null}
+              <button
+                className="focus-ring inline-flex items-center gap-1 text-xs font-medium text-[#59636e] transition-colors hover:text-[#0969da]"
+                onClick={() => copyToClipboard(displayBody, "body")}
+                type="button"
+              >
+                {copied === "body" ? (
+                  <>
+                    <Check className="h-3.5 w-3.5 text-[#1a7f37]" />
+                    <span>복사됨 ✓</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-3.5 w-3.5" />
+                    <span>복사</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
           {editing ? (
             <textarea
@@ -495,6 +531,10 @@ function PrDetailContent() {
               onChange={(event) => setEditBody(event.target.value)}
               value={editBody}
             />
+          ) : bodyViewMode === "preview" ? (
+            <div className="max-h-96 overflow-y-auto rounded-md border border-[#d1d9e0] bg-[#f6f8fa] p-4">
+              <MarkdownPreview content={displayBody} />
+            </div>
           ) : (
             <pre className="max-h-96 overflow-y-auto whitespace-pre-wrap rounded-md border border-[#d1d9e0] bg-[#f6f8fa] p-4 font-mono text-[13px] leading-[1.6] text-[#1f2328]">
               {displayBody}

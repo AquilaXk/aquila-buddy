@@ -247,9 +247,14 @@ export function ProfileEditorPanel({ initialProfile }: ProfileEditorPanelProps) 
                   id={languageInputId}
                   onChange={(event) => setLanguageInput(event.target.value)}
                   onKeyDown={(event) => {
+                    if (event.nativeEvent.isComposing || event.keyCode === 229) {
+                      return;
+                    }
                     if (event.key === "Enter") {
                       event.preventDefault();
                       handleAddLanguage();
+                    } else if (event.key === "Backspace" && !languageInput && primaryLanguages.length > 0) {
+                      handleRemoveLanguage(primaryLanguages[primaryLanguages.length - 1]);
                     }
                   }}
                   placeholder="직접 입력 (예: Scala, Swift, Ruby)"
@@ -300,9 +305,14 @@ export function ProfileEditorPanel({ initialProfile }: ProfileEditorPanelProps) 
                   id={topicInputId}
                   onChange={(event) => setTopicInput(event.target.value)}
                   onKeyDown={(event) => {
+                    if (event.nativeEvent.isComposing || event.keyCode === 229) {
+                      return;
+                    }
                     if (event.key === "Enter") {
                       event.preventDefault();
                       handleAddTopic();
+                    } else if (event.key === "Backspace" && !topicInput && topics.length > 0) {
+                      handleRemoveTopic(topics[topics.length - 1]);
                     }
                   }}
                   placeholder="예: spring-boot, nextjs, pgvector"

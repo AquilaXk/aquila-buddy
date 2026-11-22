@@ -221,7 +221,7 @@ export function StudioSplitPane({
         </div>
       ) : (
         <div
-          className="w-full shrink-0 lg:w-[var(--studio-split-left)]"
+          className="w-full shrink-0 lg:min-w-[280px] lg:w-[var(--studio-split-left)]"
           style={{ "--studio-split-left": `${ratio}%` } as React.CSSProperties}
         >
           {leftPane}

@@ -88,6 +88,9 @@ public class GitHubRecommendedIssueSearchAdapter implements SearchRecommendedIss
                 repository {
                   nameWithOwner
                   stargazerCount
+                  licenseInfo {
+                    spdxId
+                  }
                   defaultBranchRef {
                     target {
                       ... on Commit {
@@ -395,6 +398,9 @@ public class GitHubRecommendedIssueSearchAdapter implements SearchRecommendedIss
         if (!baseQuery.contains("is:open") && !baseQuery.contains("state:open")) {
             normalized.append(" is:open");
         }
+        if (!baseQuery.contains("no:assignee")) {
+            normalized.append(" no:assignee");
+        }
         appendFreshnessQualifiers(normalized, baseQuery);
         return normalized.toString();
     }
@@ -488,6 +494,10 @@ public class GitHubRecommendedIssueSearchAdapter implements SearchRecommendedIss
         sb.append(" [스타수: ").append(formatStars(stars));
         if (commitDate != null && !commitDate.isBlank()) {
             sb.append(", 최근 커밋: ").append(formatRecentCommitDate(commitDate));
+        }
+        String spdxId = repository.licenseInfo() != null ? repository.licenseInfo().spdxId() : null;
+        if (spdxId != null && !spdxId.isBlank() && !"NOASSERTION".equalsIgnoreCase(spdxId.trim())) {
+            sb.append(", 라이선스: ").append(spdxId.trim());
         }
         sb.append("]");
         return sb.toString();
@@ -625,8 +635,12 @@ public class GitHubRecommendedIssueSearchAdapter implements SearchRecommendedIss
     private record GraphQLRepository(
         String nameWithOwner,
         Integer stargazerCount,
+        GraphQLLicenseInfo licenseInfo,
         GraphQLDefaultBranchRef defaultBranchRef
     ) {
+    }
+
+    private record GraphQLLicenseInfo(String spdxId) {
     }
 
     private record GraphQLDefaultBranchRef(GraphQLCommitTarget target) {

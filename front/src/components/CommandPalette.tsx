@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { useRouter } from "next/navigation";
-import { FileText, GitPullRequest, LayoutList, Search, User, X } from "./icons";
+import { FileText, GitPullRequest, Keyboard, LayoutList, Search, User, X } from "./icons";
+import { OPEN_SHORTCUT_HELP_EVENT } from "./ShortcutHelpDialog";
 import { Kbd } from "./ui/kbd";
 import {
   getPullRequestDraftHistory,
@@ -19,10 +20,11 @@ export const OPEN_COMMAND_PALETTE_EVENT = "aquila-buddy-open-palette";
 
 type PaletteItem = {
   id: string;
-  group: "화면 이동" | "추천 이슈" | "PR 초안";
+  group: "화면 이동" | "빠른 작업" | "추천 이슈" | "PR 초안";
   title: string;
   subtitle: string;
-  href: string;
+  href?: string;
+  eventName?: string;
   keywords: string;
 };
 
@@ -59,6 +61,14 @@ const staticNavItems: PaletteItem[] = [
     href: "/profile",
     keywords: "profile 설정 프로필 추천 기준 동기화",
   },
+  {
+    id: "action-shortcuts",
+    group: "빠른 작업",
+    title: "키보드 단축키 도움말 열기",
+    subtitle: "현재 화면 및 전체 탐색 단축키 안내 (?)",
+    eventName: OPEN_SHORTCUT_HELP_EVENT,
+    keywords: "shortcut help 단축키 도움말 ?",
+  },
 ];
 
 export default function CommandPalette() {
@@ -73,7 +83,6 @@ export default function CommandPalette() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [issues, setIssues] = useState<RecommendedIssueHistory[]>([]);
   const [drafts, setDrafts] = useState<StoredPullRequestDraft[]>([]);
-  const dataLoadedRef = useRef(false);
 
   const openPalette = useCallback(() => {
     const dialog = dialogRef.current;
@@ -100,7 +109,6 @@ export default function CommandPalette() {
   useEffect(() => {
     function handleAuthStateChanged() {
       if (!isLoggedIn()) {
-        dataLoadedRef.current = false;
         setIssues([]);
         setDrafts([]);
       }
@@ -113,7 +121,7 @@ export default function CommandPalette() {
   }, []);
 
   useEffect(() => {
-    if (!open || dataLoadedRef.current) {
+    if (!open || !isLoggedIn()) {
       return;
     }
     let cancelled = false;
@@ -125,7 +133,6 @@ export default function CommandPalette() {
       if (cancelled) {
         return;
       }
-      dataLoadedRef.current = true;
       if (issueRes.status === "fulfilled") {
         setIssues(issueRes.value.slice(0, 12));
       }
@@ -263,7 +270,13 @@ export default function CommandPalette() {
   const navigateToItem = useCallback(
     (item: PaletteItem) => {
       closePalette();
-      router.push(item.href);
+      if (item.eventName) {
+        window.dispatchEvent(new CustomEvent(item.eventName));
+        return;
+      }
+      if (item.href) {
+        router.push(item.href);
+      }
     },
     [closePalette, router]
   );
@@ -404,6 +417,9 @@ function ItemIcon({ group }: { group: PaletteItem["group"] }) {
   }
   if (group === "화면 이동") {
     return <FileText className="h-3.5 w-3.5 shrink-0 text-[#59636e]" />;
+  }
+  if (group === "빠른 작업") {
+    return <Keyboard className="h-3.5 w-3.5 shrink-0 text-[#59636e]" />;
   }
   return <User className="h-3.5 w-3.5 shrink-0 text-[#59636e]" />;
 }

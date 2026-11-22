@@ -107,9 +107,11 @@ export default function IssuesPage() {
   const [recommending, setRecommending] = useState(false);
   const [recommendStep, setRecommendStep] = useState<RecommendStep>("");
   const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     let isMounted = true;
+    setLoading(true);
 
     Promise.allSettled([getRecommendedIssueHistory(), getIssueBookmarks()])
       .then(([historyResult, bookmarksResult]) => {
@@ -136,7 +138,7 @@ export default function IssuesPage() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [retryCount]);
 
   useEffect(() => {
     if (selectedRepo !== "ALL" && !history.some((issue) => issue.repoFullName === selectedRepo)) {
@@ -378,9 +380,18 @@ export default function IssuesPage() {
       ) : null}
 
       {error ? (
-        <div className="mb-5 flex items-center gap-2 rounded-lg border border-[#ff8182]/40 bg-[#ffebe9] px-4 py-3 text-[13.5px] font-medium text-[#d1242f]">
-          <AlertCircle className="h-4 w-4 shrink-0" />
-          <span>{error}</span>
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[#ff8182]/40 bg-[#ffebe9] px-4 py-3 text-[13.5px] font-medium text-[#d1242f]">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            <span>{error}</span>
+          </div>
+          <button
+            className="btn-secondary focus-ring px-3 py-1 text-xs"
+            onClick={() => setRetryCount((c) => c + 1)}
+            type="button"
+          >
+            다시 시도
+          </button>
         </div>
       ) : null}
 
@@ -391,7 +402,7 @@ export default function IssuesPage() {
           <div className="h-24 animate-pulse bg-white" />
           <div className="h-24 animate-pulse bg-white" />
         </div>
-      ) : history.length === 0 ? (
+      ) : error && history.length === 0 ? null : history.length === 0 ? (
         <EmptyIssuesState onRecommend={handleRecommend} recommending={recommending} />
       ) : (
         <section className="primer-box overflow-hidden">
@@ -487,6 +498,8 @@ export default function IssuesPage() {
                   value={sortMode}
                 >
                   <option value="SCORE">매칭순</option>
+                  <option value="STARS_DESC">스타순</option>
+                  <option value="RECENT_COMMIT">최신 커밋순</option>
                   <option value="ISSUE_ASC">번호순</option>
                 </select>
 
@@ -680,6 +693,11 @@ function IssueHistoryCard({
             <span className="badge-trim tabular-nums inline-flex items-center gap-1 rounded-full border border-[#d1d9e0] bg-[#f6f8fa] px-2 py-0.5 font-mono text-[11px] text-[#59636e]">
               <GitCommitHorizontal className="h-3 w-3" aria-hidden="true" />
               <span>{meta.recentCommitLabel}</span>
+            </span>
+          ) : null}
+          {meta.licenseLabel ? (
+            <span className="badge-trim rounded-full border border-[#d1d9e0] bg-white px-2 py-0.5 font-mono text-[11px] font-medium text-[#1f2328]">
+              {meta.licenseLabel}
             </span>
           ) : null}
           {visibleLabels.map((label) => (

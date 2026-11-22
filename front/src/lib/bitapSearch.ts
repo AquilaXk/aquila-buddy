@@ -4,7 +4,7 @@ const BIT_ALL_ONES_32 = 0xffffffff;
 const BIT_ANALYZED = 1 << 0;
 const BIT_REPO_MATCH = 1 << 1;
 
-export type IssueSortMode = "SCORE" | "ISSUE_ASC";
+export type IssueSortMode = "SCORE" | "ISSUE_ASC" | "STARS_DESC" | "RECENT_COMMIT";
 export type IssueAnalysisFilter = "ALL" | "ANALYZED" | "PENDING";
 
 export interface FilterableIssueLike {
@@ -309,6 +309,46 @@ export function scoreIssueQueryMatch(issue: FilterableIssueLike, query: string):
   return scoreIssueWithCompiledPattern(issue, trimmed, compileBitapPattern(trimmed, 1));
 }
 
+function extractSortSignals(reason?: string): { stars: number; commitDate: string } {
+  if (!reason) {
+    return { stars: -1, commitDate: "" };
+  }
+  const start = reason.lastIndexOf("[스타수:");
+  if (start === -1) {
+    return { stars: -1, commitDate: "" };
+  }
+  const end = reason.indexOf("]", start);
+  if (end === -1) {
+    return { stars: -1, commitDate: "" };
+  }
+  let stars = -1;
+  let commitDate = "";
+  const segments = reason.slice(start + 1, end).split(",");
+  for (let i = 0; i < segments.length; i += 1) {
+    const part = segments[i].trim();
+    if (part.startsWith("스타수:")) {
+      const raw = part.slice("스타수:".length).trim().toLowerCase();
+      if (raw.endsWith("k")) {
+        const parsed = Number.parseFloat(raw.slice(0, -1));
+        if (Number.isFinite(parsed) && parsed >= 0) {
+          stars = Math.round(parsed * 1000);
+        }
+      } else {
+        const parsed = Number.parseInt(raw.replaceAll(",", ""), 10);
+        if (Number.isFinite(parsed) && parsed >= 0) {
+          stars = parsed;
+        }
+      }
+    } else if (part.startsWith("최근 커밋:")) {
+      const val = part.slice("최근 커밋:".length).trim();
+      if (/^\d{4}-\d{2}-\d{2}$/.test(val)) {
+        commitDate = val;
+      }
+    }
+  }
+  return { stars, commitDate };
+}
+
 /**
  * 저장소 목록 집계, 분석 상태 카운트, Bitap 검색, 정렬을 단일 패스로 처리합니다.
  */
@@ -373,6 +413,11 @@ export function filterAndAggregateIssues<T extends FilterableIssueLike>(
   }
 
   if (matched.length > 1) {
+    const signals =
+      sortMode === "STARS_DESC" || sortMode === "RECENT_COMMIT"
+        ? new Map(matched.map((entry) => [entry.issue, extractSortSignals(entry.issue.reason)]))
+        : null;
+
     matched.sort((a, b) => {
       if (b.rank !== a.rank) {
         return b.rank - a.rank;
@@ -383,6 +428,19 @@ export function filterAndAggregateIssues<T extends FilterableIssueLike>(
           return repoCmp;
         }
         return a.issue.issueNumber - b.issue.issueNumber;
+      }
+      if (sortMode === "STARS_DESC" && signals) {
+        const aStars = signals.get(a.issue)?.stars ?? -1;
+        const bStars = signals.get(b.issue)?.stars ?? -1;
+        if (bStars !== aStars) {
+          return bStars - aStars;
+        }
+      } else if (sortMode === "RECENT_COMMIT" && signals) {
+        const aDate = signals.get(a.issue)?.commitDate ?? "";
+        const bDate = signals.get(b.issue)?.commitDate ?? "";
+        if (bDate !== aDate) {
+          return bDate.localeCompare(aDate);
+        }
       }
       if (b.issue.score !== a.issue.score) {
         return b.issue.score - a.issue.score;

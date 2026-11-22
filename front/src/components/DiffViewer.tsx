@@ -3,6 +3,7 @@
 import { useId, useMemo, useState } from "react";
 import { ChevronDown, ChevronRight, Columns2, FileCode, Rows3 } from "./icons";
 import { highlightCodeLine } from "@/lib/highlightCodeLine";
+import { computeInlineDiffSegments, type InlineDiffSegment } from "@/lib/inlineDiff";
 import {
   pairHunkLinesForSplit,
   parseUnifiedDiff,
@@ -84,6 +85,7 @@ export function DiffViewer({
   const baseId = useId();
   const parsed = useMemo(() => parseUnifiedDiff(diffContent), [diffContent]);
   const [viewMode, setViewMode] = useState<DiffViewMode>("unified");
+  const [ignoreWhitespace, setIgnoreWhitespace] = useState(false);
   const [collapsedFiles, setCollapsedFiles] = useState<Record<number, boolean>>({});
   const [visibleLineLimits, setVisibleLineLimits] = useState<Record<number, number>>({});
 
@@ -137,6 +139,20 @@ export function DiffViewer({
                 64KB 상한으로 일부 생략됨
               </span>
             ) : null}
+
+            <button
+              aria-pressed={ignoreWhitespace}
+              className={cn(
+                "focus-ring rounded-md border px-2 py-0.5 font-sans text-[11px] transition-colors",
+                ignoreWhitespace
+                  ? "border-[#0969da]/30 bg-[#ddf4ff] font-semibold text-[#0969da]"
+                  : "border-[#d1d9e0] bg-white font-medium text-[#59636e] hover:text-[#1f2328]"
+              )}
+              onClick={() => setIgnoreWhitespace((prev) => !prev)}
+              type="button"
+            >
+              공백 무시
+            </button>
 
             <div
               aria-label="Diff 보기 형식"
@@ -213,6 +229,7 @@ export function DiffViewer({
             fileId={`${baseId}-file-${fileIndex}`}
             fileIndex={fileIndex}
             highlighted={highlighted}
+            ignoreWhitespace={ignoreWhitespace}
             isCollapsed={Boolean(collapsedFiles[fileIndex])}
             key={`${file.displayPath}-${fileIndex}`}
             onExpandFull={(totalLines) =>
@@ -241,6 +258,7 @@ function DiffFilePanel({
   fileId,
   fileIndex,
   highlighted,
+  ignoreWhitespace,
   isCollapsed,
   viewMode,
   visibleLineLimit,
@@ -253,6 +271,7 @@ function DiffFilePanel({
   fileId: string;
   fileIndex: number;
   highlighted: boolean;
+  ignoreWhitespace: boolean;
   isCollapsed: boolean;
   viewMode: DiffViewMode;
   visibleLineLimit: number;
@@ -334,9 +353,9 @@ function DiffFilePanel({
                     </span>
                   </div>
                   {viewMode === "split" ? (
-                    <SplitHunkTable lines={visibleLines} />
+                    <SplitHunkTable ignoreWhitespace={ignoreWhitespace} lines={visibleLines} />
                   ) : (
-                    <UnifiedHunkTable lines={visibleLines} />
+                    <UnifiedHunkTable ignoreWhitespace={ignoreWhitespace} lines={visibleLines} />
                   )}
                 </div>
               );
@@ -381,25 +400,79 @@ function DiffFilePanel({
   );
 }
 
-function UnifiedHunkTable({ lines }: { lines: ParsedDiffLine[] }) {
+function renderCodeWithInlineDiff(
+  content: string,
+  segment: InlineDiffSegment | null,
+  tone: "add" | "del" | null
+) {
+  if (!segment || !segment.changed || !tone) {
+    return highlightCodeLine(content);
+  }
+  const markClass =
+    tone === "add"
+      ? "rounded-[2px] bg-[var(--diffBlob-additionWord-bgColor,#aceebb)] text-inherit"
+      : "rounded-[2px] bg-[var(--diffBlob-deletionWord-bgColor,#ffcecb)] text-inherit";
+  return (
+    <>
+      {segment.prefix ? highlightCodeLine(segment.prefix) : null}
+      <mark className={markClass}>{highlightCodeLine(segment.changed)}</mark>
+      {segment.suffix ? highlightCodeLine(segment.suffix) : null}
+    </>
+  );
+}
+
+function UnifiedHunkTable({
+  lines,
+  ignoreWhitespace,
+}: {
+  lines: ParsedDiffLine[];
+  ignoreWhitespace: boolean;
+}) {
+  const inlinePairs = useMemo(() => {
+    const map = new Map<number, { seg: InlineDiffSegment; whitespaceOnly: boolean }>();
+    for (let i = 0; i < lines.length - 1; i += 1) {
+      const cur = lines[i];
+      const nxt = lines[i + 1];
+      if (
+        cur.type === "del" &&
+        nxt.type === "add" &&
+        lines[i - 1]?.type !== "del" &&
+        lines[i + 2]?.type !== "add"
+      ) {
+        const res = computeInlineDiffSegments(cur.content, nxt.content, ignoreWhitespace);
+        if (res) {
+          map.set(i, { seg: res.oldSegments, whitespaceOnly: res.whitespaceOnly });
+          map.set(i + 1, { seg: res.newSegments, whitespaceOnly: res.whitespaceOnly });
+        }
+      }
+    }
+    return map;
+  }, [ignoreWhitespace, lines]);
+
   return (
     <table className="w-full border-collapse">
       <tbody>
         {lines.map((line, lineIdx) => {
+          const paired = inlinePairs.get(lineIdx);
+          const mutedByWhitespace = Boolean(paired?.whitespaceOnly);
           const rowBg =
-            line.type === "add"
-              ? "bg-[#dafbe1] text-[#1f2328]"
-              : line.type === "del"
-                ? "bg-[#ffebe9] text-[#1f2328]"
-                : line.type === "meta"
-                  ? "bg-[#f6f8fa] text-[#59636e]"
-                  : "bg-white text-[#1f2328]";
+            mutedByWhitespace
+              ? "bg-white text-[#59636e]"
+              : line.type === "add"
+                ? "bg-[#dafbe1] text-[#1f2328]"
+                : line.type === "del"
+                  ? "bg-[#ffebe9] text-[#1f2328]"
+                  : line.type === "meta"
+                    ? "bg-[#f6f8fa] text-[#59636e]"
+                    : "bg-white text-[#1f2328]";
           const gutterBg =
-            line.type === "add"
-              ? "bg-[#aceebb] text-[#1f2328]"
-              : line.type === "del"
-                ? "bg-[#ffcecb] text-[#1f2328]"
-                : "bg-[#ffffff] text-[#59636e]";
+            mutedByWhitespace
+              ? "bg-[#ffffff] text-[#59636e]"
+              : line.type === "add"
+                ? "bg-[#aceebb] text-[#1f2328]"
+                : line.type === "del"
+                  ? "bg-[#ffcecb] text-[#1f2328]"
+                  : "bg-[#ffffff] text-[#59636e]";
           const marker =
             line.type === "add"
               ? "+"
@@ -409,24 +482,34 @@ function UnifiedHunkTable({ lines }: { lines: ParsedDiffLine[] }) {
                   ? "\\"
                   : " ";
           const markerColor =
-            line.type === "add"
-              ? "text-[#1a7f37]"
-              : line.type === "del"
-                ? "text-[#d1242f]"
-                : "text-[#59636e]";
+            mutedByWhitespace
+              ? "text-[#818b98]"
+              : line.type === "add"
+                ? "text-[#1a7f37]"
+                : line.type === "del"
+                  ? "text-[#d1242f]"
+                  : "text-[#59636e]";
+          const tone =
+            !mutedByWhitespace && (line.type === "add" || line.type === "del") ? line.type : null;
 
           return (
             <tr className={rowBg} key={lineIdx}>
-              <td className={`tabular-nums w-10 select-none border-r border-[#d1d9e0] px-2 text-right text-[11px] ${gutterBg}`}>
+              <td
+                className={`tabular-nums sticky left-0 z-[1] w-10 min-w-[2.5rem] select-none border-r border-[#d1d9e0] px-2 text-right text-[11px] ${gutterBg}`}
+              >
                 {line.oldLine ?? ""}
               </td>
-              <td className={`tabular-nums w-10 select-none border-r border-[#d1d9e0] px-2 text-right text-[11px] ${gutterBg}`}>
+              <td
+                className={`tabular-nums sticky left-10 z-[1] w-10 min-w-[2.5rem] select-none border-r border-[#d1d9e0] px-2 text-right text-[11px] ${gutterBg}`}
+              >
                 {line.newLine ?? ""}
               </td>
               <td className={`w-6 select-none px-1.5 text-center font-semibold ${markerColor}`}>
                 {marker}
               </td>
-              <td className="whitespace-pre pr-4">{highlightCodeLine(line.content)}</td>
+              <td className="whitespace-pre pr-4">
+                {renderCodeWithInlineDiff(line.content, paired?.seg ?? null, tone)}
+              </td>
             </tr>
           );
         })}
@@ -435,7 +518,13 @@ function UnifiedHunkTable({ lines }: { lines: ParsedDiffLine[] }) {
   );
 }
 
-function SplitHunkTable({ lines }: { lines: ParsedDiffLine[] }) {
+function SplitHunkTable({
+  lines,
+  ignoreWhitespace,
+}: {
+  lines: ParsedDiffLine[];
+  ignoreWhitespace: boolean;
+}) {
   const rows = useMemo(() => pairHunkLinesForSplit(lines), [lines]);
 
   return (
@@ -452,30 +541,44 @@ function SplitHunkTable({ lines }: { lines: ParsedDiffLine[] }) {
             );
           }
 
+          const inline =
+            row.left?.type === "del" && row.right?.type === "add"
+              ? computeInlineDiffSegments(row.left.content, row.right.content, ignoreWhitespace)
+              : null;
+          const mutedByWhitespace = Boolean(inline?.whitespaceOnly);
+
           const leftBg =
-            row.left?.type === "del"
-              ? "bg-[#ffebe9] text-[#1f2328]"
-              : row.left
-                ? "bg-white text-[#1f2328]"
-                : "bg-[#f6f8fa]";
+            mutedByWhitespace
+              ? "bg-white text-[#59636e]"
+              : row.left?.type === "del"
+                ? "bg-[#ffebe9] text-[#1f2328]"
+                : row.left
+                  ? "bg-white text-[#1f2328]"
+                  : "bg-[#f6f8fa]";
           const leftGutter =
-            row.left?.type === "del"
-              ? "bg-[#ffcecb] text-[#1f2328]"
-              : row.left
-                ? "bg-white text-[#59636e]"
-                : "bg-[#f6f8fa] text-[#59636e]";
+            mutedByWhitespace
+              ? "bg-white text-[#59636e]"
+              : row.left?.type === "del"
+                ? "bg-[#ffcecb] text-[#1f2328]"
+                : row.left
+                  ? "bg-white text-[#59636e]"
+                  : "bg-[#f6f8fa] text-[#59636e]";
           const rightBg =
-            row.right?.type === "add"
-              ? "bg-[#dafbe1] text-[#1f2328]"
-              : row.right
-                ? "bg-white text-[#1f2328]"
-                : "bg-[#f6f8fa]";
+            mutedByWhitespace
+              ? "bg-white text-[#59636e]"
+              : row.right?.type === "add"
+                ? "bg-[#dafbe1] text-[#1f2328]"
+                : row.right
+                  ? "bg-white text-[#1f2328]"
+                  : "bg-[#f6f8fa]";
           const rightGutter =
-            row.right?.type === "add"
-              ? "bg-[#aceebb] text-[#1f2328]"
-              : row.right
-                ? "bg-white text-[#59636e]"
-                : "bg-[#f6f8fa] text-[#59636e]";
+            mutedByWhitespace
+              ? "bg-white text-[#59636e]"
+              : row.right?.type === "add"
+                ? "bg-[#aceebb] text-[#1f2328]"
+                : row.right
+                  ? "bg-white text-[#59636e]"
+                  : "bg-[#f6f8fa] text-[#59636e]";
 
           return (
             <tr className="border-b border-[#d1d9e0]/50 last:border-b-0" key={idx}>
@@ -483,13 +586,25 @@ function SplitHunkTable({ lines }: { lines: ParsedDiffLine[] }) {
                 {row.left?.oldLine ?? ""}
               </td>
               <td className={`w-1/2 overflow-x-auto whitespace-pre border-r border-[#d1d9e0] px-2 ${leftBg}`}>
-                {row.left ? highlightCodeLine(row.left.content) : ""}
+                {row.left
+                  ? renderCodeWithInlineDiff(
+                      row.left.content,
+                      inline?.oldSegments ?? null,
+                      mutedByWhitespace ? null : row.left.type === "del" ? "del" : null
+                    )
+                  : ""}
               </td>
               <td className={`tabular-nums w-10 select-none border-r border-[#d1d9e0] px-2 text-right text-[11px] ${rightGutter}`}>
                 {row.right?.newLine ?? ""}
               </td>
               <td className={`w-1/2 overflow-x-auto whitespace-pre px-2 ${rightBg}`}>
-                {row.right ? highlightCodeLine(row.right.content) : ""}
+                {row.right
+                  ? renderCodeWithInlineDiff(
+                      row.right.content,
+                      inline?.newSegments ?? null,
+                      mutedByWhitespace ? null : row.right.type === "add" ? "add" : null
+                    )
+                  : ""}
               </td>
             </tr>
           );
